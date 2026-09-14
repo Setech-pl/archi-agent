@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build and test output
+dist/
+out/
+build/
+coverage/
+.vitest/
+*.tsbuildinfo
+
+# Packages and archives
+*.vsix
+*.zip
+*.7z
+*.tar
+*.gz
+*.tgz
+
+# Local diagnostics and generated diagrams
+.archground/
+architecture-diagrams/
+*.log
+
+# Environment files (credentials are kept in editor secret storage)
+.env
+.env.*
+
+# Operating-system and editor-local files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+*.swp
+*~
+.idea/
+.vscode/settings.json
+*.code-workspace

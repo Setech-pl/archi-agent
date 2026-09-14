@@ -1,0 +1,26 @@
+{
+  "name": "archground",
+  "displayName": "ArchGround",
+  "version": "0.1.0-private.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "publisher": "setech-pl",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.91.0",
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  }
+}
