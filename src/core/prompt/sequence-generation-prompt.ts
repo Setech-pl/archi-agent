@@ -91,7 +91,7 @@ export const sequencePlannerInstructions = [
   "- Set isResponse to true only for a synchronous reply to an earlier synchronous request between the same two participants in the opposite direction. A response is never asynchronous.",
   "- Respect the rules: never create an interaction that a forbid rule prohibits, and include an interaction that a require rule demands when both participants are in the diagram.",
   "- Number the messages with order 1, 2, 3 and so on, in the order in which they happen.",
-  "- Write each label as a short plain-text description in the flow language. Use only letters, digits, spaces and the characters . , : ; ( ) - _ / ? & + ' with no quotes, brackets, markup or line breaks, at most 160 characters. Do not start a label with a diagram keyword such as alt, else, end, loop, opt, group, note or title.",
+  "- Write each label as a short plain-text description in the flow language. Use only letters, digits, spaces and the characters . , : ; ( ) - _ / ? & + ' with no quotes, brackets, markup or line breaks, at most 160 characters.",
   "",
   "Fragments:",
   "- Use the fragment kinds alt, opt, loop and group only when the flow describes a condition, an option, a repetition or a grouping. Otherwise use no fragments.",

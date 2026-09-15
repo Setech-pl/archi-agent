@@ -263,6 +263,72 @@ describe("renderPlantUml - fragments", () => {
   });
 });
 
+describe("renderPlantUml - message labels after the controlled colon", () => {
+  const keywordLabels = [
+    "Return validation result",
+    "return telemetry frames",
+    "ReTuRn mixed case frames",
+    "Create payment instruction",
+    "Activate subscription",
+    "Deactivate temporary route",
+    "Destroy expired session",
+    "Alt processing route selected",
+    "Else use fallback channel",
+    "Opt retry once",
+    "Loop over available records",
+    "Group matching results",
+    "End customer session",
+    "Note validation outcome",
+    "Title lookup",
+    "Return: validation result",
+    "end"
+  ];
+
+  it("keeps a response label that begins with Return on the arrow line as a response, byte for byte", () => {
+    const text = render(
+      modelOf([
+        ["mission-control", "command-service", "REST API", { label: "Create payment instruction", interfaceName: "Command API" }],
+        ["command-service", "mission-control", "REST API", { label: "Return validation result", isResponse: true }]
+      ])
+    );
+
+    expect(bodyLines(text)).toEqual([
+      "kp_mission_control -> kp_command_service : Create payment instruction (REST API: Command API)",
+      "kp_command_service --> kp_mission_control : Return validation result (REST API)"
+    ]);
+    expect(text.split(LF).filter((line) => /^\s*(?:return|create)\b/i.test(line))).toEqual([]);
+    expect(text).toContain(` : Return validation result (REST API)${LF}`);
+    expect(validatePlantUmlSubset(text).ok).toBe(true);
+  });
+
+  it("renders every keyword-leading label unchanged after the alias, arrow and colon it never controls", () => {
+    for (const label of keywordLabels) {
+      const text = render(modelOf([["mission-control", "command-service", "REST API", { label }]]));
+
+      expect(bodyLines(text)).toEqual([`kp_mission_control -> kp_command_service : ${label} (REST API)`]);
+      expect(text.split(LF).filter((line) => line.endsWith(` : ${label} (REST API)`))).toHaveLength(1);
+      expect(validatePlantUmlSubset(text)).toEqual({ ok: true, issues: [], truncated: false });
+    }
+  });
+
+  it("still refuses a label that could leave the arrow line, naming only the problem", () => {
+    const base = modelOf([["mission-control", "command-service", "REST API"]]);
+
+    for (const [label, problem] of [
+      [`Return validation result${LF}@enduml`, "line-break"],
+      [`Return${CR}validation result`, "line-break"],
+      ["Return @enduml", "directive-like"],
+      ["Return !include local.puml", "directive-like"],
+      ["Return <img:logo.png>", "creole-markup"]
+    ] as const) {
+      const result = renderPlantUml({ context, model: { ...base, messages: base.messages.map((message) => ({ ...message, label })) }, digest, generatorType: "scripted-demo" });
+
+      expect(result).toEqual({ ok: false, issues: [expect.objectContaining({ code: "render-failed", details: { problem } })] });
+      expect(JSON.stringify(result)).not.toContain("validation result");
+    }
+  });
+});
+
 describe("renderPlantUml - refusal", () => {
   const base = modelOf([["mission-control", "command-service", "REST API"]]);
   const refuse = (model: GeneratedSequenceModel) => renderPlantUml({ context, model, digest, generatorType: "scripted-demo" });

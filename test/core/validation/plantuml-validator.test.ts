@@ -41,6 +41,20 @@ describe("validatePlantUmlSubset - accepted documents", () => {
     expect(validatePlantUmlSubset(document([request], { legend: legendLines("pl") })).ok).toBe(true);
   });
 
+  it("accepts message text that begins with a statement keyword after the controlled colon", () => {
+    for (const label of ["Return validation result", "return telemetry frames", "Create payment instruction", "alt accepted", "end of story", "note over A", "activate now", "title lookup", "hide balance", "return"]) {
+      expect(rules(document([`kp_command_service --> kp_mission_control : ${label} (REST API)`]))).toEqual([]);
+      expect(rules(document([`kp_mission_control -> kp_command_service : ${label} (REST API: Command API)`]))).toEqual([]);
+    }
+  });
+
+  it("rejects the same words as standalone statements", () => {
+    expect(ruleNames(document([request, "return Result"]))).toContain("unknown-statement");
+    expect(ruleNames(document([request, "note over kp_mission_control"]))).toContain("unknown-statement");
+    expect(ruleNames(document([request, "activate kp_mission_control"]))).toContain("unknown-statement");
+    expect(ruleNames(document([request, "alt Accepted"]))).toContain("unbalanced-block");
+  });
+
   it("accepts balanced fragments that each contain a message", () => {
     const text = document(["alt Accepted", "opt Retry", request, "end", "else Rejected", response, "loop Each frame", asyncMessage, "end", "end", "group Uplink", request, "end"]);
 

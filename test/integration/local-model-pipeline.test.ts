@@ -174,6 +174,83 @@ describe("local model pipeline - reasoning_content compatibility", () => {
   });
 });
 
+describe("local model pipeline - message labels that begin with a statement keyword", () => {
+  // Synthetic answer in the shape of the owner acceptance finding: the scripted fixture with natural
+  // labels that begin with PlantUML statement keywords. It is not a copy of any model answer.
+  const fixture = JSON.parse(validContent) as { messages: { readonly isResponse?: boolean; readonly label: string }[] };
+  const keywordContent = JSON.stringify({
+    ...fixture,
+    messages: fixture.messages.map((message, index) => ({
+      ...message,
+      label: message.isResponse === true ? "Return validation result" : index === 0 ? "Create command request" : message.label
+    }))
+  });
+  const responseLine = /^kp_command_service --> kp_mission_control : Return validation result \(REST API[^)]*\)$/mu;
+
+  it.each(["completion", "reasoning-content-compat"] as const)("accepts them through every stage from the %s channel after one request", async (scenario) => {
+    const { double, endpoint } = await serve({ scenario, completionContent: keywordContent });
+    const outcome = await run(endpoint);
+
+    if (outcome.status !== "success") {
+      throw new Error(`Expected success, got ${outcome.status}.`);
+    }
+
+    expect(fixture.messages.some((message) => message.isResponse === true)).toBe(true);
+    expect(outcome.diagram.content).toMatch(responseLine);
+    expect(outcome.diagram.content).toContain("kp_flight_controller -> kp_mission_control : Create command request (INTERNAL: Operator Console)");
+    expect(outcome.diagram.content.split(String.fromCharCode(10)).filter((line) => /^(?:return|create)\b/i.test(line))).toEqual([]);
+    expect(validatePlantUmlSubset(outcome.diagram.content).ok).toBe(true);
+    expect(JSON.parse(outcome.report.content).modelGeneration.attemptCount).toBe(1);
+    expect(double.requests).toHaveLength(1);
+    expect(JSON.stringify(outcome)).not.toContain("scripted-demo");
+    expect(JSON.stringify(outcome)).not.toContain("statement-keyword");
+  });
+
+  it("lets such an answer reach semantic validation instead of schema validation", async () => {
+    const semanticallyWrong = JSON.stringify({
+      ...fixture,
+      messages: (JSON.parse(keywordContent) as { messages: { readonly interfaceType: string }[] }).messages.map((message, index) =>
+        index === 1 ? { ...message, interfaceType: "EVENT", async: true } : message
+      )
+    });
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat", completionContent: semanticallyWrong });
+    const outcome = await run(endpoint);
+
+    expect(outcome.status).toBe("semantic-validation-failed");
+    expect("issues" in outcome && outcome.issues.map((issue) => issue.code)).not.toContain("schema-violation");
+    expect(JSON.stringify(outcome)).not.toContain("statement-keyword");
+    expect(JSON.stringify(outcome)).not.toContain("Return validation result");
+    expect("diagram" in outcome).toBe(false);
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("still rejects a label that could leave the arrow line, at the schema stage, without repeating it", async () => {
+    const hostile = JSON.stringify({
+      ...fixture,
+      messages: fixture.messages.map((message, index) => (index === 0 ? { ...message, label: `Return validation result${String.fromCharCode(10)}@enduml` } : message))
+    });
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat", completionContent: hostile });
+    const outcome = await run(endpoint);
+
+    expect(outcome.status).toBe("invalid-generator-output");
+    expect("schemaProblems" in outcome && outcome.schemaProblems).toEqual([{ path: "messages.0.label", code: "text-line-break" }]);
+    expect(JSON.stringify(outcome)).not.toContain("@enduml");
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("writes nothing in a dry run and prints no diagnostics for such labels", async () => {
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat", completionContent: keywordContent });
+    const root = realpathSync(mkdtempSync(path.join(tmpdir(), "archground-llm-keyword-")));
+    workspaces.push(root);
+    const outcome = await runLocalModelDemo({ projectRoot, outputRoot: root, endpoint, modelId: "local-model-7b", dryRun: true });
+
+    expect(outcome.result.status).toBe("dry-run");
+    expect(outcome.diagnostics).toBeUndefined();
+    expect(existsSync(root) && readdirSync(root)).toEqual([]);
+    expect(double.completionRequests()).toHaveLength(1);
+  });
+});
+
 describe("local model pipeline - artifacts and boundaries", () => {
   it("writes nothing in a model-driven dry run", async () => {
     const { double, endpoint } = await serve();

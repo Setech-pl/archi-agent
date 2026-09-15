@@ -7,7 +7,7 @@ import {
   type GeneratedSequenceModel
 } from "../model/sequence-diagram-model.schema.js";
 import { newParticipantPrefix } from "../model/types.js";
-import { displayTextProblem } from "../render/plantuml-escape.js";
+import { displayTextProblem, messageLabelTextOptions, type DisplayTextOptions } from "../render/plantuml-escape.js";
 import { stableCompare } from "../util/ordering.js";
 
 /**
@@ -302,14 +302,14 @@ export function validateModelStructure(model: GeneratedSequenceModel): readonly 
       issues.push(createModelIssue("response-mode-invalid", { path, details }));
     }
 
-    const texts: ReadonlyArray<readonly [string, string | undefined, number, boolean]> = [
-      ["label", message.label, sequenceModelLimits.maxLabelChars, true],
-      ["interfaceName", message.interfaceName, sequenceModelLimits.maxInterfaceNameChars, false],
-      ["businessDescription", message.businessDescription, sequenceModelLimits.maxBusinessDescriptionChars, true]
+    const texts: ReadonlyArray<readonly [string, string | undefined, DisplayTextOptions]> = [
+      ["label", message.label, messageLabelTextOptions],
+      ["interfaceName", message.interfaceName, { maxChars: sequenceModelLimits.maxInterfaceNameChars }],
+      ["businessDescription", message.businessDescription, { maxChars: sequenceModelLimits.maxBusinessDescriptionChars, rejectStatementKeywords: true }]
     ];
 
-    for (const [field, value, maxChars, rejectStatementKeywords] of texts) {
-      if (value !== undefined && displayTextProblem(value, { maxChars, rejectStatementKeywords }) !== undefined) {
+    for (const [field, value, options] of texts) {
+      if (value !== undefined && displayTextProblem(value, options) !== undefined) {
         issues.push(createModelIssue("unsafe-text", { path: `${path}.${field}`, details }));
       }
     }

@@ -33,9 +33,21 @@ export const plantUmlTextLimits = Object.freeze({
 
 export interface DisplayTextOptions {
   readonly maxChars?: number;
-  /** Also reject text that starts with a PlantUML statement keyword (for generator-supplied text). */
+  /**
+   * Also reject text that starts with a PlantUML statement keyword. For generator-supplied text
+   * that is emitted where a statement could start, such as a fragment condition after alt or else.
+   */
   readonly rejectStatementKeywords?: boolean;
 }
+
+/**
+ * Text context of a generated message label. The renderer emits a label only after the controlled
+ * "<alias> <arrow> <alias> : " prefix of an arrow statement, on one physical line: line breaks and
+ * control characters are rejected below, so the label can never start a line of its own. A leading
+ * PlantUML statement keyword such as "return", "alt" or "end" is therefore ordinary visible text in
+ * this context and is not rejected. Every other check of the policy applies unchanged.
+ */
+export const messageLabelTextOptions: DisplayTextOptions = Object.freeze({ maxChars: plantUmlTextLimits.maxLabelChars });
 
 const allowedCharacter = /^[\p{L}\p{M}\p{N} .,:;()\-_/?&+']$/u;
 const directiveLike = /[@!]\s*[A-Za-z]/u;

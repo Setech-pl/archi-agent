@@ -12,6 +12,7 @@ import {
 type Raw = Record<string, unknown>;
 
 const LF = String.fromCharCode(10);
+const CR = String.fromCharCode(13);
 const remoteUrl = ["https:", "", "diagrams.invalid", "theme"].join("/");
 
 function participant(id: string, canonicalName: string, kind = "system"): Raw {
@@ -197,9 +198,13 @@ describe("generated sequence-model schema - strictness", () => {
       [`Line one${LF}@enduml`, "text-line-break"],
       ['Say "hello"', "text-forbidden-character"],
       ["A -> B", "text-forbidden-character"],
-      ["end of story", "text-statement-keyword"],
-      ["alt accepted", "text-statement-keyword"],
-      ["skinparam monochrome true", "text-statement-keyword"],
+      [`Return validation result${LF}@enduml`, "text-line-break"],
+      [`Return${CR}telemetry frames`, "text-line-break"],
+      [`Return${String.fromCharCode(0x2028)}telemetry frames`, "text-line-break"],
+      ["Return @enduml", "text-directive-like"],
+      ["Return !includeurl remote.puml", "text-directive-like"],
+      ["Return <img:logo.png>", "text-creole-markup"],
+      ["Return {{template}}", "text-forbidden-character"],
       [remoteUrl, "text-remote-url"],
       ["'comment", "text-comment-delimiter"],
       ["**bold**", "text-creole-markup"],
@@ -225,6 +230,50 @@ describe("generated sequence-model schema - strictness", () => {
     const description = validModel();
     (description["messages"] as Raw[])[0] = message(1, { businessDescription: "!pragma teoz true" });
     expect(problemsFor(description)).toContain("messages.0.businessDescription text-directive-like");
+
+    for (const text of ["end of story", "alt accepted", "skinparam monochrome true"]) {
+      const standalone = validModel();
+      (standalone["messages"] as Raw[])[0] = message(1, { businessDescription: text });
+      expect(problemsFor(standalone)).toContain("messages.0.businessDescription text-statement-keyword");
+    }
+  });
+
+  it("accepts message labels that begin with a statement keyword, because a label never starts a line", () => {
+    const labels = [
+      "Return validation result",
+      "return telemetry frames",
+      "ReTuRn mixed case frames",
+      "Create payment instruction",
+      "Activate subscription",
+      "Deactivate temporary route",
+      "Destroy expired session",
+      "Alt processing route selected",
+      "Else use fallback channel",
+      "Opt retry once",
+      "Loop over available records",
+      "Group matching results",
+      "End customer session",
+      "Note validation outcome",
+      "Title lookup",
+      "Skinparam lookup",
+      "Return: validation result",
+      "end"
+    ];
+
+    for (const label of labels) {
+      const raw = validModel();
+      (raw["messages"] as Raw[])[0] = message(1, { label });
+      expect(accepted(raw).messages[0]?.label).toBe(label);
+    }
+
+    const response = validModel();
+    (response["messages"] as Raw[])[1] = message(2, { from: { elementId: "command-service" }, to: { elementId: "mission-control" }, label: "Return validation result", isResponse: true });
+    const model = accepted(response);
+    expect(model.messages[1]).toMatchObject({ label: "Return validation result", isResponse: true, order: 2 });
+
+    const oversized = validModel();
+    (oversized["messages"] as Raw[])[0] = message(1, { label: `Return ${"a".repeat(sequenceModelLimits.maxLabelChars)}` });
+    expect(problemsFor(oversized)).toEqual(["messages.0.label text-too-long"]);
   });
 
   it("enforces collection and text limits before trusting the input", () => {

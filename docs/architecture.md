@@ -171,7 +171,11 @@ The generated model is the existing participant and message model plus optional 
 fragments (`alt` with `else` branches, `opt`, `loop`, `group`) over ranges of message order
 numbers. Unknown keys are rejected, enums are closed, nothing is coerced, every text passes the
 PlantUML text policy, duplicates and undeclared endpoints are rejected, and fragments must nest
-strictly within a bounded depth. Normalization only applies Unicode NFC, trims display text,
+strictly within a bounded depth. The text policy is applied by rendering context: a message label is
+emitted only after the renderer-controlled `<alias> <arrow> <alias> :` prefix on one physical line,
+so it may begin with a PlantUML statement keyword such as `return`, `alt` or `end`, which is plain
+text in that position; a fragment condition follows `alt` or `else` at the start of a line and may
+not. Every other rule of the policy applies to labels unchanged. Normalization only applies Unicode NFC, trims display text,
 turns empty optional values into absent ones and orders messages, participants and fragments
 deterministically. It never invents, removes or repairs anything.
 

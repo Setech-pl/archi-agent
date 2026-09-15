@@ -138,11 +138,22 @@ describe("validateModelStructure", () => {
 
   it("rejects unsafe text before rendering, even when the schema was bypassed", () => {
     expect(codes(model([message(1, { label: "@startuml" })]))).toEqual(["unsafe-text at messages.0.label"]);
+    expect(codes(model([message(1, { label: `Return validation result${LF}@enduml` })]))).toEqual(["unsafe-text at messages.0.label"]);
+    expect(codes(model([message(1, { label: "Return <img:logo.png>" })]))).toEqual(["unsafe-text at messages.0.label"]);
     expect(codes(model([message(1, { interfaceName: "Api [[link]]" })]))).toEqual(["unsafe-text at messages.0.interfaceName"]);
     expect(codes(model([message(1, { businessDescription: "note over A" })]))).toEqual(["unsafe-text at messages.0.businessDescription"]);
     expect(codes(model([message(1)], [{ ...missionControl, canonicalName: 'Mission "Control"' }, commandService]))).toEqual([
       "unsafe-text at participants.0"
     ]);
+  });
+
+  it("accepts message labels that begin with a statement keyword and keeps the rule for other text", () => {
+    for (const label of ["Return validation result", "return telemetry frames", "Create payment instruction", "End customer session", "Note validation outcome", "end"]) {
+      expect(codes(model([message(1, { label })]))).toEqual([]);
+    }
+
+    expect(codes(model([message(1), message(2, { from: { elementId: "command-service" }, to: { elementId: "mission-control" }, label: "Return validation result", isResponse: true })]))).toEqual([]);
+    expect(codes(model([message(1, { businessDescription: "end of story" })]))).toEqual(["unsafe-text at messages.0.businessDescription"]);
   });
 
   it("validates fragment ranges, nesting and condition text", () => {

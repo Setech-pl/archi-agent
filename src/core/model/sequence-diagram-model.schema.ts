@@ -3,7 +3,7 @@ import { newParticipantLimits } from "../grounding/grounded-context.js";
 import { isSafeNewParticipantName, normalizeReferenceText } from "../grounding/participant-resolver.js";
 import { isKnowledgePackIdentifier } from "../knowledge-pack/knowledge-pack.schema.js";
 import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits } from "../knowledge-pack/source-limits.js";
-import { displayTextProblem, plantUmlTextLimits, type DisplayTextOptions } from "../render/plantuml-escape.js";
+import { displayTextProblem, messageLabelTextOptions, plantUmlTextLimits, type DisplayTextOptions } from "../render/plantuml-escape.js";
 import { stableCompare } from "../util/ordering.js";
 import {
   allowedInterfaceTypes,
@@ -163,7 +163,7 @@ const orderSchema = z.number().int().min(1).max(sequenceModelLimits.maxOrder);
 const messageSchema = z.strictObject({
   from: participantRefSchema,
   to: participantRefSchema,
-  label: safeText({ maxChars: sequenceModelLimits.maxLabelChars, rejectStatementKeywords: true }),
+  label: safeText(messageLabelTextOptions),
   interfaceType: z.enum(allowedInterfaceTypes),
   interfaceName: optionalText({ maxChars: sequenceModelLimits.maxInterfaceNameChars }),
   businessDescription: optionalText({

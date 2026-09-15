@@ -11,7 +11,7 @@ import { createModelIssue, type ModelIssue } from "../validation/model-validator
 import { allocateAliases } from "./alias-allocator.js";
 import { legendLines } from "./legend.js";
 import { metadataHeaderLines } from "./metadata-header.js";
-import { assertSafeDisplayText, messageText, quotedName, UnsafePlantUmlTextError } from "./plantuml-escape.js";
+import { assertSafeDisplayText, messageLabelTextOptions, messageText, quotedName, UnsafePlantUmlTextError } from "./plantuml-escape.js";
 
 /**
  * Renders PlantUML from a validated, cleaned model only.
@@ -54,10 +54,7 @@ export function arrowFor(message: SequenceMessage): string {
 }
 
 function messageLabel(message: SequenceMessage): string {
-  const label = assertSafeDisplayText(message.label, {
-    maxChars: sequenceModelLimits.maxLabelChars,
-    rejectStatementKeywords: true
-  });
+  const label = assertSafeDisplayText(message.label, messageLabelTextOptions);
   const interfaceName =
     message.interfaceName === undefined
       ? undefined

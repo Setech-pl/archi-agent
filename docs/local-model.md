@@ -54,6 +54,13 @@ It carries the structure; checks that JSON Schema cannot express (identifier for
 duplicates, declared endpoints, fragment nesting) are enforced by the Zod schema and the validators
 after the answer. When a relationship has no interface name, the model omits the field.
 
+Message labels are validated for the position in which they are rendered: after the controlled
+`<alias> <arrow> <alias> :` prefix, on one physical line. A natural label that begins with a
+PlantUML statement keyword, such as `Return validation result` or `Create payment instruction`, is
+therefore accepted and rendered unchanged; line breaks, control characters, directives, markup,
+URLs and every other construct that could leave that line are still rejected. The prompt does not
+ask the model to avoid such words, and no label is rewritten.
+
 ## Request settings and repeatability
 
 Every request uses `temperature: 0`, `seed: 42`, `stream: false`, a bounded `max_tokens` of 16384

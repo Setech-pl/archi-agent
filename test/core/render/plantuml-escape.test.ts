@@ -4,6 +4,7 @@ import {
   commentText,
   displayTextProblem,
   isSafeDisplayText,
+  messageLabelTextOptions,
   messageText,
   plantUmlTextLimits,
   quotedName,
@@ -96,6 +97,113 @@ describe("displayTextProblem - rejected text", () => {
     expect(displayTextProblem("Alternative route", { rejectStatementKeywords: true })).toBeUndefined();
     expect(displayTextProblem("Endpoint check", { rejectStatementKeywords: true })).toBeUndefined();
     expect(displayTextProblem("alt accepted")).toBeUndefined();
+  });
+});
+
+describe("displayTextProblem - message-label context", () => {
+  const LF = char(10);
+  const CR = char(13);
+  const statementKeywords = [
+    "end", "else", "alt", "opt", "loop", "group", "par", "break", "critical", "skinparam", "legend", "endlegend", "newpage",
+    "autonumber", "activate", "deactivate", "return", "note", "hnote", "rnote", "title", "hide", "show", "create", "destroy"
+  ];
+
+  it("accepts natural labels that begin with a statement keyword, in any letter case", () => {
+    for (const label of [
+      "Return validation result",
+      "return telemetry frames",
+      "ReTuRn mixed case frames",
+      "Create payment instruction",
+      "Activate subscription",
+      "Deactivate temporary route",
+      "Destroy expired session",
+      "Alt processing route selected",
+      "Else use fallback channel",
+      "Loop over available records",
+      "Group matching results",
+      "End customer session",
+      "Note validation outcome"
+    ]) {
+      expect(displayTextProblem(label, messageLabelTextOptions)).toBeUndefined();
+      expect(isSafeDisplayText(label, messageLabelTextOptions)).toBe(true);
+      expect(assertSafeDisplayText(label, messageLabelTextOptions)).toBe(label);
+    }
+  });
+
+  it("accepts every statement keyword at the start of a label, followed by a word or by punctuation", () => {
+    for (const keyword of statementKeywords) {
+      expect(displayTextProblem(`${keyword} handled as label text`, messageLabelTextOptions)).toBeUndefined();
+      expect(displayTextProblem(`${keyword.toUpperCase()}: handled as label text`, messageLabelTextOptions)).toBeUndefined();
+      expect(displayTextProblem(keyword, messageLabelTextOptions)).toBeUndefined();
+    }
+
+    for (const label of ["Return: validation result", "Return, then close the session", "End (customer session)", "Note; outcome recorded", "Loop - each record"]) {
+      expect(displayTextProblem(label, messageLabelTextOptions)).toBeUndefined();
+    }
+  });
+
+  it("accepts a keyword later in the sentence, as before", () => {
+    for (const label of ["Send return receipt", "Session end reached", "Wait for the loop to finish", "Alternative route", "Endpoint check"]) {
+      expect(displayTextProblem(label, messageLabelTextOptions)).toBeUndefined();
+    }
+  });
+
+  it("keeps the standalone statement-keyword rule for text that can start a line", () => {
+    for (const label of ["Return validation result", "return telemetry frames", "end of story", "alt accepted"]) {
+      expect(displayTextProblem(label, { rejectStatementKeywords: true })).toBe("statement-keyword");
+      expect(displayTextProblem(label, { ...messageLabelTextOptions, rejectStatementKeywords: true })).toBe("statement-keyword");
+    }
+  });
+
+  it("still rejects every construct that could leave the arrow line, with a leading keyword or not", () => {
+    const rejected: ReadonlyArray<readonly [string, string]> = [
+      [`Return validation result${LF}@enduml`, "line-break"],
+      [`Return${CR}validation result`, "line-break"],
+      [`Return${char(0x2028)}validation result`, "line-break"],
+      [`Return${char(0x2029)}validation result`, "line-break"],
+      [`Return${char(9)}validation result`, "control-character"],
+      [`Return${char(0x85)}validation result`, "control-character"],
+      ["@startuml", "directive-like"],
+      ["@enduml", "directive-like"],
+      ["Return @enduml", "directive-like"],
+      ["!include local.puml", "directive-like"],
+      ["!includeurl remote.puml", "directive-like"],
+      ["Return !pragma teoz true", "directive-like"],
+      [`Return ${remote("https")}logo.png`, "remote-url"],
+      ["Return www.diagrams.invalid", "remote-url"],
+      ["Return <img:logo.png>", "creole-markup"],
+      ["<b>Return validation result</b>", "creole-markup"],
+      ["**Return** validation result", "creole-markup"],
+      ["[[Return]] validation result", "creole-markup"],
+      ["Return //validation// result", "creole-markup"],
+      ["Return {{template}} result", "forbidden-character"],
+      ["Return %date() result", "forbidden-character"],
+      ["Return $variable result", "forbidden-character"],
+      ["Return\\nvalidation result", "forbidden-character"],
+      ["Return -> B", "forbidden-character"],
+      ['Return "quoted" result', "forbidden-character"],
+      [`Return ${"a".repeat(plantUmlTextLimits.maxLabelChars)}`, "too-long"]
+    ];
+
+    for (const [label, problem] of rejected) {
+      expect(displayTextProblem(label, messageLabelTextOptions)).toBe(problem);
+      expect(isSafeDisplayText(label, messageLabelTextOptions)).toBe(false);
+
+      try {
+        assertSafeDisplayText(label, messageLabelTextOptions);
+        throw new Error("Expected a rejection.");
+      } catch (error) {
+        expect(error).toBeInstanceOf(UnsafePlantUmlTextError);
+        expect((error as UnsafePlantUmlTextError).problem).toBe(problem);
+        expect((error as Error).message).not.toContain("Return");
+        expect((error as Error).message).not.toContain("validation");
+      }
+    }
+  });
+
+  it("carries only the label length limit and no keyword flag", () => {
+    expect(messageLabelTextOptions).toEqual({ maxChars: plantUmlTextLimits.maxLabelChars });
+    expect(Object.isFrozen(messageLabelTextOptions)).toBe(true);
   });
 });
 
