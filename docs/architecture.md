@@ -8,14 +8,17 @@ the ports that later stages will add. All examples use the synthetic Space Missi
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
-| Core | `src/core` | Parsing, validation, indexing, grounding, digests. Pure TypeScript. |
-| Adapters | later | File system, editor, model provider and renderer integrations. |
+| Core | `src/core` | Parsing, validation, indexing, grounding, digests, generation pipeline, rendering, report, output planning. Pure TypeScript. |
+| Node adapters | `src/node` | Bounded file reading, safe path resolution, the Node Knowledge Pack source and the Node artifact file system. |
+| Demo | `src/demo` | The offline Space Mission demo and its deterministic scripted generator. |
+| Later adapters | later | Editor, model provider and official renderer integrations. |
 
 The core imports neither `node:*` modules nor the editor API. It performs no network or
-file access, runs no shell commands, evaluates no dynamic code and calls no language model.
-Everything that touches the outside world is an adapter behind a small port, for example
-the `KnowledgePackSource` port that supplies pack files. An automated test checks the
-import boundary of every core module.
+file access, runs no shell commands, reads no environment variables, evaluates no dynamic code
+and calls no language model. Everything that touches the outside world is an adapter behind a
+small port: `KnowledgePackSource` supplies pack files, `SequenceModelGenerator` produces an
+untrusted model and `ArtifactFileSystem` writes artifacts. An automated test checks the import
+boundary of every core module.
 
 ## Knowledge Pack loading and indexing
 
@@ -116,18 +119,83 @@ digest does not depend on insertion order, mention positions or pack line number
 SHA-256 implementation is part of the core and is synchronous; it needs no platform crypto
 module.
 
-## Future generator port
+## Generator port
 
-A later stage adds a generator port that receives the grounded context and returns a
-structured diagram model. Providers, including language models, live in adapters behind
-that port. They will receive only the minimal context, never the whole pack.
+`SequenceModelGenerator` is a provider-neutral, asynchronous port. A generator receives the
+parsed flow document, the successful minimal grounded context and its digest, never the whole
+pack, and returns untrusted data. Nothing it returns is used before validation. Phase 3F ships
+only the deterministic scripted demo generator (`scripted-demo`); real providers are planned for
+Phase 3G behind the same port.
 
-## Future validation and rendering pipeline
+## Generation pipeline
 
-Later stages validate the generated model against the context (known participants,
-declared relationships, forbidden and required rules, declared interface names) using the
-shared validation issue contract, and then render it. Rendering belongs to its own stage
-and module.
+`generateSequenceDiagram` owns the order of the stages:
+
+1. receive the validated flow and the loaded pack;
+2. build the grounded context and stop when grounding is blocked;
+3. call the injected generator;
+4. validate the result against the strict generated-model schema;
+5. normalize it;
+6. validate structure, fragments, text safety and participant grounding;
+7. validate relationships, directions and modes;
+8. apply the interface-name policy;
+9. render PlantUML;
+10. validate the emitted PlantUML subset;
+11. build the grounding report;
+12. return both artifacts in memory.
+
+The pipeline never writes. Its outcome is a discriminated value: `success`,
+`grounding-blocked`, `invalid-generator-output`, `semantic-validation-failed` or
+`render-validation-failed`; writing adds `output-failed`. Issues after grounding use a sibling
+issue contract with fixed codes, severities and messages, carrying schema paths, identifiers and
+counts only.
+
+### Strict model schema and normalization
+
+The generated model is the existing participant and message model plus optional combined
+fragments (`alt` with `else` branches, `opt`, `loop`, `group`) over ranges of message order
+numbers. Unknown keys are rejected, enums are closed, nothing is coerced, every text passes the
+PlantUML text policy, duplicates and undeclared endpoints are rejected, and fragments must nest
+strictly within a bounded depth. Normalization only applies Unicode NFC, trims display text,
+turns empty optional values into absent ones and orders messages, participants and fragments
+deterministically. It never invents, removes or repairs anything.
+
+### Grounding and relationship validation
+
+A known participant must use the element identifier, canonical name and kind of an element of
+the grounded context. A confirmed new participant must use its grounding key and the display
+name `[NEW] <name>`. A message between two different known participants needs a grounded
+relationship with the same direction (the opposite one for a response), interface type and mode.
+INTERNAL means processing inside one participant: source and target must be the same, and no
+relationship is needed. An interaction with a confirmed new participant is accepted with a warning
+and is never labelled as grounded. A forbid rule blocks its interaction; a missing required
+interaction gives a warning.
+
+### Interface-name policy
+
+An interface name is kept only when the applicable grounded relationship declares exactly that
+name. An absent name stays absent. Any other name is removed with a warning; the model is not
+rejected for this alone and no replacement is guessed.
+
+### Rendering and structural validation
+
+The renderer builds every line from fixed keywords, aliases derived from stable participant
+references and text that passed the text policy. Display names of known participants come from
+the grounded context. There are no includes, themes, skin parameters or other directives.
+Metadata comments carry the diagram name, flow name, author, language, grounding digest and
+generator type. A fixed local legend is emitted in English or, for language `pl`, in Polish.
+
+The local PlantUML validator checks the exact subset the renderer emits: markers, comments,
+declarations, arrows, balanced fragments, the known legend and bounded size. It is a structural
+check, not an execution of the official PlantUML engine.
+
+### Grounding report and output
+
+The grounding report records the evidence behind each diagram (see `docs/demo.md`). The output
+planner chooses one shared file-name base for the diagram and its report, with `-v2`, `-v3`
+versions instead of overwriting, and the artifact writer publishes both files only after both
+temporary files were written. The Node adapters enforce containment below the selected root and
+reject links and junctions.
 
 ## Why grounding has no model or renderer
 

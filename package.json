@@ -13,7 +13,10 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "build:demo": "node scripts/prepare-demo-output.mjs clean && tsc -p tsconfig.demo.json && node scripts/prepare-demo-output.mjs finalize",
+    "demo": "npm run build:demo && node dist/demo/space-mission-demo.js",
+    "demo:dry-run": "npm run build:demo && node dist/demo/space-mission-demo.js --dry-run"
   },
   "dependencies": {
     "zod": "4.6.5"

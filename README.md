@@ -9,8 +9,21 @@ ArchGround is intended to become a Visual Studio Code extension that drafts Plan
 ## Current contents
 
 - Core model types, output naming and versioning helpers, and deterministic text utilities.
+- Knowledge Pack loading, indexing and deterministic grounding (see `docs/architecture.md`).
+- A validated generation pipeline: strict model schema, normalization, grounding, relationship and interface-name validation, safe PlantUML rendering, a local structural PlantUML check and a grounding report.
+- Node adapters for reading the flow and the pack and for writing artifact pairs safely.
+- An offline Space Mission demo with a deterministic scripted generator (see `docs/demo.md`).
 - A dependency-free leak scanner in `scripts/leak-scan.mjs`.
-- Unit tests that have not been executed yet, because no dependencies have been installed.
+- Unit and integration tests run with `npm test`.
+
+Not implemented: language-model providers, the editor extension and packaging.
+
+## Offline demo
+
+    npm run demo:dry-run
+    npm run demo
+
+The dry run executes every stage and writes nothing. The real run writes a diagram and its grounding report to `architecture-diagrams/space-mission/sequence/`, using `-v2`, `-v3` and so on instead of overwriting. No language model is called and no network access occurs.
 
 ## Leak scan
 
