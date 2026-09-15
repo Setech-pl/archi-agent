@@ -29,10 +29,10 @@ The dry run executes every stage and writes nothing. The real run writes a diagr
 ## Local model demo
 
     npm run local:models
-    npm run demo:llm:dry-run -- --model "<model-id>"
-    npm run demo:llm -- --model "<model-id>"
+    npm run demo:llm:dry-run -- "<model-id>"
+    npm run demo:llm -- "<model-id>"
 
-These commands use a model loaded in a local LM Studio server on the loopback interface. The model must be named explicitly, each run makes exactly one model request, and the answer passes the same validation pipeline; there is no retry, repair or fallback. See `docs/local-model.md`.
+These commands use a model loaded in a local LM Studio server on the loopback interface. Pass the model as one positional argument; `-- --model` is not recommended because npm can read `--model` as its own option. The direct form `node dist/demo/lm-studio-demo.js generate --model "<model-id>" --dry-run` also works after a build. The model must be named explicitly, each run makes exactly one model request, and the answer passes the same validation pipeline; there is no retry, repair or fallback. See `docs/local-model.md`.
 
 ## Leak scan
 

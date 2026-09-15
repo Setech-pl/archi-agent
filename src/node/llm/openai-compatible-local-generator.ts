@@ -1,6 +1,6 @@
 import { request as httpRequest } from "node:http";
 import type { CancellationSignal } from "../../core/knowledge-pack/knowledge-pack-source.js";
-import { parseChatCompletion } from "../../core/llm/strict-json-response.js";
+import { parseChatCompletion, parseStrictJsonObject } from "../../core/llm/strict-json-response.js";
 import {
   isSafeModelId,
   type ModelGenerationMetadata,
@@ -26,6 +26,15 @@ import type { LoopbackEndpoint } from "./loopback-endpoint.js";
  * request has a timeout and honours cancellation. The parsed JSON object is returned as untrusted data:
  * schema, grounding, relationship and rendering validation happen in the pipeline, not here. Errors
  * carry stable codes only, never prompt or response text.
+ *
+ * Response-field compatibility (local servers only): the answer is read from
+ * choices[0].message.content. Some local servers return the structured answer in
+ * message.reasoning_content and leave content empty. Only when content is exactly an empty string,
+ * null or absent, and the envelope is otherwise valid (one choice, acceptable finish_reason), a
+ * non-empty string reasoning_content is passed through the same strict one-object parser and marked
+ * reasoning-content-compat. The two fields are never combined, non-empty content is never replaced,
+ * and the reasoning text is never shown, logged or stored. This is a transport compatibility rule,
+ * not a fallback generator, and it applies to this local adapter only.
  */
 
 export const localGeneratorType = "openai-compatible-local";
@@ -219,6 +228,62 @@ function exchange(
   });
 }
 
+export type LocalResponseSource = "content" | "reasoning-content-compat";
+
+export type LocalStructuredAnswer =
+  | { readonly ok: true; readonly value: Readonly<Record<string, unknown>>; readonly source: LocalResponseSource }
+  | { readonly ok: false; readonly code: string };
+
+function rejectAnswer(code: string): LocalStructuredAnswer {
+  return Object.freeze({ ok: false, code });
+}
+
+/** choices[0].message of an envelope that the strict parser already accepted up to the content check. */
+function firstMessage(body: string): Record<string, unknown> | undefined {
+  try {
+    const envelope = JSON.parse(body) as { choices?: unknown };
+    const choice: unknown = Array.isArray(envelope.choices) ? envelope.choices[0] : undefined;
+    const message = choice !== null && typeof choice === "object" ? (choice as Record<string, unknown>)["message"] : undefined;
+    return message !== null && typeof message === "object" && !Array.isArray(message) ? (message as Record<string, unknown>) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Selects the structured answer of a local chat completion: content first, reasoning_content only
+ * under the exact compatibility rule described above. Failures carry stable codes only; a rejected
+ * reasoning_content candidate is reported as reasoning-content-<parser code>.
+ */
+export function selectLocalStructuredAnswer(body: string): LocalStructuredAnswer {
+  const primary = parseChatCompletion(body);
+
+  if (primary.ok) {
+    return Object.freeze({ ok: true, value: primary.value, source: "content" });
+  }
+
+  if (primary.code !== "empty-content" && primary.code !== "missing-content") {
+    return rejectAnswer(primary.code);
+  }
+
+  const message = firstMessage(body);
+  const content = message?.["content"];
+  const reasoning = message?.["reasoning_content"];
+  const contentEmpty = message !== undefined && (content === undefined || content === null || content === "");
+
+  if (!contentEmpty || typeof reasoning !== "string" || reasoning === "") {
+    return rejectAnswer(primary.code);
+  }
+
+  const candidate = parseStrictJsonObject(reasoning);
+
+  if (!candidate.ok) {
+    return rejectAnswer(`reasoning-content-${candidate.code}`);
+  }
+
+  return Object.freeze({ ok: true, value: candidate.value, source: "reasoning-content-compat" });
+}
+
 /** The complete chat completion request body. Exported for inspection by tests. */
 export function buildChatCompletionRequest(prompt: SequenceGenerationPrompt, modelId: string): Readonly<Record<string, unknown>> {
   return Object.freeze({
@@ -240,6 +305,8 @@ export interface LocalModelGeneratorOptions {
   /** Chosen explicitly by the caller; never selected automatically. */
   readonly modelId: string;
   readonly timeoutMs?: number;
+  /** Called once per accepted answer with the response field it came from; never with its text. */
+  readonly onResponseSource?: (source: LocalResponseSource) => void;
 }
 
 export class OpenAiCompatibleLocalGenerator implements SequenceModelGenerator {
@@ -248,6 +315,7 @@ export class OpenAiCompatibleLocalGenerator implements SequenceModelGenerator {
   readonly #endpoint: LoopbackEndpoint;
   readonly #modelId: string;
   readonly #timeoutMs: number;
+  readonly #onResponseSource: ((source: LocalResponseSource) => void) | undefined;
 
   public constructor(options: LocalModelGeneratorOptions) {
     if (!isSafeModelId(options.modelId)) {
@@ -257,6 +325,7 @@ export class OpenAiCompatibleLocalGenerator implements SequenceModelGenerator {
     this.#endpoint = options.endpoint;
     this.#modelId = options.modelId;
     this.#timeoutMs = checkedTimeout(options.timeoutMs);
+    this.#onResponseSource = options.onResponseSource;
     this.generationMetadata = Object.freeze({
       modelId: options.modelId,
       temperature: localGenerationSettings.temperature,
@@ -283,13 +352,14 @@ export class OpenAiCompatibleLocalGenerator implements SequenceModelGenerator {
       maxResponseBytes: localTransportLimits.maxResponseBytes,
       ...(request.signal === undefined ? {} : { signal: request.signal })
     });
-    const parsed = parseChatCompletion(text);
+    const selected = selectLocalStructuredAnswer(text);
 
-    if (!parsed.ok) {
-      throw new LocalModelError(parsed.code);
+    if (!selected.ok) {
+      throw new LocalModelError(selected.code);
     }
 
-    return parsed.value;
+    this.#onResponseSource?.(selected.source);
+    return selected.value;
   }
 }
 

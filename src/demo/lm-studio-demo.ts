@@ -1,15 +1,23 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ArtifactFileSystem } from "../core/output/artifact-file-system.js";
-import type {
-  ModelGenerationMetadata,
-  SequenceModelGenerationRequest,
-  SequenceModelGenerator,
-  UntrustedGeneratorOutput
+import type { RejectedGenerationOutcome } from "../core/pipeline/generation-outcome.js";
+import {
+  isSafeModelId,
+  type ModelGenerationMetadata,
+  type SequenceModelGenerationRequest,
+  type SequenceModelGenerator,
+  type UntrustedGeneratorOutput
 } from "../core/pipeline/sequence-model-generator.js";
-import { isSafeModelId } from "../core/pipeline/sequence-model-generator.js";
+import { stableCompare } from "../core/util/ordering.js";
+import type { ModelIssue } from "../core/validation/model-validator.js";
 import { defaultLocalModelBaseUrl, parseLoopbackEndpoint, type LoopbackEndpoint, type LoopbackEndpointCode } from "../node/llm/loopback-endpoint.js";
-import { listLocalModels, localGenerationSettings, OpenAiCompatibleLocalGenerator } from "../node/llm/openai-compatible-local-generator.js";
+import {
+  listLocalModels,
+  localGenerationSettings,
+  OpenAiCompatibleLocalGenerator,
+  type LocalResponseSource
+} from "../node/llm/openai-compatible-local-generator.js";
 import { runSpaceMissionDemo, type SpaceMissionDemoResult } from "./space-mission-demo.js";
 
 /**
@@ -17,28 +25,39 @@ import { runSpaceMissionDemo, type SpaceMissionDemoResult } from "./space-missio
  * Studio.
  *
  *   node dist/demo/lm-studio-demo.js models   [--base-url <loopback url>]
- *   node dist/demo/lm-studio-demo.js generate --model <id> [--dry-run] [--base-url <loopback url>]
+ *   node dist/demo/lm-studio-demo.js generate <model-id> [--dry-run] [--base-url <loopback url>]
+ *   node dist/demo/lm-studio-demo.js generate --model <model-id> [--dry-run] [--base-url <loopback url>]
  *
- * The model plans the diagram from the existing sample flow and its minimal grounded context; the
- * existing pipeline validates, renders and writes it. The model must be chosen explicitly; there is no
- * default model and no automatic choice. One model attempt, no retry, no repair and no fallback to the
- * scripted generator. The console shows metadata, counts and stable issue codes only, never the
- * prompt, the model response, the flow, the grounded context or the report.
+ * Through npm the model is passed as one positional argument (npm run demo:llm:dry-run -- "id"),
+ * because npm treats --model as its own configuration option when the -- separator is removed by
+ * the shell. The model plans the diagram from the existing sample flow and its minimal grounded
+ * context; the existing pipeline validates, renders and writes it. The model must be chosen
+ * explicitly; there is no default model and no automatic choice. One model attempt, no retry, no
+ * repair and no fallback to the scripted generator. The console shows metadata, counts, stable issue
+ * codes and bounded diagnostics built from safe issue details only, never the prompt, the model
+ * response, the flow, the grounded context or the report.
  */
 
 const listCommand = "npm run local:models";
+
+export const npmDryRunExample = 'npm run demo:llm:dry-run -- "<model-id>"';
+export const npmRunExample = 'npm run demo:llm -- "<model-id>"';
 
 export type LmStudioCommand =
   | { readonly command: "models"; readonly endpoint: LoopbackEndpoint }
   | { readonly command: "generate"; readonly endpoint: LoopbackEndpoint; readonly modelId: string; readonly dryRun: boolean };
 
+export type LmStudioArgumentsProblem = "usage" | "missing-model" | "multiple-models" | "invalid-model" | "invalid-base-url";
+
 export type LmStudioArgumentsResult =
   | { readonly ok: true; readonly value: LmStudioCommand }
-  | { readonly ok: false; readonly problem: "usage" | "missing-model" | "invalid-model" | "invalid-base-url"; readonly code?: LoopbackEndpointCode };
+  | { readonly ok: false; readonly problem: LmStudioArgumentsProblem; readonly code?: LoopbackEndpointCode };
 
 export const lmStudioUsage = [
   "usage: node dist/demo/lm-studio-demo.js models [--base-url <url>]",
-  "       node dist/demo/lm-studio-demo.js generate --model <model-id> [--dry-run] [--base-url <url>]",
+  "       node dist/demo/lm-studio-demo.js generate (<model-id> | --model <model-id>) [--dry-run] [--base-url <url>]",
+  `       ${npmDryRunExample}`,
+  `       ${npmRunExample}`,
   `The base URL must be a literal loopback URL; default ${defaultLocalModelBaseUrl}`
 ];
 
@@ -50,20 +69,23 @@ export function parseLmStudioArguments(argv: readonly string[]): LmStudioArgumen
   }
 
   let baseUrl: string | undefined;
-  let modelId: string | undefined;
+  let optionModel: string | undefined;
+  const positional: string[] = [];
   let dryRun = false;
 
   for (let index = 1; index < argv.length; index += 1) {
-    const argument = argv[index];
+    const argument = argv[index] ?? "";
 
     if (argument === "--base-url" && baseUrl === undefined && index + 1 < argv.length) {
       baseUrl = argv[index + 1];
       index += 1;
-    } else if (command === "generate" && argument === "--model" && modelId === undefined && index + 1 < argv.length) {
-      modelId = argv[index + 1];
+    } else if (command === "generate" && argument === "--model" && optionModel === undefined && index + 1 < argv.length) {
+      optionModel = argv[index + 1];
       index += 1;
     } else if (command === "generate" && argument === "--dry-run" && !dryRun) {
       dryRun = true;
+    } else if (command === "generate" && !argument.startsWith("--")) {
+      positional.push(argument);
     } else {
       return { ok: false, problem: "usage" };
     }
@@ -79,9 +101,17 @@ export function parseLmStudioArguments(argv: readonly string[]): LmStudioArgumen
     return { ok: true, value: { command, endpoint: endpoint.endpoint } };
   }
 
-  if (modelId === undefined) {
+  const candidates = optionModel === undefined ? positional : [...positional, optionModel];
+
+  if (candidates.length === 0) {
     return { ok: false, problem: "missing-model" };
   }
+
+  if (candidates.length > 1) {
+    return { ok: false, problem: "multiple-models" };
+  }
+
+  const modelId = candidates[0];
 
   if (!isSafeModelId(modelId)) {
     return { ok: false, problem: "invalid-model" };
@@ -90,13 +120,86 @@ export function parseLmStudioArguments(argv: readonly string[]): LmStudioArgumen
   return { ok: true, value: { command, endpoint: endpoint.endpoint, modelId, dryRun } };
 }
 
+export const diagnosticLimits = Object.freeze({ maxEntries: 20 });
+
+const printablePath = /^(?:\(root\)|[A-Za-z][A-Za-z0-9]*(?:\.(?:[A-Za-z][A-Za-z0-9]*|\d+))*)$/;
+const printableCode = /^[A-Za-z0-9_-]{1,64}$/;
+const describedDetailKeys = new Set(["order", "fromId", "toId", "elementId", "newName", "expected", "actual", "expectedKind", "problem"]);
+
+/** One line per issue from its code, location and safe identifier details only. */
+function describeIssue(issue: ModelIssue): string {
+  const details = issue.details ?? {};
+  const parts: string[] = [];
+  const order = details["order"];
+
+  if (typeof order === "number") {
+    parts.push(`message order ${order}`);
+  } else if (issue.path !== undefined) {
+    parts.push(issue.path);
+  }
+
+  if (details["fromId"] !== undefined && details["toId"] !== undefined) {
+    parts.push(`${details["fromId"]} -> ${details["toId"]}`);
+  }
+
+  const labelled: ReadonlyArray<readonly [string, string]> = [
+    ["elementId", "element"],
+    ["newName", "new participant"],
+    ["expected", "expected"],
+    ["actual", "actual"],
+    ["expectedKind", "expected kind"],
+    ["problem", "problem"]
+  ];
+
+  for (const [key, label] of labelled) {
+    if (details[key] !== undefined) {
+      parts.push(`${label} ${details[key]}`);
+    }
+  }
+
+  for (const key of Object.keys(details).sort(stableCompare)) {
+    if (!describedDetailKeys.has(key)) {
+      parts.push(`${key} ${details[key]}`);
+    }
+  }
+
+  return parts.length === 0 ? `[${issue.code}]` : `[${issue.code}] ${parts.join(", ")}`;
+}
+
+/**
+ * Bounded diagnostic lines for a rejected answer, in the deterministic order of the pipeline.
+ * Schema problems show their schema path and validation code, never the rejected value. Semantic
+ * issues show the message order number (the model's own order field), relationship direction,
+ * element identifiers and expected and actual enum values where the validator provides them.
+ */
+export function formatRejectionDiagnostics(rejection: RejectedGenerationOutcome, maxEntries: number = diagnosticLimits.maxEntries): readonly string[] {
+  let entries: string[];
+
+  if (rejection.status === "invalid-generator-output" && rejection.schemaProblems.length > 0) {
+    entries = rejection.schemaProblems.map(
+      (problem) =>
+        `[schema-violation] ${printablePath.test(problem.path) && problem.path.length <= 128 ? problem.path : "(unprintable path)"}: ` +
+        `${printableCode.test(problem.code) ? problem.code : "(unprintable code)"}`
+    );
+  } else if (rejection.status === "render-validation-failed" && rejection.structureIssues.length > 0) {
+    entries = rejection.structureIssues.map((issue) => `[plantuml-structure] ${issue.line === undefined ? "document" : `line ${issue.line}`}: ${issue.rule}`);
+  } else {
+    entries = rejection.issues.map(describeIssue);
+  }
+
+  const shown = entries.slice(0, maxEntries);
+  const omitted = entries.length - shown.length;
+  return Object.freeze([...shown, ...(omitted > 0 ? [`... ${omitted} more issue${omitted === 1 ? "" : "s"} omitted`] : [])]);
+}
+
 const failureCodePattern = /^[a-z][a-z0-9-]{0,63}$/;
 
-/** Passes every call through unchanged and remembers only the stable code of a failure. */
-class FailureRecordingGenerator implements SequenceModelGenerator {
+/** Passes every call through unchanged; remembers only a failure code and the safe rejection outcome. */
+class RecordingGenerator implements SequenceModelGenerator {
   public readonly generatorType: string;
   public readonly generationMetadata: ModelGenerationMetadata;
   public failureCode: string | undefined;
+  public rejection: RejectedGenerationOutcome | undefined;
   readonly #inner: OpenAiCompatibleLocalGenerator;
 
   public constructor(inner: OpenAiCompatibleLocalGenerator) {
@@ -113,6 +216,10 @@ class FailureRecordingGenerator implements SequenceModelGenerator {
       this.failureCode = typeof code === "string" && failureCodePattern.test(code) ? code : "generator-failed";
       throw error;
     }
+  }
+
+  public observeRejection(rejection: RejectedGenerationOutcome): void {
+    this.rejection = rejection;
   }
 }
 
@@ -131,13 +238,21 @@ export interface LocalModelDemoResult {
   readonly result: SpaceMissionDemoResult;
   /** Stable code of a generator failure, when the model request itself failed. */
   readonly generatorFailure?: string;
+  /** Response field the accepted answer came from; never its text. */
+  readonly responseSource?: LocalResponseSource;
+  /** Bounded diagnostic lines when the pipeline rejected the answer. */
+  readonly diagnostics?: readonly string[];
 }
 
 export async function runLocalModelDemo(options: LocalModelDemoOptions): Promise<LocalModelDemoResult> {
-  const generator = new FailureRecordingGenerator(
+  const observed: { source?: LocalResponseSource } = {};
+  const generator = new RecordingGenerator(
     new OpenAiCompatibleLocalGenerator({
       endpoint: options.endpoint,
       modelId: options.modelId,
+      onResponseSource: (source) => {
+        observed.source = source;
+      },
       ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs })
     })
   );
@@ -148,17 +263,32 @@ export async function runLocalModelDemo(options: LocalModelDemoOptions): Promise
     ...(options.outputRoot === undefined ? {} : { outputRoot: options.outputRoot }),
     ...(options.fileSystem === undefined ? {} : { fileSystem: options.fileSystem })
   });
+  const diagnostics = result.status === "failed" && generator.rejection !== undefined ? formatRejectionDiagnostics(generator.rejection) : undefined;
 
-  return Object.freeze({ result, ...(generator.failureCode === undefined ? {} : { generatorFailure: generator.failureCode }) });
+  return Object.freeze({
+    result,
+    ...(generator.failureCode === undefined ? {} : { generatorFailure: generator.failureCode }),
+    ...(observed.source === undefined ? {} : { responseSource: observed.source }),
+    ...(diagnostics === undefined ? {} : { diagnostics })
+  });
 }
 
-/** Concise console summary: metadata, counts, paths and issue codes; never prompt, response or report. */
+/** Concise console summary: metadata, counts, paths, issue codes and safe diagnostics only. */
 export function describeLocalModelResult(modelId: string, outcome: LocalModelDemoResult): readonly string[] {
   const lines = [
     "ArchGround model-driven demo - Space Mission telemetry command flow",
     `Generator: openai-compatible-local (model ${modelId}; loopback endpoint; one attempt; temperature ${localGenerationSettings.temperature}; ` +
       `seed ${localGenerationSettings.seed}; structured output)`
   ];
+
+  if (outcome.responseSource !== undefined) {
+    lines.push(
+      outcome.responseSource === "content"
+        ? "Response channel: content"
+        : "Response channel: reasoning-content-compat (compatibility field; validated exactly like content)"
+    );
+  }
+
   const result = outcome.result;
 
   if (result.status === "failed") {
@@ -167,6 +297,7 @@ export function describeLocalModelResult(modelId: string, outcome: LocalModelDem
       `Result: FAILED at ${result.stage}`,
       `Issue codes: ${result.codes.join(", ") || "none"}`,
       ...(outcome.generatorFailure === undefined ? [] : [`Generator failure: ${outcome.generatorFailure}`]),
+      ...(outcome.diagnostics === undefined || outcome.diagnostics.length === 0 ? [] : ["Diagnostics:", ...outcome.diagnostics.map((line) => `  ${line}`)]),
       "No retry, repair or fallback generator was used."
     ];
   }
@@ -199,7 +330,13 @@ export async function main(argv: readonly string[], options: LmStudioMainOptions
 
   if (!parsed.ok) {
     if (parsed.problem === "missing-model") {
-      process.stderr.write(`No model selected. ArchGround never chooses a model automatically.\nList the models of the local server with: ${listCommand}\n`);
+      process.stderr.write(
+        "No model selected. ArchGround never chooses a model automatically.\n" +
+          `List the models of the local server with: ${listCommand}\n` +
+          `Then run, for example: ${npmDryRunExample}\n`
+      );
+    } else if (parsed.problem === "multiple-models") {
+      process.stderr.write("Name exactly one model, either as one positional argument or with --model.\n");
     } else if (parsed.problem === "invalid-model") {
       process.stderr.write("The model identifier is not a safe model identifier.\n");
     } else if (parsed.problem === "invalid-base-url") {
@@ -217,11 +354,9 @@ export async function main(argv: readonly string[], options: LmStudioMainOptions
     try {
       const models = await listLocalModels(parsed.value.endpoint, timeout);
       process.stdout.write(
-        [
-          `Models reported by the local server (${models.length}):`,
-          ...models.map((id) => `  ${id}`),
-          'Select one explicitly, for example: npm run demo:llm:dry-run -- --model "<model-id>"'
-        ].join("\n") + "\n"
+        [`Models reported by the local server (${models.length}):`, ...models.map((id) => `  ${id}`), `Select one explicitly, for example: ${npmDryRunExample}`].join(
+          "\n"
+        ) + "\n"
       );
       return 0;
     } catch (error) {

@@ -317,7 +317,12 @@ export function validateModelStructure(model: GeneratedSequenceModel): readonly 
 
   model.participants.forEach((participant, index) => {
     if (!used.has(participantKey(participant))) {
-      issues.push(createModelIssue("unused-participant", { path: `participants.${index}` }));
+      const reference: Readonly<Record<string, string>> =
+        participant.origin === "knowledge-pack" ? { elementId: participant.elementId } : { newName: participant.newName };
+      const printable = Object.values(reference).every(
+        (value) => value.length <= modelIssueLimits.maxDetailTextChars && detailTextPattern.test(value)
+      );
+      issues.push(createModelIssue("unused-participant", { path: `participants.${index}`, ...(printable ? { details: reference } : {}) }));
     }
   });
 

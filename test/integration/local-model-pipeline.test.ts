@@ -131,6 +131,49 @@ describe("local model pipeline - failures are final", () => {
   });
 });
 
+describe("local model pipeline - reasoning_content compatibility", () => {
+  it("validates a reasoning_content candidate through every existing stage after one request", async () => {
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat" });
+    const outcome = await run(endpoint);
+
+    if (outcome.status !== "success") {
+      throw new Error(`Expected success, got ${outcome.status}.`);
+    }
+
+    expect(validatePlantUmlSubset(outcome.diagram.content).ok).toBe(true);
+    expect(JSON.parse(outcome.report.content).modelGeneration).toEqual({
+      modelId: "local-model-7b",
+      temperature: 0,
+      seed: 42,
+      attemptCount: 1,
+      structuredOutput: true
+    });
+    expect(outcome.report.content).not.toMatch(/reasoning/i);
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("still rejects a schema-invalid reasoning_content candidate through the existing validation", async () => {
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat", reasoningContent: JSON.stringify({ participants: [], messages: [], notes: "x" }) });
+    const outcome = await run(endpoint);
+
+    expect(outcome.status).toBe("invalid-generator-output");
+    expect("issues" in outcome && outcome.issues.length).toBeGreaterThan(0);
+    expect("issues" in outcome && outcome.issues.every((issue) => issue.code === "schema-violation")).toBe(true);
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("rejects prose in reasoning_content and never carries the text", async () => {
+    const { endpoint } = await serve({ scenario: "reasoning-content-compat", reasoningContent: `Analysis private-reasoning-4711 follows. ${validContent}` });
+    const outcome = await run(endpoint);
+
+    expect(outcome).toMatchObject({
+      status: "invalid-generator-output",
+      issues: [{ code: "generator-failed", details: { problem: "reasoning-content-not-a-json-object" } }]
+    });
+    expect(JSON.stringify(outcome)).not.toContain("private-reasoning-4711");
+  });
+});
+
 describe("local model pipeline - artifacts and boundaries", () => {
   it("writes nothing in a model-driven dry run", async () => {
     const { double, endpoint } = await serve();

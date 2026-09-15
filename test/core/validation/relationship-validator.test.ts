@@ -295,3 +295,26 @@ describe("validateRelationships - rules", () => {
     expect(codes([["command-service", "command-queue", "EVENT", async]])).toEqual([]);
   });
 });
+
+describe("validateRelationships - diagnostic details", () => {
+  it("names the expected and actual mode of an interaction-mode mismatch", () => {
+    const result = validateRelationships(modelOf([["command-service", "command-queue", "EVENT"]]), context);
+
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        code: "interaction-mode-mismatch",
+        severity: "error",
+        path: "messages.0",
+        details: { order: 1, fromId: "command-service", toId: "command-queue", expected: "asynchronous", actual: "synchronous" }
+      })
+    ]);
+    expect(hasModelErrors(result.issues)).toBe(true);
+  });
+
+  it("names the grounded and actual interface types of an interface-type mismatch", () => {
+    const [issue] = validateRelationships(modelOf([["mission-control", "command-service", "EVENT", async]]), context).issues;
+
+    expect(issue?.code).toBe("interface-type-mismatch");
+    expect(issue?.details).toEqual({ order: 1, fromId: "mission-control", toId: "command-service", expected: "FILE or REST API", actual: "EVENT" });
+  });
+});

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildGroundedContext, parseFlowDocument, type FlowDocument } from "../../../src/core/grounding/grounded-context-builder.js";
 import { loadKnowledgePack, requiredKnowledgePackFiles } from "../../../src/core/knowledge-pack/knowledge-pack-loader.js";
 import { generateSequenceDiagram, type GenerateSequenceDiagramRequest } from "../../../src/core/pipeline/generate-sequence-diagram.js";
-import type { PipelineOutcome } from "../../../src/core/pipeline/generation-outcome.js";
+import type { PipelineOutcome, RejectedGenerationOutcome } from "../../../src/core/pipeline/generation-outcome.js";
 import type { SequenceModelGenerationRequest, SequenceModelGenerator } from "../../../src/core/pipeline/sequence-model-generator.js";
 import { validatePlantUmlSubset } from "../../../src/core/validation/plantuml-validator.js";
 import { ScriptedSpaceMissionGenerator } from "../../../src/demo/scripted-space-mission-generator.js";
@@ -385,5 +385,77 @@ describe("generateSequenceDiagram - model-backed generators", () => {
     });
     expect(withoutCode.status === "invalid-generator-output" && withoutCode.issues[0]?.details).toBeUndefined();
     expect(JSON.stringify([withCode, withoutCode])).not.toContain("private server text");
+  });
+});
+
+describe("generateSequenceDiagram - rejection observer", () => {
+  function observing(produce: () => unknown, failObserver = false) {
+    const seen: RejectedGenerationOutcome[] = [];
+    const generator = {
+      generatorType: "test-stub",
+      calls: 0,
+      async generate(): Promise<unknown> {
+        generator.calls += 1;
+        return produce();
+      },
+      observeRejection(rejection: RejectedGenerationOutcome): void {
+        seen.push(rejection);
+
+        if (failObserver) {
+          throw new Error("observer failure");
+        }
+      }
+    };
+    return { generator, seen };
+  }
+
+  it("hands a schema rejection to the generator once, exactly as returned", async () => {
+    const { generator, seen } = observing(() => ({ participants: [], messages: [] }));
+    const outcome = await run(generator);
+
+    expect(outcome.status).toBe("invalid-generator-output");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(outcome);
+    expect(generator.calls).toBe(1);
+  });
+
+  it("hands a semantic rejection with safe diagnostic details", async () => {
+    const output = withMessages(await scriptedOutput(), (messages) => {
+      requestBetween(messages, "command-service", "command-queue", "EVENT")["async"] = false;
+      return messages;
+    });
+    const { generator, seen } = observing(() => output);
+    const outcome = await run(generator);
+
+    expect(outcome.status).toBe("semantic-validation-failed");
+    expect(seen[0]?.issues).toEqual([
+      expect.objectContaining({
+        code: "interaction-mode-mismatch",
+        details: { order: 5, fromId: "command-service", toId: "command-queue", expected: "asynchronous", actual: "synchronous" }
+      })
+    ]);
+    expect(generator.calls).toBe(1);
+  });
+
+  it("does not notify on success or when the generator itself fails", async () => {
+    const output = await scriptedOutput();
+    const success = observing(() => output);
+    const failure = observing(() => {
+      throw new Error("no answer");
+    });
+
+    expect((await run(success.generator)).status).toBe("success");
+    expect((await run(failure.generator)).status).toBe("invalid-generator-output");
+    expect([success.seen, failure.seen]).toEqual([[], []]);
+  });
+
+  it("ignores an observer that throws", async () => {
+    const { generator, seen } = observing(() => ({ participants: [], messages: [] }), true);
+    const outcome = await run(generator);
+
+    expect(outcome.status).toBe("invalid-generator-output");
+    expect(outcome.status === "invalid-generator-output" && outcome.issues.map((issue) => issue.code)).toEqual(["schema-violation", "schema-violation"]);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(outcome);
   });
 });

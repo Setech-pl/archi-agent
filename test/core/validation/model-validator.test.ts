@@ -109,6 +109,19 @@ describe("validateModelStructure", () => {
     expect(codes(model([message(1)], [missionControl, commandService, orbitalRelay]))).toEqual(["unused-participant at participants.2"]);
   });
 
+  it("identifies an unused participant by its element identifier or printable new-participant key", () => {
+    const station: SequenceParticipant = { origin: "new", newName: "ground station", displayName: "[NEW] Ground Station", kind: "system", confirmedByUser: true };
+    const unprintable: SequenceParticipant = { ...station, newName: `stacja ${String.fromCharCode(0x142)}` };
+
+    expect(validateModelStructure(model([message(1)], [missionControl, commandService, orbitalRelay]))[0]?.details).toEqual({ elementId: "orbital-relay" });
+    expect(validateModelStructure(model([message(1)], [missionControl, commandService, station]))[0]?.details).toEqual({ newName: "ground station" });
+    expect(validateModelStructure(model([message(1)], [missionControl, commandService, unprintable]))[0]).toMatchObject({
+      code: "unused-participant",
+      path: "participants.2"
+    });
+    expect(validateModelStructure(model([message(1)], [missionControl, commandService, unprintable]))[0]?.details).toBeUndefined();
+  });
+
   it("allows a self-message only as INTERNAL and a response only as synchronous", () => {
     const self = { from: { elementId: "command-service" }, to: { elementId: "command-service" } } as const;
 

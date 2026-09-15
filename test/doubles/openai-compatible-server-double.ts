@@ -19,7 +19,8 @@ export const serverDoubleScenarios = [
   "timeout",
   "http-error",
   "redirect",
-  "wrong-content-type"
+  "wrong-content-type",
+  "reasoning-content-compat"
 ] as const;
 
 export type ServerDoubleScenario = (typeof serverDoubleScenarios)[number];
@@ -55,6 +56,23 @@ export interface ServerDoubleOptions {
   readonly models?: readonly unknown[];
   /** Raw body of the model list, replacing the generated one. */
   readonly modelsBody?: string;
+  /** reasoning_content for the reasoning-content-compat scenario; defaults to completionContent. */
+  readonly reasoningContent?: string;
+}
+
+/**
+ * Minimal synthetic envelope of the observed local-server variant: empty content, the structured
+ * candidate in reasoning_content, finish_reason stop. Not a copy of any real answer.
+ */
+export function reasoningEnvelope(reasoningContent: string): string {
+  return JSON.stringify({
+    id: "completion-double",
+    object: "chat.completion",
+    created: 0,
+    model: "double",
+    choices: [{ index: 0, logprobs: null, finish_reason: "stop", message: { role: "assistant", content: "", reasoning_content: reasoningContent, tool_calls: [] } }],
+    usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+  });
 }
 
 export function completionEnvelope(content: string, choices = 1): string {
@@ -73,6 +91,7 @@ export class OpenAiCompatibleServerDouble {
   public completionContent: string;
   public models: readonly unknown[];
   public modelsBody: string | undefined;
+  public reasoningContent: string | undefined;
   readonly #server: Server;
   #port = 0;
 
@@ -81,6 +100,7 @@ export class OpenAiCompatibleServerDouble {
     this.completionContent = options.completionContent ?? "{}";
     this.models = options.models ?? [];
     this.modelsBody = options.modelsBody;
+    this.reasoningContent = options.reasoningContent;
     this.#server = createServer((request, response) => this.#handle(request, response));
   }
 
@@ -176,6 +196,9 @@ export class OpenAiCompatibleServerDouble {
 
     if (method === "POST" && path === "/v1/chat/completions") {
       switch (this.scenario) {
+        case "reasoning-content-compat":
+          this.#send(response, 200, reasoningEnvelope(this.reasoningContent ?? this.completionContent));
+          return;
         case "invalid-envelope":
           this.#send(response, 200, JSON.stringify(["not", "an", "envelope"]));
           return;

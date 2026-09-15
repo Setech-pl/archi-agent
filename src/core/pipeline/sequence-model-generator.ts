@@ -1,6 +1,7 @@
 import type { FlowDocument } from "../grounding/grounded-context-builder.js";
 import type { ContextDigest, GroundedContext } from "../grounding/grounded-context.js";
 import type { CancellationSignal } from "../knowledge-pack/knowledge-pack-source.js";
+import type { RejectedGenerationOutcome } from "./generation-outcome.js";
 
 /**
  * Provider-neutral port for sequence-model generators.
@@ -42,6 +43,12 @@ export interface SequenceModelGenerator {
   /** Present only for model-backed generators. */
   readonly generationMetadata?: ModelGenerationMetadata;
   generate(request: SequenceModelGenerationRequest): Promise<UntrustedGeneratorOutput>;
+  /**
+   * Optional in-memory observer, called once when the pipeline rejects the answer this generator
+   * returned (schema, semantic or render stage). It receives only the safe outcome (codes, schema
+   * paths, identifiers and counts, never answer text), cannot change the result and must not persist it.
+   */
+  observeRejection?(rejection: RejectedGenerationOutcome): void;
 }
 
 export const modelIdLimits = Object.freeze({ maxChars: 128 });

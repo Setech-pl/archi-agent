@@ -7,12 +7,15 @@ import { buildGeneratedModelJsonSchema, generatedModelJsonSchemaName } from "../
 import { promptDelimiters } from "../../../src/core/prompt/sequence-generation-prompt.js";
 import { ScriptedSpaceMissionGenerator } from "../../../src/demo/scripted-space-mission-generator.js";
 import { parseLoopbackEndpoint, type LoopbackEndpoint } from "../../../src/node/llm/loopback-endpoint.js";
+import { strictJsonResponseLimits } from "../../../src/core/llm/strict-json-response.js";
 import {
   listLocalModels,
   localGenerationSettings,
   localTransportLimits,
   LocalModelError,
-  OpenAiCompatibleLocalGenerator
+  OpenAiCompatibleLocalGenerator,
+  selectLocalStructuredAnswer,
+  type LocalResponseSource
 } from "../../../src/node/llm/openai-compatible-local-generator.js";
 import { KnowledgePackSourceDouble } from "../../doubles/knowledge-pack-source-double.js";
 import { OpenAiCompatibleServerDouble, scenarioContents, type ServerDoubleOptions } from "../../doubles/openai-compatible-server-double.js";
@@ -225,6 +228,120 @@ describe("listLocalModels", () => {
     const { double, endpoint } = await serve(options);
 
     expect(await codeOf(listLocalModels(endpoint))).toBe(code);
+    expect(double.requests).toHaveLength(1);
+  });
+});
+
+describe("selectLocalStructuredAnswer", () => {
+  const fence = "`".repeat(3);
+  const marker = "private-reasoning-4711";
+  const other = JSON.stringify({ participants: [{ origin: "knowledge-pack" }], messages: [] });
+  const envelopeOf = (message: Record<string, unknown>, choice: Record<string, unknown> = {}, count = 1): string =>
+    JSON.stringify({
+      object: "chat.completion",
+      choices: Array.from({ length: count }, (_, index) => ({ index, message, finish_reason: "stop", ...choice }))
+    });
+  const codeOfAnswer = (body: string): string => {
+    const result = selectLocalStructuredAnswer(body);
+    return result.ok ? `ok:${result.source}` : result.code;
+  };
+
+  it("uses non-empty content as the primary channel even when reasoning_content is present", () => {
+    const result = selectLocalStructuredAnswer(envelopeOf({ role: "assistant", content: other, reasoning_content: validContent }));
+
+    expect(result).toEqual({ ok: true, value: JSON.parse(other), source: "content" });
+  });
+
+  it("accepts reasoning_content only when content is empty, null or absent", () => {
+    for (const message of [
+      { role: "assistant", content: "", reasoning_content: validContent },
+      { role: "assistant", content: null, reasoning_content: validContent },
+      { role: "assistant", reasoning_content: validContent }
+    ]) {
+      const result = selectLocalStructuredAnswer(envelopeOf(message));
+
+      expect(result).toEqual({ ok: true, value: JSON.parse(validContent), source: "reasoning-content-compat" });
+    }
+  });
+
+  it("keeps the empty-content failure when no usable field is present", () => {
+    expect(codeOfAnswer(envelopeOf({ content: "", reasoning_content: "" }))).toBe("empty-content");
+    expect(codeOfAnswer(envelopeOf({ content: "" }))).toBe("empty-content");
+    expect(codeOfAnswer(envelopeOf({ content: "", reasoning_content: { participants: [] } }))).toBe("empty-content");
+    expect(codeOfAnswer(envelopeOf({ content: null }))).toBe("missing-content");
+  });
+
+  it("never replaces non-empty or non-string content with reasoning_content", () => {
+    expect(codeOfAnswer(envelopeOf({ content: `Here it is: ${other}`, reasoning_content: validContent }))).toBe("not-a-json-object");
+    expect(codeOfAnswer(envelopeOf({ content: '{"participants": [}', reasoning_content: validContent }))).toBe("malformed-json");
+    expect(codeOfAnswer(envelopeOf({ content: "   ", reasoning_content: validContent }))).toBe("empty-content");
+    expect(codeOfAnswer(envelopeOf({ content: 42, reasoning_content: validContent }))).toBe("missing-content");
+  });
+
+  it.each([
+    ["prose before the object", `Let me think about the diagram. ${validContent}`, "reasoning-content-not-a-json-object"],
+    ["analysis after the object", `${validContent} That is the plan.`, "reasoning-content-not-a-json-object"],
+    ["a fenced object", `${fence}json\n${validContent}\n${fence}`, "reasoning-content-not-a-json-object"],
+    ["two concatenated objects", `${validContent}${validContent}`, "reasoning-content-malformed-json"],
+    ["malformed JSON", '{"participants": [}', "reasoning-content-malformed-json"],
+    ["an empty object", "{}", "reasoning-content-empty-object"],
+    ["an oversized candidate", `{"label":"${"a".repeat(strictJsonResponseLimits.maxContentChars)}"}`, "reasoning-content-content-too-large"]
+  ])("rejects reasoning_content with %s", (_name, reasoning, code) => {
+    expect(codeOfAnswer(envelopeOf({ content: "", reasoning_content: reasoning }))).toBe(code);
+  });
+
+  it("keeps the envelope rules for several choices and unfinished answers", () => {
+    const message = { content: "", reasoning_content: validContent };
+
+    expect(codeOfAnswer(envelopeOf(message, {}, 2))).toBe("multiple-choices");
+    expect(codeOfAnswer(envelopeOf(message, { finish_reason: "length" }))).toBe("truncated-output");
+    expect(codeOfAnswer(envelopeOf(message, { finish_reason: "tool_calls" }))).toBe("unexpected-finish-reason");
+    expect(codeOfAnswer("not json")).toBe("invalid-envelope");
+  });
+
+  it("never carries the reasoning text in a failure or in the result", () => {
+    const failure = selectLocalStructuredAnswer(envelopeOf({ content: "", reasoning_content: `${marker} ${validContent}` }));
+    const success = selectLocalStructuredAnswer(envelopeOf({ content: "", reasoning_content: validContent }));
+
+    expect(JSON.stringify(failure)).not.toContain(marker);
+    expect(Object.keys(success).sort()).toEqual(["ok", "source", "value"]);
+    expect(Object.isFrozen(failure) && Object.isFrozen(success)).toBe(true);
+  });
+});
+
+describe("OpenAiCompatibleLocalGenerator - response channel", () => {
+  const marker = "private-reasoning-4711";
+
+  it("reports the content channel for a normal answer", async () => {
+    const { endpoint } = await serve();
+    const sources: LocalResponseSource[] = [];
+    await new OpenAiCompatibleLocalGenerator({ endpoint, modelId: "m", onResponseSource: (source) => sources.push(source) }).generate(generationRequest);
+
+    expect(sources).toEqual(["content"]);
+  });
+
+  it("accepts a reasoning_content answer of the synthetic local-server shape after exactly one request", async () => {
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat" });
+    const sources: LocalResponseSource[] = [];
+    const result = await new OpenAiCompatibleLocalGenerator({ endpoint, modelId: "m", onResponseSource: (source) => sources.push(source) }).generate(
+      generationRequest
+    );
+
+    expect(result).toEqual(JSON.parse(validContent));
+    expect(sources).toEqual(["reasoning-content-compat"]);
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("rejects prose in reasoning_content with a stable code and without the text", async () => {
+    const { double, endpoint } = await serve({ scenario: "reasoning-content-compat", reasoningContent: `Thinking ${marker}. ${validContent}` });
+    const sources: LocalResponseSource[] = [];
+    const error = await new OpenAiCompatibleLocalGenerator({ endpoint, modelId: "m", onResponseSource: (source) => sources.push(source) })
+      .generate(generationRequest)
+      .catch((caught: unknown) => caught);
+
+    expect((error as LocalModelError).code).toBe("reasoning-content-not-a-json-object");
+    expect((error as Error).message).not.toContain(marker);
+    expect(sources).toEqual([]);
     expect(double.requests).toHaveLength(1);
   });
 });

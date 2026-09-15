@@ -92,18 +92,64 @@ List the models reported by the server (a bounded GET `/v1/models`; nothing is s
 
 Run the model-driven demo on the Space Mission sample without writing files:
 
-    npm run demo:llm:dry-run -- --model "<model-id>"
+    npm run demo:llm:dry-run -- "<model-id>"
 
 Run it and write a new versioned artifact pair:
 
-    npm run demo:llm -- --model "<model-id>"
+    npm run demo:llm -- "<model-id>"
 
-Use another loopback port if needed:
+Through npm, pass the model as one positional argument. Do not use `npm run ... -- --model`: some
+shells (for example PowerShell) remove the `--` separator, and npm then reads `--model` as its own
+configuration option, so the model never reaches ArchGround.
 
-    npm run demo:llm:dry-run -- --model "<model-id>" --base-url http://127.0.0.1:1234/v1
+After a build (`npm run build:demo`), the compiled command line can also be called directly, with
+either form, and with another loopback port if needed:
 
-The model must always be named explicitly; there is no default model and ArchGround never picks one
-from a list. Without `--model` the command stops and points to `npm run local:models`.
+    node dist/demo/lm-studio-demo.js generate --model "<model-id>" --dry-run
+    node dist/demo/lm-studio-demo.js generate "<model-id>" --dry-run --base-url http://127.0.0.1:1234/v1
+
+Exactly one model must be named: there is no default model and ArchGround never picks one from a
+list. A missing model, two models (for example a positional model and `--model`) or an unsafe model
+identifier stops the command before any request; a missing model points to `npm run local:models`.
+
+## Response channel compatibility
+
+A local server normally returns the structured answer in `choices[0].message.content`. Some local
+models return it in `choices[0].message.reasoning_content` and leave `content` empty. The local
+adapter handles this exactly:
+
+- non-empty `content` is always used, even when it is invalid (then the run fails);
+- only when `content` is an empty string, null or absent, and the envelope is otherwise valid (one
+  choice, finish reason stop), a non-empty string `reasoning_content` is considered;
+- it must hold exactly one JSON object; prose, analysis text, code fences, several objects or
+  malformed JSON are rejected (codes such as `reasoning-content-not-a-json-object`);
+- the two fields are never combined, and the candidate passes the same strict parser, schema and
+  semantic validation as `content`;
+- the console reports only the channel (`content` or `reasoning-content-compat`); the reasoning
+  text is never printed, logged or stored in any report or file.
+
+This is compatibility with a response field of local servers, not a fallback generator, and it
+applies only to the local OpenAI-compatible adapter. If both fields are empty, the run fails with
+`empty-content`.
+
+## Diagnostics
+
+When the pipeline rejects an answer, the console lists up to 20 diagnostic lines after the issue
+codes, in deterministic order, and states how many further issues were omitted. Examples of the
+shape:
+
+    [interaction-mode-mismatch] message order 4, command-service -> command-queue, expected asynchronous, actual synchronous
+    [unused-participant] participants.6, element telemetry-store
+    [schema-violation] messages.2.label: text-forbidden-character
+
+Message positions are the model's own `order` numbers; for relationship issues the two identifiers
+show the direction of the grounded relationship. Schema diagnostics show the JSON path and the
+validation code, never the rejected value. Diagnostics contain no prompt, answer text, flow text,
+descriptions, paths or credentials, and they are not written to any file.
+
+Local structured output does not make the answer valid by itself: the application always validates
+it, and even with temperature 0 and seed 42 the same model can answer differently between runs. Every
+failure is closed: no diagram or report is written after an invalid answer.
 
 The dry run calls the model and executes the whole pipeline but creates no directory or file. The
 normal run writes `architecture-diagrams/space-mission/sequence/telemetry-command-flow-vN.puml` and

@@ -82,4 +82,7 @@ export type PipelineOutcome =
 
 export type GenerationOutcome = PipelineOutcome | OutputFailedOutcome;
 
+/** Outcomes that reject a generator answer after the generator returned it. */
+export type RejectedGenerationOutcome = InvalidGeneratorOutputOutcome | SemanticValidationFailedOutcome | RenderValidationFailedOutcome;
+
 export type GenerationStatus = GenerationOutcome["status"];

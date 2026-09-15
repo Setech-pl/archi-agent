@@ -60,6 +60,15 @@ function isRequestFor(candidate: SequenceMessage, response: SequenceMessage): bo
   );
 }
 
+const modelInterfaceTypes = new Map(
+  (Object.entries(packInterfaceTypes) as [ModelInterfaceType, PackInterfaceType][]).map(([model, pack]) => [pack, model] as const)
+);
+
+/** Sorted distinct values joined with "or", used only as a diagnostic detail. */
+function choices(values: readonly string[]): string {
+  return [...new Set(values)].sort().join(" or ");
+}
+
 export function validateRelationships(model: GeneratedSequenceModel, context: GroundedContext): RelationshipValidationResult {
   const issues: ModelIssue[] = [];
   const matches: MessageRelationshipMatch[] = [];
@@ -112,10 +121,16 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const byType = candidates.filter((relationship) => relationship.interfaceType === packInterfaceType(message.interfaceType));
 
     if (byType.length === 0) {
+      const typeDetails: Readonly<Record<string, string>> = internal
+        ? {}
+        : {
+            expected: choices(candidates.map((relationship) => modelInterfaceTypes.get(relationship.interfaceType) ?? relationship.interfaceType)),
+            actual: message.interfaceType
+          };
       issues.push(
         createModelIssue(internal ? "internal-endpoint-mismatch" : "interface-type-mismatch", {
           path,
-          details: { ...details, fromId: sourceId, toId: targetId }
+          details: { ...details, fromId: sourceId, toId: targetId, ...typeDetails }
         })
       );
       record("grounded");
@@ -126,7 +141,12 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const byMode = byType.filter((relationship) => relationship.mode === mode);
 
     if (byMode.length === 0) {
-      issues.push(createModelIssue("interaction-mode-mismatch", { path, details: { ...details, fromId: sourceId, toId: targetId } }));
+      issues.push(
+        createModelIssue("interaction-mode-mismatch", {
+          path,
+          details: { ...details, fromId: sourceId, toId: targetId, expected: choices(byType.map((relationship) => relationship.mode)), actual: mode }
+        })
+      );
     }
 
     if (context.rules.some((rule) => rule.rule === "forbid" && rule.fromId === sourceId && rule.toId === targetId)) {

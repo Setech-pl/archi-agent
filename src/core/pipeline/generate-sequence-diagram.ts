@@ -19,7 +19,7 @@ import {
 } from "../validation/model-validator.js";
 import { validatePlantUmlSubset } from "../validation/plantuml-validator.js";
 import { validateRelationships } from "../validation/relationship-validator.js";
-import type { GenerationSummary, InvalidGeneratorOutputOutcome, PipelineOutcome } from "./generation-outcome.js";
+import type { GenerationSummary, InvalidGeneratorOutputOutcome, PipelineOutcome, RejectedGenerationOutcome } from "./generation-outcome.js";
 import { isSafeModelGenerationMetadata, type ModelGenerationMetadata, type SequenceModelGenerator } from "./sequence-model-generator.js";
 
 /**
@@ -162,6 +162,17 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
     return invalidOutput([createModelIssue("generation-cancelled")]);
   }
 
+  /** Tells an observing generator why its answer was rejected; an observer never changes the outcome. */
+  const rejected = <T extends RejectedGenerationOutcome>(outcome: T): T => {
+    try {
+      request.generator.observeRejection?.(outcome);
+    } catch {
+      // Observers are diagnostic only.
+    }
+
+    return outcome;
+  };
+
   const parsed = parseGeneratedSequenceModel(untrusted);
 
   if (!parsed.ok) {
@@ -171,7 +182,7 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
         ...(problemCodePattern.test(problem.code) ? { details: { problem: problem.code } } : {})
       })
     );
-    return invalidOutput(issues, parsed.problems);
+    return rejected(invalidOutput(issues, parsed.problems));
   }
 
   const normalized = normalizeGeneratedModel(parsed.model);
@@ -182,16 +193,18 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
   ];
 
   if (hasModelErrors(semanticIssues)) {
-    return Object.freeze({ status: "semantic-validation-failed", issues: sortModelIssues(semanticIssues) });
+    return rejected(Object.freeze({ status: "semantic-validation-failed", issues: sortModelIssues(semanticIssues) }));
   }
 
   const relationships = validateRelationships(normalized, context);
 
   if (hasModelErrors(relationships.issues)) {
-    return Object.freeze({
-      status: "semantic-validation-failed",
-      issues: sortModelIssues([...semanticIssues, ...relationships.issues])
-    });
+    return rejected(
+      Object.freeze({
+        status: "semantic-validation-failed",
+        issues: sortModelIssues([...semanticIssues, ...relationships.issues])
+      })
+    );
   }
 
   const cleaned = applyInterfaceNamePolicy(normalized, relationships.matches);
@@ -199,17 +212,19 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
   const rendered = renderPlantUml({ context, model: cleaned.model, digest, generatorType });
 
   if (!rendered.ok) {
-    return Object.freeze({ status: "render-validation-failed", issues: rendered.issues, structureIssues: Object.freeze([]) });
+    return rejected(Object.freeze({ status: "render-validation-failed", issues: rendered.issues, structureIssues: Object.freeze([]) }));
   }
 
   const structure = validatePlantUmlSubset(rendered.text);
 
   if (!structure.ok) {
-    return Object.freeze({
-      status: "render-validation-failed",
-      issues: Object.freeze([createModelIssue("plantuml-structure", { details: { count: structure.issues.length } })]),
-      structureIssues: structure.issues
-    });
+    return rejected(
+      Object.freeze({
+        status: "render-validation-failed",
+        issues: Object.freeze([createModelIssue("plantuml-structure", { details: { count: structure.issues.length } })]),
+        structureIssues: structure.issues
+      })
+    );
   }
 
   const diagramFileName = `${request.artifactBaseName}${artifactExtensions.diagram}`;
@@ -233,11 +248,13 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
       })
     );
   } catch {
-    return Object.freeze({
-      status: "render-validation-failed",
-      issues: Object.freeze([createModelIssue("report-failed")]),
-      structureIssues: Object.freeze([])
-    });
+    return rejected(
+      Object.freeze({
+        status: "render-validation-failed",
+        issues: Object.freeze([createModelIssue("report-failed")]),
+        structureIssues: Object.freeze([])
+      })
+    );
   }
 
   return Object.freeze({
