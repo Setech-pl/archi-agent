@@ -254,3 +254,33 @@ describe("grounding report - exclusions", () => {
     }
   });
 });
+
+describe("grounding report - model generation metadata", () => {
+  const metadata = { modelId: "local-model-7b", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true };
+
+  it("adds a modelGeneration block right after the generator type for a model-backed generator", () => {
+    const withModel = JSON.parse(
+      serializeGroundingReport(buildGroundingReport(reportInput({ generatorType: "openai-compatible-local", modelGeneration: metadata })))
+    );
+
+    expect(Object.keys(withModel).slice(5, 9)).toEqual(["groundingDigest", "generatorType", "modelGeneration", "sources"]);
+    expect(withModel.modelGeneration).toEqual(metadata);
+    expect(JSON.stringify(withModel)).not.toMatch(/127\.0\.0\.1|chat\/completions|planner/);
+  });
+
+  it("omits the block for a generator that is not model-backed", () => {
+    expect("modelGeneration" in report).toBe(false);
+  });
+
+  it("refuses unsafe metadata", () => {
+    for (const unsafe of [
+      { ...metadata, modelId: "bad model" },
+      { ...metadata, temperature: -1 },
+      { ...metadata, seed: 1.5 },
+      { ...metadata, attemptCount: 0 },
+      { ...metadata, endpoint: "loopback" }
+    ]) {
+      expect(() => buildGroundingReport(reportInput({ modelGeneration: unsafe as never }))).toThrow();
+    }
+  });
+});

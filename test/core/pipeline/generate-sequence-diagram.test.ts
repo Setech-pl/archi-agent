@@ -328,3 +328,62 @@ describe("generateSequenceDiagram - untrusted generator results", () => {
     expect(outcome).toMatchObject({ status: "render-validation-failed", issues: [{ code: "report-failed" }] });
   });
 });
+
+describe("generateSequenceDiagram - model-backed generators", () => {
+  const metadata = { modelId: "local-model-7b", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true };
+
+  function modelBacked(produce: () => unknown, generationMetadata: unknown): SequenceModelGenerator & { calls: number } {
+    const generator = {
+      generatorType: "openai-compatible-local",
+      generationMetadata: generationMetadata as never,
+      calls: 0,
+      async generate(): Promise<unknown> {
+        generator.calls += 1;
+        return produce();
+      }
+    };
+    return generator;
+  }
+
+  it("records the declared model metadata in the grounding report", async () => {
+    const output = await scriptedOutput();
+    const outcome = await run(modelBacked(() => output, metadata));
+
+    if (outcome.status !== "success") {
+      throw new Error(`Expected success, got ${outcome.status}.`);
+    }
+
+    expect(JSON.parse(outcome.report.content)).toMatchObject({ generatorType: "openai-compatible-local", modelGeneration: metadata });
+    expect(outcome.diagram.content).toContain("' generator: openai-compatible-local");
+  });
+
+  it("writes no model metadata for the scripted demo generator", async () => {
+    const outcome = await run(new ScriptedSpaceMissionGenerator());
+
+    expect(outcome.status === "success" && JSON.parse(outcome.report.content).modelGeneration).toBeUndefined();
+  });
+
+  it("refuses unsafe metadata before calling the generator", async () => {
+    for (const unsafe of [{ ...metadata, modelId: "bad model" }, { ...metadata, attemptCount: 0 }, { ...metadata, prompt: "text" }, "metadata"]) {
+      const generator = modelBacked(() => ({}), unsafe);
+
+      expect(await run(generator)).toMatchObject({ status: "invalid-generator-output", issues: [{ code: "invalid-generator-type" }] });
+      expect(generator.calls).toBe(0);
+    }
+  });
+
+  it("surfaces a stable generator failure code but never the error message", async () => {
+    const coded = Object.assign(new Error("private server text"), { code: "timeout" });
+    const unsafe = Object.assign(new Error("private server text"), { code: "Not A Code!" });
+    const withCode = await run(modelBacked(() => Promise.reject(coded), metadata));
+    const withoutCode = await run(modelBacked(() => Promise.reject(unsafe), metadata));
+
+    expect(withCode).toEqual({
+      status: "invalid-generator-output",
+      issues: [expect.objectContaining({ code: "generator-failed", details: { problem: "timeout" } })],
+      schemaProblems: []
+    });
+    expect(withoutCode.status === "invalid-generator-output" && withoutCode.issues[0]?.details).toBeUndefined();
+    expect(JSON.stringify([withCode, withoutCode])).not.toContain("private server text");
+  });
+});

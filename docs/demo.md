@@ -112,7 +112,10 @@ output, timestamps, absolute paths, environment values, credentials or user name
 ## The scripted generator
 
 The demo uses `ScriptedSpaceMissionGenerator`, generator type `scripted-demo`. It is a fixed,
-deterministic script for this synthetic flow and is not a language model. It takes every
+deterministic script for this synthetic flow and is not a language model. It serves as an offline
+regression fixture, a deterministic smoke-test baseline and a demonstration of the pipeline; it is
+not the production generation strategy and is never used as a fallback for a model. Model-driven
+generation is described in `docs/local-model.md`. It takes every
 participant from the grounded context, refers to it by Knowledge Pack element identifier, uses only
 relationships, modes and interface names of the context, and stops with an error instead of
 inventing anything when the expected context is missing. Its output still passes through every
@@ -156,7 +159,8 @@ between different participants.
 
 ## Next phase
 
-Phase 3G is planned to add real generator adapters behind the same provider-neutral port: hosted
-model APIs (OpenAI, Anthropic, OpenRouter), an editor-provided model (Copilot) and local
-OpenAI-compatible endpoints such as LM Studio. None of them exists yet. Every adapter will receive
-only the minimal grounded context and its output will pass the same validation pipeline.
+Phase 3G-A added the first real adapter behind the same provider-neutral port: a local
+OpenAI-compatible structured-output endpoint such as LM Studio, loopback only (see
+`docs/local-model.md` and `npm run demo:llm`). Hosted model APIs (OpenAI, Anthropic, OpenRouter) and
+an editor-provided model (Copilot) do not exist yet. Every adapter receives only the minimal
+grounded context and its output passes the same validation pipeline.

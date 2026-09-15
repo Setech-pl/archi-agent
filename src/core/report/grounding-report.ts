@@ -8,6 +8,7 @@ import type {
 } from "../grounding/grounded-context.js";
 import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
 import { participantKey, participantRefKey, type GeneratedSequenceModel } from "../model/sequence-diagram-model.schema.js";
+import { isSafeModelGenerationMetadata, type ModelGenerationMetadata } from "../pipeline/sequence-model-generator.js";
 import { stableCompare } from "../util/ordering.js";
 import { participantKindOf } from "../validation/grounding-validator.js";
 import type { ModelIssue } from "../validation/model-validator.js";
@@ -22,6 +23,10 @@ import type { MessageRelationshipMatch } from "../validation/relationship-valida
  * pack file content, no prompt, no generator response or message label, no timestamp, no absolute
  * path and no environment value. Keys are written in a fixed order and every array has a fixed sort
  * order; the text is UTF-8 JSON with two-space indentation and a final newline.
+ *
+ * A model-backed generator adds an optional modelGeneration block (model identifier, temperature,
+ * seed, attempt count, structured output). It never contains the endpoint, request, prompt, response,
+ * headers or timing. Reports of the scripted demo generator have no such block.
  */
 
 export const groundingReportSchemaVersion = 1 as const;
@@ -43,6 +48,8 @@ export interface GroundingReportInput {
   readonly digest: ContextDigest;
   readonly ambiguityReport: AmbiguityReport;
   readonly generatorType: string;
+  /** Safe model-generation metadata; absent for generators that are not model-backed. */
+  readonly modelGeneration?: ModelGenerationMetadata;
   readonly model: GeneratedSequenceModel;
   readonly matches: readonly MessageRelationshipMatch[];
   readonly groundingWarnings: readonly GroundingWarning[];
@@ -120,6 +127,12 @@ export function buildGroundingReport(input: GroundingReportInput): Json {
     }
   }
 
+  const modelGeneration = input.modelGeneration;
+
+  if (modelGeneration !== undefined && !isSafeModelGenerationMetadata(modelGeneration)) {
+    throw new Error("Model generation metadata must be safe.");
+  }
+
   const used = new Set(model.participants.map(participantKey));
   const ordersByRelationship = new Map<object, number[]>();
 
@@ -143,6 +156,17 @@ export function buildGroundingReport(input: GroundingReportInput): Json {
     language: context.metadata.language,
     groundingDigest: { algorithm: input.digest.algorithm, value: input.digest.value },
     generatorType: input.generatorType,
+    ...(modelGeneration === undefined
+      ? {}
+      : {
+          modelGeneration: {
+            modelId: modelGeneration.modelId,
+            temperature: modelGeneration.temperature,
+            seed: modelGeneration.seed,
+            attemptCount: modelGeneration.attemptCount,
+            structuredOutput: modelGeneration.structuredOutput
+          }
+        }),
     sources: { flow: flowFile, knowledgePack: packDirectory },
     knownParticipants: knownElements.map((element) => ({
       elementId: element.id,

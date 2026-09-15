@@ -20,7 +20,7 @@ import {
 import { validatePlantUmlSubset } from "../validation/plantuml-validator.js";
 import { validateRelationships } from "../validation/relationship-validator.js";
 import type { GenerationSummary, InvalidGeneratorOutputOutcome, PipelineOutcome } from "./generation-outcome.js";
-import type { SequenceModelGenerator } from "./sequence-model-generator.js";
+import { isSafeModelGenerationMetadata, type ModelGenerationMetadata, type SequenceModelGenerator } from "./sequence-model-generator.js";
 
 /**
  * The application-level generation pipeline. It owns the order of the stages:
@@ -56,6 +56,14 @@ export interface GenerateSequenceDiagramRequest {
 const baseNamePattern = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
 const schemaPathPattern = /^(?:\(root\)|[A-Za-z][A-Za-z0-9]*(?:\.(?:[A-Za-z][A-Za-z0-9]*|\d+))*)$/;
 const problemCodePattern = /^[A-Za-z0-9_-]{1,64}$/;
+
+const failureCodePattern = /^[a-z][a-z0-9-]{0,63}$/;
+
+/** The stable code of a generator failure, when the error carries one; never its message. */
+function failureCodeOf(error: unknown): string | undefined {
+  const code = error !== null && typeof error === "object" && "code" in error ? (error as { code: unknown }).code : undefined;
+  return typeof code === "string" && failureCodePattern.test(code) ? code : undefined;
+}
 
 /** A signal can be aborted while the generator runs, so every check reads the current state. */
 function isAborted(signal: CancellationSignal | undefined): boolean {
@@ -111,6 +119,23 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
     return invalidOutput([createModelIssue("invalid-generator-type")]);
   }
 
+  const declaredMetadata = request.generator.generationMetadata;
+
+  if (declaredMetadata !== undefined && !isSafeModelGenerationMetadata(declaredMetadata)) {
+    return invalidOutput([createModelIssue("invalid-generator-type")]);
+  }
+
+  const modelGeneration: ModelGenerationMetadata | undefined =
+    declaredMetadata === undefined
+      ? undefined
+      : Object.freeze({
+          modelId: declaredMetadata.modelId,
+          temperature: declaredMetadata.temperature,
+          seed: declaredMetadata.seed,
+          attemptCount: declaredMetadata.attemptCount,
+          structuredOutput: declaredMetadata.structuredOutput
+        });
+
   if (isAborted(request.signal)) {
     return invalidOutput([createModelIssue("generation-cancelled")]);
   }
@@ -124,8 +149,13 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
       digest,
       ...(request.signal === undefined ? {} : { signal: request.signal })
     });
-  } catch {
-    return invalidOutput([createModelIssue(isAborted(request.signal) ? "generation-cancelled" : "generator-failed")]);
+  } catch (error) {
+    if (isAborted(request.signal)) {
+      return invalidOutput([createModelIssue("generation-cancelled")]);
+    }
+
+    const problem = failureCodeOf(error);
+    return invalidOutput([createModelIssue("generator-failed", problem === undefined ? {} : { details: { problem } })]);
   }
 
   if (isAborted(request.signal)) {
@@ -193,6 +223,7 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
         digest,
         ambiguityReport: grounding.ambiguityReport,
         generatorType,
+        ...(modelGeneration === undefined ? {} : { modelGeneration }),
         model: cleaned.model,
         matches: relationships.matches,
         groundingWarnings: grounding.warnings,

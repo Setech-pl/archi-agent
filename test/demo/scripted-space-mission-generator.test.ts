@@ -51,6 +51,7 @@ describe("ScriptedSpaceMissionGenerator - identity", () => {
 
     expect(new ScriptedSpaceMissionGenerator().generatorType).toBe("scripted-demo");
     expect(scriptedDemoGeneratorType).toBe("scripted-demo");
+    expect("generationMetadata" in new ScriptedSpaceMissionGenerator()).toBe(false);
     expect(source).toContain("SCRIPTED DEMO GENERATOR - not a language model.");
     expect(source).not.toMatch(/\b(?:LLM|GPT)\b/);
     expect(source).not.toMatch(/fetch\(|node:https?|node:net|process\.env|Math\.random|Date\.now|new Date/);

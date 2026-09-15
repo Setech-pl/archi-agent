@@ -123,9 +123,24 @@ module.
 
 `SequenceModelGenerator` is a provider-neutral, asynchronous port. A generator receives the
 parsed flow document, the successful minimal grounded context and its digest, never the whole
-pack, and returns untrusted data. Nothing it returns is used before validation. Phase 3F ships
-only the deterministic scripted demo generator (`scripted-demo`); real providers are planned for
-Phase 3G behind the same port.
+pack, and returns untrusted data. Nothing it returns is used before validation. A model-backed
+generator may declare safe `generationMetadata` (model identifier, temperature, seed, attempt
+count, structured output), which the pipeline checks and the grounding report records.
+
+Two adapters exist:
+
+- `openai-compatible-local` (`src/node/llm`): the model plans the diagram. The provider-neutral
+  prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates, the
+  response format is a strict JSON Schema derived from the Zod generated-model schema, and a strict
+  parser (`src/core/llm`) accepts exactly one JSON object. One request per generation, loopback
+  only, temperature 0 and seed 42, no retry, repair or fallback. See `docs/local-model.md`.
+- `scripted-demo` (`src/demo`): a deterministic script used as an offline regression fixture,
+  smoke-test baseline and pipeline demonstration; it is not the production generation strategy.
+
+Deterministic code covers parsing, grounding, candidate selection, limits, the structured-output
+contract, validation, rendering and output safety. Message creation, wording, relationship choice,
+interaction semantics, fragments and level of detail belong to the model. Remote providers are not
+implemented.
 
 ## Generation pipeline
 
