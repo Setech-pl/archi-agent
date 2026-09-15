@@ -68,7 +68,7 @@ function invalidOutput(issues: readonly ModelIssue[], schemaProblems: InvalidGen
 
 function summarize(model: GeneratedSequenceModel, warningCount: number): GenerationSummary {
   const messages = model.messages;
-  const internal = (message: (typeof messages)[number]): boolean => participantRefKey(message.from) === participantRefKey(message.to);
+  const selfMessage = (message: (typeof messages)[number]): boolean => participantRefKey(message.from) === participantRefKey(message.to);
 
   return Object.freeze({
     participantCount: model.participants.length,
@@ -78,7 +78,7 @@ function summarize(model: GeneratedSequenceModel, warningCount: number): Generat
     synchronousCount: messages.filter((message) => message.isResponse !== true && message.async !== true).length,
     asynchronousCount: messages.filter((message) => message.isResponse !== true && message.async === true).length,
     responseCount: messages.filter((message) => message.isResponse === true).length,
-    internalCount: messages.filter(internal).length,
+    selfMessageCount: messages.filter(selfMessage).length,
     warningCount
   });
 }

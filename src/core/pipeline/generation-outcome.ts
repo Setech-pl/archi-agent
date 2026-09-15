@@ -23,7 +23,11 @@ export interface GenerationSummary {
   readonly synchronousCount: number;
   readonly asynchronousCount: number;
   readonly responseCount: number;
-  readonly internalCount: number;
+  /**
+   * Structural metric: messages whose sender and receiver are the same participant. It is not an
+   * interaction-mode bucket and overlaps the synchronous, asynchronous and response counts.
+   */
+  readonly selfMessageCount: number;
   readonly warningCount: number;
 }
 

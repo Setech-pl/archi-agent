@@ -188,7 +188,7 @@ export function describeDemoResult(result: SpaceMissionDemoResult): readonly str
     "Result: all validation stages passed",
     `Participants: ${summary.participantCount} (${summary.knownParticipantCount} grounded, ${summary.newParticipantCount} new)`,
     `Messages: ${summary.messageCount} (${summary.synchronousCount} synchronous, ${summary.asynchronousCount} asynchronous, ` +
-      `${summary.responseCount} response, ${summary.internalCount} internal)`,
+      `${summary.responseCount} response; ${summary.selfMessageCount} self-message${summary.selfMessageCount === 1 ? "" : "s"})`,
     `Warnings: ${summary.warningCount}`,
     `Grounding digest: sha256:${result.outcome.digest.value}`
   );

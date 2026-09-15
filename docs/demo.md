@@ -28,8 +28,9 @@ only that `dist` directory before compiling and afterwards writes `dist/package.
 the compiled output as an ES module. The script accepts no path argument and refuses to act when
 `dist` is a link or not a directory.
 
-The console output contains the generator type, participant and message counts, the number of
-warnings, the grounding digest and the artifact paths. It never contains the flow text, the pack
+The console output contains the generator type, participant and message counts (synchronous,
+asynchronous and response messages, plus a separate count of self-messages, which overlaps those
+three), the number of warnings, the grounding digest and the artifact paths. It never contains the flow text, the pack
 tables or the report.
 
 ## Output
@@ -146,9 +147,12 @@ validation stage.
 8. This phase uses the deterministic scripted generator only, and it is never described as a
    language model.
 
-INTERNAL means processing inside one participant: source and target must be the same. An INTERNAL
-relationship that the pack declares between two different elements (for example the console of
-the Flight Controller) therefore cannot be drawn, and the demo diagram starts at Mission Control.
+INTERNAL is an interface classification, not a self-message marker. Between two different
+participants it is valid only as an explicit grounded INTERNAL relationship with the same direction
+and mode; the demo draws the Flight Controller submitting the command to Mission Control through
+its declared synchronous INTERNAL console relationship. A self-message is decided only by equal
+sender and receiver; it uses INTERNAL, needs no relationship and never authorizes an interaction
+between different participants.
 
 ## Next phase
 

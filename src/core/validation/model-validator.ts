@@ -44,7 +44,7 @@ const definitions = {
   },
   "internal-endpoint-mismatch": {
     severity: "error",
-    message: "An INTERNAL message must start and end at the same participant."
+    message: "An INTERNAL message between two different participants has no matching grounded INTERNAL relationship."
   },
   "invalid-fragment": {
     severity: "error",

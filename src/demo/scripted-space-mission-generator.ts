@@ -41,11 +41,12 @@ interface ScriptStep {
 }
 
 /**
- * The script. Every step names Knowledge Pack element identifiers only. INTERNAL is used only for
- * processing inside one participant, so the console relationship of the flight controller (declared
- * as INTERNAL between two different elements) is not drawn: the pipeline would reject it.
+ * The script. Every step names Knowledge Pack element identifiers only. The first step uses the
+ * explicit INTERNAL relationship from the flight controller to mission control (an interaction
+ * between two different participants); the command-service step is a self-message.
  */
 export const spaceMissionScript: readonly ScriptStep[] = Object.freeze([
+  { from: "flight-controller", to: "mission-control", label: "Submit prepared command", interfaceType: "INTERNAL", mode: "synchronous" },
   { from: "mission-control", to: "command-service", label: "Send command request", interfaceType: "REST API", mode: "synchronous" },
   { from: "command-service", to: "command-service", label: "Validate command", interfaceType: "INTERNAL", mode: "synchronous" },
   {

@@ -77,7 +77,7 @@
       "elementKind": "role",
       "diagramKind": "actor",
       "canonicalName": "Flight Controller",
-      "usedInDiagram": false,
+      "usedInDiagram": true,
       "resolution": "direct",
       "matchKinds": [
         "exact-canonical"
@@ -217,7 +217,7 @@
         "line": 11
       },
       "supportsMessages": [
-        5
+        6
       ]
     },
     {
@@ -232,7 +232,7 @@
         "line": 10
       },
       "supportsMessages": [
-        4
+        5
       ]
     },
     {
@@ -259,7 +259,9 @@
         "file": "samples/space-mission/architecture/relationships.md",
         "line": 5
       },
-      "supportsMessages": []
+      "supportsMessages": [
+        1
+      ]
     },
     {
       "fromId": "mission-control",
@@ -286,8 +288,8 @@
         "line": 7
       },
       "supportsMessages": [
-        1,
-        3
+        2,
+        4
       ]
     },
     {
@@ -315,7 +317,7 @@
         "line": 12
       },
       "supportsMessages": [
-        6
+        7
       ]
     },
     {
@@ -330,7 +332,7 @@
         "line": 13
       },
       "supportsMessages": [
-        7
+        8
       ]
     }
   ],
@@ -360,6 +362,16 @@
   "messages": [
     {
       "order": 1,
+      "from": "kp:flight-controller",
+      "to": "kp:mission-control",
+      "interfaceType": "INTERNAL",
+      "interfaceName": "Operator Console",
+      "mode": "synchronous",
+      "response": false,
+      "verification": "grounded"
+    },
+    {
+      "order": 2,
       "from": "kp:mission-control",
       "to": "kp:command-service",
       "interfaceType": "REST API",
@@ -369,17 +381,17 @@
       "verification": "grounded"
     },
     {
-      "order": 2,
+      "order": 3,
       "from": "kp:command-service",
       "to": "kp:command-service",
       "interfaceType": "INTERNAL",
       "interfaceName": null,
       "mode": "synchronous",
       "response": false,
-      "verification": "internal"
+      "verification": "self-message"
     },
     {
-      "order": 3,
+      "order": 4,
       "from": "kp:command-service",
       "to": "kp:mission-control",
       "interfaceType": "REST API",
@@ -389,7 +401,7 @@
       "verification": "grounded"
     },
     {
-      "order": 4,
+      "order": 5,
       "from": "kp:command-service",
       "to": "kp:command-queue",
       "interfaceType": "EVENT",
@@ -399,7 +411,7 @@
       "verification": "grounded"
     },
     {
-      "order": 5,
+      "order": 6,
       "from": "kp:command-queue",
       "to": "kp:orbital-relay",
       "interfaceType": "EVENT",
@@ -409,7 +421,7 @@
       "verification": "grounded"
     },
     {
-      "order": 6,
+      "order": 7,
       "from": "kp:orbital-relay",
       "to": "kp:telemetry-service",
       "interfaceType": "EVENT",
@@ -419,7 +431,7 @@
       "verification": "grounded"
     },
     {
-      "order": 7,
+      "order": 8,
       "from": "kp:telemetry-service",
       "to": "kp:telemetry-store",
       "interfaceType": "DB",

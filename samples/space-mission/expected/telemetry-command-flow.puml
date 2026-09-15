@@ -7,6 +7,7 @@
 ' grounding digest: sha256:f884c9f47f411fd141bcc79eb6b2da88f11a8bb437a129f91304b11ef65922d2
 ' generator: scripted-demo
 
+actor "Flight Controller" as kp_flight_controller
 participant "Mission Control" as kp_mission_control
 participant "Command Service" as kp_command_service
 queue "Command Queue" as kp_command_queue
@@ -14,6 +15,7 @@ participant "Orbital Relay" as kp_orbital_relay
 participant "Telemetry Service" as kp_telemetry_service
 database "Telemetry Store" as kp_telemetry_store
 
+kp_flight_controller -> kp_mission_control : Submit prepared command (INTERNAL: Operator Console)
 kp_mission_control -> kp_command_service : Send command request (REST API: Command API)
 kp_command_service -> kp_command_service : Validate command (INTERNAL)
 kp_command_service --> kp_mission_control : Command validation result (REST API: Command API)

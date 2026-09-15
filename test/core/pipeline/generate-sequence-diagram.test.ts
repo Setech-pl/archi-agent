@@ -79,6 +79,22 @@ function withMessages(output: Raw, change: (messages: Raw[]) => Raw[]): Raw {
   return { ...output, messages: change(structuredClone(output["messages"] as Raw[])) };
 }
 
+/** Selects exactly one request message by its stable endpoint identifiers and interface type. */
+function requestBetween(messages: Raw[], fromId: string, toId: string, interfaceType: string): Raw {
+  const found = messages.filter(
+    (message) =>
+      (message["from"] as Raw)["elementId"] === fromId &&
+      (message["to"] as Raw)["elementId"] === toId &&
+      message["interfaceType"] === interfaceType &&
+      message["isResponse"] !== true
+  );
+
+  expect(found).toHaveLength(1);
+  return found[0] as Raw;
+}
+
+const staleSummaryField = ["internal", "Count"].join("");
+
 describe("generateSequenceDiagram - success", () => {
   it("runs the complete pipeline with the scripted generator and returns both artifacts in memory", async () => {
     const outcome = await run(new ScriptedSpaceMissionGenerator());
@@ -96,16 +112,46 @@ describe("generateSequenceDiagram - success", () => {
       outputs: { diagram: "telemetry-command-flow.puml", report: "telemetry-command-flow.grounding.json" }
     });
     expect(outcome.summary).toEqual({
-      participantCount: 6,
-      knownParticipantCount: 6,
+      participantCount: 7,
+      knownParticipantCount: 7,
       newParticipantCount: 0,
-      messageCount: 7,
-      synchronousCount: 3,
+      messageCount: 8,
+      synchronousCount: 4,
       asynchronousCount: 3,
       responseCount: 1,
-      internalCount: 1,
+      selfMessageCount: 1,
       warningCount: 0
     });
+    expect(Object.keys(outcome.summary)).toContain("selfMessageCount");
+    expect(Object.keys(outcome.summary)).not.toContain(staleSummaryField);
+  });
+
+  it("counts a cross-participant INTERNAL message by its mode and a self-message as a separate metric", async () => {
+    const output = await scriptedOutput();
+    const summaryOf = async (value: Raw) => {
+      const outcome = await run(new StubGenerator(() => value));
+
+      if (outcome.status !== "success") {
+        throw new Error(`Expected success, got ${outcome.status}.`);
+      }
+
+      return outcome.summary;
+    };
+    const endpoints = (message: Raw): [unknown, unknown] => [(message["from"] as Raw)["elementId"], (message["to"] as Raw)["elementId"]];
+    const withoutSelfMessage = withMessages(output, (messages) => messages.filter((message) => endpoints(message)[0] !== endpoints(message)[1]));
+    const withoutController = {
+      ...withMessages(output, (messages) => messages.filter((message) => !endpoints(message).includes("flight-controller"))),
+      participants: (output["participants"] as Raw[]).filter((participant) => participant["elementId"] !== "flight-controller")
+    };
+
+    const full = await summaryOf(output);
+    const noSelfMessage = await summaryOf(withoutSelfMessage);
+    const noController = await summaryOf(withoutController);
+
+    expect([full.messageCount, full.synchronousCount, full.selfMessageCount]).toEqual([8, 4, 1]);
+    expect([noController.messageCount, noController.synchronousCount, noController.selfMessageCount]).toEqual([7, 3, 1]);
+    expect([noSelfMessage.messageCount, noSelfMessage.synchronousCount, noSelfMessage.selfMessageCount]).toEqual([7, 3, 0]);
+    expect(full.synchronousCount + full.asynchronousCount + full.responseCount).toBe(full.messageCount);
   });
 
   it("is deterministic", async () => {
@@ -132,7 +178,9 @@ describe("generateSequenceDiagram - success", () => {
 
   it("removes an ungrounded interface name with a warning and renders only the cleaned model", async () => {
     const output = withMessages(await scriptedOutput(), (messages) => {
-      (messages[0] as Raw)["interfaceName"] = "Legacy Gateway";
+      const request = requestBetween(messages, "mission-control", "command-service", "REST API");
+      expect(request["interfaceName"]).toBe("Command API");
+      request["interfaceName"] = "Legacy Gateway";
       return messages;
     });
     const outcome = await run(new StubGenerator(() => output));
@@ -231,25 +279,28 @@ describe("generateSequenceDiagram - untrusted generator results", () => {
 
   it("returns semantic failures as values for ungrounded participants, endpoints, relationships and modes", async () => {
     const output = await scriptedOutput();
+    const nextOrder = Math.max(...(output["messages"] as Raw[]).map((message) => message["order"] as number)) + 1;
     const cases: ReadonlyArray<readonly [Raw, string]> = [
       [
         {
           ...output,
           participants: [...(output["participants"] as Raw[]), { origin: "knowledge-pack", elementId: "mission-commander", canonicalName: "Mission Commander", kind: "actor" }],
-          messages: [...(output["messages"] as Raw[]), { from: { elementId: "mission-commander" }, to: { elementId: "mission-commander" }, label: "Approve", interfaceType: "INTERNAL", order: 8 }]
+          messages: [...(output["messages"] as Raw[]), { from: { elementId: "mission-commander" }, to: { elementId: "mission-commander" }, label: "Approve", interfaceType: "INTERNAL", order: nextOrder }]
         },
         "unknown-participant"
       ],
       [
         withMessages(output, (messages) => {
-          (messages[0] as Raw)["to"] = { elementId: "telemetry-store" };
+          requestBetween(messages, "mission-control", "command-service", "REST API")["to"] = { elementId: "telemetry-store" };
           return messages;
         }),
         "missing-relationship"
       ],
       [
         withMessages(output, (messages) => {
-          (messages[3] as Raw)["async"] = false;
+          const accepted = requestBetween(messages, "command-service", "command-queue", "EVENT");
+          expect(accepted["async"]).toBe(true);
+          accepted["async"] = false;
           return messages;
         }),
         "interaction-mode-mismatch"
@@ -257,7 +308,7 @@ describe("generateSequenceDiagram - untrusted generator results", () => {
       [
         withMessages(output, (messages) => [
           ...messages,
-          { from: { elementId: "mission-control" }, to: { elementId: "command-service" }, label: "Console step", interfaceType: "INTERNAL", order: 9 }
+          { from: { elementId: "mission-control" }, to: { elementId: "command-service" }, label: "Console step", interfaceType: "INTERNAL", order: nextOrder }
         ]),
         "internal-endpoint-mismatch"
       ]

@@ -147,6 +147,24 @@ describe("renderPlantUml - structure", () => {
     expect(arrowFor({ from: { elementId: "a" }, to: { elementId: "b" }, label: "x", interfaceType: "EVENT", order: 1, async: true, isResponse: true })).toBe("-->");
   });
 
+  it("renders INTERNAL between two different participants between their aliases and a self-message as a self arrow", () => {
+    const text = render(
+      modelOf([
+        ["flight-controller", "mission-control", "INTERNAL", { interfaceName: "Operator Console" }],
+        ["command-service", "command-service", "INTERNAL"],
+        ["mission-control", "command-service", "REST API"]
+      ])
+    );
+
+    expect(bodyLines(text)).toEqual([
+      "kp_flight_controller -> kp_mission_control : Step 1 (INTERNAL: Operator Console)",
+      "kp_command_service -> kp_command_service : Step 2 (INTERNAL)",
+      "kp_mission_control -> kp_command_service : Step 3 (REST API)"
+    ]);
+    expect(text).not.toContain("kp_flight_controller -> kp_flight_controller");
+    expect(validatePlantUmlSubset(text).ok).toBe(true);
+  });
+
   it("writes safe metadata comments and the local legend, and nothing else", () => {
     expect(lines.slice(1, 8)).toEqual([
       "' ArchGround sequence diagram",

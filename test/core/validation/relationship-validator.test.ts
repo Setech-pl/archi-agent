@@ -146,21 +146,96 @@ describe("validateRelationships - grounded interactions", () => {
 });
 
 describe("validateRelationships - INTERNAL, responses and new participants", () => {
-  it("accepts INTERNAL processing inside one participant without an external relationship", () => {
-    const result = validateRelationships(modelOf([["command-service", "command-service", "INTERNAL"]]), context);
+  it("recognizes a self-message only by equal sender and receiver and needs no relationship", () => {
+    const result = validateRelationships(
+      modelOf([
+        ["command-service", "command-service", "INTERNAL"],
+        ["flight-controller", "flight-controller", "INTERNAL"]
+      ]),
+      context
+    );
 
+    expect(context.relationships.some((relationship) => relationship.fromId === relationship.toId)).toBe(false);
     expect(result.issues).toEqual([]);
-    expect(result.matches[0]).toEqual({ order: 1, verification: "internal", relationships: [] });
+    expect(result.matches).toEqual([
+      { order: 1, verification: "self-message", relationships: [] },
+      { order: 2, verification: "self-message", relationships: [] }
+    ]);
   });
 
-  it("rejects INTERNAL between two different participants, even when the pack declares it", () => {
-    expect(
-      context.relationships.some(
-        (relationship) => relationship.fromId === "flight-controller" && relationship.toId === "mission-control" && relationship.interfaceType === "INTERNAL"
-      )
-    ).toBe(true);
-    expect(codes([["flight-controller", "mission-control", "INTERNAL"]])).toEqual(["internal-endpoint-mismatch@messages.0"]);
+  it("accepts INTERNAL between two different participants when the grounded context declares it", () => {
+    const declared = context.relationships.filter(
+      (relationship) => relationship.fromId === "flight-controller" && relationship.toId === "mission-control" && relationship.interfaceType === "INTERNAL"
+    );
+    const result = validateRelationships(modelOf([["flight-controller", "mission-control", "INTERNAL"]]), context);
+
+    expect(declared.map((relationship) => [relationship.mode, relationship.interfaceName])).toEqual([["synchronous", "Operator Console"]]);
+    expect(result.issues).toEqual([]);
+    expect(result.matches[0]?.verification).toBe("grounded");
+    expect(result.matches[0]?.relationships).toEqual(declared);
+  });
+
+  it("does not treat an INTERNAL classification as a self-message", () => {
+    const result = validateRelationships(modelOf([["flight-controller", "mission-control", "INTERNAL"]]), context);
+
+    expect(result.matches.map((match) => match.verification)).not.toContain("self-message");
+    expect(result.matches[0]?.relationships).toHaveLength(1);
+  });
+
+  it("enforces the direction of an INTERNAL relationship and accepts the reverse only when it is declared", () => {
+    const [issue] = validateRelationships(modelOf([["mission-control", "flight-controller", "INTERNAL"]]), context).issues;
+
+    expect(issue?.code).toBe("relationship-direction");
+    expect(issue?.details).toEqual({ order: 1, fromId: "mission-control", toId: "flight-controller" });
+
+    const withReverse: GroundedContext = {
+      ...context,
+      relationships: [
+        ...context.relationships,
+        {
+          fromId: "mission-control",
+          toId: "flight-controller",
+          interfaceType: "INTERNAL",
+          interfaceName: null,
+          mode: "synchronous",
+          purpose: "Synthetic reverse console",
+          source: { file: "relationships.md", line: 99 }
+        }
+      ]
+    };
+
+    expect(codes([["mission-control", "flight-controller", "INTERNAL"]], withReverse)).toEqual([]);
+  });
+
+  it("rejects a cross-participant INTERNAL message without a matching grounded INTERNAL relationship", () => {
+    const withoutConsole: GroundedContext = {
+      ...context,
+      relationships: context.relationships.filter((relationship) => relationship.fromId !== "flight-controller")
+    };
+
+    expect(codes([["mission-control", "command-service", "INTERNAL"]])).toEqual(["internal-endpoint-mismatch@messages.0"]);
+    expect(codes([["flight-controller", "command-service", "INTERNAL"]])).toEqual(["internal-endpoint-mismatch@messages.0"]);
+    expect(codes([["flight-controller", "mission-control", "INTERNAL"]], withoutConsole)).toEqual(["internal-endpoint-mismatch@messages.0"]);
     expect(codes([["mission-control", { newName: "ground station" }, "INTERNAL"]])).toEqual(["internal-endpoint-mismatch@messages.0"]);
+    expect(codes([[{ newName: "ground station" }, "mission-control", "INTERNAL"]])).toEqual(["internal-endpoint-mismatch@messages.0"]);
+  });
+
+  it("validates the interaction mode of an INTERNAL relationship", () => {
+    expect(codes([["flight-controller", "mission-control", "INTERNAL", async]])).toEqual(["interaction-mode-mismatch@messages.0"]);
+  });
+
+  it("never lets a self-message authorize an interaction between different participants", () => {
+    const result = validateRelationships(
+      modelOf([
+        ["command-service", "command-service", "INTERNAL"],
+        ["command-service", "flight-controller", "INTERNAL"]
+      ]),
+      context
+    );
+
+    expect(result.issues.map((issue) => `${issue.code}@${issue.path ?? "-"}`)).toEqual(["internal-endpoint-mismatch@messages.1"]);
+    expect(result.matches.map((match) => match.verification)).toEqual(["self-message", "grounded"]);
+    expect(result.matches[1]?.relationships).toEqual([]);
   });
 
   it("verifies a response against the synchronous relationship of its request", () => {

@@ -110,7 +110,10 @@ function expectA10(outcome: ScanOutcome, relativePath: string, count: number): v
   expect(outcome.findings.get(`A10 ${relativePath}`)).toBe(count);
 }
 
-describe("leak scan A10 exception for package-lock funding metadata", () => {
+// Every test here spawns the scanner as a subprocess. The local 15-second timeout covers intermittent
+// subprocess scheduling under full-suite CPU contention, not expected scanner execution time (about
+// 0.1 to 0.2 seconds per scan in isolation). No assertion depends on this value.
+describe("leak scan A10 exception for package-lock funding metadata", { timeout: 15_000 }, () => {
   it("exempts an approved host given as a plain funding string", () => {
     const outcome = scan({
       "package-lock.json": lockfile({ "node_modules/a": { version: "1.0.0", funding: httpsUrl(collectiveHost) } })

@@ -99,8 +99,45 @@ describe("ScriptedSpaceMissionGenerator - output", () => {
 
       expect(relationship).toBeDefined();
       expect(message["interfaceName"]).toBe(relationship?.interfaceName ?? undefined);
-      expect(message["interfaceType"]).not.toBe("INTERNAL");
     }
+  });
+
+  it("uses the flight controller through its explicit INTERNAL relationship to mission control", () => {
+    const participants = output["participants"] as Raw[];
+    const messages = output["messages"] as Raw[];
+    const declared = grounding.context.relationships.filter(
+      (relationship) => relationship.fromId === "flight-controller" && relationship.toId === "mission-control"
+    );
+
+    expect(participants.filter((participant) => participant["elementId"] === "flight-controller")).toEqual([
+      { origin: "knowledge-pack", elementId: "flight-controller", canonicalName: "Flight Controller", kind: "actor" }
+    ]);
+    expect(declared.map((relationship) => [relationship.interfaceType, relationship.mode, relationship.interfaceName])).toEqual([
+      ["INTERNAL", "synchronous", "Operator Console"]
+    ]);
+    expect(messages.filter((message) => [message["from"]["elementId"], message["to"]["elementId"]].includes("flight-controller"))).toEqual([
+      {
+        from: { elementId: "flight-controller" },
+        to: { elementId: "mission-control" },
+        label: "Submit prepared command",
+        interfaceType: "INTERNAL",
+        interfaceName: "Operator Console",
+        order: 1
+      }
+    ]);
+  });
+
+  it("declares every participant of the grounded context and uses each one in a message", () => {
+    const participants = (output["participants"] as Raw[]).map((participant) => participant["elementId"] as string);
+    const messages = output["messages"] as Raw[];
+    const used = new Set(messages.flatMap((message) => [message["from"]["elementId"], message["to"]["elementId"]]));
+    const contextIds = [...grounding.context.actors, ...grounding.context.systems].map((element) => element.id);
+
+    expect([...participants].sort()).toEqual([...contextIds].sort());
+    expect(participants.filter((id) => !used.has(id))).toEqual([]);
+    expect(messages.filter((message) => message["from"]["elementId"] === message["to"]["elementId"]).map((message) => message["from"]["elementId"])).toEqual([
+      "command-service"
+    ]);
   });
 
   it("produces synchronous and asynchronous interactions in a fixed order", () => {

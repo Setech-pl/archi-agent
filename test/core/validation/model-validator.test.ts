@@ -117,6 +117,12 @@ describe("validateModelStructure", () => {
     expect(codes(model([message(1, { isResponse: true, async: true })]))).toEqual(["response-mode-invalid at messages.0"]);
   });
 
+  it("does not treat INTERNAL between different participants as a self-message", () => {
+    expect(codes(model([message(1, { interfaceType: "INTERNAL" })]))).toEqual([]);
+    expect(createModelIssue("internal-endpoint-mismatch").message).toContain("two different participants");
+    expect(createModelIssue("internal-endpoint-mismatch").message).not.toContain("same participant");
+  });
+
   it("rejects unsafe text before rendering, even when the schema was bypassed", () => {
     expect(codes(model([message(1, { label: "@startuml" })]))).toEqual(["unsafe-text at messages.0.label"]);
     expect(codes(model([message(1, { interfaceName: "Api [[link]]" })]))).toEqual(["unsafe-text at messages.0.interfaceName"]);

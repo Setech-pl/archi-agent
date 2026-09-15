@@ -166,9 +166,14 @@ A known participant must use the element identifier, canonical name and kind of 
 the grounded context. A confirmed new participant must use its grounding key and the display
 name `[NEW] <name>`. A message between two different known participants needs a grounded
 relationship with the same direction (the opposite one for a response), interface type and mode.
-INTERNAL means processing inside one participant: source and target must be the same, and no
-relationship is needed. An interaction with a confirmed new participant is accepted with a warning
-and is never labelled as grounded. A forbid rule blocks its interaction; a missing required
+INTERNAL is an interface classification like the others: between two different participants it
+needs an explicit grounded INTERNAL relationship with the same direction and mode. A self-message
+is identified only by equal sender and receiver; it must use INTERNAL, needs no relationship and
+never authorizes an interaction between different participants. A non-INTERNAL interaction with a
+confirmed new participant is accepted with a warning and is never labelled as grounded; INTERNAL
+with a new participant cannot be grounded and is rejected. The generation summary counts
+synchronous, asynchronous and response messages by interaction behavior and reports
+`selfMessageCount` as a separate structural metric. A forbid rule blocks its interaction; a missing required
 interaction gives a warning.
 
 ### Interface-name policy

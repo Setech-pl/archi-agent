@@ -193,6 +193,9 @@ describe("offline Space Mission demo - console", () => {
     const text = lines.join("\n");
 
     expect(lines).toContain("Generator: scripted-demo (deterministic script; no LLM request, no network access)");
+    expect(lines).toContain("Participants: 7 (7 grounded, 0 new)");
+    expect(lines).toContain("Messages: 8 (4 synchronous, 3 asynchronous, 1 response; 1 self-message)");
+    expect(text).not.toMatch(/\binternal\b/);
     expect(lines).toContain(`Written: ${sequenceDirectory}/telemetry-command-flow.puml`);
     expect(text).not.toContain(root);
     expect(text).not.toContain("prepares a command");
@@ -222,6 +225,90 @@ describe("offline Space Mission demo - console", () => {
       knowledgePackDirectory: "samples/space-mission/architecture",
       outputDirectory: "architecture-diagrams/space-mission/sequence"
     });
+  });
+});
+
+describe("offline Space Mission demo - INTERNAL relationships and self-messages", () => {
+  const staleSummaryField = ["internal", "Count"].join("");
+
+  it("declares and uses the Flight Controller through its grounded INTERNAL relationship", async () => {
+    const result = await runSpaceMissionDemo({ projectRoot, outputRoot: outputRoot(), dryRun: true });
+
+    if (result.status !== "dry-run") {
+      throw new Error("Expected a dry run.");
+    }
+
+    const diagram = result.outcome.diagram.content;
+    const report = JSON.parse(result.outcome.report.content);
+
+    expect(diagram).toContain('actor "Flight Controller" as kp_flight_controller');
+    expect(diagram).toContain("kp_flight_controller -> kp_mission_control : Submit prepared command (INTERNAL: Operator Console)");
+    expect(diagram).not.toContain("kp_flight_controller -> kp_flight_controller");
+    expect(validatePlantUmlSubset(diagram).ok).toBe(true);
+    expect(report.knownParticipants.find((participant: { elementId: string }) => participant.elementId === "flight-controller")).toMatchObject({
+      canonicalName: "Flight Controller",
+      diagramKind: "actor",
+      usedInDiagram: true
+    });
+    expect(report.knownParticipants.filter((participant: { usedInDiagram: boolean }) => !participant.usedInDiagram)).toEqual([]);
+    expect(report.messages.filter((message: { from: string }) => message.from === "kp:flight-controller")).toEqual([
+      {
+        order: 1,
+        from: "kp:flight-controller",
+        to: "kp:mission-control",
+        interfaceType: "INTERNAL",
+        interfaceName: "Operator Console",
+        mode: "synchronous",
+        response: false,
+        verification: "grounded"
+      }
+    ]);
+    expect(report.relationships.find((relationship: { fromId: string }) => relationship.fromId === "flight-controller")).toMatchObject({
+      toId: "mission-control",
+      interfaceType: "INTERNAL",
+      mode: "synchronous",
+      supportsMessages: [1]
+    });
+    expect(
+      report.messages.filter((message: { verification: string }) => message.verification === "self-message").map((message: { from: string; to: string }) => [message.from, message.to])
+    ).toEqual([["kp:command-service", "kp:command-service"]]);
+  });
+
+  it("reports interaction modes and the self-message count as separate metrics", async () => {
+    const result = await runSpaceMissionDemo({ projectRoot, outputRoot: outputRoot(), dryRun: true });
+
+    if (result.status !== "dry-run") {
+      throw new Error("Expected a dry run.");
+    }
+
+    expect(result.outcome.summary).toEqual({
+      participantCount: 7,
+      knownParticipantCount: 7,
+      newParticipantCount: 0,
+      messageCount: 8,
+      synchronousCount: 4,
+      asynchronousCount: 3,
+      responseCount: 1,
+      selfMessageCount: 1,
+      warningCount: 0
+    });
+    expect(Object.keys(result.outcome.summary)).not.toContain(staleSummaryField);
+  });
+
+  it("leaves no stale reference to the old summary field in sources, tests, documentation or golden files", () => {
+    const roots = ["src", "test", "docs", "samples"].map((name) => fileURLToPath(new URL(`../../${name}/`, import.meta.url)));
+    const files = [
+      ...roots.flatMap((root) =>
+        readdirSync(root, { recursive: true })
+          .map(String)
+          .filter((name) => /\.(?:ts|mjs|md|json|puml)$/.test(name))
+          .map((name) => path.join(root, name))
+      ),
+      path.join(projectRoot, "README.md")
+    ];
+
+    expect(files.length).toBeGreaterThan(100);
+    expect(files.filter((file) => readFileSync(file, "utf8").includes(staleSummaryField))).toEqual([]);
   });
 });
 
