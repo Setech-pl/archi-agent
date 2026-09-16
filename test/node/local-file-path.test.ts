@@ -86,7 +86,7 @@ describe("canonicalDirectory", () => {
   it("returns the real path of an existing directory", async () => {
     const { project } = workspace();
 
-    expect(await canonicalDirectory(project)).toBe(realpathSync(project));
+    expect(await canonicalDirectory(project)).toBe(realpathSync.native(project));
   });
 
   it("rejects missing paths, files and linked directories", async () => {

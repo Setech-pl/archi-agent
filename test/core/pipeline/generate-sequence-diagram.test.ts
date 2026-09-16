@@ -285,7 +285,7 @@ describe("generateSequenceDiagram - untrusted generator results", () => {
         {
           ...output,
           participants: [...(output["participants"] as Raw[]), { origin: "knowledge-pack", elementId: "mission-commander", canonicalName: "Mission Commander", kind: "actor" }],
-          messages: [...(output["messages"] as Raw[]), { from: { elementId: "mission-commander" }, to: { elementId: "mission-commander" }, label: "Approve", interfaceType: "INTERNAL", order: nextOrder }]
+          messages: [...(output["messages"] as Raw[]), { from: { elementId: "mission-commander" }, to: { elementId: "mission-commander" }, label: "Approve", interfaceType: "INTERNAL", async: false, isResponse: false, order: nextOrder }]
         },
         "unknown-participant"
       ],
@@ -308,7 +308,7 @@ describe("generateSequenceDiagram - untrusted generator results", () => {
       [
         withMessages(output, (messages) => [
           ...messages,
-          { from: { elementId: "mission-control" }, to: { elementId: "command-service" }, label: "Console step", interfaceType: "INTERNAL", order: nextOrder }
+          { from: { elementId: "mission-control" }, to: { elementId: "command-service" }, label: "Console step", interfaceType: "INTERNAL", async: false, isResponse: false, order: nextOrder }
         ]),
         "internal-endpoint-mismatch"
       ]

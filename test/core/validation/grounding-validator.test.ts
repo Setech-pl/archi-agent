@@ -52,7 +52,7 @@ function known(id: string): Raw {
 
 function modelWith(participants: readonly Raw[]): GeneratedSequenceModel {
   const refs = participants.map((entry) => (entry["origin"] === "new" ? { newName: entry["newName"] } : { elementId: entry["elementId"] }));
-  const messages = refs.map((ref, index) => ({ from: ref, to: ref, label: `Step ${index + 1}`, interfaceType: "INTERNAL", order: index + 1 }));
+  const messages = refs.map((ref, index) => ({ from: ref, to: ref, label: `Step ${index + 1}`, interfaceType: "INTERNAL", async: false, isResponse: false, order: index + 1 }));
   const result = parseGeneratedSequenceModel({ participants, messages });
 
   if (!result.ok) {

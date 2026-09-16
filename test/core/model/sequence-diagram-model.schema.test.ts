@@ -25,6 +25,8 @@ function message(order: number, extra: Raw = {}): Raw {
     to: { elementId: "command-service" },
     label: `Step ${order}`,
     interfaceType: "REST API",
+    async: false,
+    isResponse: false,
     order,
     ...extra
   };
@@ -411,5 +413,55 @@ describe("generated sequence-model schema - fragments", () => {
         ]
       })
     ).toEqual([{ path: "fragments.1", code: "overlapping-fragments" }]);
+  });
+});
+
+describe("parseGeneratedSequenceModel - explicit interaction semantics", () => {
+  const queueParticipants = [participant("command-service", "Command Service"), participant("command-queue", "Command Queue", "queue")];
+  // Shape of a message observed from a local model: asynchronous in wording and interface type, without the flags.
+  const observed: Raw = {
+    from: { elementId: "command-service" },
+    to: { elementId: "command-queue" },
+    label: "publishes command asynchronously",
+    interfaceType: "EVENT",
+    interfaceName: "Command Accepted Event",
+    order: 4
+  };
+
+  it("rejects a message without async", () => {
+    const { async: _async, ...withoutAsync } = message(1);
+    expect(problemsFor(validModel({ messages: [withoutAsync] }))).toEqual(["messages.0.async invalid_type"]);
+  });
+
+  it("rejects a message without isResponse", () => {
+    const { isResponse: _isResponse, ...withoutResponse } = message(1);
+    expect(problemsFor(validModel({ messages: [withoutResponse] }))).toEqual(["messages.0.isResponse invalid_type"]);
+  });
+
+  it("rejects the observed answer that omits both flags instead of treating it as synchronous", () => {
+    expect(problemsFor({ participants: queueParticipants, messages: [observed] })).toEqual([
+      "messages.0.async invalid_type",
+      "messages.0.isResponse invalid_type"
+    ]);
+  });
+
+  it("accepts the corrected answer and keeps both flags exactly", () => {
+    const result = parseGeneratedSequenceModel({ participants: queueParticipants, messages: [{ ...observed, async: true, isResponse: false }] });
+
+    if (!result.ok) {
+      throw new Error("The corrected answer must pass the schema.");
+    }
+
+    expect(result.model.messages[0]).toMatchObject({ async: true, isResponse: false, order: 4 });
+  });
+
+  it("keeps explicit false values instead of dropping them", () => {
+    const result = parseGeneratedSequenceModel(validModel({}, 1));
+
+    if (!result.ok) {
+      throw new Error("The model must pass the schema.");
+    }
+
+    expect(result.model.messages[0]).toMatchObject({ async: false, isResponse: false });
   });
 });

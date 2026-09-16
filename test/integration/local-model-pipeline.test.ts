@@ -174,6 +174,48 @@ describe("local model pipeline - reasoning_content compatibility", () => {
   });
 });
 
+describe("local model pipeline - explicit interaction flags", () => {
+  const fixture = JSON.parse(validContent) as { messages: Record<string, unknown>[] };
+
+  it("sends a response format that requires async and isResponse on every message", async () => {
+    const { double, endpoint } = await serve();
+    await run(endpoint);
+
+    const body = double.completionRequests()[0]?.body as Record<string, any>;
+    expect(body["response_format"]["json_schema"]["schema"]["properties"]["messages"]["items"]["required"]).toEqual(
+      expect.arrayContaining(["async", "isResponse"])
+    );
+  });
+
+  it("rejects an answer that omits the flags at the schema stage after one request, without inferring them", async () => {
+    // Shape of an observed local-model answer: asynchronous EVENT messages without async and isResponse.
+    const omitted = JSON.stringify({
+      ...fixture,
+      messages: fixture.messages.map(({ async: _async, isResponse: _isResponse, ...message }) => message)
+    });
+    const { double, endpoint } = await serve({ completionContent: omitted });
+    const outcome = await run(endpoint);
+
+    expect(outcome.status).toBe("invalid-generator-output");
+    expect("schemaProblems" in outcome && outcome.schemaProblems).toEqual(
+      fixture.messages.flatMap((_message, index) => [
+        { path: `messages.${index}.async`, code: "invalid_type" },
+        { path: `messages.${index}.isResponse`, code: "invalid_type" }
+      ])
+    );
+    expect(double.requests).toHaveLength(1);
+  });
+
+  it("accepts the same answer once every message states both flags", async () => {
+    expect(fixture.messages.every((message) => typeof message["async"] === "boolean" && typeof message["isResponse"] === "boolean")).toBe(true);
+    expect(fixture.messages.some((message) => message["async"] === true)).toBe(true);
+
+    const { double, endpoint } = await serve();
+    expect((await run(endpoint)).status).toBe("success");
+    expect(double.requests).toHaveLength(1);
+  });
+});
+
 describe("local model pipeline - message labels that begin with a statement keyword", () => {
   // Synthetic answer in the shape of the owner acceptance finding: the scripted fixture with natural
   // labels that begin with PlantUML statement keywords. It is not a copy of any model answer.
