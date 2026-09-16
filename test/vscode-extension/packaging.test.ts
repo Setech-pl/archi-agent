@@ -125,7 +125,7 @@ describe("clean runtime execution", () => {
       "      from: { elementId: relationship.fromId }, to: { elementId: relationship.toId }, label: relationship.purpose,",
       "      interfaceType: types[relationship.interfaceType] ?? relationship.interfaceType,",
       "      ...(relationship.interfaceName === null ? {} : { interfaceName: relationship.interfaceName }),",
-      '      ...(relationship.mode === "asynchronous" ? { async: true } : {}), order: index + 1 }));',
+      '      async: relationship.mode === "asynchronous", isResponse: false, order: index + 1 }));',
       "    const used = new Set(messages.flatMap((message) => [message.from.elementId, message.to.elementId]));",
       '    const participants = [...used].sort().map((id) => known.get(id)).map((element) => ({ origin: "knowledge-pack", elementId: element.id, canonicalName: element.canonicalName, kind: kindOf(element) }));',
       "    return { participants, messages };",

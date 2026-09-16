@@ -282,7 +282,7 @@ describe("runtime: controlled failures", () => {
           { origin: "knowledge-pack", elementId: "night-observer", canonicalName: "Night Observer", kind: "actor" },
           { origin: "knowledge-pack", elementId: "dome-controller", canonicalName: "Dome Controller", kind: "system" }
         ],
-        messages: [{ from: { elementId: "night-observer" }, to: { elementId: "dome-controller" }, label: "Open the dome", interfaceType: "EVENT", order: 1 }]
+        messages: [{ from: { elementId: "night-observer" }, to: { elementId: "dome-controller" }, label: "Open the dome", interfaceType: "EVENT", async: false, isResponse: false, order: 1 }]
       })
     });
     const result = expectFailure(await runtimeWith(semantic).generateSequenceDiagram(request(packDirectory)), "semantic-validation-failed");

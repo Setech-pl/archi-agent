@@ -41,7 +41,8 @@ export function echoModelFor(context: GroundedContext): Record<string, unknown> 
       label: relationship.purpose,
       interfaceType: modelInterfaceTypes[relationship.interfaceType] ?? "EVENT",
       ...(relationship.interfaceName === null ? {} : { interfaceName: relationship.interfaceName }),
-      ...(relationship.mode === "asynchronous" ? { async: true } : {}),
+      async: relationship.mode === "asynchronous",
+      isResponse: false,
       order: messages.length + 1
     });
   }
@@ -60,6 +61,7 @@ export function echoModelFor(context: GroundedContext): Record<string, unknown> 
       label: "Interact with the new participant",
       interfaceType: "EVENT",
       async: true,
+      isResponse: false,
       order: messages.length + 1
     });
   }
