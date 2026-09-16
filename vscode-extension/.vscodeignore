@@ -1,0 +1,7 @@
+# The VSIX holds only the bounded runtime files. Everything is excluded, then the
+# packaged files are listed explicitly. The verification script rejects anything else.
+**
+!package.json
+!README.md
+!dist/extension.js
+!dist/archi-agent-runtime.js

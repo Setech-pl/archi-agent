@@ -5,7 +5,7 @@ import type { GroundedContext } from "../../../src/core/grounding/grounded-conte
 import { loadKnowledgePack, requiredKnowledgePackFiles } from "../../../src/core/knowledge-pack/knowledge-pack-loader.js";
 import { parseGeneratedSequenceModel, type GeneratedSequenceModel } from "../../../src/core/model/sequence-diagram-model.schema.js";
 import { participantKindOf } from "../../../src/core/validation/grounding-validator.js";
-import { hasModelErrors } from "../../../src/core/validation/model-validator.js";
+import { hasModelErrors, validateModelStructure } from "../../../src/core/validation/model-validator.js";
 import { packInterfaceType, validateRelationships } from "../../../src/core/validation/relationship-validator.js";
 import { KnowledgePackSourceDouble } from "../../doubles/knowledge-pack-source-double.js";
 
@@ -67,7 +67,7 @@ function modelOf(steps: readonly Step[]): GeneratedSequenceModel {
       participants.set(typeof end === "string" ? end : `new:${end.newName}`, participantFor(end));
     }
 
-    return { from: ref(from), to: ref(to), label: `Step ${index + 1}`, interfaceType, order: index + 1, ...(extra ?? {}) };
+    return { from: ref(from), to: ref(to), label: `Step ${index + 1}`, interfaceType, async: false, isResponse: false, order: index + 1, ...(extra ?? {}) };
   });
   const result = parseGeneratedSequenceModel({ participants: [...participants.values()], messages });
 
@@ -316,5 +316,47 @@ describe("validateRelationships - diagnostic details", () => {
 
     expect(issue?.code).toBe("interface-type-mismatch");
     expect(issue?.details).toEqual({ order: 1, fromId: "mission-control", toId: "command-service", expected: "FILE or REST API", actual: "EVENT" });
+  });
+});
+
+describe("validateRelationships - explicit interaction semantics", () => {
+  const syncRequest = { async: false, isResponse: false } as const;
+  const asyncEvent = { async: true, isResponse: false } as const;
+  const syncResponse = { async: false, isResponse: true } as const;
+  const structureCodes = (steps: readonly Step[]): string[] => validateModelStructure(modelOf(steps)).map((issue) => `${issue.code}@${issue.path ?? "-"}`);
+
+  it("accepts a synchronous request, an asynchronous event and a synchronous response with explicit flags", () => {
+    const steps: Step[] = [
+      ["mission-control", "command-service", "REST API", syncRequest],
+      ["command-service", "command-queue", "EVENT", asyncEvent],
+      ["command-service", "mission-control", "REST API", syncResponse]
+    ];
+
+    expect(codes(steps)).toEqual([]);
+    expect(structureCodes(steps)).toEqual([]);
+  });
+
+  it("accepts the corrected local-model answer whose asynchronous messages state async true", () => {
+    const corrected: Step[] = [
+      ["command-service", "mission-control", "EVENT", { ...asyncEvent, interfaceName: "Command Status Event" }],
+      ["command-service", "command-queue", "EVENT", { ...asyncEvent, label: "publishes command asynchronously", interfaceName: "Command Accepted Event" }],
+      ["command-queue", "orbital-relay", "EVENT", { ...asyncEvent, interfaceName: "Uplink Frame" }],
+      ["orbital-relay", "telemetry-service", "EVENT", { ...asyncEvent, label: "returns telemetry frames asynchronously", interfaceName: "Downlink Frame" }]
+    ];
+
+    expect(codes(corrected)).toEqual([]);
+  });
+
+  it("still rejects async false against an asynchronous relationship", () => {
+    expect(codes([["command-service", "command-queue", "EVENT", syncRequest]])).toEqual(["interaction-mode-mismatch@messages.0"]);
+  });
+
+  it("still rejects an asynchronous response", () => {
+    expect(
+      structureCodes([
+        ["mission-control", "command-service", "REST API", syncRequest],
+        ["command-service", "mission-control", "REST API", { async: true, isResponse: true }]
+      ])
+    ).toEqual(["response-mode-invalid@messages.1"]);
   });
 });

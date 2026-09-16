@@ -1,0 +1,86 @@
+{
+  "name": "archi-agent",
+  "displayName": "Archi Agent",
+  "description": "Grounded architecture diagram generation with a local model: validated PlantUML sequence diagrams from flow descriptions and an Architecture Knowledge Pack.",
+  "version": "0.2.0-alpha.1",
+  "publisher": "setech-pl",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "architecture",
+    "plantuml",
+    "sequence diagram",
+    "lm studio",
+    "local model"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:archiAgent.generateSequenceDiagram"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In an untrusted workspace the Knowledge Pack path and local model settings are read from user settings only.",
+      "restrictedConfigurations": [
+        "archiAgent.knowledgePackPath",
+        "archiAgent.localModel.baseUrl",
+        "archiAgent.localModel.model",
+        "archiAgent.localModel.timeoutSeconds"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "The Knowledge Pack and flow files are read from the local file system."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "archiAgent.generateSequenceDiagram",
+        "title": "Generate Sequence Diagram",
+        "category": "Archi Agent"
+      }
+    ],
+    "configuration": {
+      "title": "Archi Agent",
+      "properties": {
+        "archiAgent.knowledgePackPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path of the Architecture Knowledge Pack directory (the folder holding `systems.md`, `actors.md`, `relationships.md`, `aliases.md` and `rules.md`). The directory may be anywhere on the local file system; it is never resolved relative to a workspace or the working directory."
+        },
+        "archiAgent.localModel.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:1234/v1",
+          "markdownDescription": "Base URL of the local OpenAI-compatible server (for example LM Studio). Only literal loopback URLs are accepted: `http://127.0.0.1:<port>/v1` or `http://[::1]:<port>/v1`."
+        },
+        "archiAgent.localModel.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Identifier of the local model that plans the diagram, as reported by the server. When empty, the generate command lists the models of the server and lets you choose one; the choice is stored here."
+        },
+        "archiAgent.localModel.timeoutSeconds": {
+          "type": "number",
+          "default": 120,
+          "minimum": 1,
+          "maximum": 600,
+          "markdownDescription": "Time limit in seconds for one model request."
+        },
+        "archiAgent.defaultAuthor": {
+          "type": "string",
+          "default": "Archi Agent",
+          "markdownDescription": "Author written into the front matter when a flow is entered as a plain description instead of a flow document."
+        }
+      }
+    }
+  }
+}

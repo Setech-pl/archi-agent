@@ -26,6 +26,10 @@ import {
  * nothing is coerced, every text passes the PlantUML text policy, and there is no raw-syntax
  * construct, so a PlantUML statement cannot be expressed at all.
  *
+ * Every generated message states async and isResponse explicitly. The shared domain type keeps them
+ * optional, but a generator must never leave interaction semantics to an absent field, and a
+ * missing value is rejected rather than inferred.
+ *
  * Fragments are the only addition to the shared domain types, which stay unchanged. A fragment
  * covers a contiguous range of messages named by their order numbers; only alt has else branches.
  * Fragments nest strictly: two fragments are disjoint or one contains the other, a fragment inside
@@ -170,8 +174,8 @@ const messageSchema = z.strictObject({
     maxChars: sequenceModelLimits.maxBusinessDescriptionChars,
     rejectStatementKeywords: true
   }),
-  async: z.boolean().optional(),
-  isResponse: z.boolean().optional(),
+  async: z.boolean(),
+  isResponse: z.boolean(),
   order: orderSchema
 });
 
@@ -418,6 +422,8 @@ function toMessage(message: ParsedModel["messages"][number]): SequenceMessage {
     to: toRef(message.to),
     label: message.label,
     interfaceType: message.interfaceType,
+    async: message.async,
+    isResponse: message.isResponse,
     order: message.order
   };
 
@@ -427,14 +433,6 @@ function toMessage(message: ParsedModel["messages"][number]): SequenceMessage {
 
   if (message.businessDescription !== undefined) {
     result.businessDescription = message.businessDescription;
-  }
-
-  if (message.async !== undefined) {
-    result.async = message.async;
-  }
-
-  if (message.isResponse !== undefined) {
-    result.isResponse = message.isResponse;
   }
 
   return Object.freeze(result);

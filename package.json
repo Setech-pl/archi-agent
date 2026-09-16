@@ -19,13 +19,21 @@
     "demo:dry-run": "npm run build:demo && node dist/demo/space-mission-demo.js --dry-run",
     "local:models": "npm run build:demo && node dist/demo/lm-studio-demo.js models",
     "demo:llm:dry-run": "npm run build:demo && node dist/demo/lm-studio-demo.js generate --dry-run",
-    "demo:llm": "npm run build:demo && node dist/demo/lm-studio-demo.js generate"
+    "demo:llm": "npm run build:demo && node dist/demo/lm-studio-demo.js generate",
+    "extension:typecheck": "tsc -p vscode-extension/tsconfig.json",
+    "extension:build": "node vscode-extension/scripts/build.mjs",
+    "extension:package": "node vscode-extension/scripts/package-vsix.mjs",
+    "extension:verify": "node vscode-extension/scripts/verify-vsix.mjs",
+    "extension:test": "vitest run test/runtime test/vscode-extension"
   },
   "dependencies": {
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
+    "@types/vscode": "1.91.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
     "typescript": "7.0.2",
     "vitest": "5.0.0"
   }

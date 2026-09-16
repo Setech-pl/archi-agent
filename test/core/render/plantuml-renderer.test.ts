@@ -73,7 +73,7 @@ function modelOf(steps: readonly Step[], fragments: readonly Raw[] = []): Genera
       participants.set(typeof end === "string" ? end : `new:${end.newName}`, participantFor(end));
     }
 
-    return { from: ref(from), to: ref(to), label: `Step ${index + 1}`, interfaceType, order: index + 1, ...(extra ?? {}) };
+    return { from: ref(from), to: ref(to), label: `Step ${index + 1}`, interfaceType, async: false, isResponse: false, order: index + 1, ...(extra ?? {}) };
   });
   const result = parseGeneratedSequenceModel({ participants: [...participants.values()], messages, fragments });
 

@@ -228,9 +228,13 @@ Remaining work in this phase:
 
 # Phase 2 — Self-contained VS Code extension
 
-**Status: next major product milestone**
+**Status: foundation implemented; generation checkpoint pending owner acceptance**
 
-The production application should be a self-contained VS Code extension.
+The production application should be a self-contained VS Code extension. The foundation exists:
+a VSIX built from bundled JavaScript with one command, loopback-only local model settings, an
+explicit Knowledge Pack path, interactive ambiguity resolution and `[NEW]` confirmation, and
+package-content verification (see `docs/vscode-extension.md`). Artifact persistence, richer
+configuration UI and the clean-profile acceptance run remain open.
 
 Target installation:
 
@@ -707,7 +711,7 @@ The target system becomes:
 | Grounding core                          | implemented      |
 | Local LLM sequence demo                 | implemented      |
 | Documentation/public repository cleanup | current          |
-| Self-contained VSIX foundation          | next             |
+| Self-contained VSIX foundation          | implemented      |
 | EA XML architecture source              | next             |
 | VS Code generation checkpoint           | `v0.2.0-alpha.1` |
 | LLM-first PlantUML path                 | planned          |

@@ -16,7 +16,7 @@ function participant(id: string, canonicalName: string, kind = "system"): Raw {
 }
 
 function message(order: number, from: string, to: string, extra: Raw = {}): Raw {
-  return { from: { elementId: from }, to: { elementId: to }, label: `Step ${order}`, interfaceType: "EVENT", order, async: true, ...extra };
+  return { from: { elementId: from }, to: { elementId: to }, label: `Step ${order}`, interfaceType: "EVENT", order, async: true, isResponse: false, ...extra };
 }
 
 function parsed(raw: Raw): GeneratedSequenceModel {
@@ -107,7 +107,7 @@ describe("normalizeGeneratedModel", () => {
     ]);
     expect(model.messages.map((entry) => [entry.order, entry.interfaceType, entry.async, entry.isResponse, entry.interfaceName])).toEqual([
       [1, "DB", false, true, undefined],
-      [2, "FILE", true, undefined, "Guessable Name"]
+      [2, "FILE", true, false, "Guessable Name"]
     ]);
     expect(model.participants.some((entry) => entry.origin === "new")).toBe(false);
   });

@@ -31,7 +31,7 @@ export const scenarioContents = Object.freeze({
   "schema-invalid": JSON.stringify({ participants: [], messages: [], notes: "free text" }),
   "semantic-invalid": JSON.stringify({
     participants: [{ origin: "knowledge-pack", elementId: "ground-segment", canonicalName: "Ground Segment", kind: "system" }],
-    messages: [{ from: { elementId: "ground-segment" }, to: { elementId: "ground-segment" }, label: "Check the uplink", interfaceType: "INTERNAL", order: 1 }]
+    messages: [{ from: { elementId: "ground-segment" }, to: { elementId: "ground-segment" }, label: "Check the uplink", interfaceType: "INTERNAL", async: false, isResponse: false, order: 1 }]
   })
 });
 

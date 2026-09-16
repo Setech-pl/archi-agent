@@ -107,6 +107,8 @@ const message = (order: number, extra: Record<string, unknown> = {}) => ({
   to: { elementId: "command-service" },
   label: `Step ${order}`,
   interfaceType: "REST API",
+  async: false,
+  isResponse: false,
   order,
   ...extra
 });
@@ -173,7 +175,8 @@ describe("generated-model JSON Schema - strictness", () => {
     const [knownParticipant, newParticipant] = properties["participants"]["items"]["oneOf"];
 
     expect(jsonSchema["required"]).toEqual(["participants", "messages"]);
-    expect(messageSchema["required"]).toEqual(["from", "to", "label", "interfaceType", "order"]);
+    expect(messageSchema["required"]).toEqual(["from", "to", "label", "interfaceType", "async", "isResponse", "order"]);
+    expect([messageSchema["properties"]["async"], messageSchema["properties"]["isResponse"]]).toEqual([{ type: "boolean" }, { type: "boolean" }]);
     expect(knownParticipant["required"]).toEqual(["origin", "elementId", "canonicalName", "kind"]);
     expect(newParticipant["required"]).toEqual(["origin", "newName", "displayName", "kind", "confirmedByUser"]);
     expect(messageSchema["properties"]["from"]["anyOf"].map((option: Schema) => option["required"])).toEqual([["elementId"], ["newName"]]);
@@ -218,6 +221,8 @@ describe("generated-model JSON Schema - consistency with the Zod schema", () => 
       valid({ messages: [message(1, { interfaceType: "GRPC" })] }),
       valid({ messages: [{ from: { elementId: "mission-control" }, to: { elementId: "command-service" }, interfaceType: "EVENT", order: 1 }] }),
       valid({ messages: [message(1, { order: "1" })] }),
+      valid({ messages: [(({ async: _async, ...rest }) => rest)(message(1))] }),
+      valid({ messages: [(({ isResponse: _isResponse, ...rest }) => rest)(message(1))] }),
       valid({ messages: [message(1, { order: 0 })] }),
       valid({ messages: [message(1, { to: { elementId: "command-service", newName: "ground station" } })] }),
       valid({ participants: [] }),

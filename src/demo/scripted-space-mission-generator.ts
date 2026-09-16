@@ -92,6 +92,8 @@ function buildScriptedModel(context: GroundedContext): UntrustedGeneratorOutput 
       to: { elementId: step.to },
       label: step.label,
       interfaceType: step.interfaceType,
+      async: step.mode === "asynchronous",
+      isResponse: step.response === true,
       order: index + 1
     };
 
@@ -112,14 +114,6 @@ function buildScriptedModel(context: GroundedContext): UntrustedGeneratorOutput 
       if (relationship.interfaceName !== null) {
         message["interfaceName"] = relationship.interfaceName;
       }
-    }
-
-    if (step.mode === "asynchronous") {
-      message["async"] = true;
-    }
-
-    if (step.response === true) {
-      message["isResponse"] = true;
     }
 
     return message;

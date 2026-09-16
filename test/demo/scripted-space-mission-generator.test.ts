@@ -123,6 +123,8 @@ describe("ScriptedSpaceMissionGenerator - output", () => {
         label: "Submit prepared command",
         interfaceType: "INTERNAL",
         interfaceName: "Operator Console",
+        async: false,
+        isResponse: false,
         order: 1
       }
     ]);
