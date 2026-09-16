@@ -1,0 +1,461 @@
+{
+  "reportSchemaVersion": 1,
+  "diagramName": "telemetry-command-flow",
+  "flowName": "Telemetry command flow",
+  "author": "Space Mission Sample Team",
+  "language": "en",
+  "groundingDigest": {
+    "algorithm": "sha256",
+    "value": "f884c9f47f411fd141bcc79eb6b2da88f11a8bb437a129f91304b11ef65922d2"
+  },
+  "generatorType": "scripted-demo",
+  "sources": {
+    "flow": "samples/space-mission/flows/telemetry-command-flow.md",
+    "knowledgePack": "samples/space-mission/architecture"
+  },
+  "knownParticipants": [
+    {
+      "elementId": "command-queue",
+      "participantType": "system",
+      "elementKind": "queue",
+      "diagramKind": "queue",
+      "canonicalName": "Command Queue",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-canonical",
+        "exact-alias"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/systems.md",
+        "line": 9
+      },
+      "flowMentions": [
+        {
+          "line": 9,
+          "column": 82,
+          "length": 12
+        },
+        {
+          "line": 10,
+          "column": 5,
+          "length": 13
+        }
+      ]
+    },
+    {
+      "elementId": "command-service",
+      "participantType": "system",
+      "elementKind": "service",
+      "diagramKind": "system",
+      "canonicalName": "Command Service",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-canonical"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/systems.md",
+        "line": 6
+      },
+      "flowMentions": [
+        {
+          "line": 8,
+          "column": 50,
+          "length": 15
+        },
+        {
+          "line": 9,
+          "column": 5,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "elementId": "flight-controller",
+      "participantType": "actor",
+      "elementKind": "role",
+      "diagramKind": "actor",
+      "canonicalName": "Flight Controller",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-canonical"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/actors.md",
+        "line": 5
+      },
+      "flowMentions": [
+        {
+          "line": 7,
+          "column": 5,
+          "length": 17
+        }
+      ]
+    },
+    {
+      "elementId": "mission-control",
+      "participantType": "system",
+      "elementKind": "system",
+      "diagramKind": "system",
+      "canonicalName": "Mission Control",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-canonical"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/systems.md",
+        "line": 5
+      },
+      "flowMentions": [
+        {
+          "line": 7,
+          "column": 45,
+          "length": 15
+        },
+        {
+          "line": 8,
+          "column": 1,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "elementId": "orbital-relay",
+      "participantType": "system",
+      "elementKind": "external",
+      "diagramKind": "system",
+      "canonicalName": "Orbital Relay",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-canonical",
+        "exact-alias"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/systems.md",
+        "line": 10
+      },
+      "flowMentions": [
+        {
+          "line": 10,
+          "column": 69,
+          "length": 13
+        },
+        {
+          "line": 11,
+          "column": 5,
+          "length": 5
+        }
+      ]
+    },
+    {
+      "elementId": "telemetry-service",
+      "participantType": "system",
+      "elementKind": "service",
+      "diagramKind": "system",
+      "canonicalName": "Telemetry Service",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-canonical"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/systems.md",
+        "line": 7
+      },
+      "flowMentions": [
+        {
+          "line": 11,
+          "column": 58,
+          "length": 17
+        },
+        {
+          "line": 12,
+          "column": 5,
+          "length": 17
+        }
+      ]
+    },
+    {
+      "elementId": "telemetry-store",
+      "participantType": "system",
+      "elementKind": "database",
+      "diagramKind": "database",
+      "canonicalName": "Telemetry Store",
+      "usedInDiagram": true,
+      "resolution": "direct",
+      "matchKinds": [
+        "exact-alias"
+      ],
+      "source": {
+        "file": "samples/space-mission/architecture/systems.md",
+        "line": 8
+      },
+      "flowMentions": [
+        {
+          "line": 12,
+          "column": 73,
+          "length": 9
+        }
+      ]
+    }
+  ],
+  "newParticipants": [],
+  "relationships": [
+    {
+      "fromId": "command-queue",
+      "toId": "orbital-relay",
+      "interfaceType": "EVENT",
+      "interfaceName": "Uplink Frame",
+      "mode": "asynchronous",
+      "purpose": "Forwards queued commands to the relay",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 11
+      },
+      "supportsMessages": [
+        6
+      ]
+    },
+    {
+      "fromId": "command-service",
+      "toId": "command-queue",
+      "interfaceType": "EVENT",
+      "interfaceName": "Command Accepted Event",
+      "mode": "asynchronous",
+      "purpose": "Publishes accepted commands for uplink",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 10
+      },
+      "supportsMessages": [
+        5
+      ]
+    },
+    {
+      "fromId": "command-service",
+      "toId": "mission-control",
+      "interfaceType": "EVENT",
+      "interfaceName": "Command Status Event",
+      "mode": "asynchronous",
+      "purpose": "Reports the status of each command",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 9
+      },
+      "supportsMessages": []
+    },
+    {
+      "fromId": "flight-controller",
+      "toId": "mission-control",
+      "interfaceType": "INTERNAL",
+      "interfaceName": "Operator Console",
+      "mode": "synchronous",
+      "purpose": "Submits commands and reviews telemetry",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 5
+      },
+      "supportsMessages": [
+        1
+      ]
+    },
+    {
+      "fromId": "mission-control",
+      "toId": "command-service",
+      "interfaceType": "FILE",
+      "interfaceName": "Command Plan File",
+      "mode": "asynchronous",
+      "purpose": "Uploads the daily command plan",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 8
+      },
+      "supportsMessages": []
+    },
+    {
+      "fromId": "mission-control",
+      "toId": "command-service",
+      "interfaceType": "REST_API",
+      "interfaceName": "Command API",
+      "mode": "synchronous",
+      "purpose": "Sends command requests for validation",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 7
+      },
+      "supportsMessages": [
+        2,
+        4
+      ]
+    },
+    {
+      "fromId": "mission-control",
+      "toId": "telemetry-service",
+      "interfaceType": "REST_API",
+      "interfaceName": "Telemetry Query API",
+      "mode": "synchronous",
+      "purpose": "Reads current telemetry values",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 14
+      },
+      "supportsMessages": []
+    },
+    {
+      "fromId": "orbital-relay",
+      "toId": "telemetry-service",
+      "interfaceType": "EVENT",
+      "interfaceName": "Downlink Frame",
+      "mode": "asynchronous",
+      "purpose": "Delivers raw telemetry frames",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 12
+      },
+      "supportsMessages": [
+        7
+      ]
+    },
+    {
+      "fromId": "telemetry-service",
+      "toId": "telemetry-store",
+      "interfaceType": "DB",
+      "interfaceName": null,
+      "mode": "synchronous",
+      "purpose": "Stores decoded telemetry",
+      "source": {
+        "file": "samples/space-mission/architecture/relationships.md",
+        "line": 13
+      },
+      "supportsMessages": [
+        8
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "require",
+      "fromId": "command-service",
+      "toId": "command-queue",
+      "reason": "Every accepted command is queued for the next uplink window",
+      "source": {
+        "file": "samples/space-mission/architecture/rules.md",
+        "line": 6
+      }
+    },
+    {
+      "rule": "forbid",
+      "fromId": "flight-controller",
+      "toId": "orbital-relay",
+      "reason": "Commands must be validated by the command service before uplink",
+      "source": {
+        "file": "samples/space-mission/architecture/rules.md",
+        "line": 5
+      }
+    }
+  ],
+  "ambiguitySelections": [],
+  "messages": [
+    {
+      "order": 1,
+      "from": "kp:flight-controller",
+      "to": "kp:mission-control",
+      "interfaceType": "INTERNAL",
+      "interfaceName": "Operator Console",
+      "mode": "synchronous",
+      "response": false,
+      "verification": "grounded"
+    },
+    {
+      "order": 2,
+      "from": "kp:mission-control",
+      "to": "kp:command-service",
+      "interfaceType": "REST API",
+      "interfaceName": "Command API",
+      "mode": "synchronous",
+      "response": false,
+      "verification": "grounded"
+    },
+    {
+      "order": 3,
+      "from": "kp:command-service",
+      "to": "kp:command-service",
+      "interfaceType": "INTERNAL",
+      "interfaceName": null,
+      "mode": "synchronous",
+      "response": false,
+      "verification": "self-message"
+    },
+    {
+      "order": 4,
+      "from": "kp:command-service",
+      "to": "kp:mission-control",
+      "interfaceType": "REST API",
+      "interfaceName": "Command API",
+      "mode": "synchronous",
+      "response": true,
+      "verification": "grounded"
+    },
+    {
+      "order": 5,
+      "from": "kp:command-service",
+      "to": "kp:command-queue",
+      "interfaceType": "EVENT",
+      "interfaceName": "Command Accepted Event",
+      "mode": "asynchronous",
+      "response": false,
+      "verification": "grounded"
+    },
+    {
+      "order": 6,
+      "from": "kp:command-queue",
+      "to": "kp:orbital-relay",
+      "interfaceType": "EVENT",
+      "interfaceName": "Uplink Frame",
+      "mode": "asynchronous",
+      "response": false,
+      "verification": "grounded"
+    },
+    {
+      "order": 7,
+      "from": "kp:orbital-relay",
+      "to": "kp:telemetry-service",
+      "interfaceType": "EVENT",
+      "interfaceName": "Downlink Frame",
+      "mode": "asynchronous",
+      "response": false,
+      "verification": "grounded"
+    },
+    {
+      "order": 8,
+      "from": "kp:telemetry-service",
+      "to": "kp:telemetry-store",
+      "interfaceType": "DB",
+      "interfaceName": null,
+      "mode": "synchronous",
+      "response": false,
+      "verification": "grounded"
+    }
+  ],
+  "fragments": [],
+  "warnings": [],
+  "validation": {
+    "schema": "passed",
+    "normalization": "passed",
+    "participantGrounding": "passed",
+    "relationships": "passed",
+    "interfaceNamePolicy": "passed",
+    "plantUmlSubset": "passed",
+    "officialPlantUmlRendering": "not-executed",
+    "errorCount": 0,
+    "warningCount": 0
+  },
+  "outputs": {
+    "diagram": "telemetry-command-flow.puml",
+    "report": "telemetry-command-flow.grounding.json"
+  }
+}
