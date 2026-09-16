@@ -83,12 +83,12 @@ Implemented today:
 * offline deterministic demo,
 * local OpenAI-compatible model support,
 * LM Studio integration,
+* VS Code extension foundation: a self-contained VSIX with one command that runs the sequence pipeline against a configured Knowledge Pack and a local model (see [docs/vscode-extension.md](docs/vscode-extension.md)),
 * unit and integration tests.
 
 Not yet implemented in this repository:
 
-* production VS Code extension,
-* self-contained VSIX packaging,
+* artifact persistence and richer configuration UI in the VS Code extension,
 * Enterprise Architect XML/API integration,
 * C4 and ArchiMate diagram profiles,
 * semantic LLM review,
@@ -600,7 +600,10 @@ Examples of review risk indicators:
 
 # Target VS Code experience
 
-The final product is intended to be installed as a self-contained VS Code extension.
+The final product is intended to be installed as a self-contained VS Code extension. The current
+branch contains the first foundation of that extension: a VSIX built from bundled JavaScript that
+runs the existing sequence pipeline without the repository or npm. See
+[docs/vscode-extension.md](docs/vscode-extension.md).
 
 Target experience:
 
@@ -655,6 +658,7 @@ The repository includes leak-scanning support intended to reduce accidental publ
 | [Diagram profiles](docs/diagram-profiles.md)           | Current and planned diagram types              |
 | [Knowledge Pack format](docs/knowledge-pack-format.md) | Architecture knowledge schema                  |
 | [Local model](docs/local-model.md)                     | LM Studio / OpenAI-compatible local generation |
+| [VS Code extension](docs/vscode-extension.md)          | Self-contained extension foundation and VSIX   |
 | [Demo](docs/demo.md)                                   | Synthetic offline demo                         |
 | [Front matter](docs/front-matter.md)                   | Flow-document metadata                         |
 

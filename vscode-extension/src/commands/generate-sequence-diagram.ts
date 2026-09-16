@@ -1,0 +1,293 @@
+import path from "node:path";
+import * as vscode from "vscode";
+import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, FlowSource, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
+import { settingKeys, settingsSection } from "../contributions.js";
+import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
+import {
+  describeCancellation,
+  describeFailure,
+  describeModelListFailure,
+  describeSettingsProblems,
+  describeSuccess,
+  type UserMessage
+} from "../user-messages.js";
+import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPrompts } from "./sequence-generation-session.js";
+
+/**
+ * The editor-bound side of the generate command. It collects input with the editor API, hands the
+ * request to the runtime through the editor-independent session, and shows the result: the PlantUML
+ * in an untitled editor, the grounding report beside it, and safe diagnostics in the output channel.
+ * Nothing is written to disk and nothing but codes, messages, positions and counts is logged.
+ */
+
+export interface GenerateCommandDependencies {
+  readonly runtime: ArchiAgentRuntime;
+  readonly output: vscode.OutputChannel;
+}
+
+const openSettingsAction = "Open Settings";
+const showDetailsAction = "Show Details";
+const flowFileFilters = { "Flow documents": ["md", "txt"], "All files": ["*"] };
+const maxInlineFlowChars = 256;
+
+interface FlowSourceItem extends vscode.QuickPickItem {
+  readonly source: "active-document" | "file" | "description";
+}
+
+interface CandidateItem extends vscode.QuickPickItem {
+  readonly id: string;
+}
+
+async function openSettings(): Promise<void> {
+  await vscode.commands.executeCommand("workbench.action.openSettings", settingsSection);
+}
+
+async function show(output: vscode.OutputChannel, message: UserMessage): Promise<void> {
+  output.appendLine(message.text);
+
+  for (const line of message.details) {
+    output.appendLine(`  ${line}`);
+  }
+
+  const actions = [...(message.details.length > 0 ? [showDetailsAction] : []), ...(message.suggestSettings ? [openSettingsAction] : [])];
+  const notify =
+    message.level === "error" ? vscode.window.showErrorMessage : message.level === "warning" ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
+  const chosen = await notify(message.text, ...actions);
+
+  if (chosen === showDetailsAction) {
+    output.show(true);
+  } else if (chosen === openSettingsAction) {
+    await openSettings();
+  }
+}
+
+function cancellationSignal(token: vscode.CancellationToken): CancellationSignal {
+  const subscriptions = new Map<() => void, vscode.Disposable>();
+
+  return {
+    get aborted(): boolean {
+      return token.isCancellationRequested;
+    },
+    addEventListener(type: string, listener: () => void): void {
+      if (type === "abort" && !subscriptions.has(listener)) {
+        subscriptions.set(listener, token.onCancellationRequested(() => listener()));
+      }
+    },
+    removeEventListener(type: string, listener: () => void): void {
+      if (type === "abort") {
+        subscriptions.get(listener)?.dispose();
+        subscriptions.delete(listener);
+      }
+    }
+  } as CancellationSignal;
+}
+
+async function pickFlowSource(settings: ArchiAgentSettings): Promise<FlowSource | undefined> {
+  const editor = vscode.window.activeTextEditor;
+  const items: FlowSourceItem[] = [];
+
+  if (editor !== undefined) {
+    items.push({
+      label: "$(file) Use the active editor document",
+      description: editor.document.isUntitled ? "untitled" : path.basename(editor.document.fileName),
+      detail: "A complete flow document: front matter (diagram_name, flow_name, author) followed by the description.",
+      source: "active-document"
+    });
+  }
+
+  items.push(
+    { label: "$(folder-opened) Choose a flow file...", detail: "A Markdown flow document on the local file system.", source: "file" },
+    {
+      label: "$(edit) Describe a flow...",
+      detail: "Type a flow name and a one-line description; Archi Agent adds the front matter.",
+      source: "description"
+    }
+  );
+
+  const picked = await vscode.window.showQuickPick(items, { title: "Archi Agent: flow source", placeHolder: "Where is the flow description?" });
+
+  if (picked === undefined) {
+    return undefined;
+  }
+
+  if (picked.source === "active-document" && editor !== undefined) {
+    return {
+      kind: "document",
+      text: editor.document.getText(),
+      ...(editor.document.isUntitled ? {} : { fileName: path.basename(editor.document.fileName) })
+    };
+  }
+
+  if (picked.source === "file") {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: "Use flow file",
+      filters: flowFileFilters,
+      title: "Archi Agent: choose a flow document"
+    });
+    const uri = uris?.[0];
+
+    if (uri === undefined) {
+      return undefined;
+    }
+
+    if (uri.scheme === "file") {
+      return { kind: "file", path: uri.fsPath };
+    }
+
+    const document = await vscode.workspace.openTextDocument(uri);
+    return { kind: "document", text: document.getText(), fileName: path.basename(uri.path) };
+  }
+
+  const flowName = await vscode.window.showInputBox({
+    title: "Archi Agent: flow name",
+    prompt: "Short name of the flow, for example Telemetry command flow.",
+    ignoreFocusOut: true,
+    validateInput: (value) => (value.trim() === "" ? "Enter a flow name." : value.length > maxInlineFlowChars ? "The flow name is too long." : undefined)
+  });
+
+  if (flowName === undefined) {
+    return undefined;
+  }
+
+  const description = await vscode.window.showInputBox({
+    title: "Archi Agent: flow description",
+    prompt: "Describe the flow. Refer to architecture elements by their canonical names or aliases; mark elements outside the Knowledge Pack as [NEW: Name].",
+    ignoreFocusOut: true,
+    validateInput: (value) => (value.trim() === "" ? "Enter a description." : undefined)
+  });
+
+  if (description === undefined) {
+    return undefined;
+  }
+
+  return { kind: "description", flowName: flowName.trim(), description: description.trim(), author: settings.defaultAuthor };
+}
+
+/** Lists the models of the configured server and lets the user choose; the choice is stored in user settings. */
+async function pickModel(runtime: ArchiAgentRuntime, settings: ArchiAgentSettings, output: vscode.OutputChannel): Promise<string | undefined> {
+  const endpoint = { baseUrl: settings.localModel.baseUrl, timeoutMs: settings.localModel.timeoutMs };
+  const listed = await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: "Archi Agent: listing local models", cancellable: true },
+    (_progress, token) => runtime.listLocalModels(endpoint, { signal: cancellationSignal(token) })
+  );
+
+  if (!listed.ok) {
+    await show(output, describeModelListFailure(listed.code, settings.localModel.baseUrl));
+    return undefined;
+  }
+
+  if (listed.models.length === 0) {
+    await show(output, describeModelListFailure("no-models", settings.localModel.baseUrl));
+    return undefined;
+  }
+
+  const picked = await vscode.window.showQuickPick(listed.models, {
+    title: "Archi Agent: select the local model",
+    placeHolder: `Models reported by ${settings.localModel.baseUrl}; the choice is stored in archiAgent.localModel.model`,
+    ignoreFocusOut: true
+  });
+
+  if (picked === undefined) {
+    return undefined;
+  }
+
+  try {
+    await vscode.workspace.getConfiguration(settingsSection).update(settingKeys.localModelId, picked, vscode.ConfigurationTarget.Global);
+  } catch {
+    output.appendLine("The selected model could not be stored in the user settings; it is used for this run only.");
+  }
+
+  return picked;
+}
+
+function resolutionPrompts(): ResolutionPrompts {
+  return {
+    async selectAmbiguityCandidate(choice: AmbiguityChoice): Promise<string | undefined> {
+      const items: CandidateItem[] = choice.candidates.map((candidate) => ({
+        label: candidate.canonicalName,
+        description: candidate.id,
+        detail: `${candidate.participantType} (${candidate.elementKind}), declared in ${candidate.sourceFile} line ${candidate.sourceLine}`,
+        id: candidate.id
+      }));
+      const lines = choice.lines.length === 0 ? "" : ` (flow line${choice.lines.length === 1 ? "" : "s"} ${choice.lines.join(", ")})`;
+      const picked = await vscode.window.showQuickPick(items, {
+        title: `Archi Agent: "${choice.mention}" is ambiguous${lines}`,
+        placeHolder: "Select the architecture element the flow refers to",
+        ignoreFocusOut: true
+      });
+      return picked?.id;
+    },
+    async confirmNewParticipants(names: readonly string[]): Promise<readonly string[] | undefined> {
+      const picked = await vscode.window.showQuickPick(
+        names.map((name) => ({ label: name, detail: "Declared as [NEW: ...] in the flow; not part of the Knowledge Pack." })),
+        {
+          title: "Archi Agent: confirm new participants",
+          placeHolder: "Select the [NEW: ...] participants to add to the diagram; unselected markers keep the flow blocked",
+          canPickMany: true,
+          ignoreFocusOut: true
+        }
+      );
+      return picked === undefined ? undefined : picked.map((item) => item.label);
+    }
+  };
+}
+
+async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): Promise<void> {
+  const languages = await vscode.languages.getLanguages();
+  const diagram = await vscode.workspace.openTextDocument({
+    language: languages.includes("plantuml") ? "plantuml" : "plaintext",
+    content: result.plantUml
+  });
+  await vscode.window.showTextDocument(diagram, { viewColumn: vscode.ViewColumn.Active, preview: false });
+  const report = await vscode.workspace.openTextDocument({ language: "json", content: result.groundingReport });
+  await vscode.window.showTextDocument(report, { viewColumn: vscode.ViewColumn.Beside, preview: false, preserveFocus: true });
+}
+
+export async function generateSequenceDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
+  const { runtime, output } = dependencies;
+  const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection));
+
+  if (!settingsResult.ok) {
+    await show(output, describeSettingsProblems(settingsResult.problems));
+    return;
+  }
+
+  const settings = settingsResult.settings;
+  const flow = await pickFlowSource(settings);
+
+  if (flow === undefined) {
+    return;
+  }
+
+  const modelId = settings.localModel.modelId ?? (await pickModel(runtime, settings, output));
+
+  if (modelId === undefined) {
+    return;
+  }
+
+  const outcome = await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: "Archi Agent: generating sequence diagram", cancellable: true },
+    (_progress, token) =>
+      runSequenceGenerationSession({
+        runtime,
+        request: buildGenerationRequest(settings, flow, modelId, cancellationSignal(token)),
+        prompts: resolutionPrompts()
+      })
+  );
+
+  if (outcome.status === "cancelled") {
+    await show(output, describeCancellation());
+    return;
+  }
+
+  if (outcome.result.status === "failed") {
+    await show(output, describeFailure(outcome.result, { baseUrl: settings.localModel.baseUrl }));
+    return;
+  }
+
+  await openGeneratedDocuments(outcome.result);
+  await show(output, describeSuccess(outcome.result));
+}

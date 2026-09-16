@@ -11,7 +11,9 @@ the ports that later stages will add. All examples use the synthetic Space Missi
 | Core | `src/core` | Parsing, validation, indexing, grounding, digests, generation pipeline, rendering, report, output planning. Pure TypeScript. |
 | Node adapters | `src/node` | Bounded file reading, safe path resolution, the Node Knowledge Pack source and the Node artifact file system. |
 | Demo | `src/demo` | The offline Space Mission demo and its deterministic scripted generator. |
-| Later adapters | later | Editor, model provider and official renderer integrations. |
+| Application runtime | `src/runtime` | Host-neutral `ArchiAgentRuntime`: resolves flow, Knowledge Pack and generator sources through the Node adapters, runs the pipeline and maps outcomes to a result contract. Imports no editor API. |
+| Editor layer | `vscode-extension/src` | The VS Code extension: settings, prompts, progress and editors. Reaches the repository only through `src/runtime/index.ts` and is bundled into a self-contained VSIX (see `docs/vscode-extension.md`). |
+| Later adapters | later | Further model providers, architecture sources and official renderer integrations. |
 
 The core imports neither `node:*` modules nor the editor API. It performs no network or
 file access, runs no shell commands, reads no environment variables, evaluates no dynamic code
