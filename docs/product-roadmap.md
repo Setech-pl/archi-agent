@@ -119,94 +119,77 @@ Additional model calls should be driven by quality policy or concrete validation
 
 ---
 
-# Current state
+# Status overview
 
-## Implemented
+Statuses are derived from the code, tests and documentation in this repository, not from plans.
+The operational state of the current work (branch, verification, active task) lives in
+[project-state.md](project-state.md); the working process in
+[development-workflow.md](development-workflow.md). A roadmap entry is not an instruction to
+implement it.
 
-### Architecture Knowledge Pack
+| Status | Meaning |
+| --- | --- |
+| implemented | Present in code and covered by tests. |
+| partial | Some of the scope exists in code; named parts are missing. |
+| planned | Agreed direction; no implementation in the repository. |
+| deferred | Agreed direction, intentionally postponed until earlier stages exist. |
 
-Strict local architecture knowledge containing:
+The four concern areas stay separate: **architecture sources** (canonical architecture),
+**document sources** (requirements and context), **diagram profiles** (what is generated) and
+**quality modes** (how many model calls and which checks).
 
-* systems,
-* actors,
-* relationships,
-* aliases,
-* architecture rules.
+## Done
 
-### Deterministic grounding
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Architecture Knowledge Pack (strict Markdown tables, loader, indexes) | implemented | `src/core/knowledge-pack`, `test/unit/knowledge-pack` |
+| Deterministic grounding: identifiers, canonical names, aliases, controlled normalization, ambiguity detection and explicit resolution, `[NEW: ...]` | implemented | `src/core/grounding`, `test/core/grounding` |
+| Minimal grounded context, source references, stable SHA-256 digest | implemented | `src/core/grounding`, `src/core/util/stable-digest.ts` |
+| Sequence pipeline: strict model schema (required `async` / `isResponse`), normalization, grounding, relationship, interaction-mode and interface-name validation, deterministic PlantUML renderer, structural PlantUML check, grounding report | implemented | `src/core/pipeline`, `src/core/validation`, `src/core/render` |
+| Safe artifact naming, versioning and writing (Node adapters, demo) | implemented | `src/core/output`, `src/node` |
+| Local OpenAI-compatible model adapter (loopback, one request, no retry or repair), LM Studio | implemented | `src/node/llm`, `docs/local-model.md` |
+| Offline Space Mission demo and LM Studio demo | implemented | `src/demo`, `docs/demo.md` |
 
-Implemented features include:
+## Current
 
-* exact identifier resolution,
-* canonical-name resolution,
-* aliases,
-* controlled normalization,
-* ambiguity detection,
-* explicit ambiguity resolution,
-* `[NEW: ...]` handling.
+| Item | Status | Open parts | Depends on |
+| --- | --- | --- | --- |
+| Phase 1 — cleanup | partial | Branding: the extension and README use Archi Agent; the root package (`archground`) and several docs still use the ArchGround codename. Public/private repository policy and final regression checkpoint not recorded. | — |
+| Phase 2 — self-contained VSIX (`v0.2.0-alpha.1`) | implemented | Foundation implemented and accepted: host-neutral runtime, one command, settings, esbuild bundles, VSIX packaging and content verification, tests. Automatic verification and the owner manual smoke test both PASS on the current HEAD. Artifact persistence, richer configuration UI and further provider profiles are later extensions, not gaps blocking this foundation checkpoint. | Phase 1 core |
 
-### Minimal grounded context
+## Next
 
-Only architecture relevant to the current request reaches the generator.
+| Item | Status | Notes | Depends on |
+| --- | --- | --- | --- |
+| Provider-neutral architecture-source contract | partial | The runtime source union has one kind (`local-directory`) and the `KnowledgePackSource` port reads the five Markdown pack files; no source-independent catalog contract exists yet. | Phase 2 runtime contract |
+| EA XML export as the first additional architecture source, from a local file | planned | No EA or XML parsing code exists. Local file before HTTPS and cloud storage. | Provider-neutral contract |
 
-Unrelated knowledge is excluded.
+## Later
 
-### Evidence and traceability
+The order of the diagram profiles below is the agreed order. The order of the other items is not a
+commitment.
 
-The grounded context retains architecture references and source positions.
-
-### Stable grounding digest
-
-Grounded semantic content can be represented by a deterministic SHA-256 digest.
-
-### Sequence-model generation pipeline
-
-A provider-neutral generator produces an untrusted sequence model which passes strict validation.
-
-### Validation
-
-Current checks include:
-
-* schema validation,
-* canonical-name validation,
-* grounding validation,
-* relationship validation,
-* interaction-mode validation,
-* interface-name policy,
-* PlantUML text policy,
-* PlantUML structural validation.
-
-### Output
-
-Implemented:
-
-* deterministic artifact naming,
-* versioning,
-* safe artifact writing,
-* grounding report.
-
-### Local LLM
-
-Implemented OpenAI-compatible local-model support suitable for LM Studio.
-
-Current policy:
-
-```text
-one request
-no retry
-no repair
-no fallback
-```
-
-### Demo
-
-Synthetic Space Mission examples exercise both deterministic and model-driven paths.
+| Item | Status | Depends on |
+| --- | --- | --- |
+| LLM-first final PlantUML path | planned | Grounding core; sequence pipeline stays as compatibility path |
+| Deterministic validation of LLM-generated PlantUML per profile | planned (sequence validation implemented) | LLM-first path |
+| Profile `component` | planned | LLM-first path, profile validation |
+| Profile `c4-context` | planned | LLM-first path, profile validation |
+| Profile `c4-container` | planned | LLM-first path, profile validation |
+| Profile `archimate-hld` | planned | LLM-first path, profile validation |
+| Further architecture sources: reduced JSON catalog, EA API, Prolaborate | planned | Provider-neutral contract |
+| External artifact providers: HTTPS, then Google Drive, OneDrive, SharePoint | planned | Local-file architecture source |
+| Document sources (Markdown, plain text, PDF, DOCX, Confluence) as a separate path | planned | Evidence classes kept distinct from architecture sources |
+| Semantic review | deferred | Deterministic validation, LLM-first path |
+| Controlled, bounded repair | deferred | Deterministic validation, semantic review |
+| Quality modes `economy`, `balanced`, `quality` | deferred | `economy`: deterministic validation; `balanced`: semantic review; `quality`: semantic review and repair |
+| Remote model providers | deferred | Provider-neutral generator port (exists) |
 
 ---
 
 # Phase 1 — Grounding core
 
-**Status: substantially implemented**
+**Status: implemented; cleanup partial** (see Status overview)
 
 Goals:
 
@@ -228,13 +211,14 @@ Remaining work in this phase:
 
 # Phase 2 — Self-contained VS Code extension
 
-**Status: foundation implemented; generation checkpoint pending owner acceptance**
+**Status: implemented — foundation accepted; `v0.2.0-alpha.1` automatically verified and owner smoke accepted on the current HEAD**
 
 The production application should be a self-contained VS Code extension. The foundation exists:
 a VSIX built from bundled JavaScript with one command, loopback-only local model settings, an
 explicit Knowledge Pack path, interactive ambiguity resolution and `[NEW]` confirmation, and
 package-content verification (see `docs/vscode-extension.md`). Artifact persistence, richer
-configuration UI and the clean-profile acceptance run remain open.
+configuration UI and additional provider profiles are further extensions of this foundation, not
+gaps blocking the checkpoint.
 
 Target installation:
 
@@ -253,21 +237,21 @@ No requirement for:
 * root `node_modules`,
 * separately installed application backend.
 
-## Planned work
+## Work items
 
-* extension-host runtime boundary,
-* bundled application runtime,
-* configuration UI,
-* LLM profile selection,
-* architecture-source configuration,
-* generated PlantUML editor integration,
-* safe user-data storage,
-* VSIX allowlist/denylist validation,
-* clean-install smoke test.
+* extension-host runtime boundary — implemented,
+* bundled application runtime — implemented,
+* configuration UI — partial (VS Code settings only),
+* LLM profile selection — planned,
+* architecture-source configuration — partial (one Knowledge Pack directory),
+* generated PlantUML editor integration — partial (untitled editors, no persistence),
+* safe user-data storage — planned,
+* VSIX allowlist/denylist validation — implemented,
+* clean-install smoke test — PASS, owner-run on the current HEAD (2026-09-17).
 
 ## Checkpoint
 
-Planned milestone:
+Milestone:
 
 ```text
 v0.2.0-alpha.1
@@ -277,9 +261,35 @@ Acceptance goal:
 
 > Install the VSIX into a clean VS Code profile, configure a local model and architecture source, and generate a sequence diagram without cloning the repository or installing npm dependencies.
 
+Status: **met**. Automatic verification passed on the current HEAD, and the owner reproduced the
+acceptance goal on 2026-09-17 in a clean VS Code profile with LM Studio, outside the repository.
+
+## LLM provider profiles
+
+Current state — implemented:
+
+* one local OpenAI-compatible provider (loopback),
+* model list fetched from the local endpoint,
+* model chosen by the user.
+
+Planned direction — not implemented in this task:
+
+* provider profiles for OpenAI, Anthropic Claude and OpenRouter, in addition to the local
+  OpenAI-compatible provider,
+* the extension will let the user choose a provider profile and a model within it,
+* runtime contracts stay provider-neutral (the existing provider-neutral generator port already
+  supports this).
+
+Remote provider credentials must not be stored in ordinary settings or in the repository. The
+intended mechanism for secrets in VS Code is `SecretStorage`. Providers, UI and credential
+handling for this direction are not implemented and are not part of the current EA XML stage
+ordering.
+
 ---
 
 # Phase 3 — Enterprise Architect source
+
+**Status: planned — next.** No EA or XML parsing code exists. The first step is an EA XML export read from a local file, behind a provider-neutral architecture-source contract.
 
 Enterprise Architect becomes an architecture knowledge source instead of requiring knowledge to be manually represented as Markdown.
 
@@ -322,6 +332,8 @@ EA exports may be supplied through:
 
 # Phase 4 — LLM-first final PlantUML
 
+**Status: planned.**
+
 The current sequence pipeline uses an intermediate sequence model and deterministic renderer.
 
 For multi-diagram generation the target architecture is different.
@@ -350,6 +362,8 @@ The current deterministic sequence renderer may remain as:
 ---
 
 # Phase 5 — Multi-diagram profiles
+
+**Status: sequence implemented (compatibility path); `component`, `c4-context`, `c4-container`, `archimate-hld` planned in this order.**
 
 Planned profiles:
 
@@ -382,6 +396,8 @@ See:
 ---
 
 # Phase 6 — Semantic diagram review
+
+**Status: deferred.**
 
 Deterministic validation detects structural and evidence problems but cannot fully determine whether a diagram correctly represents the user's intent.
 
@@ -421,6 +437,8 @@ The reviewer is logically independent from the generator even if both use the sa
 ---
 
 # Phase 7 — Quality policies
+
+**Status: deferred.** No quality-mode setting exists; the current pipeline matches the `economy` description (one request plus deterministic validation).
 
 The system should support different model-cost policies.
 
@@ -468,6 +486,8 @@ Intended for architecture material requiring stronger confidence.
 
 # Phase 8 — Repair loop
 
+**Status: deferred.**
+
 Repair should not blindly regenerate everything.
 
 A repair request should contain:
@@ -499,6 +519,8 @@ accept or stop
 
 # Phase 9 — Project document sources
 
+**Status: planned.**
+
 Architecture generation should use requirements and project documents in addition to architecture repositories.
 
 Planned sources:
@@ -525,6 +547,8 @@ This allows generated architecture and review findings to be traced back to sour
 ---
 
 # Phase 10 — External artifact providers
+
+**Status: planned.** Local files are supported for the Knowledge Pack; HTTPS and cloud providers do not exist.
 
 Architecture exports and documents may be hosted externally.
 
@@ -706,21 +730,25 @@ The target system becomes:
 
 # Milestones
 
-| Milestone                               | Target           |
-| --------------------------------------- | ---------------- |
-| Grounding core                          | implemented      |
-| Local LLM sequence demo                 | implemented      |
-| Documentation/public repository cleanup | current          |
-| Self-contained VSIX foundation          | implemented      |
-| EA XML architecture source              | next             |
-| VS Code generation checkpoint           | `v0.2.0-alpha.1` |
-| LLM-first PlantUML path                 | planned          |
-| Component diagram                       | planned          |
-| C4 C1/C2                                | planned          |
-| Semantic reviewer                       | planned          |
-| Repair loop                             | planned          |
-| ArchiMate HLD                           | planned          |
-| Confluence                              | planned          |
-| GDrive / OneDrive sources               | planned          |
+Summary of the [Status overview](#status-overview), which is authoritative.
 
-The order may change as the extension checkpoint exposes integration constraints.
+| Milestone                                   | Status                          |
+| ------------------------------------------- | ------------------------------- |
+| Grounding core                              | implemented                     |
+| Local LLM sequence demo                     | implemented                     |
+| Documentation/public repository cleanup     | partial (current)               |
+| Self-contained VSIX foundation              | implemented                     |
+| VS Code generation checkpoint `v0.2.0-alpha.1` | implemented — automatically verified and owner smoke accepted on current HEAD |
+| Provider-neutral architecture-source contract | partial (next)                |
+| EA XML architecture source (local file)     | planned (next)                  |
+| LLM-first PlantUML path                     | planned                         |
+| Component diagram                           | planned                         |
+| C4 C1/C2                                    | planned                         |
+| ArchiMate HLD                               | planned                         |
+| Semantic reviewer                           | deferred                        |
+| Repair loop                                 | deferred                        |
+| Quality modes                               | deferred                        |
+| Document sources (incl. Confluence)         | planned                         |
+| HTTPS / GDrive / OneDrive / SharePoint      | planned                         |
+
+The order may change as the extension checkpoint exposes integration constraints. No release dates are set.
