@@ -661,6 +661,9 @@ The repository includes leak-scanning support intended to reduce accidental publ
 | [VS Code extension](docs/vscode-extension.md)          | Self-contained extension foundation and VSIX   |
 | [Demo](docs/demo.md)                                   | Synthetic offline demo                         |
 | [Front matter](docs/front-matter.md)                   | Flow-document metadata                         |
+| [Project state](docs/project-state.md)                 | Current implementation state and next step     |
+| [Development workflow](docs/development-workflow.md)   | Planning, review, implementation and handoff   |
+| [AGENTS.md](AGENTS.md)                                 | Shared rules for coding agents                 |
 
 ---
 
