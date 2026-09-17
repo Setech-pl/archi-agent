@@ -214,6 +214,23 @@ describe("loadKnowledgePack - per-file validation", () => {
     }
   });
 
+  it("accepts empty actors, relationships, aliases and rules tables", async () => {
+    const { result } = await load(withRows({ actors: [], relationships: [], aliases: [], rules: [] }));
+    const loaded = expectSuccess(result);
+
+    expect(loaded.pack.systems).toHaveLength(basePackRows.systems.length);
+    expect(loaded.pack.actors).toEqual([]);
+    expect(loaded.pack.relationships).toEqual([]);
+    expect(loaded.pack.aliases).toEqual([]);
+    expect(loaded.pack.rules).toEqual([]);
+    expect(loaded.warnings).toEqual([]);
+  });
+
+  it("still rejects a pack without systems", async () => {
+    const { result } = await load(withRows({ systems: [], actors: [], relationships: [], aliases: [], rules: [] }));
+    expect(expectFailure(result).map((found) => [found.file, found.code])).toEqual([["systems.md", "no-data-rows"]]);
+  });
+
   it("rejects an exact duplicate relationship", async () => {
     const duplicate = basePackRows.relationships[2] ?? [];
     const { result } = await load(withRows({ relationships: [...basePackRows.relationships, duplicate] }));

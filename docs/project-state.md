@@ -11,26 +11,61 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-09-17 |
-| Branch | `feature/vscode-extension-foundation` (śledzi `github/feature/vscode-extension-foundation`) |
-| HEAD | `d4de130` test: cover explicit interaction flags and fix Windows path assertion |
-| Zmiany niezacommitowane | Wyłącznie dokumentacja z zadania „documentation governance”: nowe `AGENTS.md`, `CLAUDE.md`, `docs/development-workflow.md`, `docs/project-state.md`; zmienione `docs/product-roadmap.md`, `README.md`. Brak zmian w kodzie. |
+| Branch | `feature/knowledge-pack-builder` |
+| HEAD | `b759bb9` merge: add VS Code extension foundation (to samo co `main`) |
+| Zmiany niezacommitowane | Knowledge Pack Builder — etap A, zaakceptowany po przeglądzie (kod core, testy, dokumentacja); zob. „Ostatnia implementacja”. Gotowe do commita. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
-## Ostatnia implementacja (ustalona z Git)
+## Historia na `main`
 
-Właściciel deklaruje, że ostatnie zadanie Claude Code zakończyło się prawidłowo; raport końcowy
-nie jest dostępny. Zakres ustalony z historii Git (commity z 2026-09-16, niescalone do `main`):
+- `b759bb9` — merge fundamentu rozszerzenia VS Code (`feature/vscode-extension-foundation`,
+  checkpoint `v0.2.0-alpha.1`) oraz dokumentów documentation governance do `main`.
+- Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
+  ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
 
-- `c7c7164` — fundament rozszerzenia VS Code: `src/runtime` (host-neutral `ArchiAgentRuntime`),
-  `vscode-extension/src` (komenda, ustawienia, sesja rozstrzygania niejednoznaczności i `[NEW]`),
-  bundling esbuild, pakowanie i weryfikacja VSIX, testy runtime/extension/packaging,
-  `docs/vscode-extension.md`.
-- `927734b` — pola `async` i `isResponse` wymagane w schemacie modelu generowanego
-  (`src/core/model/sequence-diagram-model.schema.ts`) oraz odpowiednie instrukcje w promptcie.
-- `d4de130` — testy jawnych flag interakcji (m.in. „still rejects an asynchronous response”
-  w `test/core/validation/relationship-validator.test.ts`; sama reguła `async=true` +
-  `isResponse=true` → błąd jest w `src/core/validation/model-validator.ts`) i poprawka asercji
-  ścieżek na Windows.
+## Ostatnia implementacja (bieżąca sesja)
+
+Knowledge Pack Builder — **wyłącznie etap A: deterministyczny rdzeń** (bez LLM, bez dostępu do plików
+użytkownika, bez runtime API, UI i zapisu na dysk). Zaakceptowany przez właściciela po przeglądzie
+obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność aliasów) — poniższy opis to
+już stan finalny, po obu korektach.
+
+- `src/core/knowledge-pack/builder/knowledge-pack-candidate.ts` — model kandydata (tabela, wiersz
+  w formacie kolumn istniejącej tabeli, `basis` `explicit`/`inferred`, co najmniej jeden dowód
+  `sourceId` + `excerpt` z opcjonalnym zakresem linii), wpis draftu z decyzją
+  `pending`/`accepted`/`rejected`, schematy koperty i limity. `isIncludedInPack` zależy wyłącznie
+  od decyzji (`accepted` → wchodzi, `rejected`/`pending` → nie wchodzi); `basis` nie decyduje
+  o włączeniu — LLM przedstawia kandydatów, ale nie decyduje, co staje się zaufanym katalogiem
+  architektury; `basis` służy wyłącznie prezentacji i review.
+- `src/core/knowledge-pack/builder/knowledge-pack-renderer.ts` — deterministyczny renderer dokładnie
+  pięciu plików (stała kolejność plików i kolumn, wiersze sortowane po komórkach, LF, escaping `\`
+  i `|`, pusta tabela = nagłówek + separator); odmawia wartości z kontrolnymi znakami i zabronionym
+  markupem.
+- `src/core/knowledge-pack/builder/knowledge-pack-builder.ts` — `buildKnowledgePack`: walidacja
+  koperty i decyzji (kandydat `pending`, niezależnie od `basis`, blokuje build jednym kodem błędu
+  `candidate-decision-pending`, bez wycieku row/evidence w issue); kolizje po
+  `normalizeGroundingReference` (canonical names systemów/aktorów; dla aliasów —
+  **jeden znormalizowany alias wskazuje dokładnie jeden target**: każdy drugi zaakceptowany rekord
+  dla tego samego znormalizowanego aliasu jest błędem `alias-collision`, niezależnie od dosłownej
+  pisowni i niezależnie od tego, czy target jest taki sam, czy różny; wyjątek — dokładnie ten sam
+  wiersz, ta sama pisownia i ten sam target, powtórzony dwa razy, nie generuje osobnego
+  `alias-collision` z buildera, łapie go istniejący `duplicate-record` loadera). To granica
+  wyłącznie buildera; kontrakt loadera dla ręcznie pisanych paczek nadal dopuszcza jawną
+  niejednoznaczność tej samej pisowni aliasu dla wielu celów — patrz `docs/knowledge-pack-format.md`,
+  sekcja `aliases.md`, i istniejące testy `knowledge-pack-loader.test.ts`. Render →
+  `InMemoryKnowledgePackSource` → `loadKnowledgePack` jako końcowa walidacja (schematy, duplikaty,
+  referencje, reguły), porównanie round-trip. Issues wskazują wpis draftu, tabelę i pole, bez
+  wartości i dowodów.
+- `src/core/knowledge-pack/in-memory-knowledge-pack-source.ts` — źródło w pamięci zgodne z portem.
+- Puste tabele: jawna opcja `allowEmpty` w `parseMarkdownTable` / `parseKnowledgePackTable`
+  (domyślnie `false`); loader przekazuje ją per plik — `systems.md` nadal wymaga rekordu,
+  pozostałe cztery pliki mogą być puste. Opisane w `docs/knowledge-pack-format.md`.
+- Testy: `test/unit/knowledge-pack/builder/*`, `test/unit/knowledge-pack/in-memory-knowledge-pack-source.test.ts`
+  — macierz `basis` × `decision` (accepted/rejected/pending dla explicit i inferred), brak wycieku
+  row/evidence w issue dla `pending`, niezależność wyniku od kolejności wpisów draftu, kolizje
+  aliasu (identyczna pisownia + różne cele; różna wielkość liter + różne cele; myślnik vs. spacja
+  + ten sam cel; pojedynczy alias — poprawny) bez wycieku aliasu/targetu/evidence w issue, regresje
+  pustych tabel w testach parsera i loadera.
 
 ## Potwierdzone w kodzie
 
@@ -39,6 +74,8 @@ nie jest dostępny. Zakres ustalony z historii Git (commity z 2026-09-16, niesca
 - Lokalny adapter OpenAI-compatible (loopback, jedno żądanie, bez retry/repair), demo offline i LM Studio.
 - Rozszerzenie VS Code: komenda `archiAgent.generateSequenceDiagram`, ustawienia, dwa bundle,
   skrypty `extension:package` i `extension:verify`.
+- Knowledge Pack Builder, etap A: model kandydatów i dowodów, walidacja draftu, deterministyczny
+  renderer pięciu plików, round-trip in-memory przez loader (tylko core, bez runtime i UI).
 
 ## Częściowe
 
@@ -98,7 +135,11 @@ verified i owner smoke accepted.
 
 ## Wyłącznie planowane
 
-- **EA XML: brak implementacji.** W repo (wszystkie gałęzie lokalne i zdalne, pliki śledzone
+- **Knowledge Pack Builder — etap B (następny):** bounded source bundle oraz lokalna ekstrakcja
+  kandydatów przez LLM. Nadal niewykonane: runtime API, komenda/UI, review kandydatów, zapis
+  pięciu plików na dysk.
+- **EA XML: odłożone (deferred), brak implementacji.** Powód: brak bezpiecznego, publicznego fixture
+  reprezentującego rzeczywiste dane. W repo (wszystkie gałęzie lokalne i zdalne, pliki śledzone
   i ignorowane) nie ma kodu parsowania EA ani XML, fixture'ów EA ani testów. Jedyne odwołania do
   `.xml` dotyczą manifestu VSIX (`[Content_Types].xml`).
 - Ścieżka LLM-first final PlantUML, profile `component`, `c4-context`, `c4-container`,
@@ -107,38 +148,34 @@ verified i owner smoke accepted.
 
 ## Weryfikacja
 
-### Wykonane w bieżącej sesji (2026-09-17, weryfikacja checkpointu na HEAD `d4de130`)
+### Wykonane w bieżącej sesji (2026-09-17, Knowledge Pack Builder etap A, na HEAD `b759bb9` + zmiany przed commitem)
 
 | Kontrola | Wynik |
 | --- | --- |
-| Preflight Git (`git branch --show-current`, `git rev-parse HEAD`, `git status --short`, `git diff --stat`, `git diff --cached --stat`) | branch, HEAD i zakres zmian zgodne z oczekiwaniem; staging pusty |
-| `node --version` / `npm --version` | `v22.17.0` / `11.6.0` |
-| `npm ci` | PASS; bez zmian w `package-lock.json` i bez zmian w working tree |
-| `npm test` | PASS — 64/64 plików, 963/963 testów |
+| Preflight Git | branch `feature/knowledge-pack-builder`, HEAD `b759bb9d84b033456c0bec6ff91e1b9b6f16921e`, working tree i staging czyste (przed rozpoczęciem zmian) |
+| `npx vitest run test/unit/knowledge-pack` (celowane) | PASS — 15/15 plików, 191/191 testów |
+| `npm test` | PASS — 67/67 plików, 1011/1011 testów |
 | `npm run typecheck` | PASS |
-| `npm run extension:typecheck` | PASS |
-| `npm run extension:test` | PASS — 6/6 plików, 79/79 testów |
-| `npm run extension:build` | PASS |
-| `npm run extension:package` | PASS — nowy `vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix` (176,08 KB wg raportu pakowania) |
-| `npm run extension:verify` | PASS — dokładnie 6 dozwolonych wpisów |
-| `git diff --check`, `git diff --stat`, `git diff --cached --stat`, `git status --short` (kontrola końcowa) | bez błędów; brak zmian w kodzie, testach i `package-lock.json`; staging nadal pusty; jedyna dodatkowa zmiana to niniejsza aktualizacja `docs/project-state.md`; VSIX nadal ignorowany przez Git |
+| `git diff --check` | bez błędów |
+| `git status --short` | tylko modyfikacje/pliki etapu A |
+| `git diff --cached --stat` | pusty przed stagingiem etapu A |
 
-Szczegóły artefaktu VSIX — patrz „Checkpoint VSIX v0.2.0-alpha.1” powyżej.
+Nie uruchamiano w tej sesji: `extension:*` (brak zmian w adapterze, runtime ani bundlingu).
 
-### Niewykonane / niezweryfikowane
+### Historyczne (2026-09-17, weryfikacja checkpointu na HEAD `d4de130`)
 
-- Liczba testów i wynik z poprzedniej sesji (implementacyjnej, `c7c7164`/`927734b`/`d4de130`) nadal
-  nie są znane z trwałego źródła (brak raportu); nie mylić z wynikami bieżącej sesji weryfikacyjnej
-  powyżej, które są jawnie potwierdzone.
+`npm ci`, `npm test` (64/64 plików, 963/963 testów), `npm run typecheck`, `extension:typecheck`,
+`extension:test` (6/6 plików, 79/79 testów), `extension:build`, `extension:package`,
+`extension:verify` — wszystkie PASS. Szczegóły artefaktu — „Checkpoint VSIX v0.2.0-alpha.1”.
 
 ## Aktywne zadanie
 
-Finalizacja documentation governance i checkpointu VSIX — gotowe do przeglądu i commita.
-Checkpoint `v0.2.0-alpha.1`: implemented, automatically verified, owner smoke accepted.
+Knowledge Pack Builder — etap A (deterministyczny rdzeń) zaakceptowany przez właściciela po
+przeglądzie, gotowy do commita na `feature/knowledge-pack-builder`.
 
 ## Następny krok
 
-1. Commit i push bieżącego brancha.
-2. Scalenie `feature/vscode-extension-foundation` do `main`.
-3. Utworzenie `feature/ea-xml-source`.
-4. Faza PLANOWANIE dla provider-neutral architecture source oraz EA XML z local file.
+1. Faza PLANOWANIE etapu B: bounded source bundle, lokalna ekstrakcja kandydatów przez LLM oraz —
+   jako osobna, jawnie zaakceptowana decyzja — automatyczne scalanie kandydatów z wielu źródeł przed
+   review (zachowując wszystkie dowody).
+2. Później: review kandydatów, runtime API, komenda/UI, zapis pięciu plików na dysk.

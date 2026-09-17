@@ -100,12 +100,16 @@ const loadMessages: Readonly<Record<KnowledgePackLoadCode, string>> = Object.fre
   "required-relationship-missing": "A required relationship is not declared."
 });
 
-const tableByFile: ReadonlyArray<readonly [KnowledgePackFileName, KnowledgePackTableKind]> = Object.freeze([
-  ["systems.md", "systems"],
-  ["actors.md", "actors"],
-  ["relationships.md", "relationships"],
-  ["aliases.md", "aliases"],
-  ["rules.md", "rules"]
+/**
+ * Pack files in reading order with their table kind and whether a table without data rows is
+ * accepted. A pack always needs at least one system; the other four tables may be empty.
+ */
+const tableByFile: ReadonlyArray<readonly [KnowledgePackFileName, KnowledgePackTableKind, boolean]> = Object.freeze([
+  ["systems.md", "systems", false],
+  ["actors.md", "actors", true],
+  ["relationships.md", "relationships", true],
+  ["aliases.md", "aliases", true],
+  ["rules.md", "rules", true]
 ] as const);
 
 function messageFor(code: KnowledgePackLoadIssueCode): string {
@@ -278,7 +282,7 @@ export async function loadKnowledgePack(
 
   const tables: ParsedTables = {};
 
-  for (const [file, kind] of tableByFile) {
+  for (const [file, kind, allowEmpty] of tableByFile) {
     if (!present.has(file)) {
       issues.push(issue("error", "missing-file", { file }));
       continue;
@@ -308,7 +312,7 @@ export async function loadKnowledgePack(
       continue;
     }
 
-    const result = parseKnowledgePackTable(kind, text, { maxIssues });
+    const result = parseKnowledgePackTable(kind, text, { maxIssues, allowEmpty });
 
     for (const found of result.issues) {
       issues.push(issue("error", found.code, found));

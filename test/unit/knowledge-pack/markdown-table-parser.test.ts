@@ -128,6 +128,20 @@ describe("parseMarkdownTable - document layout", () => {
 
   it("requires at least one data row", () => {
     expect(codes([header, separator])).toEqual(["no-data-rows"]);
+    expect(codes([header, separator], { allowEmpty: false })).toEqual(["no-data-rows"]);
+  });
+
+  it("accepts a table without data rows only when explicitly allowed", () => {
+    const result = parse(["# Systems", "", header, separator, ""], { allowEmpty: true });
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      expect(result.table.rows).toEqual([]);
+      expect(result.table.headerLine).toBe(3);
+    }
+
+    expect(codes([header], { allowEmpty: true })).toEqual(["malformed-separator"]);
+    expect(codes([header, "| --- |"], { allowEmpty: true })).toEqual(["malformed-separator"]);
   });
 });
 

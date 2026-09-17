@@ -155,6 +155,7 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 | Item | Status | Open parts | Depends on |
 | --- | --- | --- | --- |
 | Phase 1 — cleanup | partial | Branding: the extension and README use Archi Agent; the root package (`archground`) and several docs still use the ArchGround codename. Public/private repository policy and final regression checkpoint not recorded. | — |
+| Knowledge Pack Builder — stage A: deterministic core | implemented | Candidate and evidence model (explicit / inferred), reviewed draft validation, deterministic renderer of the five pack files, in-memory round trip through the regular loader. Stage B (bounded source bundle and local LLM extraction), review, runtime, UI and writing to disk are not implemented. See [Knowledge Pack Builder](#knowledge-pack-builder). | Knowledge Pack loader |
 | Phase 2 — self-contained VSIX (`v0.2.0-alpha.1`) | implemented | Foundation implemented and accepted: host-neutral runtime, one command, settings, esbuild bundles, VSIX packaging and content verification, tests. Automatic verification and the owner manual smoke test both PASS on the current HEAD. Artifact persistence, richer configuration UI and further provider profiles are later extensions, not gaps blocking this foundation checkpoint. | Phase 1 core |
 
 ## Next
@@ -162,7 +163,8 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 | Item | Status | Notes | Depends on |
 | --- | --- | --- | --- |
 | Provider-neutral architecture-source contract | partial | The runtime source union has one kind (`local-directory`) and the `KnowledgePackSource` port reads the five Markdown pack files; no source-independent catalog contract exists yet. | Phase 2 runtime contract |
-| EA XML export as the first additional architecture source, from a local file | planned | No EA or XML parsing code exists. Local file before HTTPS and cloud storage. | Provider-neutral contract |
+| Knowledge Pack Builder — stage B: bounded source bundle and local LLM extraction of candidates | planned — next | The model only proposes candidates; the final Markdown always comes from the deterministic renderer. | Stage A |
+| EA XML export as the first additional architecture source, from a local file | deferred | Postponed in favour of the Knowledge Pack Builder: there is no safe, public fixture that represents real EA data. No EA or XML parsing code exists. Local file before HTTPS and cloud storage. | Provider-neutral contract, safe synthetic EA fixture |
 
 ## Later
 
@@ -282,14 +284,35 @@ Planned direction — not implemented in this task:
 
 Remote provider credentials must not be stored in ordinary settings or in the repository. The
 intended mechanism for secrets in VS Code is `SecretStorage`. Providers, UI and credential
-handling for this direction are not implemented and are not part of the current EA XML stage
-ordering.
+handling for this direction are not implemented and are not part of the current Knowledge Pack
+Builder stage ordering.
+
+---
+
+# Knowledge Pack Builder
+
+**Status: partial — stage A implemented; stage B next.** After the extension foundation was merged
+to `main` (`b759bb9`), the priority moved from the EA XML source to building a Knowledge Pack from
+project material. EA XML is deferred because no safe, public fixture representing real EA data is
+available.
+
+The builder produces the same five Markdown files that the loader already reads. A language model
+may later propose candidates, but it never writes the pack: every candidate carries evidence and an
+`explicit` or `inferred` basis, inferred candidates need an explicit user acceptance, and the final
+Markdown always comes from a deterministic renderer whose output is loaded back through the regular
+loader before it is accepted. Evidence stays out of the pack files.
+
+| Stage | Scope | Status |
+| --- | --- | --- |
+| A | Candidate and evidence model, reviewed draft validation, deterministic renderer, in-memory round trip through the loader (`src/core/knowledge-pack/builder`) | implemented |
+| B | Bounded source bundle and local LLM extraction of candidates | planned — next |
+| Later | Review of candidates, runtime API, VS Code command and UI, writing the five files to disk | planned |
 
 ---
 
 # Phase 3 — Enterprise Architect source
 
-**Status: planned — next.** No EA or XML parsing code exists. The first step is an EA XML export read from a local file, behind a provider-neutral architecture-source contract.
+**Status: deferred.** Postponed in favour of the [Knowledge Pack Builder](#knowledge-pack-builder) because no safe, public fixture representing real EA data exists. No EA or XML parsing code exists. The first step is an EA XML export read from a local file, behind a provider-neutral architecture-source contract.
 
 Enterprise Architect becomes an architecture knowledge source instead of requiring knowledge to be manually represented as Markdown.
 
@@ -739,8 +762,10 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | Documentation/public repository cleanup     | partial (current)               |
 | Self-contained VSIX foundation              | implemented                     |
 | VS Code generation checkpoint `v0.2.0-alpha.1` | implemented — automatically verified and owner smoke accepted on current HEAD |
-| Provider-neutral architecture-source contract | partial (next)                |
-| EA XML architecture source (local file)     | planned (next)                  |
+| Knowledge Pack Builder — stage A (deterministic core) | implemented                |
+| Knowledge Pack Builder — stage B (source bundle, local LLM extraction) | planned (next) |
+| Provider-neutral architecture-source contract | partial                       |
+| EA XML architecture source (local file)     | deferred (no safe public EA fixture) |
 | LLM-first PlantUML path                     | planned                         |
 | Component diagram                           | planned                         |
 | C4 C1/C2                                    | planned                         |

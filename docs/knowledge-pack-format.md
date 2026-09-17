@@ -22,7 +22,11 @@ Each file contains:
 
 1. optional blank lines,
 2. at most one level-1 heading (`# Title`),
-3. exactly one pipe table with a header row, a separator row and at least one data row.
+3. exactly one pipe table with a header row, a separator row and data rows.
+
+`systems.md` must contain at least one data row. `actors.md`, `relationships.md`, `aliases.md`
+and `rules.md` may contain only the header and the separator row when the landscape has no such
+records; the file itself is still required.
 
 Any other content is rejected: free text, additional headings, a second table, code
 fences, HTML, images, directives and template placeholders.
