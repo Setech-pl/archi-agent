@@ -10,10 +10,10 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-17 |
-| Branch | `feature/knowledge-pack-builder` |
-| HEAD | `b759bb9` merge: add VS Code extension foundation (to samo co `main`) |
-| Zmiany niezacommitowane | Knowledge Pack Builder — etap A, zaakceptowany po przeglądzie (kod core, testy, dokumentacja); zob. „Ostatnia implementacja”. Gotowe do commita. |
+| Data aktualizacji | 2026-09-19 |
+| Branch | `feature/knowledge-pack-builder` (wypchnięty na `github`) |
+| HEAD | R0 — aktualizacja dokumentacji priorytetów; bezpośredni poprzednik `01ccdf2` zawiera Knowledge Pack Builder Stage A; `main` i `github/main` = `b759bb9` |
+| Stan R0 | Zakończone w historii `feature/knowledge-pack-builder`; następnym krokiem implementacyjnym jest B1. Knowledge Pack Builder Stage A jest zacommitowany (`01ccdf2`) i wypchnięty. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -22,13 +22,16 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
   checkpoint `v0.2.0-alpha.1`) oraz dokumentów documentation governance do `main`.
 - Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
   ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
+- 2026-09-19 — decyzja właściciela o nowych priorytetach (demonstracja vibe coding i AI SDLC;
+  dokładna kolejność: R0 (ta aktualizacja dokumentacji) → B1 (następny krok) → P1 → P2 → D1–D5 → K1–K4 → Demo and release). Szczegóły: sekcja „Product priority”
+  w [`product-roadmap.md`](product-roadmap.md).
 
-## Ostatnia implementacja (bieżąca sesja)
+## Ostatnia implementacja (`01ccdf2`, na `feature/knowledge-pack-builder`)
 
 Knowledge Pack Builder — **wyłącznie etap A: deterministyczny rdzeń** (bez LLM, bez dostępu do plików
 użytkownika, bez runtime API, UI i zapisu na dysk). Zaakceptowany przez właściciela po przeglądzie
-obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność aliasów) — poniższy opis to
-już stan finalny, po obu korektach.
+obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność aliasów), zacommitowany
+jako `01ccdf2` i wypchnięty.
 
 - `src/core/knowledge-pack/builder/knowledge-pack-candidate.ts` — model kandydata (tabela, wiersz
   w formacie kolumn istniejącej tabeli, `basis` `explicit`/`inferred`, co najmniej jeden dowód
@@ -135,20 +138,38 @@ verified i owner smoke accepted.
 
 ## Wyłącznie planowane
 
-- **Knowledge Pack Builder — etap B (następny):** bounded source bundle oraz lokalna ekstrakcja
-  kandydatów przez LLM. Nadal niewykonane: runtime API, komenda/UI, review kandydatów, zapis
-  pięciu plików na dysk.
-- **EA XML: odłożone (deferred), brak implementacji.** Powód: brak bezpiecznego, publicznego fixture
-  reprezentującego rzeczywiste dane. W repo (wszystkie gałęzie lokalne i zdalne, pliki śledzone
-  i ignorowane) nie ma kodu parsowania EA ani XML, fixture'ów EA ani testów. Jedyne odwołania do
-  `.xml` dotyczą manifestu VSIX (`[Content_Types].xml`).
-- Ścieżka LLM-first final PlantUML, profile `component`, `c4-context`, `c4-container`,
-  `archimate-hld`, document sources, dostawcy HTTPS/chmurowi, semantic review, repair,
-  quality modes, zdalni dostawcy modeli.
+W kolejności ustalonej przez właściciela (2026-09-19; pełny opis w roadmapie, „Product priority”):
+
+1. **B1 (następny):** neutralny port `StructuredChatClient` i wydzielenie lokalnego transportu —
+   zakres bez zmian względem zatwierdzonego planu etapu B. W kodzie brak `StructuredChatClient`.
+2. **P1:** model profilu dostawcy i rejestr, LM Studio jako pierwszy profil, wybór profilu i modelu
+   w rozszerzeniu. **P2:** dostawcy chmurowi Anthropic, OpenAI, OpenRouter (tylko HTTPS, stała
+   allowlista hostów, `SecretStorage`, lista modeli z API dostawcy, jedno wywołanie, bez retry).
+3. **D1:** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
+   diagramu; **D2–D5:** `component`, `c4-context`, `c4-container`, `archimate-hld`. Sekwencja
+   pozostaje compatibility path i regression oracle.
+4. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
+   Builder B2 i B3 (zatwierdzone decyzje etapu B bez zmian); **K3:** etap C — runtime API, adaptery
+   źródeł, UI review, atomowy zapis pięciu plików; **K4:** MCP jako źródło wiedzy (klient MCP
+   w warstwie node, deterministyczne wywołania narzędzi przez rozszerzenie, mapowanie do katalogu,
+   demonstracyjny serwer MCP z danymi Space Mission).
+5. **Demo AI SDLC i release:** branding Archi Agent, opis workflow agentowego, scenariusz demo,
+   porównanie modeli lokalnych i chmurowych, checkpoint VSIX z owner smoke.
+
+Później (bez zobowiązującej kolejności): semantic review, bounded repair, quality modes, document
+sources (PDF, DOCX; Confluence/Jira preferencyjnie przez MCP), EA API, Prolaborate, zewnętrzni
+dostawcy artefaktów. **EA XML pozostaje odłożone (deferred), brak implementacji** — brak
+bezpiecznego, publicznego fixture; w repo nie ma kodu parsowania EA ani XML, fixture'ów EA ani
+testów (jedyne odwołania do `.xml` dotyczą manifestu VSIX).
 
 ## Weryfikacja
 
-### Wykonane w bieżącej sesji (2026-09-17, Knowledge Pack Builder etap A, na HEAD `b759bb9` + zmiany przed commitem)
+### Wykonane w bieżącej sesji (2026-09-19, aktualizacja priorytetów, docs-only, na HEAD `01ccdf2`)
+
+Zmiana wyłącznie dokumentacji: sprawdzono treść, odnośniki, `git diff --stat` i `git diff --check`.
+Testów, typechecku ani buildu nie uruchamiano (brak zmian kodu).
+
+### Historyczne (2026-09-17, Knowledge Pack Builder etap A, na HEAD `b759bb9` + zmiany przed commitem `01ccdf2`)
 
 | Kontrola | Wynik |
 | --- | --- |
@@ -170,12 +191,12 @@ Nie uruchamiano w tej sesji: `extension:*` (brak zmian w adapterze, runtime ani 
 
 ## Aktywne zadanie
 
-Knowledge Pack Builder — etap A (deterministyczny rdzeń) zaakceptowany przez właściciela po
-przeglądzie, gotowy do commita na `feature/knowledge-pack-builder`.
+R0 — aktualizacja dokumentacji do nowych priorytetów i korekta spójności — zakończone w historii
+`feature/knowledge-pack-builder`. Następnym krokiem implementacyjnym jest B1.
 
 ## Następny krok
 
-1. Faza PLANOWANIE etapu B: bounded source bundle, lokalna ekstrakcja kandydatów przez LLM oraz —
-   jako osobna, jawnie zaakceptowana decyzja — automatyczne scalanie kandydatów z wielu źródeł przed
-   review (zachowując wszystkie dowody).
-2. Później: review kandydatów, runtime API, komenda/UI, zapis pięciu plików na dysk.
+1. **B1** — neutralny port `StructuredChatClient` i wydzielenie lokalnego transportu, w zakresie
+   zatwierdzonego planu etapu B. Plan ten nie jest zapisany w repozytorium, więc prompt
+   IMPLEMENTACJA musi go zawierać (zob. `development-workflow.md`, faza C).
+2. Potem P1 i P2 (profile dostawców, dostawcy chmurowi) — każdy przez osobne PLANOWANIE.

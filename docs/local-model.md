@@ -2,8 +2,9 @@
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
 a local OpenAI-compatible server with structured-output support, such as LM Studio, on the loopback
-interface only. This is the first real model adapter; remote providers and the editor extension do
-not exist yet.
+interface only. This is the first real model adapter; remote providers do not exist yet. A
+self-contained VS Code extension exists and was verified at checkpoint `v0.2.0-alpha.1` on commit
+`d4de130`.
 
 ## Responsibility boundary
 
