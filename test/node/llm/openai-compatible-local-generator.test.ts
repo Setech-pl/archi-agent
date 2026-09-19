@@ -2,9 +2,13 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildGroundedContext, parseFlowDocument } from "../../../src/core/grounding/grounded-context-builder.js";
 import { loadKnowledgePack, requiredKnowledgePackFiles } from "../../../src/core/knowledge-pack/knowledge-pack-loader.js";
-import type { SequenceModelGenerationRequest } from "../../../src/core/pipeline/sequence-model-generator.js";
+import type { StructuredChatClient, StructuredChatRequest } from "../../../src/core/llm/structured-chat-client.js";
+import {
+  StructuredChatSequenceModelGenerator,
+  type SequenceModelGenerationRequest
+} from "../../../src/core/pipeline/sequence-model-generator.js";
 import { buildGeneratedModelJsonSchema, generatedModelJsonSchemaName } from "../../../src/core/prompt/generated-model-json-schema.js";
-import { promptDelimiters } from "../../../src/core/prompt/sequence-generation-prompt.js";
+import { buildSequenceGenerationPrompt, promptDelimiters } from "../../../src/core/prompt/sequence-generation-prompt.js";
 import { ScriptedSpaceMissionGenerator } from "../../../src/demo/scripted-space-mission-generator.js";
 import { parseLoopbackEndpoint, type LoopbackEndpoint } from "../../../src/node/llm/loopback-endpoint.js";
 import { strictJsonResponseLimits } from "../../../src/core/llm/strict-json-response.js";
@@ -74,6 +78,70 @@ async function codeOf(promise: Promise<unknown>): Promise<string> {
 
   return "resolved";
 }
+
+class RecordingStructuredChatClient implements StructuredChatClient {
+  public readonly clientType = "openai-compatible-local";
+  public readonly generationMetadata = Object.freeze({
+    modelId: "test-model",
+    temperature: 0,
+    seed: 42,
+    attemptCount: 1,
+    structuredOutput: true
+  });
+  public readonly requests: StructuredChatRequest[] = [];
+
+  public async complete(request: StructuredChatRequest) {
+    this.requests.push(request);
+    return { value: JSON.parse(validContent) as Readonly<Record<string, unknown>>, source: "content" as const };
+  }
+}
+
+describe("StructuredChatSequenceModelGenerator - thin sequence layer", () => {
+  it("delegates the unchanged two-message prompt and schema exactly once", async () => {
+    const client = new RecordingStructuredChatClient();
+    const sources: LocalResponseSource[] = [];
+    const generator = new StructuredChatSequenceModelGenerator(client, 16_384, (source) => sources.push(source));
+    const expectedPrompt = buildSequenceGenerationPrompt(generationRequest);
+    const result = await generator.generate(generationRequest);
+
+    expect(result).toEqual(JSON.parse(validContent));
+    expect(client.requests).toHaveLength(1);
+    expect(client.requests[0]).toEqual({
+      messages: expectedPrompt.messages,
+      schemaName: generatedModelJsonSchemaName,
+      schema: buildGeneratedModelJsonSchema(),
+      maxTokens: 16_384
+    });
+    expect(client.requests[0]?.messages).toHaveLength(2);
+    expect(generator.generatorType).toBe(client.clientType);
+    expect(generator.generationMetadata).toBe(client.generationMetadata);
+    expect(sources).toEqual(["content"]);
+  });
+
+  it("refuses an oversized prompt before calling the client", async () => {
+    const client = new RecordingStructuredChatClient();
+    const generator = new StructuredChatSequenceModelGenerator(client, 16_384);
+    const large = { ...generationRequest, flow: { ...generationRequest.flow, body: `${generationRequest.flow.body}${LF}${"Mission Control waits. ".repeat(4_000)}` } };
+
+    expect(await codeOf(generator.generate(large))).toBe("prompt-too-large");
+    expect(client.requests).toHaveLength(0);
+  });
+
+  it("gives pre-cancellation precedence over invalid prompt delimiters without calling the client", async () => {
+    const client = new RecordingStructuredChatClient();
+    const generator = new StructuredChatSequenceModelGenerator(client, 16_384);
+    const invalidFlow = { ...generationRequest.flow, body: `${generationRequest.flow.body}${LF}${promptDelimiters.flowEnd}${LF}` };
+    const invalidPrompt = {
+      ...generationRequest,
+      flow: invalidFlow,
+      signal: { aborted: true }
+    };
+
+    expect(await codeOf(generator.generate({ ...generationRequest, flow: invalidFlow }))).toBe("delimiter-in-data");
+    expect(await codeOf(generator.generate(invalidPrompt))).toBe("cancelled");
+    expect(client.requests).toHaveLength(0);
+  });
+});
 
 describe("OpenAiCompatibleLocalGenerator - request contract", () => {
   it("sends one strict structured-output chat completion with fixed repeatability settings", async () => {
@@ -145,6 +213,7 @@ describe("OpenAiCompatibleLocalGenerator - failures", () => {
     ["wrong-content-type", "unexpected-content-type"],
     ["http-error", "http-status"],
     ["redirect", "redirect-rejected"],
+    ["invalid-encoding", "invalid-encoding"],
     ["oversized", "response-too-large"]
   ] as const)("maps the %s scenario to %s after exactly one request", async (scenario, code) => {
     const { double, endpoint } = await serve({ scenario });
@@ -170,8 +239,10 @@ describe("OpenAiCompatibleLocalGenerator - failures", () => {
     const generator = new OpenAiCompatibleLocalGenerator({ endpoint, modelId: "m" });
     const aborted = new AbortController();
     aborted.abort();
+    const cancellation = await generator.generate({ ...generationRequest, signal: aborted.signal }).catch((caught: unknown) => caught);
 
-    expect(await codeOf(generator.generate({ ...generationRequest, signal: aborted.signal }))).toBe("cancelled");
+    expect(cancellation).toBeInstanceOf(LocalModelError);
+    expect((cancellation as LocalModelError).code).toBe("cancelled");
     expect(double.requests).toHaveLength(0);
 
     const controller = new AbortController();

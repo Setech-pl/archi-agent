@@ -1,7 +1,17 @@
 import type { FlowDocument } from "../grounding/grounded-context-builder.js";
 import type { ContextDigest, GroundedContext } from "../grounding/grounded-context.js";
-import type { CancellationSignal } from "../knowledge-pack/knowledge-pack-source.js";
+import { throwIfCancelled, type CancellationSignal } from "../knowledge-pack/knowledge-pack-source.js";
+import type {
+  ModelGenerationMetadata,
+  StructuredChatClient,
+  StructuredChatResultSource
+} from "../llm/structured-chat-client.js";
+import { buildGeneratedModelJsonSchema, generatedModelJsonSchemaName } from "../prompt/generated-model-json-schema.js";
+import { buildSequenceGenerationPrompt } from "../prompt/sequence-generation-prompt.js";
 import type { RejectedGenerationOutcome } from "./generation-outcome.js";
+
+export { isSafeModelGenerationMetadata, isSafeModelId, modelIdLimits } from "../llm/structured-chat-client.js";
+export type { ModelGenerationMetadata } from "../llm/structured-chat-client.js";
 
 /**
  * Provider-neutral port for sequence-model generators.
@@ -29,14 +39,6 @@ export type UntrustedGeneratorOutput = unknown;
  * Safe description of a model-backed generator, recorded in the grounding report. It carries no
  * endpoint, request body, prompt, response, header, timing or secret, so artifacts stay deterministic.
  */
-export interface ModelGenerationMetadata {
-  readonly modelId: string;
-  readonly temperature: number;
-  readonly seed: number;
-  readonly attemptCount: number;
-  readonly structuredOutput: boolean;
-}
-
 export interface SequenceModelGenerator {
   /** Short lower-case identifier written into artifact metadata, for example scripted-demo. */
   readonly generatorType: string;
@@ -51,46 +53,42 @@ export interface SequenceModelGenerator {
   observeRejection?(rejection: RejectedGenerationOutcome): void;
 }
 
-export const modelIdLimits = Object.freeze({ maxChars: 128 });
+/**
+ * Provider-neutral sequence generator backed by structured chat. The injected client is the only
+ * test seam: provider configuration and transport stay outside the core.
+ */
+export class StructuredChatSequenceModelGenerator implements SequenceModelGenerator {
+  public readonly generatorType: string;
+  public readonly generationMetadata: ModelGenerationMetadata;
+  readonly #client: StructuredChatClient;
+  readonly #maxTokens: number;
+  readonly #onResponseSource: ((source: StructuredChatResultSource) => void) | undefined;
 
-const modelIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:@/+-]*$/;
-const metadataKeys = "attemptCount,modelId,seed,structuredOutput,temperature";
-
-/** A model identifier as reported by a local server: bounded printable ASCII, no spaces or parent segments. */
-export function isSafeModelId(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.length <= modelIdLimits.maxChars &&
-    modelIdPattern.test(value) &&
-    !value.includes("..") &&
-    !value.includes("//")
-  );
-}
-
-export function isSafeModelGenerationMetadata(value: unknown): value is ModelGenerationMetadata {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
+  public constructor(
+    client: StructuredChatClient,
+    maxTokens: number,
+    onResponseSource?: (source: StructuredChatResultSource) => void
+  ) {
+    this.#client = client;
+    this.#maxTokens = maxTokens;
+    this.#onResponseSource = onResponseSource;
+    this.generatorType = client.clientType;
+    this.generationMetadata = client.generationMetadata;
   }
 
-  const record = value as Record<string, unknown>;
-  const temperature = record["temperature"];
-  const seed = record["seed"];
-  const attemptCount = record["attemptCount"];
+  public async generate(request: SequenceModelGenerationRequest): Promise<UntrustedGeneratorOutput> {
+    throwIfCancelled(request.signal);
 
-  return (
-    Object.keys(record).sort().join(",") === metadataKeys &&
-    isSafeModelId(record["modelId"]) &&
-    typeof temperature === "number" &&
-    Number.isFinite(temperature) &&
-    temperature >= 0 &&
-    temperature <= 2 &&
-    typeof seed === "number" &&
-    Number.isSafeInteger(seed) &&
-    seed >= 0 &&
-    typeof attemptCount === "number" &&
-    Number.isSafeInteger(attemptCount) &&
-    attemptCount >= 1 &&
-    attemptCount <= 10 &&
-    typeof record["structuredOutput"] === "boolean"
-  );
+    const prompt = buildSequenceGenerationPrompt({ flow: request.flow, context: request.context, digest: request.digest });
+    const result = await this.#client.complete({
+      messages: prompt.messages,
+      schemaName: generatedModelJsonSchemaName,
+      schema: buildGeneratedModelJsonSchema(),
+      maxTokens: this.#maxTokens,
+      ...(request.signal === undefined ? {} : { signal: request.signal })
+    });
+
+    this.#onResponseSource?.(result.source);
+    return result.value;
+  }
 }

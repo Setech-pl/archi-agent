@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { JsonSchemaObject, JsonSchemaValue } from "../llm/structured-chat-client.js";
 import { generatedSequenceModelSchema } from "../model/sequence-diagram-model.schema.js";
 
 /**
@@ -15,9 +16,7 @@ import { generatedSequenceModelSchema } from "../model/sequence-diagram-model.sc
 
 export const generatedModelJsonSchemaName = "archground_sequence_model_v1";
 
-export type JsonSchemaValue = null | boolean | number | string | readonly JsonSchemaValue[] | { readonly [key: string]: JsonSchemaValue };
-
-export type JsonSchemaObject = { readonly [key: string]: JsonSchemaValue };
+export type { JsonSchemaObject, JsonSchemaValue } from "../llm/structured-chat-client.js";
 
 function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === "object") {

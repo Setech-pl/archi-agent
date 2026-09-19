@@ -1,6 +1,7 @@
 import type { AmbiguitySelections } from "../grounding/ambiguity-report.js";
 import { buildGroundedContext, type FlowDocument, type GroundingKnowledgePack } from "../grounding/grounded-context-builder.js";
 import type { CancellationSignal } from "../knowledge-pack/knowledge-pack-source.js";
+import { safeErrorCode } from "../llm/structured-chat-client.js";
 import { parseGeneratedSequenceModel, participantRefKey, type GeneratedSequenceModel } from "../model/sequence-diagram-model.schema.js";
 import { normalizeGeneratedModel } from "../normalization/model-normalizer.js";
 import { artifactExtensions } from "../output/output-planner.js";
@@ -56,14 +57,6 @@ export interface GenerateSequenceDiagramRequest {
 const baseNamePattern = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
 const schemaPathPattern = /^(?:\(root\)|[A-Za-z][A-Za-z0-9]*(?:\.(?:[A-Za-z][A-Za-z0-9]*|\d+))*)$/;
 const problemCodePattern = /^[A-Za-z0-9_-]{1,64}$/;
-
-const failureCodePattern = /^[a-z][a-z0-9-]{0,63}$/;
-
-/** The stable code of a generator failure, when the error carries one; never its message. */
-function failureCodeOf(error: unknown): string | undefined {
-  const code = error !== null && typeof error === "object" && "code" in error ? (error as { code: unknown }).code : undefined;
-  return typeof code === "string" && failureCodePattern.test(code) ? code : undefined;
-}
 
 /** A signal can be aborted while the generator runs, so every check reads the current state. */
 function isAborted(signal: CancellationSignal | undefined): boolean {
@@ -154,7 +147,7 @@ export async function generateSequenceDiagram(request: GenerateSequenceDiagramRe
       return invalidOutput([createModelIssue("generation-cancelled")]);
     }
 
-    const problem = failureCodeOf(error);
+    const problem = safeErrorCode(error);
     return invalidOutput([createModelIssue("generator-failed", problem === undefined ? {} : { details: { problem } })]);
   }
 

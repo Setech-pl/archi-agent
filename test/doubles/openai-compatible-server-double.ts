@@ -20,6 +20,7 @@ export const serverDoubleScenarios = [
   "http-error",
   "redirect",
   "wrong-content-type",
+  "invalid-encoding",
   "reasoning-content-compat"
 ] as const;
 
@@ -195,6 +196,13 @@ export class OpenAiCompatibleServerDouble {
     }
 
     if (method === "POST" && path === "/v1/chat/completions") {
+      if (this.scenario === "invalid-encoding") {
+        const bytes = Buffer.from([0xc3, 0x28]);
+        response.writeHead(200, { "Content-Type": "application/json", "Content-Length": bytes.length });
+        response.end(bytes);
+        return;
+      }
+
       switch (this.scenario) {
         case "reasoning-content-compat":
           this.#send(response, 200, reasoningEnvelope(this.reasoningContent ?? this.completionContent));

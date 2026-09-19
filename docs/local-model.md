@@ -8,6 +8,12 @@ self-contained VS Code extension exists and was verified at checkpoint `v0.2.0-a
 
 ## Responsibility boundary
 
+The core exposes a provider-neutral `StructuredChatClient` contract containing messages, schema,
+token bound and cancellation only. `OpenAiCompatibleLocalChatClient` in the Node layer owns the
+loopback endpoint, OpenAI-compatible request mapping, HTTP exchange and local response-channel
+compatibility. The existing `OpenAiCompatibleLocalGenerator` remains the public sequence adapter;
+it only builds the sequence prompt and schema and delegates one call to that client.
+
 The model performs the semantic work:
 
 - selecting which grounded participants the diagram needs;

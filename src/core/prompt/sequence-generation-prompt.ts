@@ -1,5 +1,6 @@
 import type { FlowDocument } from "../grounding/grounded-context-builder.js";
 import type { ContextDigest, GroundedContext, GroundedRelationship } from "../grounding/grounded-context.js";
+import type { ChatMessage } from "../llm/structured-chat-client.js";
 import { fragmentKinds } from "../model/sequence-diagram-model.schema.js";
 import { allowedInterfaceTypes, newParticipantPrefix } from "../model/types.js";
 import { stableCompare } from "../util/ordering.js";
@@ -47,10 +48,7 @@ export class PromptBuildError extends Error {
   }
 }
 
-export interface ChatMessage {
-  readonly role: "system" | "user";
-  readonly content: string;
-}
+export type { ChatMessage } from "../llm/structured-chat-client.js";
 
 export interface SequenceGenerationPrompt {
   readonly system: string;

@@ -11,9 +11,9 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-09-19 |
-| Branch | `feature/knowledge-pack-builder` (wypchnięty na `github`) |
-| HEAD | R0 — aktualizacja dokumentacji priorytetów; bezpośredni poprzednik `01ccdf2` zawiera Knowledge Pack Builder Stage A; `main` i `github/main` = `b759bb9` |
-| Stan R0 | Zakończone w historii `feature/knowledge-pack-builder`; następnym krokiem implementacyjnym jest B1. Knowledge Pack Builder Stage A jest zacommitowany (`01ccdf2`) i wypchnięty. |
+| Stan Git | Bieżący HEAD, branch i stan publikacji należy odczytywać z Git. Commit `3d1c55c` był bazą implementacji B1. |
+| Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
+| Następny etap | P1 — model profilu dostawcy i rejestr, LM Studio jako pierwszy profil oraz wybór profilu i modelu w rozszerzeniu. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -23,15 +23,27 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 - Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
   ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
 - 2026-09-19 — decyzja właściciela o nowych priorytetach (demonstracja vibe coding i AI SDLC;
-  dokładna kolejność: R0 (ta aktualizacja dokumentacji) → B1 (następny krok) → P1 → P2 → D1–D5 → K1–K4 → Demo and release). Szczegóły: sekcja „Product priority”
+  dokładna kolejność: R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release). Szczegóły: sekcja „Product priority”
   w [`product-roadmap.md`](product-roadmap.md).
 
-## Ostatnia implementacja (`01ccdf2`, na `feature/knowledge-pack-builder`)
+## Implementacja B1
+
+- `src/core/llm/structured-chat-client.ts` — neutralne kontrakty wiadomości, requestu, wyniku i
+  klienta structured chat; wspólne model generation metadata, limit `maxTokens` 1..16384 i
+  bezpieczny `safeErrorCode`.
+- `src/node/llm/openai-compatible-local-chat-client.ts` — wydzielony lokalny transport HTTP,
+  mapowanie OpenAI-compatible, limity, timeout/cancellation, ścisłe parsowanie `content` i lokalny
+  compatibility fallback `reasoning_content`.
+- `OpenAiCompatibleLocalGenerator` zachowuje publiczny konstruktor i zachowanie, ale jest cienką
+  warstwą budującą dotychczasowy prompt/schema i delegującą dokładnie jedno `complete()`.
+- Runtime, rozszerzenie, ustawienia, bundler, format raportu, PlantUML i golden outputs nie zostały
+  zmienione. Brak nowych zależności i zmian `package.json`/`package-lock.json`.
+
+## Knowledge Pack Builder — etap A
 
 Knowledge Pack Builder — **wyłącznie etap A: deterministyczny rdzeń** (bez LLM, bez dostępu do plików
 użytkownika, bez runtime API, UI i zapisu na dysk). Zaakceptowany przez właściciela po przeglądzie
-obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność aliasów), zacommitowany
-jako `01ccdf2` i wypchnięty.
+obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność aliasów).
 
 - `src/core/knowledge-pack/builder/knowledge-pack-candidate.ts` — model kandydata (tabela, wiersz
   w formacie kolumn istniejącej tabeli, `basis` `explicit`/`inferred`, co najmniej jeden dowód
@@ -140,20 +152,18 @@ verified i owner smoke accepted.
 
 W kolejności ustalonej przez właściciela (2026-09-19; pełny opis w roadmapie, „Product priority”):
 
-1. **B1 (następny):** neutralny port `StructuredChatClient` i wydzielenie lokalnego transportu —
-   zakres bez zmian względem zatwierdzonego planu etapu B. W kodzie brak `StructuredChatClient`.
-2. **P1:** model profilu dostawcy i rejestr, LM Studio jako pierwszy profil, wybór profilu i modelu
+1. **P1 (następny):** model profilu dostawcy i rejestr, LM Studio jako pierwszy profil, wybór profilu i modelu
    w rozszerzeniu. **P2:** dostawcy chmurowi Anthropic, OpenAI, OpenRouter (tylko HTTPS, stała
    allowlista hostów, `SecretStorage`, lista modeli z API dostawcy, jedno wywołanie, bez retry).
-3. **D1:** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
+2. **D1:** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
    diagramu; **D2–D5:** `component`, `c4-context`, `c4-container`, `archimate-hld`. Sekwencja
    pozostaje compatibility path i regression oracle.
-4. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
+3. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
    Builder B2 i B3 (zatwierdzone decyzje etapu B bez zmian); **K3:** etap C — runtime API, adaptery
    źródeł, UI review, atomowy zapis pięciu plików; **K4:** MCP jako źródło wiedzy (klient MCP
    w warstwie node, deterministyczne wywołania narzędzi przez rozszerzenie, mapowanie do katalogu,
    demonstracyjny serwer MCP z danymi Space Mission).
-5. **Demo AI SDLC i release:** branding Archi Agent, opis workflow agentowego, scenariusz demo,
+4. **Demo AI SDLC i release:** branding Archi Agent, opis workflow agentowego, scenariusz demo,
    porównanie modeli lokalnych i chmurowych, checkpoint VSIX z owner smoke.
 
 Później (bez zobowiązującej kolejności): semantic review, bounded repair, quality modes, document
@@ -164,24 +174,22 @@ testów (jedyne odwołania do `.xml` dotyczą manifestu VSIX).
 
 ## Weryfikacja
 
-### Wykonane w bieżącej sesji (2026-09-19, aktualizacja priorytetów, docs-only, na HEAD `01ccdf2`)
-
-Zmiana wyłącznie dokumentacji: sprawdzono treść, odnośniki, `git diff --stat` i `git diff --check`.
-Testów, typechecku ani buildu nie uruchamiano (brak zmian kodu).
-
-### Historyczne (2026-09-17, Knowledge Pack Builder etap A, na HEAD `b759bb9` + zmiany przed commitem `01ccdf2`)
+### B1 (2026-09-19)
 
 | Kontrola | Wynik |
 | --- | --- |
-| Preflight Git | branch `feature/knowledge-pack-builder`, HEAD `b759bb9d84b033456c0bec6ff91e1b9b6f16921e`, working tree i staging czyste (przed rozpoczęciem zmian) |
-| `npx vitest run test/unit/knowledge-pack` (celowane) | PASS — 15/15 plików, 191/191 testów |
-| `npm test` | PASS — 67/67 plików, 1011/1011 testów |
+| Test celowany generatora | PASS — 1/1 plików, 46/46 testów |
+| `npm test` | PASS — 69/69 plików, 1022/1022 testów |
 | `npm run typecheck` | PASS |
-| `git diff --check` | bez błędów |
-| `git status --short` | tylko modyfikacje/pliki etapu A |
-| `git diff --cached --stat` | pusty przed stagingiem etapu A |
+| `npm run extension:typecheck` | PASS |
+| `npm run extension:test` | PASS — 6/6 plików, 79/79 testów |
+| `npm run extension:build` | PASS |
+| `npm run extension:package` | PASS — 6 plików, 176,03 KB |
+| `npm run extension:verify` | PASS — wyłącznie 6 dozwolonych wpisów |
 
-Nie uruchamiano w tej sesji: `extension:*` (brak zmian w adapterze, runtime ani bundlingu).
+Pełne bramki automatyczne B1 przeszły. Testy używają syntetycznych doubles; nie wymagają
+uruchomionego LM Studio ani dostępu do sieci zewnętrznej. Ręcznego smoke testu z LM Studio nie
+wykonywano.
 
 ### Historyczne (2026-09-17, weryfikacja checkpointu na HEAD `d4de130`)
 
@@ -189,14 +197,7 @@ Nie uruchamiano w tej sesji: `extension:*` (brak zmian w adapterze, runtime ani 
 `extension:test` (6/6 plików, 79/79 testów), `extension:build`, `extension:package`,
 `extension:verify` — wszystkie PASS. Szczegóły artefaktu — „Checkpoint VSIX v0.2.0-alpha.1”.
 
-## Aktywne zadanie
-
-R0 — aktualizacja dokumentacji do nowych priorytetów i korekta spójności — zakończone w historii
-`feature/knowledge-pack-builder`. Następnym krokiem implementacyjnym jest B1.
-
 ## Następny krok
 
-1. **B1** — neutralny port `StructuredChatClient` i wydzielenie lokalnego transportu, w zakresie
-   zatwierdzonego planu etapu B. Plan ten nie jest zapisany w repozytorium, więc prompt
-   IMPLEMENTACJA musi go zawierać (zob. `development-workflow.md`, faza C).
-2. Potem P1 i P2 (profile dostawców, dostawcy chmurowi) — każdy przez osobne PLANOWANIE.
+**P1** — osobna faza PLANOWANIA dla modelu profilu dostawcy i rejestru, LM Studio jako pierwszego
+profilu oraz wyboru profilu i modelu w rozszerzeniu.

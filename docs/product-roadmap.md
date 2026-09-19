@@ -12,15 +12,15 @@ AI SDLC techniques on a working product. The product must provide:
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
 The exact sequence is: **R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release**.
-R0 is the documentation update in this changeset; B1 is the next implementation step.
+R0 and B1 are implemented; P1 is the next implementation step.
 
 Agreed order of work:
 
 | Order | Step | Scope |
 | --- | --- | --- |
 | 0 | R0 | Documentation update in this changeset. |
-| 1 | B1 | Next implementation step: neutral `StructuredChatClient` port and extraction of the local transport (scope unchanged from the approved Knowledge Pack Builder stage B plan). |
-| 2 | P1 | Provider profile model and registry; LM Studio as the first profile; profile and model selection in the extension. |
+| 1 | B1 | Implemented: neutral `StructuredChatClient` port and extraction of the local transport. |
+| 2 | P1 | Next implementation step: provider profile model and registry; LM Studio as the first profile; profile and model selection in the extension. |
 | 3 | P2 | Cloud providers Anthropic, OpenAI, OpenRouter: HTTPS only, fixed host allowlist, `SecretStorage`, model list from the provider API, one call, no retry. |
 | 4 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection. |
 | 5 | D2 | Profile `component`. Sequence stays the compatibility path and regression oracle. |
@@ -198,7 +198,7 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 
 | Item | Status | Open parts | Depends on |
 | --- | --- | --- | --- |
-| B1 — neutral `StructuredChatClient` port and extraction of the local transport | planned — next | Scope unchanged from the approved stage B plan. The provider-neutral generator port and the local OpenAI-compatible adapter exist; no `StructuredChatClient` port exists in code. | Local OpenAI-compatible adapter |
+| B1 — neutral `StructuredChatClient` port and extraction of the local transport | implemented | Provider-neutral structured-chat request/result/client contracts in core; local OpenAI-compatible transport in the Node adapter; sequence behavior preserved through a thin generator layer. | Local OpenAI-compatible adapter |
 | Phase 1 — cleanup | partial | Branding: the extension and README use Archi Agent; the root package (`archground`) and several docs still use the ArchGround codename. Public/private repository policy and final regression checkpoint not recorded. Branding is completed in the demo and release step. | — |
 
 ## Next
@@ -321,10 +321,13 @@ Current state — implemented:
 * model list fetched from the local endpoint,
 * model chosen by the user.
 
+Implemented foundation:
+
+* B1 — a neutral `StructuredChatClient` port, with the local transport extracted behind it,
+
 Planned direction — not implemented; part of the mandatory product scope (see
 [Product priority](#product-priority)):
 
-* B1 — a neutral `StructuredChatClient` port, with the local transport extracted behind it,
 * P1 — a provider profile model and registry, LM Studio as the first profile, and selection of the
   profile and of a model within it in the extension,
 * P2 — cloud profiles for Anthropic, OpenAI and OpenRouter: HTTPS only, a fixed host allowlist,
@@ -354,7 +357,7 @@ loader before it is accepted. Evidence stays out of the pack files.
 | Stage | Scope | Status |
 | --- | --- | --- |
 | A | Candidate and evidence model, reviewed draft validation, deterministic renderer, in-memory round trip through the loader (`src/core/knowledge-pack/builder`) | implemented |
-| B1 | Neutral `StructuredChatClient` port and extraction of the local transport (approved stage B plan) | planned — next |
+| B1 | Neutral `StructuredChatClient` port and extraction of the local transport (approved stage B plan) | implemented |
 | B2, B3 | Remaining stage B scope: bounded source bundle and LLM extraction of candidates (approved stage B decisions unchanged; roadmap step K2) | planned |
 | C | Runtime API, source adapters, review UI, atomic write of the five files (roadmap step K3) | planned |
 
@@ -843,7 +846,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | VS Code generation checkpoint `v0.2.0-alpha.1` | implemented — automatically verified and owner smoke accepted |
 | Knowledge Pack Builder — stage A (deterministic core) | implemented |
 | Documentation/public repository cleanup | partial |
-| B1 — neutral `StructuredChatClient` port, local transport extracted | planned (next) |
+| B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
 | P1 — provider profiles and registry, LM Studio profile, selection in the extension | planned |
 | P2 — cloud providers Anthropic, OpenAI, OpenRouter | planned |
 | D1 — LLM-first PlantUML path with shared structural validation | planned |

@@ -129,13 +129,23 @@ pack, and returns untrusted data. Nothing it returns is used before validation. 
 generator may declare safe `generationMetadata` (model identifier, temperature, seed, attempt
 count, structured output), which the pipeline checks and the grounding report records.
 
+Model-backed generators use the lower-level, provider-neutral `StructuredChatClient` port in
+`src/core/llm`. Its request contains only system/user messages, a schema name, JSON Schema, a
+bounded maximum token count and optional cancellation; its result contains the untrusted JSON
+object and the safe response-channel identifier. The port has no endpoint, host, HTTP, editor or
+secret-storage concepts. The sequence implementation is a thin layer that builds its existing
+prompt and schema, makes one structured-chat call and returns the value to the unchanged validation
+pipeline.
+
 Two adapters exist:
 
 - `openai-compatible-local` (`src/node/llm`): the model plans the diagram. The provider-neutral
-  prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates, the
-  response format is a strict JSON Schema derived from the Zod generated-model schema, and a strict
-  parser (`src/core/llm`) accepts exactly one JSON object. One request per generation, loopback
-  only, temperature 0 and seed 42, no retry, repair or fallback. See `docs/local-model.md`.
+  prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates. The
+  `OpenAiCompatibleLocalChatClient` node adapter maps the neutral request to the local HTTP API;
+  the response format is a strict JSON Schema derived from the Zod generated-model schema, and a
+  strict parser (`src/core/llm`) accepts exactly one JSON object. One request per generation,
+  loopback only, temperature 0 and seed 42, no retry, repair or provider fallback. See
+  `docs/local-model.md`.
 - `scripted-demo` (`src/demo`): a deterministic script used as an offline regression fixture,
   smoke-test baseline and pipeline demonstration; it is not the production generation strategy.
 
