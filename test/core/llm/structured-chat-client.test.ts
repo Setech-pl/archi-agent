@@ -1,12 +1,23 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  isSafeModelId,
   isValidStructuredChatMaxTokens,
   safeErrorCode,
   structuredChatLimits
 } from "../../../src/core/llm/structured-chat-client.js";
 
 describe("structured chat contract", () => {
+  it("accepts typical Ollama identifiers without widening the bounded ASCII policy", () => {
+    for (const accepted of ["qwen3:8b", "gpt-oss:20b", "llama3.2", "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-1M-GGUF:Q4_K_M"]) {
+      expect(isSafeModelId(accepted)).toBe(true);
+    }
+
+    for (const rejected of ["a".repeat(129), "model..tag", "owner//model", "model tag", "model\ttag", "model\r\ntag", "model\\tag", `model${String.fromCharCode(7)}tag`, "model\r\nAuthorization: injected"]) {
+      expect(isSafeModelId(rejected)).toBe(false);
+    }
+  });
+
   it("accepts only integer maxTokens values in the inclusive 1..16384 range", () => {
     expect(structuredChatLimits).toEqual({ minMaxTokens: 1, maxMaxTokens: 16_384 });
 

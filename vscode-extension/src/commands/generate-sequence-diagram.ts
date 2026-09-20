@@ -1,17 +1,17 @@
 import path from "node:path";
 import * as vscode from "vscode";
 import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, FlowSource, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
-import { settingKeys, settingsSection } from "../contributions.js";
+import { settingsSection } from "../contributions.js";
 import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
 import {
   describeCancellation,
   describeFailure,
-  describeModelListFailure,
   describeSettingsProblems,
   describeSuccess,
   type UserMessage
 } from "../user-messages.js";
 import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPrompts } from "./sequence-generation-session.js";
+import { selectLocalModel } from "./local-provider-selection.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -166,43 +166,6 @@ async function pickFlowSource(settings: ArchiAgentSettings): Promise<FlowSource 
   return { kind: "description", flowName: flowName.trim(), description: description.trim(), author: settings.defaultAuthor };
 }
 
-/** Lists the models of the configured server and lets the user choose; the choice is stored in user settings. */
-async function pickModel(runtime: ArchiAgentRuntime, settings: ArchiAgentSettings, output: vscode.OutputChannel): Promise<string | undefined> {
-  const endpoint = { baseUrl: settings.localModel.baseUrl, timeoutMs: settings.localModel.timeoutMs };
-  const listed = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: "Archi Agent: listing local models", cancellable: true },
-    (_progress, token) => runtime.listLocalModels(endpoint, { signal: cancellationSignal(token) })
-  );
-
-  if (!listed.ok) {
-    await show(output, describeModelListFailure(listed.code, settings.localModel.baseUrl));
-    return undefined;
-  }
-
-  if (listed.models.length === 0) {
-    await show(output, describeModelListFailure("no-models", settings.localModel.baseUrl));
-    return undefined;
-  }
-
-  const picked = await vscode.window.showQuickPick(listed.models, {
-    title: "Archi Agent: select the local model",
-    placeHolder: `Models reported by ${settings.localModel.baseUrl}; the choice is stored in archiAgent.localModel.model`,
-    ignoreFocusOut: true
-  });
-
-  if (picked === undefined) {
-    return undefined;
-  }
-
-  try {
-    await vscode.workspace.getConfiguration(settingsSection).update(settingKeys.localModelId, picked, vscode.ConfigurationTarget.Global);
-  } catch {
-    output.appendLine("The selected model could not be stored in the user settings; it is used for this run only.");
-  }
-
-  return picked;
-}
-
 function resolutionPrompts(): ResolutionPrompts {
   return {
     async selectAmbiguityCandidate(choice: AmbiguityChoice): Promise<string | undefined> {
@@ -255,14 +218,24 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
     return;
   }
 
-  const settings = settingsResult.settings;
+  let settings = settingsResult.settings;
   const flow = await pickFlowSource(settings);
 
   if (flow === undefined) {
     return;
   }
 
-  const modelId = settings.localModel.modelId ?? (await pickModel(runtime, settings, output));
+  if (settings.localModel.modelId === undefined) {
+    const selection = await selectLocalModel(runtime, output);
+
+    if (selection.status !== "selected" || selection.settings.modelId === undefined) {
+      return;
+    }
+
+    settings = Object.freeze({ ...settings, localModel: selection.settings });
+  }
+
+  const modelId = settings.localModel.modelId;
 
   if (modelId === undefined) {
     return;

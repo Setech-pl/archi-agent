@@ -1,5 +1,6 @@
 import type { CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import type { GenerationSummary } from "../core/pipeline/generation-outcome.js";
+import type { ProviderProfile } from "../core/llm/provider-profile.js";
 
 /**
  * Public contract of the Archi Agent application runtime.
@@ -52,11 +53,29 @@ export interface LocalModelEndpointConfig {
 }
 
 /** Which generator plans the diagram. Only the local OpenAI-compatible adapter exists today. */
-export type GeneratorConfig = LocalModelEndpointConfig & {
+export type LegacyLocalGeneratorConfig = LocalModelEndpointConfig & {
   readonly kind: "openai-compatible-local";
   /** Chosen explicitly by the caller; the runtime never selects a model. */
   readonly modelId: string;
 };
+
+/** Profile-based local generator configuration. The optional URL is a local profile override. */
+export type ProviderGeneratorConfig = {
+  readonly kind: "openai-compatible-local";
+  readonly profileId: string;
+  readonly modelId: string;
+  readonly timeoutMs?: number;
+  readonly baseUrl?: string;
+};
+
+/** The legacy endpoint variant remains public for backward compatibility. */
+export type GeneratorConfig = LegacyLocalGeneratorConfig | ProviderGeneratorConfig;
+
+export interface ProviderModelSelection {
+  readonly profileId: string;
+  readonly timeoutMs?: number;
+  readonly baseUrl?: string;
+}
 
 export interface GenerateSequenceDiagramRequest {
   readonly flow: FlowSource;
@@ -160,6 +179,10 @@ export interface ListLocalModelsOptions {
  */
 export interface ArchiAgentRuntime {
   generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult>;
+  /** Immutable profiles sorted by profileId; this method performs no I/O. */
+  listProviderProfiles(): readonly ProviderProfile[];
+  /** Models reported by the selected profile through its registered transport. */
+  listProviderModels(selection: ProviderModelSelection, options?: ListLocalModelsOptions): Promise<ListLocalModelsResult>;
   /** Model identifiers reported by the local server, sorted; nothing is selected. */
   listLocalModels(endpoint: LocalModelEndpointConfig, options?: ListLocalModelsOptions): Promise<ListLocalModelsResult>;
 }

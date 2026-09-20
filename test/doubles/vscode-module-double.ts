@@ -33,6 +33,13 @@ type QuickPickAnswer = (items: readonly unknown[], options: unknown) => unknown;
 
 export interface DoubleState {
   configuration: Map<string, unknown>;
+  configurationInspect: Map<
+    string,
+    { defaultValue?: unknown; globalValue?: unknown; workspaceValue?: unknown; workspaceFolderValue?: unknown }
+  >;
+  configurationUpdateFailures: Set<string>;
+  /** One-based update call numbers that reject before mutating configuration. */
+  configurationUpdateFailureCalls: Set<number>;
   configurationUpdates: { key: string; value: unknown; target: unknown }[];
   quickPickAnswers: QuickPickAnswer[];
   quickPicks: { items: readonly unknown[]; options: unknown }[];
@@ -56,6 +63,9 @@ export interface DoubleState {
 function freshState(): DoubleState {
   return {
     configuration: new Map(),
+    configurationInspect: new Map(),
+    configurationUpdateFailures: new Set(),
+    configurationUpdateFailureCalls: new Set(),
     configurationUpdates: [],
     quickPickAnswers: [],
     quickPicks: [],
@@ -182,11 +192,52 @@ export const window = {
 
 export const workspace = {
   getConfiguration(section: string) {
+    const fullKey = (key: string): string => `${section}.${key}`;
+    const effectiveValue = (key: string): unknown => {
+      const inspected = state.configurationInspect.get(fullKey(key));
+
+      if (inspected !== undefined) {
+        return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? inspected.globalValue ?? inspected.defaultValue;
+      }
+
+      return state.configuration.get(fullKey(key));
+    };
+
     return {
-      get: (key: string): unknown => state.configuration.get(`${section}.${key}`),
+      get: (key: string): unknown => effectiveValue(key),
+      inspect: (key: string) => {
+        const inspected = state.configurationInspect.get(fullKey(key));
+        return inspected === undefined
+          ? { globalValue: state.configuration.get(fullKey(key)) }
+          : Object.freeze({ ...inspected });
+      },
       update: (key: string, value: unknown, target: unknown): Promise<void> => {
-        state.configurationUpdates.push({ key: `${section}.${key}`, value, target });
-        state.configuration.set(`${section}.${key}`, value);
+        const qualified = fullKey(key);
+        state.configurationUpdates.push({ key: qualified, value, target });
+
+        if (state.configurationUpdateFailures.has(qualified) || state.configurationUpdateFailureCalls.has(state.configurationUpdates.length)) {
+          return Promise.reject(new Error("synthetic configuration update failure"));
+        }
+
+        const inspected = state.configurationInspect.get(qualified) ?? {};
+
+        if (target === ConfigurationTarget.Global) {
+          const next = { ...inspected };
+
+          if (value === undefined) {
+            delete next.globalValue;
+          } else {
+            next.globalValue = value;
+          }
+
+          state.configurationInspect.set(qualified, next);
+        }
+
+        if (value === undefined) {
+          state.configuration.delete(qualified);
+        } else {
+          state.configuration.set(qualified, value);
+        }
         return Promise.resolve();
       }
     };

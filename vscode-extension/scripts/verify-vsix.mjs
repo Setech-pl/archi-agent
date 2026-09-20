@@ -139,8 +139,26 @@ export function verifyVsix(filePath) {
 
       const commands = Array.isArray(manifest.contributes?.commands) ? manifest.contributes.commands.map((entry) => entry.command) : [];
 
-      if (!commands.includes("archiAgent.generateSequenceDiagram")) {
-        violations.push("manifest-command: the generate command is not contributed");
+      const requiredCommands = [
+        "archiAgent.generateSequenceDiagram",
+        "archiAgent.selectLocalProviderProfile",
+        "archiAgent.selectLocalModel"
+      ];
+
+      if (requiredCommands.some((command) => !commands.includes(command))) {
+        violations.push("manifest-command: a required command is not contributed");
+      }
+
+      const properties = manifest.contributes?.configuration?.properties ?? {};
+
+      for (const setting of [
+        "archiAgent.localModel.profile",
+        "archiAgent.localModel.selectedModel",
+        "archiAgent.localModel.selectedModelProfile"
+      ]) {
+        if (properties[setting]?.scope !== "machine") {
+          violations.push(`manifest-setting-scope: ${setting} must have machine scope`);
+        }
       }
     }
   }

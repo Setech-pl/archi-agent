@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { SequenceModelGenerator } from "../../src/core/pipeline/sequence-model-generator.js";
 import { validatePlantUmlSubset } from "../../src/core/validation/plantuml-validator.js";
 import { LocalModelError } from "../../src/node/llm/openai-compatible-local-generator.js";
-import { createArchiAgentRuntime, deriveDiagramName, runtimeLimits } from "../../src/runtime/index.js";
+import { createArchiAgentRuntime, deriveDiagramName, ProviderRegistry, runtimeLimits } from "../../src/runtime/index.js";
 import type {
   ArchiAgentRuntime,
   GenerateSequenceDiagramFailure,
@@ -370,6 +370,131 @@ describe("runtime: ambiguity and new participants stay explicit", () => {
 });
 
 describe("runtime: local model listing", () => {
+  it("lists immutable LM Studio and Ollama profiles without network I/O", () => {
+    const profiles = createArchiAgentRuntime().listProviderProfiles();
+
+    expect(profiles.map((profile) => [profile.profileId, profile.displayName, profile.providerKind])).toEqual([
+      ["local-lm-studio", "LM Studio", "openai-compatible-local"],
+      ["local-ollama", "Ollama", "openai-compatible-local"]
+    ]);
+    expect(profiles.every((profile) => profile.capabilities.modelListing && profile.capabilities.structuredChat)).toBe(true);
+    expect(Object.isFrozen(profiles)).toBe(true);
+  });
+
+  it("uses the same OpenAI-compatible GET transport for both local profiles", async () => {
+    const double = await OpenAiCompatibleServerDouble.start({ models: ["qwen3:8b", "llama3.2"] });
+
+    try {
+      const runtime = createArchiAgentRuntime();
+      expect(await runtime.listProviderModels({ profileId: "local-lm-studio", baseUrl: double.baseUrl })).toEqual({
+        ok: true,
+        models: ["llama3.2", "qwen3:8b"]
+      });
+      expect(await runtime.listProviderModels({ profileId: "local-ollama", baseUrl: double.baseUrl })).toEqual({
+        ok: true,
+        models: ["llama3.2", "qwen3:8b"]
+      });
+      expect(double.requests.map((entry) => [entry.method, entry.path])).toEqual([
+        ["GET", "/v1/models"],
+        ["GET", "/v1/models"]
+      ]);
+    } finally {
+      await double.close();
+    }
+  });
+
+  it("runs a profile generation through exactly one shared chat-completions POST", async () => {
+    const echo = new ContextEchoGenerator();
+    expectSuccess(await runtimeWith(echo).generateSequenceDiagram(request(packDirectory)));
+    const groundedRequest = echo.requests[0];
+
+    if (groundedRequest === undefined) {
+      throw new Error("The echo generator must capture the grounded request.");
+    }
+
+    const completionContent = JSON.stringify(await echo.generate(groundedRequest));
+    const double = await OpenAiCompatibleServerDouble.start({ completionContent });
+
+    try {
+      const result = expectSuccess(
+        await createArchiAgentRuntime().generateSequenceDiagram(
+          request(packDirectory, {
+            generator: {
+              kind: "openai-compatible-local",
+              profileId: "local-ollama",
+              modelId: "qwen3:8b",
+              baseUrl: double.baseUrl
+            }
+          })
+        )
+      );
+
+      expect(result.generatorType).toBe("openai-compatible-local");
+      expect(double.requests.map((entry) => [entry.method, entry.path])).toEqual([["POST", "/v1/chat/completions"]]);
+      expect((double.requests[0]?.body as { model?: string }).model).toBe("qwen3:8b");
+    } finally {
+      await double.close();
+    }
+  });
+
+  it("rejects an unknown profile before any request", async () => {
+    const double = await OpenAiCompatibleServerDouble.start({ models: ["must-not-be-read"] });
+
+    try {
+      const runtime = createArchiAgentRuntime();
+      expect(await runtime.listProviderModels({ profileId: "unknown-profile", baseUrl: double.baseUrl })).toEqual({
+        ok: false,
+        code: "unknown-provider-profile"
+      });
+      expect(double.requests).toEqual([]);
+
+      const result = expectFailure(
+        await runtimeWith().generateSequenceDiagram(
+          request(packDirectory, {
+            generator: { kind: "openai-compatible-local", profileId: "unknown-profile", modelId: "model", baseUrl: double.baseUrl }
+          })
+        ),
+        "generator-configuration"
+      );
+      expect(result.issues.map((entry) => entry.code)).toEqual(["unknown-provider-profile"]);
+      expect(double.requests).toEqual([]);
+    } finally {
+      await double.close();
+    }
+  });
+
+  it("returns provider-capability-unavailable without I/O when listing is disabled", async () => {
+    const registry = new ProviderRegistry([
+      {
+        profileId: "local-disabled",
+        providerKind: "openai-compatible-local",
+        displayName: "Disabled test profile",
+        capabilities: { modelListing: false, structuredChat: false }
+      }
+    ]);
+    const runtime = createArchiAgentRuntime({
+      providerRegistry: registry,
+      defaultBaseUrlForProfile: () => {
+        throw new Error("must not resolve an endpoint");
+      }
+    });
+
+    expect(await runtime.listProviderModels({ profileId: "local-disabled" })).toEqual({
+      ok: false,
+      code: "provider-capability-unavailable"
+    });
+
+    const generated = expectFailure(
+      await runtime.generateSequenceDiagram(
+        request(packDirectory, {
+          generator: { kind: "openai-compatible-local", profileId: "local-disabled", modelId: "model" }
+        })
+      ),
+      "generator-configuration"
+    );
+    expect(generated.issues.map((entry) => entry.code)).toEqual(["provider-capability-unavailable"]);
+  });
+
   it("lists the models of a loopback server double and rejects a non-loopback URL", async () => {
     const double = await OpenAiCompatibleServerDouble.start({ models: ["model-b", "model-a"] });
 

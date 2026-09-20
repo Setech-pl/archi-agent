@@ -82,6 +82,15 @@ describe("OpenAiCompatibleLocalChatClient", () => {
     });
   });
 
+  it("passes an Ollama model tag unchanged to the shared chat-completions body", async () => {
+    const { double, endpoint } = await serve();
+    const modelId = "qwen3:8b";
+    await new OpenAiCompatibleLocalChatClient({ endpoint, modelId }).complete(request);
+
+    expect((double.requests[0]?.body as { model?: string }).model).toBe(modelId);
+    expect(double.requests.map((entry) => [entry.method, entry.path])).toEqual([["POST", "/v1/chat/completions"]]);
+  });
+
   it("rejects invalid maxTokens before sending a request", async () => {
     const { double, endpoint } = await serve();
     const client = new OpenAiCompatibleLocalChatClient({ endpoint, modelId: "m" });

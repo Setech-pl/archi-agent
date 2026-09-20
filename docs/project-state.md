@@ -10,10 +10,11 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-19 |
+| Data aktualizacji | 2026-09-20 |
 | Stan Git | Bieżący HEAD, branch i stan publikacji należy odczytywać z Git. Commit `3d1c55c` był bazą implementacji B1. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
-| Następny etap | P1 — model profilu dostawcy i rejestr, LM Studio jako pierwszy profil oraz wybór profilu i modelu w rozszerzeniu. |
+| Stan P1 | Implemented and automatically verified; profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
+| Następny etap | P2 — providerzy chmurowi Anthropic, OpenAI i OpenRouter zgodnie z roadmapą. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -38,6 +39,31 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
   warstwą budującą dotychczasowy prompt/schema i delegującą dokładnie jedno `complete()`.
 - Runtime, rozszerzenie, ustawienia, bundler, format raportu, PlantUML i golden outputs nie zostały
   zmienione. Brak nowych zależności i zmian `package.json`/`package-lock.json`.
+
+## Implementacja P1
+
+- `src/core/llm/provider-profile.ts` i `provider-registry.ts` — neutralne, niemutowalne profile,
+  walidacja i deterministyczne sortowanie; kontrolowane kody `duplicate-profile-id` i
+  `unknown-provider-profile`. Core nie zna nazw lokalnych produktów, endpointów ani transportu.
+- `src/node/llm/local-provider-profiles.ts` — LM Studio (`local-lm-studio`, port 1234) i Ollama
+  (`local-ollama`, port 11434), oba z capability model listing + structured chat i oba przez
+  istniejący transport OpenAI-compatible (`GET /v1/models`, `POST /v1/chat/completions`). Brak
+  natywnego API Ollamy, kluczy, retry, repair i fallbacku.
+- Runtime zachowuje `listLocalModels`, `kind: openai-compatible-local` i publiczne adaptery, a dodaje
+  `listProviderProfiles`, `listProviderModels` i profilowy wariant konfiguracji generatora. Nieznany
+  profil lub brak capability kończy się kontrolowanym błędem przed requestem modelowym.
+- Rozszerzenie dodaje komendy wyboru lokalnego profilu i modelu. `localModel.profile`,
+  `localModel.selectedModel` oraz zarządzany przez rozszerzenie binding
+  `localModel.selectedModelProfile` mają scope `machine` i są zapisywane globalnie, więc nie
+  podlegają Settings Sync ani override workspace. Model jest aktywny tylko przy bindingu zgodnym z
+  profilem. Zmiana profilu komendą czyści model i binding przed zapisem profilu; sam wybór profilu
+  nie wykonuje sieci, a wybór modelu wykonuje jeden jawny GET.
+- Migracja jest bezobsługowa wyłącznie przy braku jawnej globalnej wartości profilu: wtedy działa
+  legacy LM Studio z efektywnymi `localModel.baseUrl` i `localModel.model`. Każda istniejąca, ale
+  nieznana lub niepoprawna jawna wartość kończy się `unknown-provider-profile` przed siecią, bez
+  legacy fallbacku. Po jawnym wyborze model pochodzi wyłącznie z globalnego `selectedModel` ze
+  zgodnym bindingiem. Ręczna zmiana profilu pozostawia stary model nieaktywny; Ollama ignoruje legacy
+  URL/model, a istniejące ustawienia nie są usuwane.
 
 ## Knowledge Pack Builder — etap A
 
@@ -86,8 +112,9 @@ obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność alias
 
 - Markdown Knowledge Pack, deterministyczny grounding, minimalny kontekst, digest.
 - Pipeline sequence z walidacją deterministyczną i rendererem PlantUML (compatibility path).
-- Lokalny adapter OpenAI-compatible (loopback, jedno żądanie, bez retry/repair), demo offline i LM Studio.
-- Rozszerzenie VS Code: komenda `archiAgent.generateSequenceDiagram`, ustawienia, dwa bundle,
+- Lokalny adapter OpenAI-compatible (loopback, jedno żądanie, bez retry/repair), demo offline,
+  profile LM Studio i Ollama.
+- Rozszerzenie VS Code: komendy generowania i wyboru profilu/modelu, ustawienia, dwa bundle,
   skrypty `extension:package` i `extension:verify`.
 - Knowledge Pack Builder, etap A: model kandydatów i dowodów, walidacja draftu, deterministyczny
   renderer pięciu plików, round-trip in-memory przez loader (tylko core, bez runtime i UI).
@@ -152,8 +179,8 @@ verified i owner smoke accepted.
 
 W kolejności ustalonej przez właściciela (2026-09-19; pełny opis w roadmapie, „Product priority”):
 
-1. **P1 (następny):** model profilu dostawcy i rejestr, LM Studio jako pierwszy profil, wybór profilu i modelu
-   w rozszerzeniu. **P2:** dostawcy chmurowi Anthropic, OpenAI, OpenRouter (tylko HTTPS, stała
+1. **P1 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz wybór
+   profilu i modelu w rozszerzeniu. **P2 (następny):** dostawcy chmurowi Anthropic, OpenAI, OpenRouter (tylko HTTPS, stała
    allowlista hostów, `SecretStorage`, lista modeli z API dostawcy, jedno wywołanie, bez retry).
 2. **D1:** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
    diagramu; **D2–D5:** `component`, `c4-context`, `c4-container`, `archimate-hld`. Sekwencja
@@ -173,6 +200,25 @@ bezpiecznego, publicznego fixture; w repo nie ma kodu parsowania EA ani XML, fix
 testów (jedyne odwołania do `.xml` dotyczą manifestu VSIX).
 
 ## Weryfikacja
+
+### P1 (2026-09-20)
+
+Pełna sekwencja bramek P1 przeszła: instalacja przez `npm ci` bez zmiany `package-lock.json`, build
+rozszerzenia, celowana macierz testów P1, pełne `npm test`, oba typechecki, `extension:test`, ponowny
+build, pakowanie i kontrola VSIX. Testy loopback potwierdzają wspólny transport, pojedynczy GET listy
+modeli i pojedynczy POST generowania; testy VS Code potwierdzają fail-closed dla nieznanego jawnego
+profilu, migrację legacy tylko przy braku globalnego profilu, binding model–profil, błędy częściowych
+zapisów, precedencję, zapis machine/global oraz izolację symulowanych instalacji Windows/Mac.
+Ręcznego owner smoke z działającym LM Studio i Ollamą nie wykonywano; dwa opcjonalne flow są opisane
+w `docs/vscode-extension.md`.
+
+Końcowe regresje P1 uzupełniono o trzy osobne awarie atomowego wyboru modelu dla jawnego profilu,
+odczyt każdego stanu po symulowanym restarcie, ręczne usunięcie profilu i rzeczywistą zarejestrowaną
+komendę Generate po zmianie profilu. Bieżące wyniki: celowana macierz VS Code — 3/3 pliki,
+67/67 testów; `npm test` — 71/71 plików, 1067/1067 testów; oba typechecki — PASS;
+`extension:test` — 6/6 plików, 115/115 testów. Kod produkcyjny, manifest i pakowanie nie zmieniły
+się, dlatego wcześniejsze wyniki `extension:build`, `extension:package` i `extension:verify`
+pozostają aktualne.
 
 ### B1 (2026-09-19)
 
@@ -199,5 +245,5 @@ wykonywano.
 
 ## Następny krok
 
-**P1** — osobna faza PLANOWANIA dla modelu profilu dostawcy i rejestru, LM Studio jako pierwszego
-profilu oraz wyboru profilu i modelu w rozszerzeniu.
+**P2** — osobna faza PLANOWANIA dla providerów chmurowych Anthropic, OpenAI i OpenRouter zgodnie z
+ograniczeniami roadmapy (HTTPS, allowlista hostów, `SecretStorage`, jedno wywołanie, bez retry).

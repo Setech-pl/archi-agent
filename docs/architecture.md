@@ -137,9 +137,23 @@ secret-storage concepts. The sequence implementation is a thin layer that builds
 prompt and schema, makes one structured-chat call and returns the value to the unchanged validation
 pipeline.
 
+Provider identity is also neutral in core. `ProviderProfile` contains only an identifier, provider
+kind, display name and immutable capability flags; `ProviderRegistry` validates, sorts and resolves
+profiles without I/O. Concrete LM Studio and Ollama names and loopback defaults live in
+`src/node/llm/local-provider-profiles.ts`. The runtime resolves a profile and capability before
+constructing the existing local adapter; it reports `unknown-provider-profile` or
+`provider-capability-unavailable` as controlled configuration failures.
+
+The VS Code host persists the explicit profile and model as machine-scoped global settings. A third
+machine-scoped, extension-managed setting binds the selected model to the exact profile identifier;
+the host ignores a model when that binding is absent, invalid or mismatched. Only absence of a global
+profile value enables the legacy LM Studio settings. A present unknown profile fails closed before
+the runtime can construct a transport.
+
 Two adapters exist:
 
-- `openai-compatible-local` (`src/node/llm`): the model plans the diagram. The provider-neutral
+- `openai-compatible-local` (`src/node/llm`): LM Studio and Ollama profiles share this transport;
+  the model plans the diagram. The provider-neutral
   prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates. The
   `OpenAiCompatibleLocalChatClient` node adapter maps the neutral request to the local HTTP API;
   the response format is a strict JSON Schema derived from the Zod generated-model schema, and a

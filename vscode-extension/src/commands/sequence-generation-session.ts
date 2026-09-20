@@ -7,6 +7,7 @@ import type {
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult
 } from "../../../src/runtime/index.js";
+import { localLmStudioProfileId } from "../../../src/runtime/index.js";
 import type { ArchiAgentSettings } from "../settings.js";
 
 /**
@@ -46,15 +47,26 @@ export function buildGenerationRequest(
   modelId: string,
   signal?: CancellationSignal
 ): GenerateSequenceDiagramRequest {
+  const generator =
+    settings.localModel.selectionMode === "legacy"
+      ? Object.freeze({
+          kind: "openai-compatible-local" as const,
+          baseUrl: settings.localModel.baseUrl,
+          modelId,
+          timeoutMs: settings.localModel.timeoutMs
+        })
+      : Object.freeze({
+          kind: "openai-compatible-local" as const,
+          profileId: settings.localModel.profileId,
+          modelId,
+          timeoutMs: settings.localModel.timeoutMs,
+          ...(settings.localModel.profileId === localLmStudioProfileId ? { baseUrl: settings.localModel.baseUrl } : {})
+        });
+
   return Object.freeze({
     flow,
     knowledgePack: Object.freeze({ kind: "local-directory", path: settings.knowledgePackPath }),
-    generator: Object.freeze({
-      kind: "openai-compatible-local",
-      baseUrl: settings.localModel.baseUrl,
-      modelId,
-      timeoutMs: settings.localModel.timeoutMs
-    }),
+    generator,
     ...(signal === undefined ? {} : { signal })
   });
 }

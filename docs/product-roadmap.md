@@ -8,11 +8,11 @@ AI SDLC techniques on a working product. The product must provide:
 1. generation of several PlantUML diagram types;
 2. architecture knowledge built from project material (Knowledge Pack Builder) or retrieved from a
    connected MCP server;
-3. local and cloud model providers: local models listed from LM Studio; cloud providers Anthropic,
+3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
 The exact sequence is: **R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release**.
-R0 and B1 are implemented; P1 is the next implementation step.
+R0, B1 and P1 are implemented; P2 is the next implementation step.
 
 Agreed order of work:
 
@@ -20,8 +20,8 @@ Agreed order of work:
 | --- | --- | --- |
 | 0 | R0 | Documentation update in this changeset. |
 | 1 | B1 | Implemented: neutral `StructuredChatClient` port and extraction of the local transport. |
-| 2 | P1 | Next implementation step: provider profile model and registry; LM Studio as the first profile; profile and model selection in the extension. |
-| 3 | P2 | Cloud providers Anthropic, OpenAI, OpenRouter: HTTPS only, fixed host allowlist, `SecretStorage`, model list from the provider API, one call, no retry. |
+| 2 | P1 | Implemented: provider profile model and registry; LM Studio and Ollama profiles; machine-scoped profile and model selection in the extension. |
+| 3 | P2 | Next implementation step: cloud providers Anthropic, OpenAI, OpenRouter: HTTPS only, fixed host allowlist, `SecretStorage`, model list from the provider API, one call, no retry. |
 | 4 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection. |
 | 5 | D2 | Profile `component`. Sequence stays the compatibility path and regression oracle. |
 | 6 | D3 | Profile `c4-context`. |
@@ -189,7 +189,7 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 | Minimal grounded context, source references, stable SHA-256 digest | implemented | `src/core/grounding`, `src/core/util/stable-digest.ts` |
 | Sequence pipeline: strict model schema (required `async` / `isResponse`), normalization, grounding, relationship, interaction-mode and interface-name validation, deterministic PlantUML renderer, structural PlantUML check, grounding report | implemented | `src/core/pipeline`, `src/core/validation`, `src/core/render` |
 | Safe artifact naming, versioning and writing (Node adapters, demo) | implemented | `src/core/output`, `src/node` |
-| Local OpenAI-compatible model adapter (loopback, one request, no retry or repair), LM Studio | implemented | `src/node/llm`, `docs/local-model.md` |
+| Local OpenAI-compatible model adapter (loopback, one request, no retry or repair), LM Studio and Ollama profiles | implemented | `src/core/llm/provider-profile.ts`, `src/node/llm`, `docs/local-model.md` |
 | Offline Space Mission demo and LM Studio demo | implemented | `src/demo`, `docs/demo.md` |
 | Phase 2 — self-contained VSIX foundation (`v0.2.0-alpha.1`): host-neutral runtime, one command, settings, esbuild bundles, VSIX packaging and content verification; automatic verification and owner smoke test PASS | implemented | `src/runtime`, `vscode-extension`, `docs/vscode-extension.md` |
 | Knowledge Pack Builder — stage A: candidate and evidence model (explicit / inferred), reviewed draft validation, deterministic renderer of the five pack files, in-memory round trip through the regular loader | implemented | `src/core/knowledge-pack/builder`, `test/unit/knowledge-pack/builder` |
@@ -199,6 +199,7 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 | Item | Status | Open parts | Depends on |
 | --- | --- | --- | --- |
 | B1 — neutral `StructuredChatClient` port and extraction of the local transport | implemented | Provider-neutral structured-chat request/result/client contracts in core; local OpenAI-compatible transport in the Node adapter; sequence behavior preserved through a thin generator layer. | Local OpenAI-compatible adapter |
+| P1 — local provider profiles and editor selection | implemented | Immutable core profile registry; LM Studio and Ollama mapped to one OpenAI-compatible transport; machine-scoped profile/model selection with legacy LM Studio migration. | B1 |
 | Phase 1 — cleanup | partial | Branding: the extension and README use Archi Agent; the root package (`archground`) and several docs still use the ArchGround codename. Public/private repository policy and final regression checkpoint not recorded. Branding is completed in the demo and release step. | — |
 
 ## Next
@@ -207,8 +208,7 @@ Ordered as agreed in [Product priority](#product-priority).
 
 | Order | Item | Status | Notes | Depends on |
 | --- | --- | --- | --- | --- |
-| P1 | Provider profile model and registry; LM Studio as the first profile; profile and model selection in the extension | planned | Today one local OpenAI-compatible endpoint is configured through settings; no profile model or registry exists. | B1 |
-| P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | planned | HTTPS only, fixed host allowlist, API keys in VS Code `SecretStorage`, model list from the provider API, one call, no retry. No remote provider code exists. | P1 |
+| P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | planned — next | HTTPS only, fixed host allowlist, API keys in VS Code `SecretStorage`, model list from the provider API, one call, no retry. No remote provider code exists. | P1 |
 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection | planned (sequence validation implemented) | Sequence pipeline stays the compatibility path and regression oracle. | Grounding core |
 | D2 | Profile `component` | planned | | D1 |
 | D3 | Profile `c4-context` | planned | | D1 |
@@ -263,10 +263,10 @@ Remaining work in this phase:
 **Status: implemented — foundation accepted; `v0.2.0-alpha.1` automatically verified and owner smoke accepted on commit `d4de130`**
 
 The production application should be a self-contained VS Code extension. The foundation exists:
-a VSIX built from bundled JavaScript with one command, loopback-only local model settings, an
+a VSIX built from bundled JavaScript with generation and local profile/model commands, loopback-only local model settings, an
 explicit Knowledge Pack path, interactive ambiguity resolution and `[NEW]` confirmation, and
 package-content verification (see `docs/vscode-extension.md`). Artifact persistence, richer
-configuration UI and additional provider profiles are further extensions of this foundation, not
+configuration UI and remote provider profiles are further extensions of this foundation, not
 gaps blocking the checkpoint.
 
 Target installation:
@@ -291,7 +291,7 @@ No requirement for:
 * extension-host runtime boundary — implemented,
 * bundled application runtime — implemented,
 * configuration UI — partial (VS Code settings only),
-* LLM profile selection — planned (P1),
+* LLM profile and model selection — implemented (P1: LM Studio and Ollama),
 * architecture-source configuration — partial (one Knowledge Pack directory),
 * generated PlantUML editor integration — partial (untitled editors, no persistence),
 * safe user-data storage — planned,
@@ -317,25 +317,26 @@ acceptance goal on 2026-09-17 in a clean VS Code profile with LM Studio, outside
 
 Current state — implemented:
 
-* one local OpenAI-compatible provider (loopback),
-* model list fetched from the local endpoint,
-* model chosen by the user.
+* immutable provider profiles and deterministic registry,
+* LM Studio (`local-lm-studio`) and Ollama (`local-ollama`) through one loopback OpenAI-compatible transport,
+* model list fetched from the selected local endpoint and model chosen explicitly by the user,
+* machine-scoped profile/model/binding settings with independent choices per computer, fail-closed
+  handling of unknown explicit profiles and legacy LM Studio migration only when no explicit global
+  profile exists.
 
 Implemented foundation:
 
 * B1 — a neutral `StructuredChatClient` port, with the local transport extracted behind it,
 
-Planned direction — not implemented; part of the mandatory product scope (see
+Next direction — not implemented; part of the mandatory product scope (see
 [Product priority](#product-priority)):
 
-* P1 — a provider profile model and registry, LM Studio as the first profile, and selection of the
-  profile and of a model within it in the extension,
 * P2 — cloud profiles for Anthropic, OpenAI and OpenRouter: HTTPS only, a fixed host allowlist,
   the model list fetched from the provider API, one call per generation, no retry,
 * runtime contracts stay provider-neutral.
 
-Remote provider credentials must not be stored in ordinary settings or in the repository. API keys
-are kept in VS Code `SecretStorage`. Providers, UI and credential handling are not implemented.
+Remote provider credentials must not be stored in ordinary settings or in the repository. In P2,
+API keys will be kept in VS Code `SecretStorage`; remote providers and credential handling are not implemented.
 
 ---
 
@@ -847,8 +848,8 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | Knowledge Pack Builder — stage A (deterministic core) | implemented |
 | Documentation/public repository cleanup | partial |
 | B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
-| P1 — provider profiles and registry, LM Studio profile, selection in the extension | planned |
-| P2 — cloud providers Anthropic, OpenAI, OpenRouter | planned |
+| P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
+| P2 — cloud providers Anthropic, OpenAI, OpenRouter | planned — next |
 | D1 — LLM-first PlantUML path with shared structural validation | planned |
 | D2 — Component diagram | planned |
 | D3/D4 — C4 context / container | planned |
