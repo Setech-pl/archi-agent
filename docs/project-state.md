@@ -13,7 +13,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Data aktualizacji | 2026-09-20 |
 | Stan Git | Bieżący HEAD, branch i stan publikacji należy odczytywać z Git. Commit `3d1c55c` był bazą implementacji B1. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
-| Stan P1 | Implemented and automatically verified; profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
+| Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Następny etap | P2 — providerzy chmurowi Anthropic, OpenAI i OpenRouter zgodnie z roadmapą. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -209,8 +209,6 @@ build, pakowanie i kontrola VSIX. Testy loopback potwierdzają wspólny transpor
 modeli i pojedynczy POST generowania; testy VS Code potwierdzają fail-closed dla nieznanego jawnego
 profilu, migrację legacy tylko przy braku globalnego profilu, binding model–profil, błędy częściowych
 zapisów, precedencję, zapis machine/global oraz izolację symulowanych instalacji Windows/Mac.
-Ręcznego owner smoke z działającym LM Studio i Ollamą nie wykonywano; dwa opcjonalne flow są opisane
-w `docs/vscode-extension.md`.
 
 Końcowe regresje P1 uzupełniono o trzy osobne awarie atomowego wyboru modelu dla jawnego profilu,
 odczyt każdego stanu po symulowanym restarcie, ręczne usunięcie profilu i rzeczywistą zarejestrowaną
@@ -219,6 +217,40 @@ komendę Generate po zmianie profilu. Bieżące wyniki: celowana macierz VS Code
 `extension:test` — 6/6 plików, 115/115 testów. Kod produkcyjny, manifest i pakowanie nie zmieniły
 się, dlatego wcześniejsze wyniki `extension:build`, `extension:package` i `extension:verify`
 pozostają aktualne.
+
+Owner smoke Ollamy wykonano 2026-09-20 na commit
+`50d7f4704383509506b9959de6742ec16d7f28c7`, niezależnie od historycznego smoke LM Studio z
+checkpointu opisanego wyżej. Użyto zainstalowanego VSIX Archi Agent `0.2.0-alpha.1` o rozmiarze
+183551 B (około 179,25 KB); `extension:verify` potwierdził dokładnie 6 dozwolonych wpisów. Środowisko:
+VS Code 1.138.0 arm64, macOS na Apple M5 Pro z 48 GB unified memory oraz Ollama 0.34.0.
+
+| Kontrola owner smoke Ollamy | Wynik |
+| --- | --- |
+| Profil i model końcowego udanego testu | `local-ollama`, `qwen3:30b` |
+| Lista modeli | PASS — `GET http://127.0.0.1:11434/v1/models`, format OpenAI-compatible; identyfikator z dwukropkiem zachowany bez transformacji |
+| Generowanie | PASS — dokładnie jeden `POST http://127.0.0.1:11434/v1/chat/completions`, bez retry rozszerzenia |
+| Parametry i metadata | `modelGeneration.attemptCount: 1`, `structuredOutput: true`, `temperature: 0`, `seed: 42` |
+| PlantUML i grounding report | PASS; 7 znanych uczestników, 0 nowych, wszystkie wiadomości grounded |
+| Trwałość ustawień | PASS po zamknięciu i ponownym uruchomieniu tego samego czystego profilu; Ollama oznaczona jako Current profile, model `qwen3:30b` zachowany |
+| Anulowanie pickera | Brak generowania i brak zmiany ustawień |
+| Izolacja | Workspace, Knowledge Pack, flow i artefakty w katalogu tymczasowym poza repozytorium; repozytorium pozostało czyste |
+| Dane uwierzytelniające | API key nie podano; `SecretStorage` nie użyto |
+| Samowystarczalność VSIX | Użytkownik zainstalowanego VSIX nie potrzebował npm, root `node_modules` ani osobnej instalacji Node.js |
+| Wynik końcowy | **PASS** |
+
+Próba z `qwen3-coder:30b` potwierdziła poprawne połączenie przez Ollamę, ale odpowiedź została
+deterministycznie odrzucona kodem `response-mode-invalid`, ponieważ model oznaczył wiadomość w
+niedozwolony sposób. Było to oczekiwane zachowanie fail-closed, bez transportowego fallbacku i bez
+retry; ten model nie przeszedł generowania. Końcowy udany smoke wykonano modelem `qwen3:30b`.
+
+Log Ollamy potwierdził binding do `127.0.0.1:11434`, użycie Metal, dokładnie jeden zewnętrzny
+`POST /v1/chat/completions` dla udanej generacji i brak retry rozszerzenia. Request trwał łącznie
+około 1 min 49 s, a końcowa odpowiedź była generowana z szybkością około 65,7 tokena/s. Logu ani
+artefaktów smoke nie zapisano w repozytorium.
+
+Opcjonalny podgląd PlantUML początkowo nie działał z powodu braku Java Runtime wymaganego przez
+zewnętrzne rozszerzenie renderujące. Nie był to błąd Archi Agent ani niezaliczony warunek smoke:
+Archi Agent poprawnie wygenerował PlantUML i grounding report bez Javy.
 
 ### B1 (2026-09-19)
 
