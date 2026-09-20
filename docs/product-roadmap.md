@@ -1,5 +1,47 @@
 # Archi Agent — Product Roadmap
 
+## Product priority
+
+Owner decision (2026-09-19). The priority of the project is to demonstrate vibe-coding and
+AI SDLC techniques on a working product. The product must provide:
+
+1. generation of several PlantUML diagram types;
+2. architecture knowledge built from project material (Knowledge Pack Builder) or retrieved from a
+   connected MCP server;
+3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
+   OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
+
+The exact sequence is: **R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release**.
+R0, B1 and P1 are implemented; P2 is the next implementation step.
+
+Agreed order of work:
+
+| Order | Step | Scope |
+| --- | --- | --- |
+| 0 | R0 | Documentation update in this changeset. |
+| 1 | B1 | Implemented: neutral `StructuredChatClient` port and extraction of the local transport. |
+| 2 | P1 | Implemented: provider profile model and registry; LM Studio and Ollama profiles; machine-scoped profile and model selection in the extension. |
+| 3 | P2 | Next implementation step: cloud providers Anthropic, OpenAI, OpenRouter: HTTPS only, fixed host allowlist, `SecretStorage`, model list from the provider API, one call, no retry. |
+| 4 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection. |
+| 5 | D2 | Profile `component`. Sequence stays the compatibility path and regression oracle. |
+| 6 | D3 | Profile `c4-context`. |
+| 7 | D4 | Profile `c4-container`. |
+| 8 | D5 | Profile `archimate-hld`. |
+| 9 | K1 | Provider-neutral architecture catalog contract. |
+| 10 | K2 | Knowledge Pack Builder stages B2 and B3 (approved stage B decisions unchanged). |
+| 11 | K3 | Knowledge Pack Builder stage C: runtime API, source adapters, review UI, atomic write of the five files. |
+| 12 | K4 | MCP as a knowledge source: MCP client in the node layer, deterministic tool calls made by the extension (the LLM does not drive tools), mapping of results to the catalog, demonstration MCP server with Space Mission data. |
+| 13 | Demo | AI SDLC demo and release: Archi Agent branding, description of the agentic workflow, demo scenario, comparison of local and cloud models, VSIX checkpoint with owner smoke test. |
+
+Later, in no committed order: semantic review, bounded repair, quality modes, document sources
+(PDF, DOCX; Confluence and Jira preferably through MCP), EA XML (still deferred — no safe fixture),
+EA API, Prolaborate, external artifact providers (HTTPS, Google Drive, OneDrive, SharePoint).
+
+This order is a direction, not an instruction to implement: every step still goes through
+planning and an explicit implementation prompt (see [development-workflow.md](development-workflow.md)).
+
+---
+
 ## Product vision
 
 Archi Agent is intended to become a grounded architecture assistant integrated with Visual Studio Code.
@@ -147,43 +189,50 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 | Minimal grounded context, source references, stable SHA-256 digest | implemented | `src/core/grounding`, `src/core/util/stable-digest.ts` |
 | Sequence pipeline: strict model schema (required `async` / `isResponse`), normalization, grounding, relationship, interaction-mode and interface-name validation, deterministic PlantUML renderer, structural PlantUML check, grounding report | implemented | `src/core/pipeline`, `src/core/validation`, `src/core/render` |
 | Safe artifact naming, versioning and writing (Node adapters, demo) | implemented | `src/core/output`, `src/node` |
-| Local OpenAI-compatible model adapter (loopback, one request, no retry or repair), LM Studio | implemented | `src/node/llm`, `docs/local-model.md` |
+| Local OpenAI-compatible model adapter (loopback, one request, no retry or repair), LM Studio and Ollama profiles | implemented | `src/core/llm/provider-profile.ts`, `src/node/llm`, `docs/local-model.md` |
 | Offline Space Mission demo and LM Studio demo | implemented | `src/demo`, `docs/demo.md` |
+| Phase 2 — self-contained VSIX foundation (`v0.2.0-alpha.1`): host-neutral runtime, one command, settings, esbuild bundles, VSIX packaging and content verification; automatic verification and owner smoke test PASS | implemented | `src/runtime`, `vscode-extension`, `docs/vscode-extension.md` |
+| Knowledge Pack Builder — stage A: candidate and evidence model (explicit / inferred), reviewed draft validation, deterministic renderer of the five pack files, in-memory round trip through the regular loader | implemented | `src/core/knowledge-pack/builder`, `test/unit/knowledge-pack/builder` |
 
 ## Current
 
 | Item | Status | Open parts | Depends on |
 | --- | --- | --- | --- |
-| Phase 1 — cleanup | partial | Branding: the extension and README use Archi Agent; the root package (`archground`) and several docs still use the ArchGround codename. Public/private repository policy and final regression checkpoint not recorded. | — |
-| Phase 2 — self-contained VSIX (`v0.2.0-alpha.1`) | implemented | Foundation implemented and accepted: host-neutral runtime, one command, settings, esbuild bundles, VSIX packaging and content verification, tests. Automatic verification and the owner manual smoke test both PASS on the current HEAD. Artifact persistence, richer configuration UI and further provider profiles are later extensions, not gaps blocking this foundation checkpoint. | Phase 1 core |
+| B1 — neutral `StructuredChatClient` port and extraction of the local transport | implemented | Provider-neutral structured-chat request/result/client contracts in core; local OpenAI-compatible transport in the Node adapter; sequence behavior preserved through a thin generator layer. | Local OpenAI-compatible adapter |
+| P1 — local provider profiles and editor selection | implemented | Immutable core profile registry; LM Studio and Ollama mapped to one OpenAI-compatible transport; machine-scoped profile/model selection with legacy LM Studio migration. | B1 |
+| Phase 1 — cleanup | partial | Branding: the extension and README use Archi Agent; the root package (`archground`) and several docs still use the ArchGround codename. Public/private repository policy and final regression checkpoint not recorded. Branding is completed in the demo and release step. | — |
 
 ## Next
 
-| Item | Status | Notes | Depends on |
-| --- | --- | --- | --- |
-| Provider-neutral architecture-source contract | partial | The runtime source union has one kind (`local-directory`) and the `KnowledgePackSource` port reads the five Markdown pack files; no source-independent catalog contract exists yet. | Phase 2 runtime contract |
-| EA XML export as the first additional architecture source, from a local file | planned | No EA or XML parsing code exists. Local file before HTTPS and cloud storage. | Provider-neutral contract |
+Ordered as agreed in [Product priority](#product-priority).
+
+| Order | Item | Status | Notes | Depends on |
+| --- | --- | --- | --- | --- |
+| P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | planned — next | HTTPS only, fixed host allowlist, API keys in VS Code `SecretStorage`, model list from the provider API, one call, no retry. No remote provider code exists. | P1 |
+| D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection | planned (sequence validation implemented) | Sequence pipeline stays the compatibility path and regression oracle. | Grounding core |
+| D2 | Profile `component` | planned | | D1 |
+| D3 | Profile `c4-context` | planned | | D1 |
+| D4 | Profile `c4-container` | planned | | D1 |
+| D5 | Profile `archimate-hld` | planned | | D1 |
+| K1 | Provider-neutral architecture catalog contract | partial | The runtime source union has one kind (`local-directory`) and the `KnowledgePackSource` port reads the five Markdown pack files; no source-independent catalog contract exists yet. | Phase 2 runtime contract |
+| K2 | Knowledge Pack Builder stages B2 and B3 | planned | Approved stage B decisions unchanged. The model only proposes candidates; the final Markdown always comes from the deterministic renderer. | Stage A, B1 |
+| K3 | Knowledge Pack Builder stage C: runtime API, source adapters, review UI, atomic write of the five files | planned | | K1, K2 |
+| K4 | MCP knowledge source | planned | MCP client in the node layer; the extension makes deterministic tool calls (the LLM does not drive tools); results are mapped to the architecture catalog; demonstration MCP server with Space Mission data. No MCP code exists. See [Source architecture](#source-architecture). | K1 |
+| Demo | AI SDLC demo and release | planned | Archi Agent branding, description of the agentic workflow, demo scenario, comparison of local and cloud models, VSIX checkpoint with owner smoke test. | Preceding steps |
 
 ## Later
 
-The order of the diagram profiles below is the agreed order. The order of the other items is not a
-commitment.
+The order of the items below is not a commitment.
 
 | Item | Status | Depends on |
 | --- | --- | --- |
-| LLM-first final PlantUML path | planned | Grounding core; sequence pipeline stays as compatibility path |
-| Deterministic validation of LLM-generated PlantUML per profile | planned (sequence validation implemented) | LLM-first path |
-| Profile `component` | planned | LLM-first path, profile validation |
-| Profile `c4-context` | planned | LLM-first path, profile validation |
-| Profile `c4-container` | planned | LLM-first path, profile validation |
-| Profile `archimate-hld` | planned | LLM-first path, profile validation |
-| Further architecture sources: reduced JSON catalog, EA API, Prolaborate | planned | Provider-neutral contract |
-| External artifact providers: HTTPS, then Google Drive, OneDrive, SharePoint | planned | Local-file architecture source |
-| Document sources (Markdown, plain text, PDF, DOCX, Confluence) as a separate path | planned | Evidence classes kept distinct from architecture sources |
 | Semantic review | deferred | Deterministic validation, LLM-first path |
 | Controlled, bounded repair | deferred | Deterministic validation, semantic review |
 | Quality modes `economy`, `balanced`, `quality` | deferred | `economy`: deterministic validation; `balanced`: semantic review; `quality`: semantic review and repair |
-| Remote model providers | deferred | Provider-neutral generator port (exists) |
+| Document sources (Markdown, plain text, PDF, DOCX; Confluence and Jira preferably through MCP) as a separate path | planned | Evidence classes kept distinct from architecture sources; K4 for MCP-backed sources |
+| EA XML export as an architecture source, from a local file | deferred | No safe, public fixture that represents real EA data; no EA or XML parsing code exists. K1, safe synthetic EA fixture |
+| Further architecture sources: reduced JSON catalog, EA API, Prolaborate | planned | K1 |
+| External artifact providers: HTTPS, then Google Drive, OneDrive, SharePoint | planned | Local-file architecture source |
 
 ---
 
@@ -211,13 +260,13 @@ Remaining work in this phase:
 
 # Phase 2 — Self-contained VS Code extension
 
-**Status: implemented — foundation accepted; `v0.2.0-alpha.1` automatically verified and owner smoke accepted on the current HEAD**
+**Status: implemented — foundation accepted; `v0.2.0-alpha.1` automatically verified and owner smoke accepted on commit `d4de130`**
 
 The production application should be a self-contained VS Code extension. The foundation exists:
-a VSIX built from bundled JavaScript with one command, loopback-only local model settings, an
+a VSIX built from bundled JavaScript with generation and local profile/model commands, loopback-only local model settings, an
 explicit Knowledge Pack path, interactive ambiguity resolution and `[NEW]` confirmation, and
 package-content verification (see `docs/vscode-extension.md`). Artifact persistence, richer
-configuration UI and additional provider profiles are further extensions of this foundation, not
+configuration UI and remote provider profiles are further extensions of this foundation, not
 gaps blocking the checkpoint.
 
 Target installation:
@@ -242,12 +291,12 @@ No requirement for:
 * extension-host runtime boundary — implemented,
 * bundled application runtime — implemented,
 * configuration UI — partial (VS Code settings only),
-* LLM profile selection — planned,
+* LLM profile and model selection — implemented (P1: LM Studio and Ollama),
 * architecture-source configuration — partial (one Knowledge Pack directory),
 * generated PlantUML editor integration — partial (untitled editors, no persistence),
 * safe user-data storage — planned,
 * VSIX allowlist/denylist validation — implemented,
-* clean-install smoke test — PASS, owner-run on the current HEAD (2026-09-17).
+* clean-install smoke test — PASS, owner-run on commit `d4de130` (2026-09-17).
 
 ## Checkpoint
 
@@ -261,35 +310,63 @@ Acceptance goal:
 
 > Install the VSIX into a clean VS Code profile, configure a local model and architecture source, and generate a sequence diagram without cloning the repository or installing npm dependencies.
 
-Status: **met**. Automatic verification passed on the current HEAD, and the owner reproduced the
+Status: **met**. Automatic verification passed on commit `d4de130`, and the owner reproduced the
 acceptance goal on 2026-09-17 in a clean VS Code profile with LM Studio, outside the repository.
 
 ## LLM provider profiles
 
 Current state — implemented:
 
-* one local OpenAI-compatible provider (loopback),
-* model list fetched from the local endpoint,
-* model chosen by the user.
+* immutable provider profiles and deterministic registry,
+* LM Studio (`local-lm-studio`) and Ollama (`local-ollama`) through one loopback OpenAI-compatible transport,
+* model list fetched from the selected local endpoint and model chosen explicitly by the user,
+* machine-scoped profile/model/binding settings with independent choices per computer, fail-closed
+  handling of unknown explicit profiles and legacy LM Studio migration only when no explicit global
+  profile exists.
 
-Planned direction — not implemented in this task:
+Implemented foundation:
 
-* provider profiles for OpenAI, Anthropic Claude and OpenRouter, in addition to the local
-  OpenAI-compatible provider,
-* the extension will let the user choose a provider profile and a model within it,
-* runtime contracts stay provider-neutral (the existing provider-neutral generator port already
-  supports this).
+* B1 — a neutral `StructuredChatClient` port, with the local transport extracted behind it,
 
-Remote provider credentials must not be stored in ordinary settings or in the repository. The
-intended mechanism for secrets in VS Code is `SecretStorage`. Providers, UI and credential
-handling for this direction are not implemented and are not part of the current EA XML stage
-ordering.
+Next direction — not implemented; part of the mandatory product scope (see
+[Product priority](#product-priority)):
+
+* P2 — cloud profiles for Anthropic, OpenAI and OpenRouter: HTTPS only, a fixed host allowlist,
+  the model list fetched from the provider API, one call per generation, no retry,
+* runtime contracts stay provider-neutral.
+
+Remote provider credentials must not be stored in ordinary settings or in the repository. In P2,
+API keys will be kept in VS Code `SecretStorage`; remote providers and credential handling are not implemented.
+
+---
+
+# Knowledge Pack Builder
+
+**Status: partial — stage A implemented.** After the extension foundation was merged to `main`
+(`b759bb9`), the priority moved from the EA XML source to building a Knowledge Pack from project
+material. EA XML is deferred because no safe, public fixture representing real EA data is
+available. Under the [Product priority](#product-priority) the first part of stage B (B1, the
+neutral model port) comes first; the remaining builder stages follow the provider and diagram work
+(K2, K3).
+
+The builder produces the same five Markdown files that the loader already reads. A language model
+may later propose candidates, but it never writes the pack: every candidate carries evidence and an
+`explicit` or `inferred` basis, inferred candidates need an explicit user acceptance, and the final
+Markdown always comes from a deterministic renderer whose output is loaded back through the regular
+loader before it is accepted. Evidence stays out of the pack files.
+
+| Stage | Scope | Status |
+| --- | --- | --- |
+| A | Candidate and evidence model, reviewed draft validation, deterministic renderer, in-memory round trip through the loader (`src/core/knowledge-pack/builder`) | implemented |
+| B1 | Neutral `StructuredChatClient` port and extraction of the local transport (approved stage B plan) | implemented |
+| B2, B3 | Remaining stage B scope: bounded source bundle and LLM extraction of candidates (approved stage B decisions unchanged; roadmap step K2) | planned |
+| C | Runtime API, source adapters, review UI, atomic write of the five files (roadmap step K3) | planned |
 
 ---
 
 # Phase 3 — Enterprise Architect source
 
-**Status: planned — next.** No EA or XML parsing code exists. The first step is an EA XML export read from a local file, behind a provider-neutral architecture-source contract.
+**Status: deferred.** Postponed in favour of the [Knowledge Pack Builder](#knowledge-pack-builder) and the MCP knowledge source because no safe, public fixture representing real EA data exists; not part of the agreed order in [Product priority](#product-priority). No EA or XML parsing code exists. The first step is an EA XML export read from a local file, behind a provider-neutral architecture-source contract.
 
 Enterprise Architect becomes an architecture knowledge source instead of requiring knowledge to be manually represented as Markdown.
 
@@ -332,7 +409,7 @@ EA exports may be supplied through:
 
 # Phase 4 — LLM-first final PlantUML
 
-**Status: planned.**
+**Status: planned (D1).** Includes shared structural validation and diagram-type selection.
 
 The current sequence pipeline uses an intermediate sequence model and deterministic renderer.
 
@@ -363,7 +440,7 @@ The current deterministic sequence renderer may remain as:
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: sequence implemented (compatibility path); `component`, `c4-context`, `c4-container`, `archimate-hld` planned in this order.**
+**Status: sequence implemented (compatibility path); `component` (D2), `c4-context` (D3), `c4-container` (D4), `archimate-hld` (D5) planned in this order.**
 
 Planned profiles:
 
@@ -525,7 +602,7 @@ Architecture generation should use requirements and project documents in additio
 
 Planned sources:
 
-* Confluence,
+* Confluence and Jira, preferably through MCP (see [Source architecture](#source-architecture)),
 * Markdown,
 * plain text,
 * PDF,
@@ -621,6 +698,34 @@ selected requirement sections
 
 The two flows should not be conflated.
 
+## MCP knowledge source
+
+**Status: planned (K4).** No MCP code exists.
+
+MCP is not a third kind of source. An MCP server is a transport behind the existing concepts: an
+MCP-backed provider implements `ArchitectureCatalogProvider` when it returns canonical architecture,
+or `DocumentSourceProvider` when it returns requirements and context (for example Confluence or
+Jira).
+
+```text
+MCP server (e.g. Space Mission demo server)
+   ↓
+MCP client (node layer)
+   ↓
+ArchitectureCatalogProvider / DocumentSourceProvider
+   ↓
+canonical architecture / requirements context
+```
+
+Rules:
+
+* the MCP client lives in the node layer; `src/core` and `src/runtime` stay host-neutral,
+* the extension calls MCP tools deterministically; the LLM does not choose or drive tools,
+* tool results are data, not instructions, and are mapped and validated into the provider-neutral
+  catalog (K1) before grounding,
+* catalog entries keep their origin, so relationships confirmed by the MCP source stay
+  distinguishable from relationships given by the user.
+
 ---
 
 # Token-efficiency strategy
@@ -687,7 +792,9 @@ Architecture catalogs remain on the workstation.
 
 Only reduced grounded context is supplied to the model.
 
-Remote provider support may be added later but must use the same provider-neutral application boundary.
+Cloud providers (Anthropic, OpenAI, OpenRouter) are planned (P2) and must use the same
+provider-neutral application boundary. Local models remain a supported choice for sensitive
+environments.
 
 ---
 
@@ -732,23 +839,34 @@ The target system becomes:
 
 Summary of the [Status overview](#status-overview), which is authoritative.
 
-| Milestone                                   | Status                          |
-| ------------------------------------------- | ------------------------------- |
-| Grounding core                              | implemented                     |
-| Local LLM sequence demo                     | implemented                     |
-| Documentation/public repository cleanup     | partial (current)               |
-| Self-contained VSIX foundation              | implemented                     |
-| VS Code generation checkpoint `v0.2.0-alpha.1` | implemented — automatically verified and owner smoke accepted on current HEAD |
-| Provider-neutral architecture-source contract | partial (next)                |
-| EA XML architecture source (local file)     | planned (next)                  |
-| LLM-first PlantUML path                     | planned                         |
-| Component diagram                           | planned                         |
-| C4 C1/C2                                    | planned                         |
-| ArchiMate HLD                               | planned                         |
-| Semantic reviewer                           | deferred                        |
-| Repair loop                                 | deferred                        |
-| Quality modes                               | deferred                        |
-| Document sources (incl. Confluence)         | planned                         |
-| HTTPS / GDrive / OneDrive / SharePoint      | planned                         |
+| Milestone | Status |
+| --- | --- |
+| Grounding core | implemented |
+| Local LLM sequence demo | implemented |
+| Self-contained VSIX foundation | implemented |
+| VS Code generation checkpoint `v0.2.0-alpha.1` | implemented — automatically verified and owner smoke accepted |
+| Knowledge Pack Builder — stage A (deterministic core) | implemented |
+| Documentation/public repository cleanup | partial |
+| B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
+| P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
+| P2 — cloud providers Anthropic, OpenAI, OpenRouter | planned — next |
+| D1 — LLM-first PlantUML path with shared structural validation | planned |
+| D2 — Component diagram | planned |
+| D3/D4 — C4 context / container | planned |
+| D5 — ArchiMate HLD | planned |
+| K1 — provider-neutral architecture catalog contract | partial |
+| K2 — Knowledge Pack Builder stages B2, B3 | planned |
+| K3 — Knowledge Pack Builder stage C | planned |
+| K4 — MCP knowledge source | planned |
+| AI SDLC demo and release checkpoint | planned |
+| Semantic reviewer | deferred |
+| Repair loop | deferred |
+| Quality modes | deferred |
+| Document sources (PDF, DOCX; Confluence/Jira via MCP) | planned |
+| EA XML architecture source (local file) | deferred (no safe public EA fixture) |
+| EA API, Prolaborate | planned |
+| HTTPS / GDrive / OneDrive / SharePoint | planned |
 
-The order may change as the extension checkpoint exposes integration constraints. No release dates are set.
+Milestones up to the AI SDLC demo follow the agreed order in [Product priority](#product-priority);
+the rest are not ordered. The order may change as integration constraints appear. No release dates
+are set.

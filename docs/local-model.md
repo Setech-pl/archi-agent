@@ -1,11 +1,29 @@
-# Local model generation (LM Studio)
+# Local model generation (LM Studio and Ollama)
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
-a local OpenAI-compatible server with structured-output support, such as LM Studio, on the loopback
-interface only. This is the first real model adapter; remote providers and the editor extension do
-not exist yet.
+a local OpenAI-compatible server with structured-output support: LM Studio or Ollama, on the loopback
+interface only. Both profiles use the same adapter; remote providers do not exist yet. A
+self-contained VS Code extension exists and was verified at checkpoint `v0.2.0-alpha.1` on commit
+`d4de130`.
 
 ## Responsibility boundary
+
+The core exposes a provider-neutral `StructuredChatClient` contract containing messages, schema,
+token bound and cancellation only. `OpenAiCompatibleLocalChatClient` in the Node layer owns the
+loopback endpoint, OpenAI-compatible request mapping, HTTP exchange and local response-channel
+compatibility. The existing `OpenAiCompatibleLocalGenerator` remains the public sequence adapter;
+it only builds the sequence prompt and schema and delegates one call to that client.
+
+The provider-neutral core defines immutable profile metadata and a deterministic registry. Concrete
+local profiles live in the Node adapter layer:
+
+| Profile | ID | Default base URL |
+| --- | --- | --- |
+| LM Studio | `local-lm-studio` | `http://127.0.0.1:1234/v1` |
+| Ollama | `local-ollama` | `http://127.0.0.1:11434/v1` |
+
+Both advertise model listing and structured chat, and both map only to `GET /v1/models` and
+`POST /v1/chat/completions`. There is no native Ollama API or `/api/tags` path.
 
 The model performs the semantic work:
 
@@ -79,17 +97,38 @@ attempt is worth adding.
 
 ## Prerequisites
 
-1. LM Studio (or another OpenAI-compatible server) running its local server, by default on port
-   1234.
+1. LM Studio running its OpenAI-compatible server on port 1234, or Ollama exposing its
+   OpenAI-compatible endpoint on port 11434.
 2. A chat or instruction model loaded, capable of structured JSON output. Very small models,
    roughly below 7B parameters, often fail structured output or the grounding rules; a larger
    instruction model is recommended.
 3. The ArchGround dependencies installed and Node.js 22.12 or later.
 
 No API key or credential is needed and none is sent: the adapter sends no Authorization header.
-ArchGround never downloads or loads a model. Load the model in LM Studio before running the demo;
-whether a request for a model that is not loaded triggers just-in-time loading depends on the LM
-Studio settings, not on ArchGround.
+ArchGround never downloads or loads a model. Prepare the model in the selected local provider before
+generation. Provider-specific loading behavior is outside ArchGround.
+
+## VS Code profile and migration behavior
+
+Use **Archi Agent: Select Local Provider Profile** and **Archi Agent: Select Local Model**. The
+explicit profile, selected model and the extension-managed `selectedModelProfile` binding are
+machine-scoped user settings: VS Code Settings Sync does not copy them, and workspace or
+workspace-folder settings cannot override them. A Windows computer can therefore keep an LM Studio
+model while a MacBook keeps an Ollama model in the same synced VS Code account.
+
+Legacy LM Studio mode applies only when
+`inspect("localModel.profile").globalValue === undefined`. In that mode the effective
+`archiAgent.localModel.baseUrl` and `archiAgent.localModel.model` retain normal VS Code precedence,
+including workspace and workspace-folder values; the manifest default is not mistaken for an
+explicit choice. Every present explicit profile value must resolve to a registered profile. An
+unknown, empty or malformed explicit value fails with `unknown-provider-profile` before listing or
+generation and never falls back to the legacy URL or model.
+
+After an explicit profile selection, a global `archiAgent.localModel.selectedModel` is active only
+when the global extension-managed `archiAgent.localModel.selectedModelProfile` exactly matches that
+profile. A manual profile change therefore leaves any stale stored model inactive and the next
+explicit generation asks the user to select a model. Ollama always uses its profile default endpoint
+and never inherits the legacy LM Studio URL or model. Legacy settings are not deleted.
 
 ## Commands
 

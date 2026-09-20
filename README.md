@@ -6,7 +6,7 @@ Archi Agent is an architecture-assistance project designed to turn natural-langu
 
 The project combines deterministic architecture grounding with LLM-based interpretation and generation.
 
-The current implementation focuses on sequence-diagram generation, strict grounding, validation, safe PlantUML output and local OpenAI-compatible models such as LM Studio.
+The current implementation focuses on sequence-diagram generation, strict grounding, validation, safe PlantUML output and local OpenAI-compatible models through LM Studio and Ollama profiles.
 
 The long-term goal is a self-contained Visual Studio Code extension supporting multiple architecture diagram profiles and multiple enterprise knowledge sources.
 
@@ -83,7 +83,8 @@ Implemented today:
 * offline deterministic demo,
 * local OpenAI-compatible model support,
 * LM Studio integration,
-* VS Code extension foundation: a self-contained VSIX with one command that runs the sequence pipeline against a configured Knowledge Pack and a local model (see [docs/vscode-extension.md](docs/vscode-extension.md)),
+* Ollama integration through its OpenAI-compatible `/v1` API,
+* machine-scoped provider and model selection in the self-contained VS Code extension (see [docs/vscode-extension.md](docs/vscode-extension.md)),
 * unit and integration tests.
 
 Not yet implemented in this repository:
@@ -258,7 +259,7 @@ Current generators include:
 * deterministic scripted demo,
 * local OpenAI-compatible model adapter.
 
-The local model path has been tested with LM Studio-compatible endpoints.
+LM Studio and Ollama profiles use the same local OpenAI-compatible transport.
 
 ---
 
@@ -440,7 +441,7 @@ The system should retain source references so generated architecture can be trac
 
 Archi Agent supports a local OpenAI-compatible generation path.
 
-The intended use case includes LM Studio.
+The intended use case includes LM Studio and Ollama.
 
 The current local-model implementation:
 
@@ -452,6 +453,14 @@ The current local-model implementation:
 * applies the same deterministic validation pipeline,
 * performs no automatic retry or repair.
 
+The extension exposes **Select Local Provider Profile** and **Select Local Model** commands. The
+profile, selected model and the extension-managed model-to-profile binding are machine-scoped, are
+not synchronized by VS Code Settings Sync, and allow different computers to retain independent
+provider/model choices. A selected model is active only when its binding matches the explicit
+profile, so manually changing the profile cannot carry a stale model across providers. Legacy LM
+Studio `baseUrl` and `model` settings work only while no explicit global profile value exists; an
+unknown explicit profile is rejected before network access instead of falling back to legacy mode.
+
 See:
 
 [docs/local-model.md](docs/local-model.md)
@@ -460,10 +469,10 @@ See:
 
 # Quick start
 
-Install dependencies:
+Install dependencies from the lockfile:
 
 ```bash
-npm install
+npm ci
 ```
 
 Run tests:
@@ -657,7 +666,7 @@ The repository includes leak-scanning support intended to reduce accidental publ
 | [Product roadmap](docs/product-roadmap.md)             | Product direction and implementation roadmap   |
 | [Diagram profiles](docs/diagram-profiles.md)           | Current and planned diagram types              |
 | [Knowledge Pack format](docs/knowledge-pack-format.md) | Architecture knowledge schema                  |
-| [Local model](docs/local-model.md)                     | LM Studio / OpenAI-compatible local generation |
+| [Local model](docs/local-model.md)                     | LM Studio and Ollama through OpenAI-compatible local generation |
 | [VS Code extension](docs/vscode-extension.md)          | Self-contained extension foundation and VSIX   |
 | [Demo](docs/demo.md)                                   | Synthetic offline demo                         |
 | [Front matter](docs/front-matter.md)                   | Flow-document metadata                         |

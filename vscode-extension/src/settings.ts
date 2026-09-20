@@ -1,5 +1,12 @@
 import path from "node:path";
-import { defaultLocalModelBaseUrl, isSafeModelId, parseLoopbackEndpoint, runtimeLimits } from "../../src/runtime/index.js";
+import {
+  defaultBaseUrlForLocalProfile,
+  defaultLocalModelBaseUrl,
+  isSafeModelId,
+  localLmStudioProfileId,
+  parseLoopbackEndpoint,
+  runtimeLimits
+} from "../../src/runtime/index.js";
 import { settingKeys } from "./contributions.js";
 
 /**
@@ -11,9 +18,19 @@ import { settingKeys } from "./contributions.js";
 /** Structurally compatible with the editor's WorkspaceConfiguration.get(section). */
 export interface SettingsReader {
   get(section: string): unknown;
+  inspect(section: string):
+    | {
+        readonly defaultValue?: unknown;
+        readonly globalValue?: unknown;
+        readonly workspaceValue?: unknown;
+        readonly workspaceFolderValue?: unknown;
+      }
+    | undefined;
 }
 
 export interface LocalModelSettings {
+  readonly selectionMode: "legacy" | "profile";
+  readonly profileId: string;
   readonly baseUrl: string;
   /** Undefined until the user configured or picked a model; the runtime never chooses one. */
   readonly modelId: string | undefined;
@@ -29,6 +46,7 @@ export interface ArchiAgentSettings {
 export type SettingsProblemCode =
   | "knowledge-pack-path-missing"
   | "knowledge-pack-path-not-absolute"
+  | "unknown-provider-profile"
   | "local-model-base-url-invalid"
   | "local-model-id-invalid"
   | "local-model-timeout-invalid"
@@ -43,6 +61,10 @@ export interface SettingsProblem {
 
 export type SettingsResult =
   | { readonly ok: true; readonly settings: ArchiAgentSettings }
+  | { readonly ok: false; readonly problems: readonly SettingsProblem[] };
+
+export type LocalModelSettingsResult =
+  | { readonly ok: true; readonly settings: LocalModelSettings }
   | { readonly ok: false; readonly problems: readonly SettingsProblem[] };
 
 export const settingsLimits = Object.freeze({
@@ -74,25 +96,48 @@ function hasControlCharacter(value: string): boolean {
   return false;
 }
 
-export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
-  const problems: SettingsProblem[] = [];
-  const knowledgePackPath = text(reader.get(settingKeys.knowledgePackPath));
+function explicitProfile(reader: SettingsReader): { readonly explicit: false } | { readonly explicit: true; readonly value: unknown } {
+  const value = reader.inspect(settingKeys.localModelProfile)?.globalValue;
+  return value === undefined ? { explicit: false } : { explicit: true, value };
+}
 
-  if (knowledgePackPath === "") {
-    problems.push(
-      problem("knowledge-pack-path-missing", settingKeys.knowledgePackPath, "Set the absolute path of the Architecture Knowledge Pack directory.")
-    );
-  } else if (!path.isAbsolute(knowledgePackPath) || hasControlCharacter(knowledgePackPath)) {
-    problems.push(
-      problem("knowledge-pack-path-not-absolute", settingKeys.knowledgePackPath, "The Knowledge Pack path must be an absolute directory path.")
-    );
+function selectedModel(reader: SettingsReader, profile: ReturnType<typeof explicitProfile>): { readonly key: string; readonly value: unknown } {
+  if (!profile.explicit) {
+    return { key: settingKeys.localModelId, value: reader.get(settingKeys.localModelId) };
   }
 
-  const rawBaseUrl = reader.get(settingKeys.localModelBaseUrl);
-  const baseUrlText = text(rawBaseUrl) === "" ? defaultLocalModelBaseUrl : text(rawBaseUrl);
-  const endpoint = parseLoopbackEndpoint(baseUrlText);
+  if (typeof profile.value !== "string") {
+    return { key: settingKeys.localModelSelectedModel, value: undefined };
+  }
 
-  if (!endpoint.ok) {
+  const binding = reader.inspect(settingKeys.localModelSelectedModelProfile)?.globalValue;
+
+  return {
+    key: settingKeys.localModelSelectedModel,
+    value:
+      binding === profile.value && defaultBaseUrlForLocalProfile(binding) !== undefined
+        ? reader.inspect(settingKeys.localModelSelectedModel)?.globalValue
+        : undefined
+  };
+}
+
+export function readLocalModelSettings(reader: SettingsReader): LocalModelSettingsResult {
+  const problems: SettingsProblem[] = [];
+  const profile = explicitProfile(reader);
+  const selectedProfileId = profile.explicit ? profile.value : localLmStudioProfileId;
+  const profileDefaultBaseUrl = typeof selectedProfileId === "string" ? defaultBaseUrlForLocalProfile(selectedProfileId) : undefined;
+
+  if (profile.explicit && profileDefaultBaseUrl === undefined) {
+    problems.push(problem("unknown-provider-profile", settingKeys.localModelProfile, "The explicitly configured provider profile is not registered."));
+  }
+
+  const effectiveProfileId = typeof selectedProfileId === "string" ? selectedProfileId : "";
+  const baseUrlDefault = profile.explicit ? profileDefaultBaseUrl : defaultLocalModelBaseUrl;
+  const rawBaseUrl = effectiveProfileId === localLmStudioProfileId ? reader.get(settingKeys.localModelBaseUrl) : undefined;
+  const baseUrlText = text(rawBaseUrl) === "" ? (baseUrlDefault ?? "") : text(rawBaseUrl);
+  const endpoint = baseUrlDefault === undefined ? undefined : parseLoopbackEndpoint(baseUrlText);
+
+  if (endpoint !== undefined && !endpoint.ok) {
     problems.push(
       problem(
         "local-model-base-url-invalid",
@@ -102,15 +147,15 @@ export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
     );
   }
 
-  const rawModel = reader.get(settingKeys.localModelId);
-  const modelText = text(rawModel);
+  const model = selectedModel(reader, profile);
+  const modelText = text(model.value);
   let modelId: string | undefined;
 
   if (modelText !== "") {
     if (isSafeModelId(modelText)) {
       modelId = modelText;
     } else {
-      problems.push(problem("local-model-id-invalid", settingKeys.localModelId, "The model identifier is not a safe model identifier."));
+      problems.push(problem("local-model-id-invalid", model.key, "The model identifier is not a safe model identifier."));
     }
   }
 
@@ -132,6 +177,42 @@ export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
     );
   }
 
+  if (problems.length > 0 || endpoint === undefined || !endpoint.ok || typeof timeoutSeconds !== "number") {
+    return Object.freeze({ ok: false, problems: Object.freeze(problems) });
+  }
+
+  return Object.freeze({
+    ok: true,
+    settings: Object.freeze({
+      selectionMode: profile.explicit ? "profile" : "legacy",
+      profileId: effectiveProfileId,
+      baseUrl: endpoint.endpoint.baseUrl,
+      modelId,
+      timeoutMs: Math.round(timeoutSeconds * 1000)
+    })
+  });
+}
+
+export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
+  const problems: SettingsProblem[] = [];
+  const knowledgePackPath = text(reader.get(settingKeys.knowledgePackPath));
+
+  if (knowledgePackPath === "") {
+    problems.push(
+      problem("knowledge-pack-path-missing", settingKeys.knowledgePackPath, "Set the absolute path of the Architecture Knowledge Pack directory.")
+    );
+  } else if (!path.isAbsolute(knowledgePackPath) || hasControlCharacter(knowledgePackPath)) {
+    problems.push(
+      problem("knowledge-pack-path-not-absolute", settingKeys.knowledgePackPath, "The Knowledge Pack path must be an absolute directory path.")
+    );
+  }
+
+  const localModel = readLocalModelSettings(reader);
+
+  if (!localModel.ok) {
+    problems.push(...localModel.problems);
+  }
+
   const rawAuthor = reader.get(settingKeys.defaultAuthor);
   const author = text(rawAuthor) === "" ? defaultAuthor : text(rawAuthor);
 
@@ -139,16 +220,12 @@ export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
     problems.push(problem("default-author-invalid", settingKeys.defaultAuthor, "The default author is too long or contains a control character."));
   }
 
-  if (problems.length > 0 || !endpoint.ok || typeof timeoutSeconds !== "number") {
+  if (problems.length > 0 || !localModel.ok) {
     return Object.freeze({ ok: false, problems: Object.freeze(problems) });
   }
 
   return Object.freeze({
     ok: true,
-    settings: Object.freeze({
-      knowledgePackPath,
-      localModel: Object.freeze({ baseUrl: endpoint.endpoint.baseUrl, modelId, timeoutMs: Math.round(timeoutSeconds * 1000) }),
-      defaultAuthor: author
-    })
+    settings: Object.freeze({ knowledgePackPath, localModel: localModel.settings, defaultAuthor: author })
   });
 }

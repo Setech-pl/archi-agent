@@ -21,15 +21,28 @@ export type {
   GenerateSequenceDiagramSuccess,
   GenerationSummary,
   GeneratorConfig,
+  LegacyLocalGeneratorConfig,
   KnowledgePackSourceConfig,
   ListLocalModelsOptions,
   ListLocalModelsResult,
   LocalModelEndpointConfig,
+  ProviderGeneratorConfig,
+  ProviderModelSelection,
   RuntimeFailureStage,
   RuntimeIssue,
   RuntimeIssueDetailValue,
   RuntimeIssueSeverity
 } from "./runtime-types.js";
+export type { ProviderCapabilities, ProviderProfile } from "../core/llm/provider-profile.js";
+export { ProviderRegistry, ProviderRegistryError, providerRegistryErrorCodes } from "../core/llm/provider-registry.js";
+export type { ProviderRegistryErrorCode } from "../core/llm/provider-registry.js";
 export { defaultLocalModelBaseUrl, parseLoopbackEndpoint } from "../node/llm/loopback-endpoint.js";
 export type { LoopbackEndpointCode } from "../node/llm/loopback-endpoint.js";
+export {
+  defaultBaseUrlForLocalProfile,
+  localLmStudioProfileId,
+  localOllamaProfileId,
+  localProviderDefaultBaseUrls,
+  localProviderProfiles
+} from "../node/llm/local-provider-profiles.js";
 export { isSafeModelId } from "../core/pipeline/sequence-model-generator.js";

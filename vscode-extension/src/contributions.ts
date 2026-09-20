@@ -4,7 +4,9 @@
  */
 
 export const commandIds = Object.freeze({
-  generateSequenceDiagram: "archiAgent.generateSequenceDiagram"
+  generateSequenceDiagram: "archiAgent.generateSequenceDiagram",
+  selectLocalProviderProfile: "archiAgent.selectLocalProviderProfile",
+  selectLocalModel: "archiAgent.selectLocalModel"
 });
 
 export const settingsSection = "archiAgent";
@@ -14,6 +16,9 @@ export const settingKeys = Object.freeze({
   knowledgePackPath: "knowledgePackPath",
   localModelBaseUrl: "localModel.baseUrl",
   localModelId: "localModel.model",
+  localModelProfile: "localModel.profile",
+  localModelSelectedModel: "localModel.selectedModel",
+  localModelSelectedModelProfile: "localModel.selectedModelProfile",
   localModelTimeoutSeconds: "localModel.timeoutSeconds",
   defaultAuthor: "defaultAuthor"
 });

@@ -1,14 +1,22 @@
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createArchiAgentRuntime, type ArchiAgentRuntime, type GenerateSequenceDiagramRequest } from "../../src/runtime/index.js";
 import { generateSequenceDiagramCommand } from "../../vscode-extension/src/commands/generate-sequence-diagram.js";
+import { selectLocalModel, selectLocalProviderProfile } from "../../vscode-extension/src/commands/local-provider-selection.js";
 import { commandIds, settingKeys, settingsSection } from "../../vscode-extension/src/contributions.js";
 import { activate, deactivate } from "../../vscode-extension/src/extension.js";
+import { readLocalModelSettings } from "../../vscode-extension/src/settings.js";
 import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
 import { basePackRows, buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
 import * as vscodeDouble from "../doubles/vscode-module-double.js";
+
+const packagedRuntime = vi.hoisted(() => ({ current: undefined as ArchiAgentRuntime | undefined }));
+
+vi.mock("../../vscode-extension/src/runtime/packaged-runtime-adapter.js", () => ({
+  createPackagedRuntime: () => packagedRuntime.current
+}));
 
 /**
  * Drives the editor layer through the in-memory vscode double: activation registers the command,
@@ -42,6 +50,12 @@ function configure(values: Readonly<Record<string, unknown>>): void {
   }
 }
 
+function configureGlobal(values: Readonly<Record<string, unknown>>): void {
+  for (const [key, value] of Object.entries(values)) {
+    state.configurationInspect.set(`${settingsSection}.${key}`, { globalValue: value });
+  }
+}
+
 function echoRuntime(): ArchiAgentRuntime {
   return createArchiAgentRuntime({ generatorFactory: () => new ContextEchoGenerator() });
 }
@@ -52,6 +66,10 @@ function output(): ReturnType<typeof vscodeDouble.window.createOutputChannel> {
 
 function pickByLabel(fragment: string): (items: readonly unknown[]) => unknown {
   return (items) => items.find((item) => typeof item === "object" && item !== null && String((item as { label: unknown }).label).includes(fragment));
+}
+
+function readAfterRestart() {
+  return readLocalModelSettings(vscodeDouble.workspace.getConfiguration(settingsSection));
 }
 
 beforeAll(() => {
@@ -67,6 +85,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
+  packagedRuntime.current = undefined;
   resetDouble();
 });
 
@@ -86,15 +105,15 @@ describe("activation", () => {
 
     activate(context as never);
 
-    expect([...state.registeredCommands.keys()]).toEqual([commandIds.generateSequenceDiagram]);
-    expect(manifest.contributes.commands.map((entry) => entry.command)).toEqual([commandIds.generateSequenceDiagram]);
-    expect(manifest.activationEvents).toEqual([`onCommand:${commandIds.generateSequenceDiagram}`]);
+    expect([...state.registeredCommands.keys()]).toEqual(Object.values(commandIds));
+    expect(manifest.contributes.commands.map((entry) => entry.command)).toEqual(Object.values(commandIds));
+    expect(manifest.activationEvents).toEqual(Object.values(commandIds).map((command) => `onCommand:${command}`));
     expect(Object.keys(manifest.contributes.configuration.properties).sort()).toEqual(
       Object.values(settingKeys)
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
-    expect(context.subscriptions.length).toBe(2);
+    expect(context.subscriptions.length).toBe(4);
     deactivate();
   });
 
@@ -109,6 +128,60 @@ describe("activation", () => {
       expect.objectContaining({ level: "error", text: "archiAgent.knowledgePackPath: Set the absolute path of the Architecture Knowledge Pack directory." })
     ]);
     expect(state.messages[0]?.actions).toContain("Open Settings");
+    expect(state.openedDocuments).toEqual([]);
+  });
+
+  it("waits for the real Generate command before listing after a manual profile change and does not generate when model picking is cancelled", async () => {
+    configure({
+      [settingKeys.knowledgePackPath]: packDirectory,
+      [settingKeys.localModelId]: "legacy-lm-studio-model"
+    });
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "previous-lm-studio-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-lm-studio"
+    });
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    const calls = { listings: 0, generations: 0, requests: [] as GenerateSequenceDiagramRequest[] };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels(selection) {
+        calls.listings += 1;
+        expect(selection).toMatchObject({ profileId: "local-ollama" });
+        return { ok: true, models: ["qwen3:8b"] };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        calls.generations += 1;
+        calls.requests.push(request);
+        return inner.generateSequenceDiagram(request);
+      }
+    };
+    const context = createExtensionContext();
+
+    activate(context as never);
+
+    expect(calls).toEqual({ listings: 0, generations: 0, requests: [] });
+    expect(state.configurationUpdates).toEqual([]);
+    expect(state.quickPicks).toEqual([]);
+    expect(state.progressTitles).toEqual([]);
+    expect(readAfterRestart()).toEqual({
+      ok: true,
+      settings: expect.objectContaining({ profileId: "local-ollama", modelId: undefined })
+    });
+
+    state.quickPickAnswers.push(pickByLabel("active editor"));
+    const handler = state.registeredCommands.get(commandIds.generateSequenceDiagram);
+    await handler?.();
+
+    expect(calls).toEqual({ listings: 1, generations: 0, requests: [] });
+    expect(state.quickPicks).toHaveLength(2);
+    expect((state.quickPicks[1]?.items as { label: string }[]).map((item) => item.label)).toEqual(["qwen3:8b"]);
+    expect(state.configurationUpdates).toEqual([]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelProfile}`)?.globalValue).toBe("local-ollama");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBe("previous-lm-studio-model");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBe("local-lm-studio");
     expect(state.openedDocuments).toEqual([]);
   });
 });
@@ -211,6 +284,10 @@ describe("generate command", () => {
     const requests: GenerateSequenceDiagramRequest[] = [];
     const inner = echoRuntime();
     const runtime: ArchiAgentRuntime = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        return { ok: true, models: ["model-a", "model-b"] };
+      },
       async listLocalModels() {
         return { ok: true, models: ["model-a", "model-b"] };
       },
@@ -222,9 +299,14 @@ describe("generate command", () => {
 
     await generateSequenceDiagramCommand({ runtime, output: output() });
 
-    expect(state.quickPicks[1]?.items).toEqual(["model-a", "model-b"]);
-    expect(state.configurationUpdates).toEqual([{ key: `${settingsSection}.${settingKeys.localModelId}`, value: "model-b", target: ConfigurationTarget.Global }]);
+    expect((state.quickPicks[1]?.items as { label: string }[]).map((item) => item.label)).toEqual(["model-a", "model-b"]);
+    expect(state.configurationUpdates).toEqual([
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModel}`, value: "model-b", target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: "local-lm-studio", target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelProfile}`, value: "local-lm-studio", target: ConfigurationTarget.Global }
+    ]);
     expect(requests[0]?.generator.modelId).toBe("model-b");
+    expect(requests[0]?.generator).toMatchObject({ profileId: "local-lm-studio" });
     expect(state.openedDocuments).toHaveLength(2);
   });
 
@@ -233,6 +315,10 @@ describe("generate command", () => {
     state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
     state.quickPickAnswers.push(pickByLabel("active editor"));
     const runtime: ArchiAgentRuntime = {
+      listProviderProfiles: () => [],
+      async listProviderModels() {
+        return { ok: false, code: "connection-failed" };
+      },
       async listLocalModels() {
         return { ok: false, code: "connection-failed" };
       },
@@ -283,5 +369,399 @@ describe("generate command", () => {
     expect(state.quickPicks).toHaveLength(1);
     expect(state.messages).toEqual([]);
     expect(state.openedDocuments).toEqual([]);
+  });
+});
+
+describe("local provider and model selection", () => {
+  function runtimeWithModels(models: readonly string[], calls: { listings: number }): ArchiAgentRuntime {
+    const inner = echoRuntime();
+    return {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request)
+    };
+  }
+
+  it("shows profiles deterministically, marks the current profile and performs no network request", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "qwen3:8b",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    const calls = { listings: 0 };
+    state.quickPickAnswers.push(pickByLabel("LM Studio"));
+
+    await selectLocalProviderProfile(runtimeWithModels([], calls), output());
+
+    expect((state.quickPicks[0]?.items as { label: string }[]).map((item) => item.label)).toEqual(["LM Studio", "Ollama"]);
+    expect((state.quickPicks[0]?.items as { label: string; description: string }[])[1]?.description).toContain("Current profile");
+    expect(calls.listings).toBe(0);
+    expect(state.configurationUpdates).toEqual([
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModel}`, value: undefined, target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: undefined, target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelProfile}`, value: "local-lm-studio", target: ConfigurationTarget.Global }
+    ]);
+  });
+
+  it.each([
+    ["local-lm-studio", "Ollama", "local-ollama"],
+    ["local-ollama", "LM Studio", "local-lm-studio"]
+  ])("clears the selected model and its binding before changing %s", async (from, label, to) => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: from,
+      [settingKeys.localModelSelectedModel]: "old-model",
+      [settingKeys.localModelSelectedModelProfile]: from
+    });
+    state.quickPickAnswers.push(pickByLabel(label));
+
+    await selectLocalProviderProfile(runtimeWithModels([], { listings: 0 }), output());
+
+    expect(state.configurationUpdates.map((entry) => [entry.key, entry.value])).toEqual([
+      [`${settingsSection}.${settingKeys.localModelSelectedModel}`, undefined],
+      [`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, undefined],
+      [`${settingsSection}.${settingKeys.localModelProfile}`, to]
+    ]);
+  });
+
+  it("preserves the model when the same explicit profile is selected again", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "qwen3:8b",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    state.quickPickAnswers.push(pickByLabel("Ollama"));
+
+    await selectLocalProviderProfile(runtimeWithModels([], { listings: 0 }), output());
+
+    expect(state.configurationUpdates).toEqual([]);
+  });
+
+  it("does not write anything when either picker is cancelled", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "qwen3:8b",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    const calls = { listings: 0 };
+    const runtime = runtimeWithModels(["model-b", "model-a"], calls);
+
+    expect(await selectLocalProviderProfile(runtime, output())).toEqual({ status: "cancelled" });
+    expect(await selectLocalModel(runtime, output())).toEqual({ status: "cancelled" });
+    expect(calls.listings).toBe(1);
+    expect(state.configurationUpdates).toEqual([]);
+  });
+
+  it("stops a profile change when clearing selectedModel fails", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-lm-studio",
+      [settingKeys.localModelSelectedModel]: "old-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-lm-studio"
+    });
+    state.configurationUpdateFailures.add(`${settingsSection}.${settingKeys.localModelSelectedModel}`);
+    state.quickPickAnswers.push(pickByLabel("Ollama"));
+
+    expect(await selectLocalProviderProfile(runtimeWithModels([], { listings: 0 }), output())).toEqual({ status: "failed" });
+    expect(state.configurationUpdates).toEqual([
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModel}`, value: undefined, target: ConfigurationTarget.Global }
+    ]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelProfile}`)?.globalValue).toBe("local-lm-studio");
+  });
+
+  it("stops a profile change when clearing selectedModelProfile fails", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-lm-studio",
+      [settingKeys.localModelSelectedModel]: "old-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-lm-studio"
+    });
+    state.configurationUpdateFailureCalls.add(2);
+    state.quickPickAnswers.push(pickByLabel("Ollama"));
+
+    expect(await selectLocalProviderProfile(runtimeWithModels([], { listings: 0 }), output())).toEqual({ status: "failed" });
+    expect(state.configurationUpdates.map((entry) => [entry.key, entry.value])).toEqual([
+      [`${settingsSection}.${settingKeys.localModelSelectedModel}`, undefined],
+      [`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, undefined]
+    ]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelProfile}`)?.globalValue).toBe("local-lm-studio");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBeUndefined();
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBe("local-lm-studio");
+  });
+
+  it("leaves the previous profile without an active model when storing the new profile fails", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-lm-studio",
+      [settingKeys.localModelSelectedModel]: "old-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-lm-studio"
+    });
+    state.configurationUpdateFailureCalls.add(3);
+    state.quickPickAnswers.push(pickByLabel("Ollama"));
+
+    expect(await selectLocalProviderProfile(runtimeWithModels([], { listings: 0 }), output())).toEqual({ status: "failed" });
+    expect(state.configurationUpdates.map((entry) => [entry.key, entry.value])).toEqual([
+      [`${settingsSection}.${settingKeys.localModelSelectedModel}`, undefined],
+      [`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, undefined],
+      [`${settingsSection}.${settingKeys.localModelProfile}`, "local-ollama"]
+    ]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelProfile}`)?.globalValue).toBe("local-lm-studio");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBeUndefined();
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBeUndefined();
+  });
+
+  it("rejects an unknown explicit profile before listing or generating and never uses legacy settings", async () => {
+    configure({
+      [settingKeys.knowledgePackPath]: packDirectory,
+      [settingKeys.localModelBaseUrl]: "http://127.0.0.1:4321/v1",
+      [settingKeys.localModelId]: "legacy-model"
+    });
+    configureGlobal({
+      [settingKeys.localModelProfile]: "unknown-profile",
+      [settingKeys.localModelSelectedModel]: "stale-model",
+      [settingKeys.localModelSelectedModelProfile]: "unknown-profile"
+    });
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    const calls = { listings: 0, generations: 0 };
+    const runtime: ArchiAgentRuntime = {
+      listProviderProfiles: () => [],
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models: ["must-not-be-seen"] };
+      },
+      async listLocalModels() {
+        calls.listings += 1;
+        return { ok: true, models: ["must-not-be-seen"] };
+      },
+      async generateSequenceDiagram() {
+        calls.generations += 1;
+        throw new Error("must not be called");
+      }
+    };
+
+    expect(readAfterRestart()).toEqual({
+      ok: false,
+      problems: [expect.objectContaining({ code: "unknown-provider-profile" })]
+    });
+    expect(await selectLocalModel(runtime, output())).toEqual({ status: "failed" });
+    await generateSequenceDiagramCommand({ runtime, output: output() });
+
+    expect(calls).toEqual({ listings: 0, generations: 0 });
+    expect(state.quickPicks).toEqual([]);
+    expect(state.configurationUpdates).toEqual([]);
+    expect(state.messages).toHaveLength(2);
+    expect(state.outputLines.join(LF)).toContain("unknown-provider-profile");
+    expect(state.outputLines.join(LF)).not.toContain("legacy-model");
+    expect(state.outputLines.join(LF)).not.toContain("4321");
+  });
+
+  it("first explicit model selection performs one GET-equivalent listing and keeps legacy settings", async () => {
+    configure({
+      [settingKeys.localModelBaseUrl]: "http://127.0.0.1:4321/v1",
+      [settingKeys.localModelId]: "legacy-workspace-model"
+    });
+    const calls = { listings: 0 };
+    state.quickPickAnswers.push((items) => items[1]);
+
+    const result = await selectLocalModel(runtimeWithModels(["a-model", "z-model"], calls), output());
+
+    expect(result.status).toBe("selected");
+    expect(calls.listings).toBe(1);
+    expect((state.quickPicks[0]?.items as { label: string }[]).map((item) => item.label)).toEqual(["a-model", "z-model"]);
+    expect(state.configuration.get(`${settingsSection}.${settingKeys.localModelBaseUrl}`)).toBe("http://127.0.0.1:4321/v1");
+    expect(state.configuration.get(`${settingsSection}.${settingKeys.localModelId}`)).toBe("legacy-workspace-model");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelProfile}`)?.globalValue).toBe("local-lm-studio");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBe("z-model");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBe("local-lm-studio");
+  });
+
+  it.each([
+    [1, false, false],
+    [2, true, false],
+    [3, true, true]
+  ])("does not activate a profile when legacy materialization update %i fails", async (failureCall, modelStored, bindingStored) => {
+    configure({
+      [settingKeys.localModelBaseUrl]: "http://127.0.0.1:4321/v1",
+      [settingKeys.localModelId]: "legacy-workspace-model"
+    });
+    state.configurationUpdateFailureCalls.add(failureCall);
+    state.quickPickAnswers.push((items) => items[0]);
+
+    const result = await selectLocalModel(runtimeWithModels(["chosen-model"], { listings: 0 }), output());
+
+    expect(result).toEqual({ status: "failed" });
+    expect(state.configurationUpdates).toHaveLength(failureCall);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelProfile}`)?.globalValue).toBeUndefined();
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBe(
+      modelStored ? "chosen-model" : undefined
+    );
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBe(
+      bindingStored ? "local-lm-studio" : undefined
+    );
+    expect(state.configuration.get(`${settingsSection}.${settingKeys.localModelBaseUrl}`)).toBe("http://127.0.0.1:4321/v1");
+    expect(state.configuration.get(`${settingsSection}.${settingKeys.localModelId}`)).toBe("legacy-workspace-model");
+  });
+
+  it("stores an explicit model with a profile binding and invalidates the old binding first", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "old-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    state.quickPickAnswers.push((items) => items[0]);
+
+    expect(await selectLocalModel(runtimeWithModels(["qwen3:8b"], { listings: 0 }), output())).toMatchObject({ status: "selected" });
+    expect(state.configurationUpdates.map((entry) => [entry.key, entry.value])).toEqual([
+      [`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, undefined],
+      [`${settingsSection}.${settingKeys.localModelSelectedModel}`, "qwen3:8b"],
+      [`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, "local-ollama"]
+    ]);
+  });
+
+  it("keeps the previous explicit model safely active after the first model-selection update fails, including after restart", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "previous-ollama-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    const calls = { listings: 0, generations: 0 };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models: ["new-ollama-model"] };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        calls.generations += 1;
+        return inner.generateSequenceDiagram(request);
+      }
+    };
+    state.configurationUpdateFailureCalls.add(1);
+    state.quickPickAnswers.push((items) => items[0]);
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.selectLocalModel)?.();
+
+    expect(calls).toEqual({ listings: 1, generations: 0 });
+    expect(state.configurationUpdates).toEqual([
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: undefined, target: ConfigurationTarget.Global }
+    ]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBe("previous-ollama-model");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBe("local-ollama");
+    expect(readAfterRestart()).toEqual({
+      ok: true,
+      settings: expect.objectContaining({ profileId: "local-ollama", modelId: "previous-ollama-model" })
+    });
+  });
+
+  it("leaves the previous explicit model inactive after the second model-selection update fails, including after restart", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "previous-ollama-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    const calls = { listings: 0, generations: 0 };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models: ["new-ollama-model"] };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        calls.generations += 1;
+        return inner.generateSequenceDiagram(request);
+      }
+    };
+    state.configurationUpdateFailureCalls.add(2);
+    state.quickPickAnswers.push((items) => items[0]);
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.selectLocalModel)?.();
+
+    expect(calls).toEqual({ listings: 1, generations: 0 });
+    expect(state.configurationUpdates).toEqual([
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: undefined, target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModel}`, value: "new-ollama-model", target: ConfigurationTarget.Global }
+    ]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBe("previous-ollama-model");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBeUndefined();
+    expect(readAfterRestart()).toEqual({
+      ok: true,
+      settings: expect.objectContaining({ profileId: "local-ollama", modelId: undefined })
+    });
+  });
+
+  it("leaves a newly stored explicit model inactive after the third model-selection update fails, including after restart", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "local-ollama",
+      [settingKeys.localModelSelectedModel]: "previous-ollama-model",
+      [settingKeys.localModelSelectedModelProfile]: "local-ollama"
+    });
+    const calls = { listings: 0, generations: 0 };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models: ["new-ollama-model"] };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        calls.generations += 1;
+        return inner.generateSequenceDiagram(request);
+      }
+    };
+    state.configurationUpdateFailureCalls.add(3);
+    state.quickPickAnswers.push((items) => items[0]);
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.selectLocalModel)?.();
+
+    expect(calls).toEqual({ listings: 1, generations: 0 });
+    expect(state.configurationUpdates).toEqual([
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: undefined, target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModel}`, value: "new-ollama-model", target: ConfigurationTarget.Global },
+      { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: "local-ollama", target: ConfigurationTarget.Global }
+    ]);
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModel}`)?.globalValue).toBe("new-ollama-model");
+    expect(state.configurationInspect.get(`${settingsSection}.${settingKeys.localModelSelectedModelProfile}`)?.globalValue).toBeUndefined();
+    expect(readAfterRestart()).toEqual({
+      ok: true,
+      settings: expect.objectContaining({ profileId: "local-ollama", modelId: undefined })
+    });
+  });
+
+  it("preserves the runtime model order without locale-dependent picker sorting", async () => {
+    configureGlobal({ [settingKeys.localModelProfile]: "local-ollama" });
+    const models = ["z/model:2", "Alpha.model-1", "beta:3/model", "alpha-model.2"];
+
+    expect(await selectLocalModel(runtimeWithModels(models, { listings: 0 }), output())).toEqual({ status: "cancelled" });
+
+    expect((state.quickPicks[0]?.items as { label: string }[]).map((item) => item.label)).toEqual(models);
+    const source = readFileSync(new URL("../../vscode-extension/src/commands/local-provider-selection.ts", import.meta.url), "utf8");
+    expect(source).not.toContain("localeCompare");
+  });
+
+  it("the VS Code double exposes inspect scopes and computes folder > workspace > global > default", () => {
+    const key = `${settingsSection}.${settingKeys.localModelSelectedModel}`;
+    state.configurationInspect.set(key, {
+      defaultValue: "default-model",
+      globalValue: "global-model",
+      workspaceValue: "workspace-model",
+      workspaceFolderValue: "folder-model"
+    });
+    const configuration = vscodeDouble.workspace.getConfiguration(settingsSection);
+
+    expect(configuration.get(settingKeys.localModelSelectedModel)).toBe("folder-model");
+    expect(configuration.inspect(settingKeys.localModelSelectedModel)).toEqual({
+      defaultValue: "default-model",
+      globalValue: "global-model",
+      workspaceValue: "workspace-model",
+      workspaceFolderValue: "folder-model"
+    });
   });
 });

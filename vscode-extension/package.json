@@ -21,7 +21,9 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onCommand:archiAgent.generateSequenceDiagram"
+    "onCommand:archiAgent.generateSequenceDiagram",
+    "onCommand:archiAgent.selectLocalProviderProfile",
+    "onCommand:archiAgent.selectLocalModel"
   ],
   "extensionKind": [
     "workspace"
@@ -34,6 +36,9 @@
         "archiAgent.knowledgePackPath",
         "archiAgent.localModel.baseUrl",
         "archiAgent.localModel.model",
+        "archiAgent.localModel.profile",
+        "archiAgent.localModel.selectedModel",
+        "archiAgent.localModel.selectedModelProfile",
         "archiAgent.localModel.timeoutSeconds"
       ]
     },
@@ -47,6 +52,16 @@
       {
         "command": "archiAgent.generateSequenceDiagram",
         "title": "Generate Sequence Diagram",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.selectLocalProviderProfile",
+        "title": "Select Local Provider Profile",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.selectLocalModel",
+        "title": "Select Local Model",
         "category": "Archi Agent"
       }
     ],
@@ -66,7 +81,33 @@
         "archiAgent.localModel.model": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Identifier of the local model that plans the diagram, as reported by the server. When empty, the generate command lists the models of the server and lets you choose one; the choice is stored here."
+          "markdownDescription": "Legacy LM Studio model identifier. Existing effective user, workspace and workspace-folder values remain compatible until a provider profile is explicitly selected. New model selections are stored in `archiAgent.localModel.selectedModel`."
+        },
+        "archiAgent.localModel.profile": {
+          "type": "string",
+          "enum": [
+            "local-lm-studio",
+            "local-ollama"
+          ],
+          "enumItemLabels": [
+            "LM Studio",
+            "Ollama"
+          ],
+          "default": "local-lm-studio",
+          "scope": "machine",
+          "markdownDescription": "Local provider profile used on this computer. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace. Use **Archi Agent: Select Local Provider Profile** to change it."
+        },
+        "archiAgent.localModel.selectedModel": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Model selected for the explicit local provider profile on this computer. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace."
+        },
+        "archiAgent.localModel.selectedModelProfile": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Internal binding between the selected model and its local provider profile. Archi Agent manages this machine-scoped setting automatically; do not edit it manually."
         },
         "archiAgent.localModel.timeoutSeconds": {
           "type": "number",

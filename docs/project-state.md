@@ -10,35 +10,114 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-17 |
-| Branch | `feature/vscode-extension-foundation` (śledzi `github/feature/vscode-extension-foundation`) |
-| HEAD | `d4de130` test: cover explicit interaction flags and fix Windows path assertion |
-| Zmiany niezacommitowane | Wyłącznie dokumentacja z zadania „documentation governance”: nowe `AGENTS.md`, `CLAUDE.md`, `docs/development-workflow.md`, `docs/project-state.md`; zmienione `docs/product-roadmap.md`, `README.md`. Brak zmian w kodzie. |
+| Data aktualizacji | 2026-09-20 |
+| Stan Git | Bieżący HEAD, branch i stan publikacji należy odczytywać z Git. Commit `3d1c55c` był bazą implementacji B1. |
+| Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
+| Stan P1 | Implemented and automatically verified; profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
+| Następny etap | P2 — providerzy chmurowi Anthropic, OpenAI i OpenRouter zgodnie z roadmapą. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
-## Ostatnia implementacja (ustalona z Git)
+## Historia na `main`
 
-Właściciel deklaruje, że ostatnie zadanie Claude Code zakończyło się prawidłowo; raport końcowy
-nie jest dostępny. Zakres ustalony z historii Git (commity z 2026-09-16, niescalone do `main`):
+- `b759bb9` — merge fundamentu rozszerzenia VS Code (`feature/vscode-extension-foundation`,
+  checkpoint `v0.2.0-alpha.1`) oraz dokumentów documentation governance do `main`.
+- Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
+  ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
+- 2026-09-19 — decyzja właściciela o nowych priorytetach (demonstracja vibe coding i AI SDLC;
+  dokładna kolejność: R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release). Szczegóły: sekcja „Product priority”
+  w [`product-roadmap.md`](product-roadmap.md).
 
-- `c7c7164` — fundament rozszerzenia VS Code: `src/runtime` (host-neutral `ArchiAgentRuntime`),
-  `vscode-extension/src` (komenda, ustawienia, sesja rozstrzygania niejednoznaczności i `[NEW]`),
-  bundling esbuild, pakowanie i weryfikacja VSIX, testy runtime/extension/packaging,
-  `docs/vscode-extension.md`.
-- `927734b` — pola `async` i `isResponse` wymagane w schemacie modelu generowanego
-  (`src/core/model/sequence-diagram-model.schema.ts`) oraz odpowiednie instrukcje w promptcie.
-- `d4de130` — testy jawnych flag interakcji (m.in. „still rejects an asynchronous response”
-  w `test/core/validation/relationship-validator.test.ts`; sama reguła `async=true` +
-  `isResponse=true` → błąd jest w `src/core/validation/model-validator.ts`) i poprawka asercji
-  ścieżek na Windows.
+## Implementacja B1
+
+- `src/core/llm/structured-chat-client.ts` — neutralne kontrakty wiadomości, requestu, wyniku i
+  klienta structured chat; wspólne model generation metadata, limit `maxTokens` 1..16384 i
+  bezpieczny `safeErrorCode`.
+- `src/node/llm/openai-compatible-local-chat-client.ts` — wydzielony lokalny transport HTTP,
+  mapowanie OpenAI-compatible, limity, timeout/cancellation, ścisłe parsowanie `content` i lokalny
+  compatibility fallback `reasoning_content`.
+- `OpenAiCompatibleLocalGenerator` zachowuje publiczny konstruktor i zachowanie, ale jest cienką
+  warstwą budującą dotychczasowy prompt/schema i delegującą dokładnie jedno `complete()`.
+- Runtime, rozszerzenie, ustawienia, bundler, format raportu, PlantUML i golden outputs nie zostały
+  zmienione. Brak nowych zależności i zmian `package.json`/`package-lock.json`.
+
+## Implementacja P1
+
+- `src/core/llm/provider-profile.ts` i `provider-registry.ts` — neutralne, niemutowalne profile,
+  walidacja i deterministyczne sortowanie; kontrolowane kody `duplicate-profile-id` i
+  `unknown-provider-profile`. Core nie zna nazw lokalnych produktów, endpointów ani transportu.
+- `src/node/llm/local-provider-profiles.ts` — LM Studio (`local-lm-studio`, port 1234) i Ollama
+  (`local-ollama`, port 11434), oba z capability model listing + structured chat i oba przez
+  istniejący transport OpenAI-compatible (`GET /v1/models`, `POST /v1/chat/completions`). Brak
+  natywnego API Ollamy, kluczy, retry, repair i fallbacku.
+- Runtime zachowuje `listLocalModels`, `kind: openai-compatible-local` i publiczne adaptery, a dodaje
+  `listProviderProfiles`, `listProviderModels` i profilowy wariant konfiguracji generatora. Nieznany
+  profil lub brak capability kończy się kontrolowanym błędem przed requestem modelowym.
+- Rozszerzenie dodaje komendy wyboru lokalnego profilu i modelu. `localModel.profile`,
+  `localModel.selectedModel` oraz zarządzany przez rozszerzenie binding
+  `localModel.selectedModelProfile` mają scope `machine` i są zapisywane globalnie, więc nie
+  podlegają Settings Sync ani override workspace. Model jest aktywny tylko przy bindingu zgodnym z
+  profilem. Zmiana profilu komendą czyści model i binding przed zapisem profilu; sam wybór profilu
+  nie wykonuje sieci, a wybór modelu wykonuje jeden jawny GET.
+- Migracja jest bezobsługowa wyłącznie przy braku jawnej globalnej wartości profilu: wtedy działa
+  legacy LM Studio z efektywnymi `localModel.baseUrl` i `localModel.model`. Każda istniejąca, ale
+  nieznana lub niepoprawna jawna wartość kończy się `unknown-provider-profile` przed siecią, bez
+  legacy fallbacku. Po jawnym wyborze model pochodzi wyłącznie z globalnego `selectedModel` ze
+  zgodnym bindingiem. Ręczna zmiana profilu pozostawia stary model nieaktywny; Ollama ignoruje legacy
+  URL/model, a istniejące ustawienia nie są usuwane.
+
+## Knowledge Pack Builder — etap A
+
+Knowledge Pack Builder — **wyłącznie etap A: deterministyczny rdzeń** (bez LLM, bez dostępu do plików
+użytkownika, bez runtime API, UI i zapisu na dysk). Zaakceptowany przez właściciela po przeglądzie
+obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność aliasów).
+
+- `src/core/knowledge-pack/builder/knowledge-pack-candidate.ts` — model kandydata (tabela, wiersz
+  w formacie kolumn istniejącej tabeli, `basis` `explicit`/`inferred`, co najmniej jeden dowód
+  `sourceId` + `excerpt` z opcjonalnym zakresem linii), wpis draftu z decyzją
+  `pending`/`accepted`/`rejected`, schematy koperty i limity. `isIncludedInPack` zależy wyłącznie
+  od decyzji (`accepted` → wchodzi, `rejected`/`pending` → nie wchodzi); `basis` nie decyduje
+  o włączeniu — LLM przedstawia kandydatów, ale nie decyduje, co staje się zaufanym katalogiem
+  architektury; `basis` służy wyłącznie prezentacji i review.
+- `src/core/knowledge-pack/builder/knowledge-pack-renderer.ts` — deterministyczny renderer dokładnie
+  pięciu plików (stała kolejność plików i kolumn, wiersze sortowane po komórkach, LF, escaping `\`
+  i `|`, pusta tabela = nagłówek + separator); odmawia wartości z kontrolnymi znakami i zabronionym
+  markupem.
+- `src/core/knowledge-pack/builder/knowledge-pack-builder.ts` — `buildKnowledgePack`: walidacja
+  koperty i decyzji (kandydat `pending`, niezależnie od `basis`, blokuje build jednym kodem błędu
+  `candidate-decision-pending`, bez wycieku row/evidence w issue); kolizje po
+  `normalizeGroundingReference` (canonical names systemów/aktorów; dla aliasów —
+  **jeden znormalizowany alias wskazuje dokładnie jeden target**: każdy drugi zaakceptowany rekord
+  dla tego samego znormalizowanego aliasu jest błędem `alias-collision`, niezależnie od dosłownej
+  pisowni i niezależnie od tego, czy target jest taki sam, czy różny; wyjątek — dokładnie ten sam
+  wiersz, ta sama pisownia i ten sam target, powtórzony dwa razy, nie generuje osobnego
+  `alias-collision` z buildera, łapie go istniejący `duplicate-record` loadera). To granica
+  wyłącznie buildera; kontrakt loadera dla ręcznie pisanych paczek nadal dopuszcza jawną
+  niejednoznaczność tej samej pisowni aliasu dla wielu celów — patrz `docs/knowledge-pack-format.md`,
+  sekcja `aliases.md`, i istniejące testy `knowledge-pack-loader.test.ts`. Render →
+  `InMemoryKnowledgePackSource` → `loadKnowledgePack` jako końcowa walidacja (schematy, duplikaty,
+  referencje, reguły), porównanie round-trip. Issues wskazują wpis draftu, tabelę i pole, bez
+  wartości i dowodów.
+- `src/core/knowledge-pack/in-memory-knowledge-pack-source.ts` — źródło w pamięci zgodne z portem.
+- Puste tabele: jawna opcja `allowEmpty` w `parseMarkdownTable` / `parseKnowledgePackTable`
+  (domyślnie `false`); loader przekazuje ją per plik — `systems.md` nadal wymaga rekordu,
+  pozostałe cztery pliki mogą być puste. Opisane w `docs/knowledge-pack-format.md`.
+- Testy: `test/unit/knowledge-pack/builder/*`, `test/unit/knowledge-pack/in-memory-knowledge-pack-source.test.ts`
+  — macierz `basis` × `decision` (accepted/rejected/pending dla explicit i inferred), brak wycieku
+  row/evidence w issue dla `pending`, niezależność wyniku od kolejności wpisów draftu, kolizje
+  aliasu (identyczna pisownia + różne cele; różna wielkość liter + różne cele; myślnik vs. spacja
+  + ten sam cel; pojedynczy alias — poprawny) bez wycieku aliasu/targetu/evidence w issue, regresje
+  pustych tabel w testach parsera i loadera.
 
 ## Potwierdzone w kodzie
 
 - Markdown Knowledge Pack, deterministyczny grounding, minimalny kontekst, digest.
 - Pipeline sequence z walidacją deterministyczną i rendererem PlantUML (compatibility path).
-- Lokalny adapter OpenAI-compatible (loopback, jedno żądanie, bez retry/repair), demo offline i LM Studio.
-- Rozszerzenie VS Code: komenda `archiAgent.generateSequenceDiagram`, ustawienia, dwa bundle,
+- Lokalny adapter OpenAI-compatible (loopback, jedno żądanie, bez retry/repair), demo offline,
+  profile LM Studio i Ollama.
+- Rozszerzenie VS Code: komendy generowania i wyboru profilu/modelu, ustawienia, dwa bundle,
   skrypty `extension:package` i `extension:verify`.
+- Knowledge Pack Builder, etap A: model kandydatów i dowodów, walidacja draftu, deterministyczny
+  renderer pięciu plików, round-trip in-memory przez loader (tylko core, bez runtime i UI).
 
 ## Częściowe
 
@@ -98,47 +177,73 @@ verified i owner smoke accepted.
 
 ## Wyłącznie planowane
 
-- **EA XML: brak implementacji.** W repo (wszystkie gałęzie lokalne i zdalne, pliki śledzone
-  i ignorowane) nie ma kodu parsowania EA ani XML, fixture'ów EA ani testów. Jedyne odwołania do
-  `.xml` dotyczą manifestu VSIX (`[Content_Types].xml`).
-- Ścieżka LLM-first final PlantUML, profile `component`, `c4-context`, `c4-container`,
-  `archimate-hld`, document sources, dostawcy HTTPS/chmurowi, semantic review, repair,
-  quality modes, zdalni dostawcy modeli.
+W kolejności ustalonej przez właściciela (2026-09-19; pełny opis w roadmapie, „Product priority”):
+
+1. **P1 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz wybór
+   profilu i modelu w rozszerzeniu. **P2 (następny):** dostawcy chmurowi Anthropic, OpenAI, OpenRouter (tylko HTTPS, stała
+   allowlista hostów, `SecretStorage`, lista modeli z API dostawcy, jedno wywołanie, bez retry).
+2. **D1:** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
+   diagramu; **D2–D5:** `component`, `c4-context`, `c4-container`, `archimate-hld`. Sekwencja
+   pozostaje compatibility path i regression oracle.
+3. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
+   Builder B2 i B3 (zatwierdzone decyzje etapu B bez zmian); **K3:** etap C — runtime API, adaptery
+   źródeł, UI review, atomowy zapis pięciu plików; **K4:** MCP jako źródło wiedzy (klient MCP
+   w warstwie node, deterministyczne wywołania narzędzi przez rozszerzenie, mapowanie do katalogu,
+   demonstracyjny serwer MCP z danymi Space Mission).
+4. **Demo AI SDLC i release:** branding Archi Agent, opis workflow agentowego, scenariusz demo,
+   porównanie modeli lokalnych i chmurowych, checkpoint VSIX z owner smoke.
+
+Później (bez zobowiązującej kolejności): semantic review, bounded repair, quality modes, document
+sources (PDF, DOCX; Confluence/Jira preferencyjnie przez MCP), EA API, Prolaborate, zewnętrzni
+dostawcy artefaktów. **EA XML pozostaje odłożone (deferred), brak implementacji** — brak
+bezpiecznego, publicznego fixture; w repo nie ma kodu parsowania EA ani XML, fixture'ów EA ani
+testów (jedyne odwołania do `.xml` dotyczą manifestu VSIX).
 
 ## Weryfikacja
 
-### Wykonane w bieżącej sesji (2026-09-17, weryfikacja checkpointu na HEAD `d4de130`)
+### P1 (2026-09-20)
+
+Pełna sekwencja bramek P1 przeszła: instalacja przez `npm ci` bez zmiany `package-lock.json`, build
+rozszerzenia, celowana macierz testów P1, pełne `npm test`, oba typechecki, `extension:test`, ponowny
+build, pakowanie i kontrola VSIX. Testy loopback potwierdzają wspólny transport, pojedynczy GET listy
+modeli i pojedynczy POST generowania; testy VS Code potwierdzają fail-closed dla nieznanego jawnego
+profilu, migrację legacy tylko przy braku globalnego profilu, binding model–profil, błędy częściowych
+zapisów, precedencję, zapis machine/global oraz izolację symulowanych instalacji Windows/Mac.
+Ręcznego owner smoke z działającym LM Studio i Ollamą nie wykonywano; dwa opcjonalne flow są opisane
+w `docs/vscode-extension.md`.
+
+Końcowe regresje P1 uzupełniono o trzy osobne awarie atomowego wyboru modelu dla jawnego profilu,
+odczyt każdego stanu po symulowanym restarcie, ręczne usunięcie profilu i rzeczywistą zarejestrowaną
+komendę Generate po zmianie profilu. Bieżące wyniki: celowana macierz VS Code — 3/3 pliki,
+67/67 testów; `npm test` — 71/71 plików, 1067/1067 testów; oba typechecki — PASS;
+`extension:test` — 6/6 plików, 115/115 testów. Kod produkcyjny, manifest i pakowanie nie zmieniły
+się, dlatego wcześniejsze wyniki `extension:build`, `extension:package` i `extension:verify`
+pozostają aktualne.
+
+### B1 (2026-09-19)
 
 | Kontrola | Wynik |
 | --- | --- |
-| Preflight Git (`git branch --show-current`, `git rev-parse HEAD`, `git status --short`, `git diff --stat`, `git diff --cached --stat`) | branch, HEAD i zakres zmian zgodne z oczekiwaniem; staging pusty |
-| `node --version` / `npm --version` | `v22.17.0` / `11.6.0` |
-| `npm ci` | PASS; bez zmian w `package-lock.json` i bez zmian w working tree |
-| `npm test` | PASS — 64/64 plików, 963/963 testów |
+| Test celowany generatora | PASS — 1/1 plików, 46/46 testów |
+| `npm test` | PASS — 69/69 plików, 1022/1022 testów |
 | `npm run typecheck` | PASS |
 | `npm run extension:typecheck` | PASS |
 | `npm run extension:test` | PASS — 6/6 plików, 79/79 testów |
 | `npm run extension:build` | PASS |
-| `npm run extension:package` | PASS — nowy `vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix` (176,08 KB wg raportu pakowania) |
-| `npm run extension:verify` | PASS — dokładnie 6 dozwolonych wpisów |
-| `git diff --check`, `git diff --stat`, `git diff --cached --stat`, `git status --short` (kontrola końcowa) | bez błędów; brak zmian w kodzie, testach i `package-lock.json`; staging nadal pusty; jedyna dodatkowa zmiana to niniejsza aktualizacja `docs/project-state.md`; VSIX nadal ignorowany przez Git |
+| `npm run extension:package` | PASS — 6 plików, 176,03 KB |
+| `npm run extension:verify` | PASS — wyłącznie 6 dozwolonych wpisów |
 
-Szczegóły artefaktu VSIX — patrz „Checkpoint VSIX v0.2.0-alpha.1” powyżej.
+Pełne bramki automatyczne B1 przeszły. Testy używają syntetycznych doubles; nie wymagają
+uruchomionego LM Studio ani dostępu do sieci zewnętrznej. Ręcznego smoke testu z LM Studio nie
+wykonywano.
 
-### Niewykonane / niezweryfikowane
+### Historyczne (2026-09-17, weryfikacja checkpointu na HEAD `d4de130`)
 
-- Liczba testów i wynik z poprzedniej sesji (implementacyjnej, `c7c7164`/`927734b`/`d4de130`) nadal
-  nie są znane z trwałego źródła (brak raportu); nie mylić z wynikami bieżącej sesji weryfikacyjnej
-  powyżej, które są jawnie potwierdzone.
-
-## Aktywne zadanie
-
-Finalizacja documentation governance i checkpointu VSIX — gotowe do przeglądu i commita.
-Checkpoint `v0.2.0-alpha.1`: implemented, automatically verified, owner smoke accepted.
+`npm ci`, `npm test` (64/64 plików, 963/963 testów), `npm run typecheck`, `extension:typecheck`,
+`extension:test` (6/6 plików, 79/79 testów), `extension:build`, `extension:package`,
+`extension:verify` — wszystkie PASS. Szczegóły artefaktu — „Checkpoint VSIX v0.2.0-alpha.1”.
 
 ## Następny krok
 
-1. Commit i push bieżącego brancha.
-2. Scalenie `feature/vscode-extension-foundation` do `main`.
-3. Utworzenie `feature/ea-xml-source`.
-4. Faza PLANOWANIE dla provider-neutral architecture source oraz EA XML z local file.
+**P2** — osobna faza PLANOWANIA dla providerów chmurowych Anthropic, OpenAI i OpenRouter zgodnie z
+ograniczeniami roadmapy (HTTPS, allowlista hostów, `SecretStorage`, jedno wywołanie, bez retry).

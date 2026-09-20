@@ -23,6 +23,11 @@ export interface MarkdownTableOptions {
   readonly maxRows?: number;
   readonly maxCellChars?: number;
   readonly maxIssues?: number;
+  /**
+   * Accepts a table with a header and separator but no data rows. Defaults to false, so a table
+   * without rows is reported as no-data-rows unless the caller explicitly allows it.
+   */
+  readonly allowEmpty?: boolean;
 }
 
 export interface ParsedCell {
@@ -128,7 +133,7 @@ export function parseMarkdownTable(text: string, options: MarkdownTableOptions):
 
   const dataLines = tableLines.slice(2);
 
-  if (dataLines.length === 0) {
+  if (dataLines.length === 0 && options.allowEmpty !== true) {
     issues.add("no-data-rows", { line: separator.number });
     return failure(issues);
   }

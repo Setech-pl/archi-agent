@@ -18,7 +18,13 @@ import type { ArchiAgentSettings } from "../../vscode-extension/src/settings.js"
 
 const settings: ArchiAgentSettings = {
   knowledgePackPath: "/packs/observatory",
-  localModel: { baseUrl: "http://127.0.0.1:1234/v1", modelId: "model-a", timeoutMs: 45_000 },
+  localModel: {
+    selectionMode: "legacy",
+    profileId: "local-lm-studio",
+    baseUrl: "http://127.0.0.1:1234/v1",
+    modelId: "model-a",
+    timeoutMs: 45_000
+  },
   defaultAuthor: "Archi Agent"
 };
 
@@ -74,6 +80,12 @@ function scriptedRuntime(results: readonly GenerateSequenceDiagramResult[]): Arc
 
   return {
     requests,
+    listProviderProfiles() {
+      return [];
+    },
+    async listProviderModels() {
+      return { ok: true, models: [] };
+    },
     async generateSequenceDiagram(request) {
       requests.push(request);
       const next = queue.shift();
@@ -124,6 +136,30 @@ describe("buildGenerationRequest", () => {
     });
     expect("selections" in request).toBe(false);
     expect("confirmedNewParticipants" in request).toBe(false);
+  });
+
+  it("builds a profile generator and never forwards the legacy LM Studio endpoint to Ollama", () => {
+    const request = buildGenerationRequest(
+      {
+        ...settings,
+        localModel: {
+          selectionMode: "profile",
+          profileId: "local-ollama",
+          baseUrl: "http://127.0.0.1:11434/v1",
+          modelId: "qwen3:8b",
+          timeoutMs: 45_000
+        }
+      },
+      flow,
+      "qwen3:8b"
+    );
+
+    expect(request.generator).toEqual({
+      kind: "openai-compatible-local",
+      profileId: "local-ollama",
+      modelId: "qwen3:8b",
+      timeoutMs: 45_000
+    });
   });
 });
 

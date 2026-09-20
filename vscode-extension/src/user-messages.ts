@@ -172,7 +172,7 @@ export function describeSettingsProblems(problems: readonly SettingsProblem[]): 
 export function describeModelListFailure(code: string, baseUrl: string): UserMessage {
   return Object.freeze({
     level: "error",
-    text: `No model is configured and the local server at ${baseUrl} did not report its models (${code}). Start the server or set archiAgent.localModel.model.`,
+    text: `The local server at ${baseUrl} did not report its models (${code}). Start the selected provider or run Archi Agent: Select Local Model again.`,
     details: Object.freeze([`[${code}] model listing failed`]),
     suggestSettings: true
   });

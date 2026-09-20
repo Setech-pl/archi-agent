@@ -216,6 +216,11 @@ export interface ValidationOptions {
   readonly maxIssues?: number;
 }
 
+export interface ParseKnowledgePackTableOptions extends ValidationOptions {
+  /** Accepts a table without data rows; see MarkdownTableOptions.allowEmpty. Defaults to false. */
+  readonly allowEmpty?: boolean;
+}
+
 const fieldLimits: Readonly<Record<string, number>> = Object.freeze({
   id: knowledgePackLimits.maxIdentifierChars,
   from_id: knowledgePackLimits.maxIdentifierChars,
@@ -406,14 +411,15 @@ export function validateRulesTable(table: ParsedTable, options: ValidationOption
 export function parseKnowledgePackTable<TKind extends KnowledgePackTableKind>(
   kind: TKind,
   text: string,
-  options: ValidationOptions = {}
+  options: ParseKnowledgePackTableOptions = {}
 ): TableValidationResult<RecordByTable[TKind]> {
   const definition = knowledgePackTables[kind];
   const parsed = parseMarkdownTable(text, {
     file: definition.file,
     columns: definition.columns,
     optionalColumns: definition.optionalColumns,
-    ...(options.maxIssues === undefined ? {} : { maxIssues: options.maxIssues })
+    ...(options.maxIssues === undefined ? {} : { maxIssues: options.maxIssues }),
+    ...(options.allowEmpty === true ? { allowEmpty: true } : {})
   });
 
   if (!parsed.ok) {

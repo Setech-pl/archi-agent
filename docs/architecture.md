@@ -129,13 +129,37 @@ pack, and returns untrusted data. Nothing it returns is used before validation. 
 generator may declare safe `generationMetadata` (model identifier, temperature, seed, attempt
 count, structured output), which the pipeline checks and the grounding report records.
 
+Model-backed generators use the lower-level, provider-neutral `StructuredChatClient` port in
+`src/core/llm`. Its request contains only system/user messages, a schema name, JSON Schema, a
+bounded maximum token count and optional cancellation; its result contains the untrusted JSON
+object and the safe response-channel identifier. The port has no endpoint, host, HTTP, editor or
+secret-storage concepts. The sequence implementation is a thin layer that builds its existing
+prompt and schema, makes one structured-chat call and returns the value to the unchanged validation
+pipeline.
+
+Provider identity is also neutral in core. `ProviderProfile` contains only an identifier, provider
+kind, display name and immutable capability flags; `ProviderRegistry` validates, sorts and resolves
+profiles without I/O. Concrete LM Studio and Ollama names and loopback defaults live in
+`src/node/llm/local-provider-profiles.ts`. The runtime resolves a profile and capability before
+constructing the existing local adapter; it reports `unknown-provider-profile` or
+`provider-capability-unavailable` as controlled configuration failures.
+
+The VS Code host persists the explicit profile and model as machine-scoped global settings. A third
+machine-scoped, extension-managed setting binds the selected model to the exact profile identifier;
+the host ignores a model when that binding is absent, invalid or mismatched. Only absence of a global
+profile value enables the legacy LM Studio settings. A present unknown profile fails closed before
+the runtime can construct a transport.
+
 Two adapters exist:
 
-- `openai-compatible-local` (`src/node/llm`): the model plans the diagram. The provider-neutral
-  prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates, the
-  response format is a strict JSON Schema derived from the Zod generated-model schema, and a strict
-  parser (`src/core/llm`) accepts exactly one JSON object. One request per generation, loopback
-  only, temperature 0 and seed 42, no retry, repair or fallback. See `docs/local-model.md`.
+- `openai-compatible-local` (`src/node/llm`): LM Studio and Ollama profiles share this transport;
+  the model plans the diagram. The provider-neutral
+  prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates. The
+  `OpenAiCompatibleLocalChatClient` node adapter maps the neutral request to the local HTTP API;
+  the response format is a strict JSON Schema derived from the Zod generated-model schema, and a
+  strict parser (`src/core/llm`) accepts exactly one JSON object. One request per generation,
+  loopback only, temperature 0 and seed 42, no retry, repair or provider fallback. See
+  `docs/local-model.md`.
 - `scripted-demo` (`src/demo`): a deterministic script used as an offline regression fixture,
   smoke-test baseline and pipeline demonstration; it is not the production generation strategy.
 

@@ -10,11 +10,13 @@ import { baseNameFor } from "../core/output/output-planner.js";
 import { generateSequenceDiagram } from "../core/pipeline/generate-sequence-diagram.js";
 import type { PipelineOutcome } from "../core/pipeline/generation-outcome.js";
 import { isSafeModelId, type SequenceModelGenerator } from "../core/pipeline/sequence-model-generator.js";
+import { ProviderRegistry, ProviderRegistryError } from "../core/llm/provider-registry.js";
 import type { ModelIssue } from "../core/validation/model-validator.js";
 import type { ValidationIssue } from "../core/validation/validation-issue.js";
 import { BoundedReadError, maxFlowFileBytes, readBoundedTextFile } from "../node/bounded-file-reader.js";
 import { canonicalDirectory, LocalPathError } from "../node/local-file-path.js";
 import { parseLoopbackEndpoint, type LoopbackEndpoint } from "../node/llm/loopback-endpoint.js";
+import { defaultBaseUrlForLocalProfile, localProviderRegistry } from "../node/llm/local-provider-profiles.js";
 import {
   listLocalModels,
   LocalModelError,
@@ -35,6 +37,7 @@ import type {
   ListLocalModelsOptions,
   ListLocalModelsResult,
   LocalModelEndpointConfig,
+  ProviderModelSelection,
   RuntimeFailureStage,
   RuntimeIssue
 } from "./runtime-types.js";
@@ -68,6 +71,10 @@ export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpo
 
 export interface ArchiAgentRuntimeOptions {
   readonly generatorFactory?: GeneratorFactory;
+  /** Test/application-composition seam; production uses the fixed local registry. */
+  readonly providerRegistry?: ProviderRegistry;
+  /** Resolves adapter-owned defaults for an injected registry; production uses local profile defaults. */
+  readonly defaultBaseUrlForProfile?: (profileId: string) => string | undefined;
 }
 
 type FlowResolution =
@@ -301,12 +308,44 @@ type GeneratorResolution =
 
 const endpointMessage = "The local model base URL was rejected; only literal loopback URLs such as http://127.0.0.1:1234/v1 are accepted.";
 
-function resolveGenerator(config: GeneratorConfig, factory: GeneratorFactory): GeneratorResolution {
+function resolveGenerator(
+  config: GeneratorConfig,
+  factory: GeneratorFactory,
+  registry: ProviderRegistry,
+  defaultBaseUrl: (profileId: string) => string | undefined
+): GeneratorResolution {
   if (config.kind !== "openai-compatible-local") {
     return Object.freeze({ ok: false, issues: [issue("unsupported-generator", "The generator kind is not supported.")] });
   }
 
-  const endpoint = parseLoopbackEndpoint(config.baseUrl);
+  let baseUrl: string;
+
+  if ("profileId" in config) {
+    let profile;
+
+    try {
+      profile = registry.resolve(config.profileId);
+    } catch (error) {
+      const code = error instanceof ProviderRegistryError ? error.code : "unknown-provider-profile";
+      return Object.freeze({ ok: false, issues: [issue(code, "The provider profile is not registered.")] });
+    }
+
+    if (!profile.capabilities.structuredChat) {
+      return Object.freeze({ ok: false, issues: [issue("provider-capability-unavailable", "The provider profile does not support structured chat.")] });
+    }
+
+    const profileDefault = defaultBaseUrl(profile.profileId);
+
+    if (profileDefault === undefined) {
+      return Object.freeze({ ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] });
+    }
+
+    baseUrl = config.baseUrl ?? profileDefault;
+  } else {
+    baseUrl = config.baseUrl;
+  }
+
+  const endpoint = parseLoopbackEndpoint(baseUrl);
 
   if (!endpoint.ok) {
     return Object.freeze({ ok: false, issues: [issue(endpoint.code, endpointMessage)] });
@@ -393,9 +432,13 @@ function mapOutcome(outcome: PipelineOutcome): GenerateSequenceDiagramResult {
 
 class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #generatorFactory: GeneratorFactory;
+  readonly #providerRegistry: ProviderRegistry;
+  readonly #defaultBaseUrlForProfile: (profileId: string) => string | undefined;
 
   public constructor(options: ArchiAgentRuntimeOptions) {
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
+    this.#providerRegistry = options.providerRegistry ?? localProviderRegistry;
+    this.#defaultBaseUrlForProfile = options.defaultBaseUrlForProfile ?? defaultBaseUrlForLocalProfile;
   }
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {
@@ -411,7 +454,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       return failure("knowledge-pack", pack.issues);
     }
 
-    const generator = resolveGenerator(request.generator, this.#generatorFactory);
+    const generator = resolveGenerator(request.generator, this.#generatorFactory, this.#providerRegistry, this.#defaultBaseUrlForProfile);
 
     if (!generator.ok) {
       return failure("generator-configuration", generator.issues);
@@ -429,6 +472,35 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     });
 
     return mapOutcome(outcome);
+  }
+
+  public listProviderProfiles() {
+    return this.#providerRegistry.list();
+  }
+
+  public async listProviderModels(selection: ProviderModelSelection, options: ListLocalModelsOptions = {}): Promise<ListLocalModelsResult> {
+    let profile;
+
+    try {
+      profile = this.#providerRegistry.resolve(selection.profileId);
+    } catch (error) {
+      return Object.freeze({ ok: false, code: error instanceof ProviderRegistryError ? error.code : "unknown-provider-profile" });
+    }
+
+    if (!profile.capabilities.modelListing) {
+      return Object.freeze({ ok: false, code: "provider-capability-unavailable" });
+    }
+
+    const baseUrl = selection.baseUrl ?? this.#defaultBaseUrlForProfile(profile.profileId);
+
+    if (baseUrl === undefined) {
+      return Object.freeze({ ok: false, code: "unknown-provider-profile" });
+    }
+
+    return this.listLocalModels(
+      { baseUrl, ...(selection.timeoutMs === undefined ? {} : { timeoutMs: selection.timeoutMs }) },
+      options
+    );
   }
 
   public async listLocalModels(endpoint: LocalModelEndpointConfig, options: ListLocalModelsOptions = {}): Promise<ListLocalModelsResult> {
