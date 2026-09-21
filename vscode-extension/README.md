@@ -28,13 +28,18 @@ stored only in VS Code `SecretStorage`.
 | `archiAgent.localModel.timeoutSeconds` | Time limit of one model request. |
 | `archiAgent.defaultAuthor` | Author used when a flow is entered as a plain description. |
 
-## Command
+## Commands
 
 - `Archi Agent: Select Provider Profile`
 - `Archi Agent: Set or Update API Key`
 - `Archi Agent: Delete Saved API Key`
 - `Archi Agent: Select Model`
+- `Archi Agent: Generate Diagram` — choose a type explicitly; D1 supports `sequence`.
 - `Archi Agent: Generate Sequence Diagram`
+
+The other named types (`component`, `c4-context`, `c4-container`, `archimate-hld`) are
+reserved for later stages and stop before provider access. The existing sequence command
+retains its compatible generation path.
 
 Profile, selected-model and binding settings have `machine` scope. They do not travel through
 Settings Sync and cannot be overridden by a workspace, so different computers can use independent

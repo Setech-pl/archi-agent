@@ -53,10 +53,12 @@ export function packInterfaceType(type: ModelInterfaceType): PackInterfaceType {
 
 function isRequestFor(candidate: SequenceMessage, response: SequenceMessage): boolean {
   return (
-    candidate.isResponse !== true &&
+    candidate.isResponse === false &&
+    candidate.async === false &&
     participantRefKey(candidate.from) === participantRefKey(response.to) &&
     participantRefKey(candidate.to) === participantRefKey(response.from) &&
-    candidate.interfaceType === response.interfaceType
+    candidate.interfaceType === response.interfaceType &&
+    (candidate.interfaceName ?? null) === (response.interfaceName ?? null)
   );
 }
 

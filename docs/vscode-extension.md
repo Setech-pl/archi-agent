@@ -34,8 +34,8 @@ The editor layer reaches the repository only through `src/runtime/index.ts`; a t
 The runtime contract (`src/runtime/runtime-types.ts`) speaks about sources, not implementations:
 a flow source (document text, an absolute file path or a plain description), a Knowledge Pack source
 (today: one local directory), a provider-neutral generator configuration (legacy local endpoint or
-profile/model/credential selection) and a result carrying the validated PlantUML, the grounding report and safe issues. Later
-diagram profiles add a generic `generateDiagram` next to `generateSequenceDiagram`; later knowledge
+profile/model/credential selection) and a result carrying the validated PlantUML, the grounding report and safe issues. D1
+adds `generateDiagram` next to `generateSequenceDiagram`; later knowledge
 sources and model providers add variants to the source and generator unions. Hosts written against
 the interface do not change.
 
@@ -83,7 +83,12 @@ is required to construct the picker, so dismissing an already displayed cloud mo
 after one `SecretStorage.get` and one model-list GET. That cancellation writes no model or binding
 and does not start generation.
 
-`Archi Agent: Generate Sequence Diagram` (`archiAgent.generateSequenceDiagram`)
+`Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
+The D1 picker offers only Sequence and runs the final PlantUML path for `sequence`. The four
+reserved types remain unsupported through direct runtime calls before any credential read or
+provider I/O. `Archi Agent: Generate
+Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and
+retains its existing output and report behavior.
 
 1. Settings are read and checked. Problems name the setting and offer **Open Settings**.
 2. The flow source is chosen: the active editor document, a flow file from the open dialog, or a

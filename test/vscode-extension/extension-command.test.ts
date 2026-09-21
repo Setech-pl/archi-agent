@@ -115,8 +115,48 @@ describe("activation", () => {
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
-    expect(context.subscriptions.length).toBe(8);
+    expect(context.subscriptions.length).toBe(9);
     deactivate();
+  });
+
+  it("offers only Sequence and cancellation performs no further I/O", async () => {
+    const inner = echoRuntime();
+    const calls = { generated: 0, listed: 0 };
+    packagedRuntime.current = {
+      ...inner,
+      listProviderProfiles: () => { calls.listed += 1; return inner.listProviderProfiles(); },
+      async generateDiagram(request) { calls.generated += 1; return inner.generateDiagram!(request); }
+    };
+    state.quickPickAnswers.push(() => undefined);
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect((state.quickPicks[0]?.items as { description: string }[]).map((item) => item.description)).toEqual(["sequence"]);
+    expect(state.messages).toEqual([]);
+    expect(state.secretReads).toEqual([]);
+    expect(calls).toEqual({ generated: 0, listed: 0 });
+  });
+
+  it("routes the selected sequence type through generateDiagram", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model" });
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    const inner = echoRuntime();
+    const seen: string[] = [];
+    packagedRuntime.current = {
+      ...inner,
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request),
+      async generateDiagram(request) {
+        seen.push(request.diagramType);
+        return { status: "failed", stage: "invalid-generator-output", issues: [], ambiguities: [], unconfirmedNewParticipants: [] };
+      }
+    };
+    state.quickPickAnswers.push(pickByLabel("Sequence"), pickByLabel("active editor"));
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect(seen).toEqual(["sequence"]);
+    expect(state.secretReads).toEqual([]);
   });
 
   it("reports missing settings through the registered command without any runtime call", async () => {

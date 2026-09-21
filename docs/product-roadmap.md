@@ -2,8 +2,8 @@
 
 ## Product priority
 
-Owner decision (2026-09-19). The priority of the project is to demonstrate vibe-coding and
-AI SDLC techniques on a working product. The product must provide:
+Owner decision (2026-09-19), amended on 2026-09-21 to place C1 after D2. The priority of the
+project is to demonstrate vibe-coding and AI SDLC techniques on a working product. The product must provide:
 
 1. generation of several PlantUML diagram types;
 2. architecture knowledge built from project material (Knowledge Pack Builder) or retrieved from a
@@ -11,8 +11,8 @@ AI SDLC techniques on a working product. The product must provide:
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The exact sequence is: **R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release**.
-R0, B1, P1 and P2 are implemented; D1 is the next implementation step.
+The exact sequence is: **R0 → B1 → P1 → P2 → D1 → D2 → C1 → D3–D5 → K1–K4 → Demo and release**.
+R0, B1, P1 and P2 are implemented; D1 is completed and verified. D2 is next, followed by C1.
 
 Agreed order of work:
 
@@ -24,14 +24,25 @@ Agreed order of work:
 | 3 | P2 | Implemented: cloud providers Anthropic, OpenAI and OpenRouter; fixed HTTPS allowlist, `SecretStorage`, provider model listing, one generation call, no retry or fallback. |
 | 4 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection. |
 | 5 | D2 | Profile `component`. Sequence stays the compatibility path and regression oracle. |
-| 6 | D3 | Profile `c4-context`. |
-| 7 | D4 | Profile `c4-container`. |
-| 8 | D5 | Profile `archimate-hld`. |
-| 9 | K1 | Provider-neutral architecture catalog contract. |
-| 10 | K2 | Knowledge Pack Builder stages B2 and B3 (approved stage B decisions unchanged). |
-| 11 | K3 | Knowledge Pack Builder stage C: runtime API, source adapters, review UI, atomic write of the five files. |
-| 12 | K4 | MCP as a knowledge source: MCP client in the node layer, deterministic tool calls made by the extension (the LLM does not drive tools), mapping of results to the catalog, demonstration MCP server with Space Mission data. |
-| 13 | Demo | AI SDLC demo and release: Archi Agent branding, description of the agentic workflow, demo scenario, comparison of local and cloud models, VSIX checkpoint with owner smoke test. |
+| 6 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; uses the configured Archi Agent provider and existing `generateDiagram()` path. See [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
+| 7 | D3 | Profile `c4-context`. |
+| 8 | D4 | Profile `c4-container`. |
+| 9 | D5 | Profile `archimate-hld`. |
+| 10 | K1 | Provider-neutral architecture catalog contract. |
+| 11 | K2 | Knowledge Pack Builder stages B2 and B3 (approved stage B decisions unchanged). |
+| 12 | K3 | Knowledge Pack Builder stage C: runtime API, source adapters, review UI, atomic write of the five files. |
+| 13 | K4 | MCP as a knowledge source: MCP client in the node layer, deterministic tool calls made by the extension (the LLM does not drive tools), mapping of results to the catalog, demonstration MCP server with Space Mission data. |
+| 14 | Demo | AI SDLC demo and release: Archi Agent branding, description of the agentic workflow, demo scenario, comparison of local and cloud models, VSIX checkpoint with owner smoke test. |
+
+### C1 — VS Code Chat Participant
+
+**Status: planned after D2.** C1 adds `@archi-agent` and `/diagram` to VS Code Chat. A diagram
+request may come from the active file, a selection, a file explicitly named by the user, or text
+sent to `@archi-agent`. Conversation history may be used only when it belongs to interactions with
+`@archi-agent`; the participant does not automatically read other participants' history or separate
+chat panels. C1 reuses the existing `generateDiagram()` runtime path and the configured Archi Agent
+provider, retaining grounding, validation and exactly one generation call. Integration with Codex
+or other agents through MCP remains in K4. C1 adds no implementation scope to D1.
 
 Later, in no committed order: semantic review, bounded repair, quality modes, document sources
 (PDF, DOCX; Confluence and Jira preferably through MCP), EA XML (still deferred — no safe fixture),
@@ -209,8 +220,9 @@ Ordered as agreed in [Product priority](#product-priority).
 | Order | Item | Status | Notes | Depends on |
 | --- | --- | --- | --- | --- |
 | P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | implemented | HTTPS only with production-boundary transport tests, fixed host/path allowlist, strictly validated API keys in VS Code `SecretStorage`, capability-filtered bounded model listing, strict cloud finish contracts, one generation call, no retry/repair/fallback. | P1 |
-| D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection | planned (sequence validation implemented) | Sequence pipeline stays the compatibility path and regression oracle. | Grounding core |
+| D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection | completed and verified | Sequence pipeline stays the compatibility path and regression oracle. | Grounding core |
 | D2 | Profile `component` | planned | | D1 |
+| C1 | VS Code Chat Participant `@archi-agent` and `/diagram` | planned | Active file, selection, explicitly indicated file or text sent to the participant; only its own conversation history; existing `generateDiagram()` and configured provider; grounding, validation and one generation call. No automatic access to other chat histories or panels; agent integration through MCP stays in K4. | D2 |
 | D3 | Profile `c4-context` | planned | | D1 |
 | D4 | Profile `c4-container` | planned | | D1 |
 | D5 | Profile `archimate-hld` | planned | | D1 |
@@ -408,7 +420,7 @@ EA exports may be supplied through:
 
 # Phase 4 — LLM-first final PlantUML
 
-**Status: planned (D1).** Includes shared structural validation and diagram-type selection.
+**Status: implemented (D1).** The new path supports sequence through one structured-chat call and a strict `{ plantUml, messages }` envelope. Its message ledger records the exact physical PlantUML arrow line and a required nullable interface name. The Generate Diagram picker offers only Sequence. The four other identifiers are reserved and rejected before provider I/O when called directly through runtime. D2 is next, then planned C1, D3, D4, D5 and K1–K4.
 
 The current sequence pipeline uses an intermediate sequence model and deterministic renderer.
 
@@ -439,15 +451,13 @@ The current deterministic sequence renderer may remain as:
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: sequence implemented (compatibility path); `component` (D2), `c4-context` (D3), `c4-container` (D4), `archimate-hld` (D5) planned in this order.**
+**Status: sequence implemented through the D1 LLM-first path and the deterministic compatibility path; `component` (D2), `c4-context` (D3), `c4-container` (D4), `archimate-hld` (D5) planned in this order.**
 
-Planned profiles:
+Profiles:
 
 ## Sequence
 
-Current implementation exists.
-
-Future version may also use the LLM-first final-PlantUML pipeline.
+D1 implements Sequence in the LLM-first final-PlantUML pipeline. The deterministic sequence renderer remains a compatibility path and regression oracle.
 
 ## Component
 
@@ -849,8 +859,9 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
 | P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
 | P2 — cloud providers Anthropic, OpenAI, OpenRouter | implemented and automatically verified |
-| D1 — LLM-first PlantUML path with shared structural validation | planned |
+| D1 — LLM-first PlantUML path with shared structural validation | completed and verified |
 | D2 — Component diagram | planned |
+| C1 — VS Code Chat Participant | planned after D2 |
 | D3/D4 — C4 context / container | planned |
 | D5 — ArchiMate HLD | planned |
 | K1 — provider-neutral architecture catalog contract | partial |

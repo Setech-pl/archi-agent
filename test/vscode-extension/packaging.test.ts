@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -150,7 +150,7 @@ describe("synthetic secret leak guard", () => {
 });
 
 describe("clean runtime execution", () => {
-  it("runs the packaged runtime from an empty directory with no repository, node_modules, npm or PATH", () => {
+  it("runs runtime extracted from VSIX in an empty directory with no repository, node_modules, npm or PATH", async () => {
     const runtimeDir = temporaryDirectory("archi-agent-runtime-");
     const packRoot = temporaryDirectory("archi-agent-clean-pack-");
     const workingDir = temporaryDirectory("archi-agent-clean-cwd-");
@@ -162,7 +162,10 @@ describe("clean runtime execution", () => {
       writeFileSync(path.join(packDirectory, name), content, "utf8");
     }
 
-    copyFileSync(bundles.runtimeFile, path.join(runtimeDir, buildModule.bundleFileNames.runtime));
+    const packageModule = (await import(scriptUrl("package-vsix.mjs"))) as PackageModule;
+    const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };
+    const vsix = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-clean-vsix-"), bundleDir: temporaryDirectory("archi-agent-clean-vsix-bundles-") });
+    writeFileSync(path.join(runtimeDir, buildModule.bundleFileNames.runtime), openVsix(vsix).read(`extension/dist/${buildModule.bundleFileNames.runtime}`));
     const flow = [
       "---",
       "diagram_name: observation-run",
@@ -192,13 +195,16 @@ describe("clean runtime execution", () => {
       "    return { participants, messages };",
       "  }",
       "};",
-      "const instance = runtime.createArchiAgentRuntime({ generatorFactory: () => generator });",
-      "instance.generateSequenceDiagram({",
+      "const diagramClient = { clientType: 'clean-runtime-chat', generationMetadata: { modelId: 'unused-model', temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },",
+      "  async complete() { return { source: 'content', value: { plantUml: '@startuml\\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\\ndatabase \"Image Archive\" as kp_image_archive\\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\\n@enduml\\n', messages: [{ order: 1, lineNumber: 4, from: { elementId: 'telescope-scheduler' }, to: { elementId: 'image-archive' }, label: 'Registers frames', interfaceType: 'DB', interfaceName: 'Archive Writer', async: false, isResponse: false }] } }; } };",
+      "const instance = runtime.createArchiAgentRuntime({ generatorFactory: () => generator, diagramClientFactory: () => diagramClient });",
+      "const generationRequest = {",
       `  flow: { kind: "document", text: ${JSON.stringify(flow)}, fileName: "observation-run.md" },`,
       `  knowledgePack: { kind: "local-directory", path: ${JSON.stringify(packDirectory)} },`,
       '  generator: { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "unused-model" }',
-      "}).then((result) => {",
-      "  process.stdout.write(JSON.stringify({ cwd: process.cwd(), status: result.status, stage: result.stage, diagramName: result.diagramName, plantUml: result.plantUml, report: result.groundingReport, summary: result.summary }));",
+      "};",
+      "Promise.all([instance.generateSequenceDiagram(generationRequest), instance.generateDiagram({ ...generationRequest, diagramType: 'sequence' })]).then(([result, d1]) => {",
+      "  process.stdout.write(JSON.stringify({ cwd: process.cwd(), status: result.status, stage: result.stage, diagramName: result.diagramName, plantUml: result.plantUml, report: result.groundingReport, summary: result.summary, d1Status: d1.status, d1PlantUml: d1.plantUml, d1Report: d1.groundingReport }));",
       "}, (error) => { process.stdout.write(JSON.stringify({ status: 'threw', name: error && error.name })); });",
       ""
     ].join(LF);
@@ -219,7 +225,7 @@ describe("clean runtime execution", () => {
     expect(child.stderr).toBe("");
     expect(child.status).toBe(0);
 
-    const output = JSON.parse(child.stdout) as { cwd: string; status: string; diagramName: string; plantUml: string; report: string; summary: { messageCount: number } };
+    const output = JSON.parse(child.stdout) as { cwd: string; status: string; diagramName: string; plantUml: string; report: string; summary: { messageCount: number }; d1Status: string; d1PlantUml: string; d1Report: string };
     expect(output.status).toBe("success");
     expect(realpathSync(output.cwd)).toBe(workingDir);
     expect(output.diagramName).toBe("observation-run");
@@ -227,6 +233,9 @@ describe("clean runtime execution", () => {
     expect(output.summary.messageCount).toBe(3);
     expect(output.report).not.toContain(packRoot);
     expect(output.plantUml).not.toContain(projectRoot);
+    expect(output.d1Status).toBe("success");
+    expect(output.d1PlantUml).toContain("Registers frames (DB: Archive Writer)");
+    expect(output.d1Report).not.toContain(packRoot);
   }, 90_000);
 });
 

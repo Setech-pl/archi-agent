@@ -177,6 +177,21 @@ explicit operation.
 
 ## Generation pipeline
 
+`generateDiagram({ diagramType: "sequence", ... })` is the D1 path. It grounds the flow first,
+then calls `StructuredChatClient.complete()` exactly once for a strict `{ plantUml, messages }`
+answer. The model supplies final PlantUML. A shared document validator checks markers, size,
+line endings, controls, directives and remote URLs. The closed sequence validator accepts only
+grounded declarations, arrows and balanced `alt`/`else`/`opt`/`loop`/`group` blocks. It checks
+every PlantUML arrow against the ledger's required 1-based physical `lineNumber` and continuous
+`order`. Every message includes `interfaceName` as a string or `null`. It then applies participant, relationship,
+mode and rule validation. It rejects unsupported interface names rather than editing the final
+PlantUML. The report uses the existing schema with normalization marked `not-applicable`.
+`component`, `c4-context`, `c4-container` and `archimate-hld` are identifiers only in D1;
+the runtime rejects them before source reads and provider construction. There is no retry,
+repair, fallback, streaming or second model call.
+
+The earlier `generateSequenceDiagram` pipeline remains the compatibility path:
+
 `generateSequenceDiagram` owns the order of the stages:
 
 1. receive the validated flow and the loaded pack;

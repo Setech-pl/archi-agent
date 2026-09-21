@@ -7,6 +7,7 @@ import type {
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult
 } from "../../../src/runtime/index.js";
+import type { DiagramType } from "../../../src/runtime/index.js";
 import { localLmStudioProfileId } from "../../../src/runtime/index.js";
 import type { ArchiAgentSettings } from "../settings.js";
 
@@ -33,6 +34,7 @@ export interface SequenceGenerationSessionOptions {
   readonly prompts: ResolutionPrompts;
   /** Upper bound of resolution rounds; defaults to sessionLimits.maxResolutionRounds. */
   readonly maxRounds?: number;
+  readonly diagramType?: DiagramType;
 }
 
 export type SequenceGenerationSessionOutcome =
@@ -97,7 +99,9 @@ export async function runSequenceGenerationSession(options: SequenceGenerationSe
       return Object.freeze({ status: "cancelled" });
     }
 
-    const result = await options.runtime.generateSequenceDiagram(request);
+    const result = options.diagramType === undefined
+      ? await options.runtime.generateSequenceDiagram(request)
+      : await options.runtime.generateDiagram!({ ...request, diagramType: options.diagramType });
 
     if (result.status !== "failed" || !isResolvable(result) || rounds >= maxRounds) {
       return Object.freeze({ status: "completed", result, rounds });

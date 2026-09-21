@@ -1,5 +1,13 @@
 # Cloud model providers
 
+## D1 final PlantUML
+
+The D1 `generateDiagram` sequence path uses the selected Anthropic, OpenAI or OpenRouter
+structured-chat adapter and makes one generation request. The cloud key is read by the VS Code
+host immediately before the request; unsupported diagram types stop before that read. The
+response is validated locally as a strict `{ plantUml, messages }` envelope and a grounded
+sequence document. The legacy sequence command and provider transport behavior remain compatible.
+
 Archi Agent supports three fixed cloud profiles alongside LM Studio and Ollama. Cloud access is
 opt-in: activation, profile selection and API-key management perform no network request. Model
 listing and generation happen only after the corresponding user command.

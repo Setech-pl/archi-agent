@@ -150,6 +150,7 @@ export function verifyVsix(filePath, options = {}) {
       const commands = Array.isArray(manifest.contributes?.commands) ? manifest.contributes.commands.map((entry) => entry.command) : [];
 
       const requiredCommands = [
+        "archiAgent.generateDiagram",
         "archiAgent.generateSequenceDiagram",
         "archiAgent.selectProviderProfile",
         "archiAgent.selectModel",

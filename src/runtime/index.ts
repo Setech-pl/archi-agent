@@ -15,6 +15,8 @@ export type {
   CancellationSignal,
   FlowLanguage,
   FlowSource,
+  DiagramType,
+  GenerateDiagramRequest,
   GenerateSequenceDiagramFailure,
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult,
@@ -56,3 +58,4 @@ export {
   remoteProviderProfiles
 } from "../node/llm/remote-provider-profiles.js";
 export { isSafeModelId } from "../core/pipeline/sequence-model-generator.js";
+export { diagramTypes, isDiagramType, isSupportedDiagramType } from "../core/model/diagram-type.js";

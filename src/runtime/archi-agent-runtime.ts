@@ -8,9 +8,12 @@ import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits }
 import { isFilenameSafeDiagramId } from "../core/output/naming.js";
 import { baseNameFor } from "../core/output/output-planner.js";
 import { generateSequenceDiagram } from "../core/pipeline/generate-sequence-diagram.js";
+import { generateDiagram } from "../core/pipeline/generate-diagram.js";
+import { isSupportedDiagramType } from "../core/model/diagram-type.js";
 import type { PipelineOutcome } from "../core/pipeline/generation-outcome.js";
 import { StructuredChatSequenceModelGenerator, isSafeModelId, type SequenceModelGenerator } from "../core/pipeline/sequence-model-generator.js";
 import { structuredChatLimits } from "../core/llm/structured-chat-client.js";
+import type { StructuredChatClient } from "../core/llm/structured-chat-client.js";
 import { ProviderRegistry, ProviderRegistryError } from "../core/llm/provider-registry.js";
 import type { ModelIssue } from "../core/validation/model-validator.js";
 import type { ValidationIssue } from "../core/validation/validation-issue.js";
@@ -18,6 +21,7 @@ import { BoundedReadError, maxFlowFileBytes, readBoundedTextFile } from "../node
 import { canonicalDirectory, LocalPathError } from "../node/local-file-path.js";
 import { parseLoopbackEndpoint, type LoopbackEndpoint } from "../node/llm/loopback-endpoint.js";
 import { defaultBaseUrlForLocalProfile, localProviderProfiles } from "../node/llm/local-provider-profiles.js";
+import { OpenAiCompatibleLocalChatClient } from "../node/llm/openai-compatible-local-chat-client.js";
 import {
   listLocalModels,
   LocalModelError,
@@ -37,6 +41,7 @@ import type {
   ArchiAgentRuntime,
   CancellationSignal,
   FlowSource,
+  GenerateDiagramRequest,
   GenerateSequenceDiagramFailure,
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult,
@@ -79,12 +84,55 @@ export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpo
 
 export interface ArchiAgentRuntimeOptions {
   readonly generatorFactory?: GeneratorFactory;
+  /** Structured-chat seam for the D1 local path; remote adapters use remoteTransport. */
+  readonly diagramClientFactory?: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
   /** Test/application-composition seam; production uses the fixed local and cloud registry. */
   readonly providerRegistry?: ProviderRegistry;
   /** Resolves adapter-owned defaults for an injected registry; production uses local profile defaults. */
   readonly defaultBaseUrlForProfile?: (profileId: string) => string | undefined;
   /** Controlled transport seam for remote-provider tests; production uses Node HTTPS. */
   readonly remoteTransport?: RemoteJsonTransport;
+}
+
+type ChatClientResolution =
+  | { readonly ok: true; readonly client: StructuredChatClient }
+  | { readonly ok: false; readonly issues: readonly RuntimeIssue[] };
+
+function resolveDiagramClient(
+  config: GeneratorConfig,
+  registry: ProviderRegistry,
+  defaultBaseUrl: (profileId: string) => string | undefined,
+  remoteTransport: RemoteJsonTransport | undefined,
+  localFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient
+): ChatClientResolution {
+  let profile;
+  if ("profileId" in config) {
+    try { profile = registry.resolve(config.profileId); }
+    catch { return { ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] }; }
+    if (!profile.capabilities.structuredChat) return { ok: false, issues: [issue("provider-capability-unavailable", "The provider profile does not support structured chat.")] };
+  }
+  if (!isSafeModelId(config.modelId)) return { ok: false, issues: [issue("unsafe-model-id", "The model identifier is empty or unsafe.")] };
+  try {
+    if (config.kind === "remote-provider") {
+      if (profile?.credentialRequirement !== "api-key" || config.credential?.type !== "api-key")
+        return { ok: false, issues: [issue("credential-required", "An API key is required for the selected provider profile.")] };
+      const common = { modelId: config.modelId, apiKey: config.credential.value,
+        ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }),
+        ...(remoteTransport === undefined ? {} : { transport: remoteTransport }) };
+      const client = profile.providerKind === "anthropic-remote" ? new AnthropicRemoteChatClient(common)
+        : profile.providerKind === "openai-remote" ? new OpenAiCompatibleRemoteChatClient({ ...common, provider: "openai" })
+        : profile.providerKind === "openrouter-remote" ? new OpenAiCompatibleRemoteChatClient({ ...common, provider: "openrouter" }) : undefined;
+      return client ? { ok: true, client } : { ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] };
+    }
+    const baseUrl = "profileId" in config ? config.baseUrl ?? defaultBaseUrl(config.profileId) : config.baseUrl;
+    if (baseUrl === undefined) return { ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] };
+    const endpoint = parseLoopbackEndpoint(baseUrl);
+    if (!endpoint.ok) return { ok: false, issues: [issue(endpoint.code, endpointMessage)] };
+    return { ok: true, client: localFactory(config, endpoint.endpoint) };
+  } catch (error) {
+    const code = error instanceof LocalModelError || error instanceof RemoteProviderError ? error.code : "generator-unavailable";
+    return { ok: false, issues: [issue(code, "The generator could not be created from the configuration.")] };
+  }
 }
 
 type FlowResolution =
@@ -491,12 +539,31 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #providerRegistry: ProviderRegistry;
   readonly #defaultBaseUrlForProfile: (profileId: string) => string | undefined;
   readonly #remoteTransport: RemoteJsonTransport | undefined;
+  readonly #diagramClientFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
 
   public constructor(options: ArchiAgentRuntimeOptions) {
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
     this.#providerRegistry = options.providerRegistry ?? new ProviderRegistry([...localProviderProfiles, ...remoteProviderProfiles]);
     this.#defaultBaseUrlForProfile = options.defaultBaseUrlForProfile ?? defaultBaseUrlForLocalProfile;
     this.#remoteTransport = options.remoteTransport;
+    this.#diagramClientFactory = options.diagramClientFactory ?? ((config, endpoint) => new OpenAiCompatibleLocalChatClient({ endpoint, modelId: config.modelId, ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }) }));
+  }
+
+  public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateSequenceDiagramResult> {
+    // This must precede flow-file, Knowledge Pack, credential and provider access.
+    if (!isSupportedDiagramType(request.diagramType)) return failure("generator-configuration", [issue("diagram-type-unsupported", "The selected diagram type is not supported in this version.")]);
+    const flow = await resolveFlow(request.flow);
+    if (!flow.ok) return failure("flow", flow.issues);
+    const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
+    if (!pack.ok) return failure("knowledge-pack", pack.issues);
+    const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
+    if (!resolved.ok) return failure("generator-configuration", resolved.issues);
+    return mapOutcome(await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
+      client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
+      sources: { flowFile: flow.flowFile, knowledgePackDirectory: pack.directoryName },
+      ...(request.selections === undefined ? {} : { selections: request.selections }),
+      ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
+      ...(request.signal === undefined ? {} : { signal: request.signal }) }));
   }
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {

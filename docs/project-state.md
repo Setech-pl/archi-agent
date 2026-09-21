@@ -15,7 +15,9 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
-| Następny etap | D1 — LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu diagramu. |
+| Stan D1 | Implemented and verified; baza D1: `00c8b9d62e73fff2cdb154113f15a42756f25b07`. Automatyczne bramki D1 przeszły w sesji 2026-09-21. |
+| Następny etap | D2 — profil `component`. |
+| Etap po D2 | C1 — VS Code Chat Participant `@archi-agent` z `/diagram`; zaplanowany, bez implementacji w D1. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -24,8 +26,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
   checkpoint `v0.2.0-alpha.1`) oraz dokumentów documentation governance do `main`.
 - Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
   ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
-- 2026-09-19 — decyzja właściciela o nowych priorytetach (demonstracja vibe coding i AI SDLC;
-  dokładna kolejność: R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release). Szczegóły: sekcja „Product priority”
+- 2026-09-19 — decyzja właściciela o nowych priorytetach (demonstracja vibe coding i AI SDLC),
+  uzupełniona 2026-09-21 o C1 po D2. Obecna kolejność: R0 → B1 → P1 → P2 → D1 → D2 → C1 → D3–D5 → K1–K4 → Demo and release. Szczegóły: sekcja „Product priority”
   w [`product-roadmap.md`](product-roadmap.md).
 
 ## Implementacja B1
@@ -221,13 +223,14 @@ verified i owner smoke accepted.
 
 ## Kierunek dalszych prac
 
-W kolejności ustalonej przez właściciela (2026-09-19; pełny opis w roadmapie, „Product priority”):
+W kolejności ustalonej przez właściciela (2026-09-19, aktualizacja 2026-09-21; pełny opis w roadmapie, „Product priority”):
 
 1. **P1 i P2 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz
    Anthropic/OpenAI/OpenRouter, machine-scoped wybór profilu/modelu i cloud keys w `SecretStorage`.
-2. **D1 (następny):** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
-   diagramu; **D2–D5:** `component`, `c4-context`, `c4-container`, `archimate-hld`. Sekwencja
-   pozostaje compatibility path i regression oracle.
+2. **D1 (implemented):** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
+   diagramu; **D2 (następny):** `component`; **C1 (po D2):** VS Code Chat Participant
+   `@archi-agent` z `/diagram` i istniejącym `generateDiagram()`, tylko z historią własnych rozmów;
+   **D3–D5:** `c4-context`, `c4-container`, `archimate-hld`. Integracja agentów przez MCP pozostaje w K4.
 3. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
    Builder B2 i B3 (zatwierdzone decyzje etapu B bez zmian); **K3:** etap C — runtime API, adaptery
    źródeł, UI review, atomowy zapis pięciu plików; **K4:** MCP jako źródło wiedzy (klient MCP
@@ -360,6 +363,33 @@ wykonywano.
 
 ## Następny krok
 
-**D1** — osobna faza PLANOWANIA dla ścieżki LLM-first final PlantUML ze wspólną walidacją
-strukturalną i wyborem typu diagramu. P2 jest zaimplementowane; ręczne owner smoke providerów
+**D2** — profil `component`; po nim zaplanowano C1, bez rozszerzania D1. P2 jest zaimplementowane; ręczne owner smoke providerów
 chmurowych pozostaje opcjonalne i kosztowe, poza automatycznym DoD.
+
+## Implementacja D1
+
+Baza etapu: `00c8b9d62e73fff2cdb154113f15a42756f25b07`. Nowe `generateDiagram` przyjmuje
+identyfikator typu. W D1 wykonuje wyłącznie `sequence`; pozostałe cztery typy kończą się
+`diagram-type-unsupported` przed odczytem plików i kontaktem z providerem. Model dostaje minimalny
+grounded context i zwraca finalny PlantUML w ścisłej kopercie `{ plantUml, messages }` przez
+dokładnie jedno `StructuredChatClient.complete()`. Wspólny walidator sprawdza granice dokumentu;
+zamknięty parser sequence weryfikuje deklaracje, aliasy, wiadomości, fragmenty, zgodność z ledgerem
+i grounded relationships. Walidacja nie modyfikuje finalnego PlantUML. Raport używa dotychczasowego
+formatu, oznaczając normalizację jako `not-applicable`. Dotychczasowe API sequence, komenda, CLI,
+raporty i golden outputs pozostają ścieżką zgodności. Brak retry, repair, fallbacku i dodatkowych
+wywołań modelu.
+
+### Weryfikacja D1 (2026-09-21)
+
+Celowane testy D1, `npm ci`, kontrola niezmienności root `package.json` i `package-lock.json`,
+`npm test` (82 pliki, 1245 testów), `npm run typecheck`, `npm run extension:typecheck`,
+`npm run extension:test` (9 plików, 181 testów), `npm run extension:build`,
+`npm run extension:package`, `npm run extension:verify` i `npm run demo:dry-run` — PASS.
+Osobny smoke test runtime wyjętego z VSIX, z pustego katalogu poza repo (stara i nowa ścieżka) — PASS.
+`git diff --check` — PASS; root manifest i lockfile bez zmian.
+
+Korekta po review D1: ledger wymaga `lineNumber` zgodnego z fizyczną linią strzałki oraz
+`interfaceName: string | null` w każdym wpisie. Pełna koperta odpowiedzi ma limit w core przed
+walidacją Zod. Odpowiedź jest powiązana wyłącznie z wcześniejszym synchronicznym żądaniem o tych
+samych końcach, typie i nazwie interfejsu. Picker D1 oferuje tylko Sequence; pozostałe
+identyfikatory pozostają w runtime jako punkty rozszerzenia.

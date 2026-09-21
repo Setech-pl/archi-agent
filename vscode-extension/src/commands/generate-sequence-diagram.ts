@@ -1,6 +1,6 @@
 import path from "node:path";
 import * as vscode from "vscode";
-import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, FlowSource, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
+import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, DiagramType, FlowSource, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
 import { readApiKey } from "../api-key-storage.js";
 import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
@@ -211,7 +211,18 @@ async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): P
   await vscode.window.showTextDocument(report, { viewColumn: vscode.ViewColumn.Beside, preview: false, preserveFocus: true });
 }
 
+export async function generateDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
+  const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const }],
+    { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
+  if (picked === undefined) return;
+  await runGenerateCommand(dependencies, picked.id);
+}
+
 export async function generateSequenceDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
+  await runGenerateCommand(dependencies);
+}
+
+async function runGenerateCommand(dependencies: GenerateCommandDependencies, diagramType?: DiagramType): Promise<void> {
   const { runtime, output, secrets } = dependencies;
   const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection));
 
@@ -281,6 +292,7 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
       runSequenceGenerationSession({
         runtime,
         request: buildGenerationRequest(settings, flow, modelId, cancellationSignal(token), apiKey),
+        ...(diagramType === undefined ? {} : { diagramType }),
         prompts: resolutionPrompts()
       })
   );

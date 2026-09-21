@@ -1,6 +1,7 @@
 import type { CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import type { GenerationSummary } from "../core/pipeline/generation-outcome.js";
 import type { ProviderProfile } from "../core/llm/provider-profile.js";
+import type { DiagramType } from "../core/model/diagram-type.js";
 
 /**
  * Public contract of the Archi Agent application runtime.
@@ -14,6 +15,7 @@ import type { ProviderProfile } from "../core/llm/provider-profile.js";
  */
 
 export type { CancellationSignal, GenerationSummary };
+export type { DiagramType };
 
 export type FlowLanguage = "en" | "pl";
 
@@ -101,6 +103,10 @@ export interface GenerateSequenceDiagramRequest {
   /** Names of [NEW: Name] participants the caller confirmed. */
   readonly confirmedNewParticipants?: readonly string[];
   readonly signal?: CancellationSignal;
+}
+
+export interface GenerateDiagramRequest extends GenerateSequenceDiagramRequest {
+  readonly diagramType: DiagramType;
 }
 
 export type RuntimeIssueSeverity = "error" | "warning";
@@ -193,6 +199,8 @@ export interface ListLocalModelsOptions {
  * interface do not change.
  */
 export interface ArchiAgentRuntime {
+  /** D1 entry point. Optional on legacy host doubles compiled against the sequence-only contract. */
+  generateDiagram?(request: GenerateDiagramRequest): Promise<GenerateSequenceDiagramResult>;
   generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult>;
   /** Immutable profiles sorted by profileId; this method performs no I/O. */
   listProviderProfiles(): readonly ProviderProfile[];

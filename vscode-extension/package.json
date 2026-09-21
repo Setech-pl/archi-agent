@@ -21,6 +21,7 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
+    "onCommand:archiAgent.generateDiagram",
     "onCommand:archiAgent.generateSequenceDiagram",
     "onCommand:archiAgent.selectProviderProfile",
     "onCommand:archiAgent.selectModel",
@@ -53,6 +54,11 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "archiAgent.generateDiagram",
+        "title": "Generate Diagram",
+        "category": "Archi Agent"
+      },
       {
         "command": "archiAgent.generateSequenceDiagram",
         "title": "Generate Sequence Diagram",
