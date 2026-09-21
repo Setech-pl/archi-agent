@@ -1,8 +1,8 @@
 # ArchGround architecture
 
 ArchGround turns a plain-language flow description into a sequence diagram that is grounded
-in an Architecture Knowledge Pack. This document describes the code on base commit
-`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the approved but unimplemented D1.1 target,
+in an Architecture Knowledge Pack. This document distinguishes the historical code on base commit
+`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the implemented D1.1 sequence path,
 and later extensions. All examples use the synthetic Space Mission sample. The experimental D1
 ledger diagnosis is preserved on `checkpoint/d1-ledger-pipeline`; its owner smoke did not pass.
 
@@ -177,7 +177,7 @@ interaction semantics, fragments and level of detail belong to the model. Cloud 
 in the VS Code host's `SecretStorage` and are supplied to the host-neutral runtime only for an
 explicit operation.
 
-## Current generation pipeline on the base commit
+## Historical D1 generation pipeline on the base commit
 
 `generateDiagram({ diagramType: "sequence", ... })` is the D1 path. It grounds the flow first,
 then calls `StructuredChatClient.complete()` exactly once for a strict `{ plantUml, messages }`
@@ -194,17 +194,23 @@ repair, fallback, streaming or second model call. This D1 path passed automatic 
 an experimental checkpoint: owner smoke exposed a brittle duplicated ledger contract. It is
 not the approved architecture for further development.
 
-## Approved D1.1 target — not implemented
+## Active D1.1 reviewed sequence pipeline
 
 D1.1 uses one minimal, validated `ArchitectureSnapshot` from a provider-neutral
 `ArchitectureContextProvider`; the first provider wraps the existing Knowledge Pack loader.
 The `sequence` profile makes one generator request for strict `{ plantUml }` only. A local parser
 derives `DiagramFacts` and physical line numbers, then deterministic checks validate document
 safety, syntax, aliases, grounding, relationships, directions, modes, interfaces, rules and
-evidence. If these pass, a separate LLM call reviews semantics. The final accept/reject decision
+evidence. The snapshot also references nonempty physical flow lines as `user-stated` evidence.
+A missing Knowledge Pack relationship leaves a fact pending for semantic review; an explicit
+pack prohibition still rejects it locally. The reviewer cites flow evidence for every pending
+fact, and local code verifies the references and coverage. If these pass, a separate LLM call reviews semantics. The final accept/reject decision
 is deterministic; neither stage repairs PlantUML. A successful reviewed run uses exactly two
 model calls, deterministic rejection after generation one, and invalid context or unsupported
 type none. There is no retry, repair or fallback.
+
+OpenAI and OpenRouter project strict wire schemas at their adapters while retaining local limits.
+Report v2 links every fact to selected evidence and its logical file and line.
 
 Generator and reviewer initially use the same configured profile/model but separate contexts
 and the same snapshot/digest. The old `Generate Sequence Diagram` command remains on its
@@ -212,9 +218,9 @@ compatibility pipeline, never as an automatic fallback. See
 [`ADR 0001`](adr/0001-reviewed-diagram-generation.md) and the
 [`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md) implementation contract.
 
-Later D2 adds `component` only after S1 owner smoke passes; C1 follows D2. M1 follows C1 and
+This sequence implementation is automatically verified, not owner-smoke accepted. Later D2 adds `component` only after S1 owner smoke passes; C1 follows D2. M1 follows C1 and
 maps deterministic MCP tool results into the same snapshot before either model call. D3/D4 and
-D5 follow later. None of these later stages is implemented by R1.
+D5 follow later. None of these later stages is implemented by D1.1.
 
 The earlier `generateSequenceDiagram` pipeline remains the compatibility path:
 

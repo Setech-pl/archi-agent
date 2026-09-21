@@ -3,7 +3,7 @@ import { stableCompare } from "../util/ordering.js";
 
 /** Shared, profile-independent document boundary. No PlantUML engine or network is invoked. */
 export const plantUmlDocumentLimits = Object.freeze({ maxChars: 256 * 1024, maxLines: 2_000, maxLineChars: 1_000 });
-export type PlantUmlDocumentRule = "too-large" | "too-many-lines" | "line-too-long" | "missing-final-newline" | "carriage-return" | "control-character" | "start-marker" | "end-marker" | "marker-order" | "content-after-end" | "forbidden-directive" | "remote-url";
+export type PlantUmlDocumentRule = "too-large" | "too-many-lines" | "line-too-long" | "carriage-return" | "control-character" | "start-marker" | "end-marker" | "marker-order" | "content-after-end" | "forbidden-directive" | "remote-url";
 export interface PlantUmlDocumentIssue { readonly rule: PlantUmlDocumentRule; readonly line?: number }
 
 const directive = /^\s*!|!\s*(?:include|includeurl|includesub|includedef|define|definelong|undef|pragma|function|procedure|unquoted|import|theme|log|dump|assert|return)\b|^\s*(?:skinparam|hide|show|<style>|style\b)/iu;
@@ -12,7 +12,6 @@ const remoteUrl = /[A-Za-z][A-Za-z0-9+.-]*:\/\/|\bwww\./iu;
 export function validatePlantUmlDocument(text: unknown): readonly PlantUmlDocumentIssue[] {
   if (typeof text !== "string" || text.length > plantUmlDocumentLimits.maxChars) return [{ rule: "too-large" }];
   const issues: PlantUmlDocumentIssue[] = [];
-  if (!text.endsWith("\n")) issues.push({ rule: "missing-final-newline" });
   const lines = text.endsWith("\n") ? text.slice(0, -1).split("\n") : text.split("\n");
   if (lines.length > plantUmlDocumentLimits.maxLines) return [{ rule: "too-many-lines" }];
   if (lines[0] !== "@startuml" || text.toLowerCase().split("@startuml").length !== 2) issues.push({ rule: "start-marker" });

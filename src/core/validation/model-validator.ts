@@ -109,6 +109,9 @@ const definitions = {
   "interface-name-unverified": { severity: "error", message: "The final PlantUML contains an interface name without matching grounded evidence." },
   "render-failed": { severity: "error", message: "The validated model could not be rendered safely." },
   "plantuml-structure": { severity: "error", message: "The emitted PlantUML failed structural validation." },
+  "review-schema-violation": { severity: "error", message: "The semantic reviewer returned an invalid verdict." },
+  "reviewer-failed": { severity: "error", message: "The semantic reviewer did not complete." },
+  "review-rejected": { severity: "error", message: "The semantic reviewer rejected the diagram." },
   "report-failed": { severity: "error", message: "The grounding report could not be produced." },
   "too-many-issues": { severity: "warning", message: "Further issues were omitted after reaching the reporting limit." }
 } as const satisfies Readonly<Record<string, ModelIssueDefinition>>;

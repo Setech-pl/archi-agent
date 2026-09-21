@@ -24,7 +24,7 @@ import { createModelIssue, sortModelIssues, type ModelIssue } from "./model-vali
  *   the diagram without that interaction gives a warning.
  */
 
-export type RelationshipVerification = "grounded" | "self-message" | "unverified-new";
+export type RelationshipVerification = "grounded" | "self-message" | "unverified-new" | "user-stated-review";
 
 export interface MessageRelationshipMatch {
   readonly order: number;
@@ -71,7 +71,7 @@ function choices(values: readonly string[]): string {
   return [...new Set(values)].sort().join(" or ");
 }
 
-export function validateRelationships(model: GeneratedSequenceModel, context: GroundedContext): RelationshipValidationResult {
+export function validateRelationships(model: GeneratedSequenceModel, context: GroundedContext, allowUserStatedReview = false): RelationshipValidationResult {
   const issues: ModelIssue[] = [];
   const matches: MessageRelationshipMatch[] = [];
   const between = (fromId: string, toId: string): GroundedRelationship[] =>
@@ -89,8 +89,15 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
       issues.push(createModelIssue("response-without-request", { path, details }));
     }
 
+    const ruleFrom = response ? message.to.elementId : message.from.elementId;
+    const ruleTo = response ? message.from.elementId : message.to.elementId;
+    if (allowUserStatedReview && ruleFrom !== undefined && ruleTo !== undefined && context.rules.some((rule) =>
+      rule.rule === "forbid" && rule.fromId === ruleFrom && rule.toId === ruleTo)) {
+      issues.push(createModelIssue("forbidden-interaction", { path, details: { ...details, fromId: ruleFrom, toId: ruleTo } }));
+    }
+
     if (participantRefKey(message.from) === participantRefKey(message.to)) {
-      record("self-message");
+      record(allowUserStatedReview ? "user-stated-review" : "self-message");
       return;
     }
 
@@ -99,14 +106,14 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const toId = message.to.elementId;
 
     if (fromId === undefined || toId === undefined) {
-      if (internal) {
+      if (internal && !allowUserStatedReview) {
         issues.push(createModelIssue("internal-endpoint-mismatch", { path, details }));
         record("grounded");
         return;
       }
 
-      issues.push(createModelIssue("unverified-new-participant-interaction", { path, details }));
-      record("unverified-new");
+      if (!internal) issues.push(createModelIssue("unverified-new-participant-interaction", { path, details }));
+      record(allowUserStatedReview ? "user-stated-review" : "unverified-new");
       return;
     }
 
@@ -114,6 +121,7 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const candidates = between(sourceId, targetId);
 
     if (candidates.length === 0) {
+      if (allowUserStatedReview) { record("user-stated-review"); return; }
       const code = between(targetId, sourceId).length > 0 ? "relationship-direction" : internal ? "internal-endpoint-mismatch" : "missing-relationship";
       issues.push(createModelIssue(code, { path, details: { ...details, fromId: sourceId, toId: targetId } }));
       record("grounded");
@@ -123,6 +131,7 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const byType = candidates.filter((relationship) => relationship.interfaceType === packInterfaceType(message.interfaceType));
 
     if (byType.length === 0) {
+      if (allowUserStatedReview) { record("user-stated-review"); return; }
       const typeDetails: Readonly<Record<string, string>> = internal
         ? {}
         : {
@@ -143,6 +152,7 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const byMode = byType.filter((relationship) => relationship.mode === mode);
 
     if (byMode.length === 0) {
+      if (allowUserStatedReview) { record("user-stated-review"); return; }
       issues.push(
         createModelIssue("interaction-mode-mismatch", {
           path,
@@ -151,10 +161,9 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
       );
     }
 
-    if (context.rules.some((rule) => rule.rule === "forbid" && rule.fromId === sourceId && rule.toId === targetId)) {
+    if (!allowUserStatedReview && context.rules.some((rule) => rule.rule === "forbid" && rule.fromId === sourceId && rule.toId === targetId)) {
       issues.push(createModelIssue("forbidden-interaction", { path, details: { ...details, fromId: sourceId, toId: targetId } }));
     }
-
     record("grounded", byMode);
   });
 

@@ -162,3 +162,14 @@ export function projectAnthropicJsonSchema(schema: JsonSchemaObject): JsonSchema
   rejectRecursiveReferences(schema);
   return deepFreeze(projectNode(schema));
 }
+
+/** Reuse the closed projection; OpenAI-compatible strict output also disallows minItems. */
+export function projectOpenAiStrictJsonSchema(schema: JsonSchemaObject): JsonSchemaObject {
+  const withoutMinItems = (value: JsonSchemaValue): JsonSchemaValue => {
+    if (Array.isArray(value)) return value.map(withoutMinItems);
+    if (isRecord(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "minItems")
+      .map(([key, child]) => [key, withoutMinItems(child)]));
+    return value;
+  };
+  return deepFreeze(withoutMinItems(projectAnthropicJsonSchema(schema)) as JsonSchemaObject);
+}

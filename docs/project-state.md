@@ -16,7 +16,9 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
 | Stan D1 | Eksperymentalny checkpoint automatycznie zweryfikowany; dwa owner smoke Ollamy `qwen3:30b` nie przeszły. Ledger i diagnoza zachowane na `checkpoint/d1-ledger-pipeline` (`973b604694ad06181deaa56989b9361f4b4ba52e`). To nie jest gotowy produkt. |
-| Następny etap | D1.1 — generator `{ plantUml }` → deterministyczna walidacja → niezależny semantic reviewer; potem S1 owner smoke Ollamy. |
+| Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
+| Stan D1.1 | Implemented and automatically verified — generator `{ plantUml }` → lokalne `DiagramFacts` i walidacja → niezależny semantic reviewer; owner smoke jeszcze nie wykonany. |
+| Następny etap | S1 — owner smoke Ollamy `qwen3:30b` na nowym VSIX; D2 dopiero po S1 PASS. |
 | Etapy po S1 | D2 dopiero po S1 PASS; C1 po D2; M1 (ArchitectureSnapshot/MCP) po C1. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -228,9 +230,9 @@ W kolejności ustalonej przez właściciela w R1 (2026-09-21; pełny opis w road
 
 1. **P1 i P2 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz
    Anthropic/OpenAI/OpenRouter, machine-scoped wybór profilu/modelu i cloud keys w `SecretStorage`.
-2. **D1** pozostaje eksperymentalnym checkpointem, nie ścieżką produkcyjną. **D1.1 (następna
-   implementacja)** zastępuje ledger generatorem `{ plantUml }`, lokalnymi `DiagramFacts`,
-   deterministyczną walidacją i niezależnym reviewerem. **S1** to wymagany owner smoke Ollamy;
+2. **D1** pozostaje eksperymentalnym checkpointem, nie ścieżką produkcyjną. **D1.1** zastępuje
+   ledger generatorem `{ plantUml }`, lokalnymi `DiagramFacts`, deterministyczną walidacją
+   i niezależnym reviewerem. **S1** to następny, wymagany owner smoke Ollamy;
    **D2** `component` jest zablokowany do S1 PASS.
 3. **C1 po D2:** VS Code Chat Participant `@archi-agent` z `/diagram`, tylko z historią własnych
    rozmów; **M1 po C1:** źródło MCP mapowane deterministycznie do `ArchitectureSnapshot`;
@@ -362,10 +364,9 @@ wykonywano.
 
 ## Następny krok
 
-**D1.1** — zaimplementować zatwierdzony reviewed pipeline z
+**S1** — owner smoke D1.1 z Ollamą `qwen3:30b` na zbudowanym VSIX, zgodnie z
 [`ADR 0001`](adr/0001-reviewed-diagram-generation.md) i
-[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md), po osobnym poleceniu
-implementacji. Następnie S1 owner smoke z Ollamą `qwen3:30b`; dopiero S1 PASS odblokowuje D2,
+[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md). Dopiero S1 PASS odblokowuje D2,
 a C1 następuje po D2. P2 jest zaimplementowane; ręczne smoke providerów chmurowych pozostaje
 opcjonalne i kosztowe, poza automatycznym DoD.
 
@@ -422,12 +423,49 @@ niezależny semantic reviewer → lokalna decyzja. Udany przebieg D1.1 ma dokła
 modelu, odrzucenie deterministyczne po generatorze jedno, a błędny kontekst lub nieobsługiwany
 typ zero. Bez retry, repair i fallbacku. Szczegóły są w
 [`ADR 0001`](adr/0001-reviewed-diagram-generation.md) i
-[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md). R1 utrwala dokumenty;
-**D1.1 nie jest jeszcze zaimplementowane**.
+[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md). R1 utrwaliło dokumenty,
+a osobne zadanie D1.1 zaimplementowało ten przepływ bez przenoszenia ledger checkpointu.
 
 KISS/BUZI w `AGENTS.md` i `CLAUDE.md` jest obowiązującą zasadą: najprostszy działający pionowy
 przepływ, bez spekulacyjnej złożoności; odstępstwo architektoniczne wymaga zatrzymania pracy i
 jawnej decyzji właściciela. Obowiązująca kolejność to
-R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL. Następny krok implementacyjny to
-D1.1 po osobnym zleceniu. D2 jest zablokowany do S1 PASS, C1 następuje po D2, MCP po C1.
+R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL. Następny krok to S1;
+D2 jest zablokowany do S1 PASS, C1 następuje po D2, MCP po C1.
 R1 jest zmianą dokumentacji; testy, typecheck, build i pakowanie nie są jego bramkami.
+
+## D1.1 — reviewed sequence (2026-09-21)
+
+Aktywna komenda **Generate Diagram → Sequence** używa jednego niemutowalnego snapshotu z
+istniejącego Knowledge Pack/groundingu. Generator zwraca wyłącznie ścisłe `{ plantUml }`.
+Zamknięty parser wyprowadza uczestników, strzałki, adnotacje, identyfikatory faktów i fizyczne
+numery linii bez ledgeru modelu. Walidacja dokumentu, składni, aliasów, groundingu,
+potwierdzonych relacji i jawnych zakazów zatrzymuje błędny diagram po pierwszym wywołaniu.
+Gdy nie ma pasującej relacji w packu, fakt trafia do reviewera z identyfikatorem dowodu
+niepustego fizycznego wiersza flow. Reviewer potwierdza semantykę, a lokalna decyzja sprawdza
+kompletność i integralność referencji bez interpretowania tekstu.
+Po jej przejściu osobny request tym samym profilem i modelem daje ścisły werdykt semantic
+reviewera; lokalna decyzja akceptuje lub odrzuca, bez repair/fallbacku. Sukces wykonuje dwa
+wywołania, odrzucenie deterministyczne jedno, błędny kontekst albo typ zero. Raport nowej
+ścieżki ma `reportSchemaVersion: 2`; zaakceptowany PlantUML pozostaje bez zmian.
+
+Korekta po review D1.1: OpenAI/OpenRouter projektują provider-compatible wire schema na granicy
+adaptera, przy zachowaniu pełnej lokalnej walidacji Zod. Jeden snapshot zasila oba prompty i
+adapter istniejących lokalnych walidatorów. Każdy zaakceptowany fakt w raporcie v2 wskazuje
+source-confirmed albo reviewer-confirmed user-stated evidence; mapa dowodów podaje klasę,
+logiczny plik i fizyczną linię. Zwykły tekst `ARCHGROUND_` w flow nie jest blokowany.
+
+Stara komenda **Generate Sequence Diagram**, CLI, renderer, raport v1 i golden outputs pozostają
+niezmienione. `component`, `c4-context`, `c4-container` i `archimate-hld` nadal kończą się przed
+I/O. Testy adapterów lokalnych i chmurowych używają wyłącznie syntetycznych doubles, bez
+płatnych połączeń. Automatyczne bramki D1.1: `npm ci`, testy celowane, `npm test`, oba typechecki,
+`extension:test`, `extension:build`, `extension:package`, `extension:verify`, `demo:dry-run` oraz
+runtime wyjęty z VSIX i uruchomiony poza repo — PASS. Dokładne liczby testów i artefaktu
+należy weryfikować na bieżąco w repo. **S1 owner smoke nie został wykonany; D2 jest zablokowany.**
+
+Korekta końcowego review D1.1: digest powstaje z jednego kanonicznego payloadu snapshotu
+zawierającego także logiczny plik flow, tekst i fizyczne linie flow evidence oraz pliki i linie
+źródłowe uczestników, relacji i reguł. Regresje sprawdzają stabilność digestu, zmianę każdej
+lokalizacji źródłowej i zgodność digestu w obu requestach oraz raporcie v2. W bieżącej sesji:
+testy celowane 59/59, `npm test` 1265/1265, oba typechecki, `extension:test` 194/194,
+`extension:build`, `extension:package`, `extension:verify` (6 wpisów), `demo:dry-run` i osobny
+test runtime wyjętego z VSIX poza repo — PASS. S1 owner smoke pozostaje jedyną bramką produktu.

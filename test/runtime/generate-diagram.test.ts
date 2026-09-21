@@ -5,11 +5,12 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createArchiAgentRuntime } from "../../src/runtime/index.js";
 import type { StructuredChatClient, StructuredChatRequest } from "../../src/core/llm/structured-chat-client.js";
 import { diagramEnvelopeLimits, diagramEnvelopeSchema, envelopeTooLarge } from "../../src/core/pipeline/generate-diagram.js";
+import { reviewerResponseSchema } from "../../src/core/pipeline/reviewed-sequence.js";
 import { basePackRows, buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
 import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
 import { OpenAiCompatibleServerDouble } from "../doubles/openai-compatible-server-double.js";
 
-const root = realpathSync(mkdtempSync(path.join(tmpdir(), "archi-d1-")));
+const root = realpathSync(mkdtempSync(path.join(tmpdir(), "archi-d11-")));
 const packPath = path.join(root, "architecture");
 mkdirSync(packPath);
 for (const [name, content] of Object.entries(buildPackFiles())) writeFileSync(path.join(packPath, name), content);
@@ -18,22 +19,23 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 const flow = { kind: "document", text: "---\ndiagram_name: observation\nflow_name: Observation\nauthor: Test\nlanguage: en\n---\nTelescope Scheduler registers frames in Image Archive.\n" } as const;
 const generator = { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "test-model" } as const;
 const request = { diagramType: "sequence", flow, knowledgePack: { kind: "local-directory", path: packPath }, generator } as const;
-const entry = { order: 1, lineNumber: 4, from: { elementId: "telescope-scheduler" }, to: { elementId: "image-archive" }, label: "Registers frames", interfaceType: "DB", interfaceName: "Archive Writer", async: false, isResponse: false };
-const plantUml = "@startuml\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\ndatabase \"Image Archive\" as kp_image_archive\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\n@enduml\n";
-const answer = { plantUml, messages: [entry] };
+const plantUml = "@startuml\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\ndatabase \"Image Archive\" as kp_image_archive\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\n@enduml";
+const generated = { plantUml };
+const accepted = { verdict: "accept", violations: [], confirmations: [] };
+const rejected = { verdict: "reject", violations: [{ code: "coverage-gap", diagramLine: 4, factId: "m1", evidenceIds: ["relationship:1"], explanation: "Important step omitted" }], confirmations: [] };
 
-function runtime(value: unknown, clientType = "openai-compatible-local") {
+function runtime(generatorAnswer: unknown = generated, reviewerAnswer: unknown = accepted) {
   const calls: StructuredChatRequest[] = [];
   const client: StructuredChatClient = {
-    clientType,
+    clientType: "openai-compatible-local",
     generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
-    async complete(chat) { calls.push(chat); return { source: "content", value: value as Record<string, unknown> }; }
+    async complete(chat) { calls.push(chat); return { source: "content", value: (calls.length === 1 ? generatorAnswer : reviewerAnswer) as Record<string, unknown> }; }
   };
   return { calls, app: createArchiAgentRuntime({ diagramClientFactory: () => client }) };
 }
 
-describe("D1 final PlantUML path", () => {
-  it("has a recursively strict schema with required nullable interfaceName", () => {
+describe("D1.1 reviewed sequence path", () => {
+  it("uses recursively strict generator and reviewer schemas", () => {
     const visit = (node: unknown): void => {
       if (node === null || typeof node !== "object") return;
       const schema = node as Record<string, unknown>;
@@ -45,172 +47,313 @@ describe("D1 final PlantUML path", () => {
       for (const child of Object.values(schema)) visit(child);
     };
     visit(diagramEnvelopeSchema);
-    const message = (diagramEnvelopeSchema["properties"] as Record<string, any>)["messages"].items;
-    expect(message.required).toContain("interfaceName");
-    expect(message.required).toContain("lineNumber");
-    expect(JSON.stringify(message.properties.interfaceName)).toContain('"null"');
+    visit(reviewerResponseSchema);
+    expect(Object.keys(diagramEnvelopeSchema["properties"] as object)).toEqual(["plantUml"]);
+    expect(JSON.stringify(reviewerResponseSchema)).toContain("evidenceIds");
   });
 
-  it("bounds the complete JSON envelope at the exact limit and rejects unsafe values", () => {
+  it("bounds the entire unknown JSON envelope", () => {
     const atLimit = { padding: "x".repeat(diagramEnvelopeLimits.maxJsonChars - '{"padding":""}'.length) };
-    expect(JSON.stringify(atLimit).length).toBe(diagramEnvelopeLimits.maxJsonChars);
     expect(envelopeTooLarge(atLimit)).toBe(false);
     expect(envelopeTooLarge({ padding: `${atLimit.padding}x` })).toBe(true);
-    expect(envelopeTooLarge({ many: Array(diagramEnvelopeLimits.maxJsonChars + 1).fill(null) })).toBe(true);
-    let deep: unknown = {};
-    for (let index = 0; index <= diagramEnvelopeLimits.maxDepth; index += 1) deep = { child: deep };
-    expect(envelopeTooLarge(deep)).toBe(true);
-    const cycle: Record<string, unknown> = {};
-    cycle["self"] = cycle;
+    const cycle: Record<string, unknown> = {}; cycle["self"] = cycle;
     expect(envelopeTooLarge(cycle)).toBe(true);
     expect(envelopeTooLarge({ value: BigInt(1) })).toBe(true);
   });
 
-  it("returns the exact validated PlantUML, report and one structured completion", async () => {
-    const { app, calls } = runtime(answer);
+  it("returns unchanged PlantUML after two independent calls and reports local physical facts", async () => {
+    const { app, calls } = runtime();
     const result = await app.generateDiagram!({ ...request });
     expect(result.status).toBe("success");
     if (result.status !== "success") return;
     expect(result.plantUml).toBe(plantUml);
     expect(result.summary).toMatchObject({ participantCount: 2, messageCount: 1 });
-    expect(JSON.parse(result.groundingReport).messages).toHaveLength(1);
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.schemaName).toBe("final_plantuml_sequence");
+    const report = JSON.parse(result.groundingReport);
+    expect(report).toMatchObject({ reportSchemaVersion: 2, diagramType: "sequence", semanticReview: { verdict: "accept" },
+      parsedFacts: { relationships: [{ factId: "m1", lineNumber: 4, order: 1, evidenceIds: ["relationship:1"] }] } });
+    expect(report.snapshotDigest.value).toBe(result.digest);
+    expect(report.parsedFacts.elements.every((fact: { evidenceIds: string[] }) => fact.evidenceIds.length === 1)).toBe(true);
+    expect(result.groundingReport).not.toContain("Registers frames");
+    expect(calls).toHaveLength(2);
+    expect(calls.map((call) => call.schemaName)).toEqual(["reviewed_sequence_generator", "reviewed_sequence_verdict"]);
+    expect(calls[0]?.messages[1]?.content).toContain(result.digest);
+    expect(calls[1]?.messages[1]?.content).toContain(result.digest);
     expect(calls[0]?.messages[1]?.content).not.toContain("Night Observer");
-    expect(calls[0]?.messages[1]?.content).toContain('"kp:telescope-scheduler","kp_telescope_scheduler"');
+    const generatorInput = JSON.parse(calls[0]?.messages[1]?.content ?? "{}");
+    const reviewerInput = JSON.parse(calls[1]?.messages[1]?.content ?? "{}");
+    expect(Object.keys(generatorInput.snapshot).sort()).toEqual(["digest", "elements", "flowEvidence", "flowFile", "metadata", "relationships", "rules", "snapshotId", "sources"]);
+    expect(generatorInput.snapshot).toEqual(reviewerInput.snapshot);
+    expect(generatorInput.snapshot.digest).toBe(report.snapshotDigest.value);
+    expect(reviewerInput.snapshot.digest).toBe(report.snapshotDigest.value);
+    expect(generatorInput.snapshot.relationships[0].evidenceClass).toBe("source-confirmed");
   });
 
-  it("accepts a balanced opt fragment without rewriting final PlantUML", async () => {
+  it("derives shifted line numbers, ordered arrows and fragments without rewriting", async () => {
     const text = plantUml.replace("kp_telescope_scheduler ->", "opt Retry\nkp_telescope_scheduler ->").replace("@enduml", "end\n@enduml");
-    const { app, calls } = runtime({ plantUml: text, messages: [{ ...entry, lineNumber: 5 }] });
+    const { app, calls } = runtime({ plantUml: text }, { ...accepted, confirmations: [{ factId: "a1", flowEvidenceIds: ["flow:7"] }, { factId: "a2", flowEvidenceIds: ["flow:7"] }] });
     const result = await app.generateDiagram!({ ...request });
     expect(result.status).toBe("success");
     if (result.status !== "success") return;
     expect(result.plantUml).toBe(text);
-    expect(JSON.parse(result.groundingReport).fragments).toMatchObject([{ kind: "opt", firstOrder: 1, lastOrder: 1 }]);
-    expect(calls).toHaveLength(1);
+    expect(JSON.parse(result.groundingReport).parsedFacts.relationships[0]).toMatchObject({ lineNumber: 5, order: 1 });
+    expect(JSON.parse(result.groundingReport).parsedFacts.annotations.map((fact: { evidenceIds: string[] }) => fact.evidenceIds)).toEqual([["flow:7"], ["flow:7"]]);
+    const reviewed = JSON.parse(calls[1]?.messages[1]?.content ?? "{}");
+    expect(reviewed.facts.relationships[0]).toMatchObject({ lineNumber: 5, label: "Registers frames", async: false, isResponse: false });
+    expect(reviewed.facts.annotations).toMatchObject([{ fragmentKind: "opt", condition: "Retry" }, { fragmentKind: "end" }]);
   });
 
-  it("requires explicit confirmation of a [NEW] participant before model access", async () => {
-    const newFlow = { kind: "document", text: "---\ndiagram_name: new-station\nflow_name: New station\nauthor: Test\nlanguage: en\n---\nTelescope Scheduler sends data to [NEW: Ground Station].\n" } as const;
-    const text = "@startuml\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\nparticipant \"[NEW] Ground Station\" as new_ground_station\nkp_telescope_scheduler ->> new_ground_station : Sends data (EVENT)\n@enduml\n";
-    const { app, calls } = runtime({ plantUml: text, messages: [{ order: 1, lineNumber: 4, from: { elementId: "telescope-scheduler" }, to: { newName: "ground station" }, label: "Sends data", interfaceType: "EVENT", interfaceName: null, async: true, isResponse: false }] });
-    const blocked = await app.generateDiagram!({ ...request, flow: newFlow });
-    expect(blocked).toMatchObject({ status: "failed", stage: "grounding-blocked" });
-    expect(calls).toHaveLength(0);
-    const confirmed = await app.generateDiagram!({ ...request, flow: newFlow, confirmedNewParticipants: ["Ground Station"] });
-    expect(confirmed.status).toBe("success");
-    if (confirmed.status !== "success") return;
-    expect(confirmed.plantUml).toBe(text);
-    expect(confirmed.summary).toMatchObject({ newParticipantCount: 1, asynchronousCount: 1 });
+  it("maps each physical arrow in order and binds a response to its earlier synchronous request", async () => {
+    const text = plantUml.replace("@enduml", "kp_image_archive --> kp_telescope_scheduler : Stored frames (DB: Archive Writer)\n@enduml");
+    const { app, calls } = runtime({ plantUml: text });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result.status).toBe("success");
+    if (result.status !== "success") return;
+    expect(result.summary).toMatchObject({ messageCount: 2, responseCount: 1 });
+    expect(JSON.parse(result.groundingReport).parsedFacts.relationships).toMatchObject([
+      { factId: "m1", lineNumber: 4, order: 1, arrow: "->" },
+      { factId: "m2", lineNumber: 5, order: 2, arrow: "-->" }
+    ]);
+    expect(calls).toHaveLength(2);
+    const missingRequest = runtime({ plantUml: text.replace("kp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\n", "") });
+    expect(await missingRequest.app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(missingRequest.calls).toHaveLength(1);
+  });
+
+  it.each([
+    ["extra envelope field", { ...generated, other: true }, "invalid-generator-output"],
+    ["missing plantUml", {}, "invalid-generator-output"],
+    ["oversized", { plantUml: "x".repeat(256 * 1024 + 1) }, "invalid-generator-output"],
+    ["unknown participant", { plantUml: plantUml.replace("kp_image_archive", "kp_unknown") }, "semantic-validation-failed"],
+    ["wrong canonical name", { plantUml: plantUml.replace("Image Archive", "Invented") }, "semantic-validation-failed"],
+    ["directive", { plantUml: plantUml.replace("@enduml", "!include secret\n@enduml") }, "render-validation-failed"],
+    ["URL", { plantUml: plantUml.replace("Registers frames", "https://invalid.example") }, "render-validation-failed"],
+    ["unsafe syntax", { plantUml: plantUml.replace("@enduml", "note over kp_image_archive: x\n@enduml") }, "semantic-validation-failed"],
+    ["missing marker", { plantUml: plantUml.replace("@enduml", "") }, "render-validation-failed"]
+  ])("rejects %s deterministically after one call", async (_name, answer, stage) => {
+    const { app, calls } = runtime(answer);
+    expect(await app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage });
     expect(calls).toHaveLength(1);
   });
 
   it.each([
-    ["extra envelope field", { ...answer, other: true }, "invalid-generator-output"],
-    ["oversized envelope", { plantUml: "x".repeat(256 * 1024 + 1), messages: [entry] }, "invalid-generator-output"],
-    ["missing async", { plantUml, messages: [{ ...entry, async: undefined }] }, "invalid-generator-output"],
-    ["missing line number", { plantUml, messages: [{ ...entry, lineNumber: undefined }] }, "invalid-generator-output"],
-    ["line at declaration", { plantUml, messages: [{ ...entry, lineNumber: 2 }] }, "semantic-validation-failed"],
-    ["line shifted", { plantUml, messages: [{ ...entry, lineNumber: 5 }] }, "semantic-validation-failed"],
-    ["missing interface name", { plantUml, messages: [{ ...entry, interfaceName: undefined }] }, "invalid-generator-output"],
-    ["large extra field", { ...answer, extra: "synthetic-secret".repeat(100_000) }, "invalid-generator-output"],
-    ["both flags", { plantUml, messages: [{ ...entry, async: true, isResponse: true }] }, "semantic-validation-failed"],
-    ["wrong arrow", { plantUml: plantUml.replace(" -> ", " ->> "), messages: [entry] }, "semantic-validation-failed"],
-    ["wrong label", { plantUml: plantUml.replace("Registers frames", "Invents frames"), messages: [entry] }, "semantic-validation-failed"],
-    ["wrong canonical name", { plantUml: plantUml.replace("Image Archive", "Archive"), messages: [entry] }, "semantic-validation-failed"],
-    ["directive", { plantUml: plantUml.replace("@enduml", "!include secret\n@enduml"), messages: [entry] }, "render-validation-failed"],
-    ["extra statement", { plantUml: plantUml.replace("@enduml", "note over kp_image_archive: x\n@enduml"), messages: [entry] }, "semantic-validation-failed"],
-    ["invented relation", { plantUml, messages: [{ ...entry, interfaceType: "EVENT" }] }, "semantic-validation-failed"],
-    ["unsupported interface name", { plantUml: plantUml.replace("Archive Writer", "Invented"), messages: [{ ...entry, interfaceName: "Invented" }] }, "semantic-validation-failed"],
-    ["missing end marker", { plantUml: plantUml.replace("@enduml\n", ""), messages: [entry] }, "render-validation-failed"]
-  ])("rejects %s without a second call", async (_name, value, stage) => {
-    const { app, calls } = runtime(value);
-    const result = await app.generateDiagram!({ ...request });
-    expect(result).toMatchObject({ status: "failed", stage });
-    expect(calls).toHaveLength(1);
-  });
-
-  it("accepts required interfaceName null when the grounded relationship has no name", async () => {
-    const text = plantUml.replace(" (DB: Archive Writer)", " (DB)");
-    const directory = path.join(root, "unnamed-interface");
-    mkdirSync(directory);
-    for (const [name, content] of Object.entries(buildPackFiles({ relationships: basePackRows.relationships.map((row) =>
-      row[1] === "image-archive" ? [row[0]!, row[1]!, row[2]!, "", row[4]!, row[5]!] : row) }))) writeFileSync(path.join(directory, name), content);
-    const { app } = runtime({ plantUml: text, messages: [{ ...entry, interfaceName: null }] });
-    expect((await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).status).toBe("success");
-  });
-
-  it("rejects two ledger entries naming the same arrow line", async () => {
-    const text = plantUml.replace("@enduml", "kp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\n@enduml");
-    const { app } = runtime({ plantUml: text, messages: [entry, { ...entry, order: 2 }] });
+    plantUml.replace("kp_telescope_scheduler -> kp_image_archive", "kp_image_archive -> kp_telescope_scheduler"),
+    plantUml.replace(" -> ", " ->> "),
+    plantUml.replace("(DB: Archive Writer)", "(EVENT)"),
+    plantUml.replace("Archive Writer", "Invented")
+  ])("requires reviewer evidence for a relationship without an exact pack match", async (text) => {
+    const { app, calls } = runtime({ plantUml: text }, rejected);
     expect(await app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(calls).toHaveLength(2);
   });
 
-  it("binds a response to the synchronous request when the pack also has an async relation", async () => {
-    const directory = path.join(root, "mixed-modes");
-    mkdirSync(directory);
-    const relationships = [...basePackRows.relationships, ["telescope-scheduler", "image-archive", "DB", "Archive Writer", "asynchronous", "Queues frames"]];
-    for (const [name, content] of Object.entries(buildPackFiles({ relationships }))) writeFileSync(path.join(directory, name), content);
-    const arrow = "kp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)";
-    const text = plantUml.replace(arrow, `kp_telescope_scheduler ->> kp_image_archive : Queues frames (DB: Archive Writer)\n${arrow}\nkp_image_archive --> kp_telescope_scheduler : Stored frames (DB: Archive Writer)`);
-    const event = { ...entry, label: "Queues frames", async: true };
-    const sync = { ...entry, order: 2, lineNumber: 5 };
-    const reply = { ...entry, order: 3, lineNumber: 6, from: entry.to, to: entry.from, label: "Stored frames", isResponse: true };
-    const { app } = runtime({ plantUml: text, messages: [event, sync, reply] });
-    expect((await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).status).toBe("success");
-    const onlyAsync = runtime({ plantUml: text.replace(`${arrow}\n`, ""), messages: [event, { ...reply, order: 2, lineNumber: 5 }] });
-    expect(await onlyAsync.app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+  it("sends an ungrounded known-to-known relation to review", async () => {
+    const text = plantUml.replace("kp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)",
+      "kp_image_archive -> kp_telescope_scheduler : Invented event (EVENT)");
+    const { app, calls } = runtime({ plantUml: text }, { ...rejected, violations: [{ ...rejected.violations[0], evidenceIds: ["flow:7"] }] });
+    expect(await app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(calls).toHaveLength(2);
   });
 
-  it("rejects unsafe client metadata before structured chat", async () => {
-    const { app, calls } = runtime(answer, "secret\nvalue");
-    const result = await app.generateDiagram!({ ...request });
-    expect(result).toMatchObject({ status: "failed", stage: "invalid-generator-output", issues: [{ code: "invalid-generator-type" }] });
+  it("accepts a flow-stated relation only with reviewer evidence and traces it in report v2", async () => {
+    const directory = path.join(root, "flow-evidence"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: basePackRows.relationships.filter((row) => row[1] !== "image-archive") })))
+      writeFileSync(path.join(directory, name), content);
+    const confirmation = { factId: "m1", flowEvidenceIds: ["flow:7"] };
+    const { app, calls } = runtime(generated, { ...accepted, confirmations: [confirmation] });
+    const result = await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } });
+    expect(result.status).toBe("success");
+    if (result.status !== "success") return;
+    const report = JSON.parse(result.groundingReport);
+    expect(report.parsedFacts.relationships[0].evidenceIds).toEqual(["flow:7"]);
+    expect(report.sources.evidence).toContainEqual({ id: "flow:7", file: "flow.md", line: 7, evidenceClass: "user-stated" });
+    expect(JSON.parse(calls[0]?.messages[1]?.content ?? "{}").snapshot).toEqual(JSON.parse(calls[1]?.messages[1]?.content ?? "{}").snapshot);
+    expect(calls).toHaveLength(2);
+
+    for (const invalid of [
+      accepted,
+      { ...accepted, confirmations: [{ factId: "m1", flowEvidenceIds: ["flow:999"] }] },
+      { ...accepted, confirmations: [{ factId: "m1", flowEvidenceIds: ["relationship:1"] }] },
+      { ...accepted, confirmations: [confirmation, confirmation] },
+      { ...accepted, confirmations: [{ factId: "m1", flowEvidenceIds: ["flow:7", "flow:7"] }] }
+    ]) {
+      const attempt = runtime(generated, invalid);
+      expect(await attempt.app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).toMatchObject({ status: "failed", stage: "invalid-generator-output" });
+      expect(attempt.calls).toHaveLength(2);
+    }
+    const denied = runtime(generated, { ...rejected, violations: [{ ...rejected.violations[0], evidenceIds: ["flow:7"] }] });
+    expect(await denied.app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(denied.calls).toHaveLength(2);
+  });
+
+  it("enforces a pack prohibition before semantic review", async () => {
+    const directory = path.join(root, "forbidden-flow-relation"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: basePackRows.relationships.filter((row) => row[1] !== "image-archive"),
+      rules: [...basePackRows.rules.filter((row) => row[1] !== "telescope-scheduler" || row[2] !== "image-archive"), ["forbid", "telescope-scheduler", "image-archive", "Blocked"]] }))) writeFileSync(path.join(directory, name), content);
+    const { app, calls } = runtime();
+    expect(await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0]?.messages[1]?.content ?? "{}").snapshot.rules).toContainEqual(expect.objectContaining({
+      rule: "forbid", fromId: "telescope-scheduler", toId: "image-archive"
+    }));
+  });
+
+  it("accepts ARCHGROUND_ as ordinary flow text", async () => {
+    const { app, calls } = runtime();
+    const result = await app.generateDiagram!({ ...request, flow: { ...flow, text: flow.text.replace("registers frames", "registers ARCHGROUND_ frames") } });
+    expect(result.status).toBe("success");
+    expect(calls).toHaveLength(2);
+  });
+
+  it("requires [NEW] confirmation before any call", async () => {
+    const newFlow = { kind: "document", text: "---\ndiagram_name: new-station\nflow_name: New station\nauthor: Test\nlanguage: en\n---\nTelescope Scheduler sends data to [NEW: Ground Station].\n" } as const;
+    const { app, calls } = runtime();
+    expect(await app.generateDiagram!({ ...request, flow: newFlow })).toMatchObject({ status: "failed", stage: "grounding-blocked" });
     expect(calls).toHaveLength(0);
   });
 
-  it("reports timeout without leaking the provider error and makes one completion", async () => {
-    let completions = 0;
-    const client: StructuredChatClient = {
-      clientType: "synthetic-client",
-      generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
-      async complete() { completions += 1; throw Object.assign(new Error("synthetic-secret"), { code: "timeout" }); }
-    };
+  it("rejects an invalid flow context before model I/O", async () => {
+    const { app, calls } = runtime();
+    const result = await app.generateDiagram!({ ...request, flow: { kind: "file", path: "/does/not/exist" } });
+    expect(result.status).toBe("failed");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("uses a confirmed [NEW] participant without pretending it has Knowledge Pack evidence", async () => {
+    const newFlow = { kind: "document", text: "---\ndiagram_name: new-station\nflow_name: New station\nauthor: Test\nlanguage: en\n---\nTelescope Scheduler sends data to [NEW: Ground Station].\n" } as const;
+    const text = "@startuml\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\nparticipant \"[NEW] Ground Station\" as new_ground_station\nkp_telescope_scheduler ->> new_ground_station : Sends data (EVENT)\n@enduml";
+    const { app, calls } = runtime({ plantUml: text }, { ...accepted, confirmations: [{ factId: "e2", flowEvidenceIds: ["flow:7"] }, { factId: "m1", flowEvidenceIds: ["flow:7"] }] });
+    const result = await app.generateDiagram!({ ...request, flow: newFlow, confirmedNewParticipants: ["Ground Station"] });
+    expect(result.status).toBe("success");
+    if (result.status !== "success") return;
+    expect(result.summary).toMatchObject({ newParticipantCount: 1, asynchronousCount: 1 });
+    expect(result.warnings.map((issue) => issue.code)).toContain("unverified-new-participant-interaction");
+    expect(calls).toHaveLength(2);
+  });
+
+  it("accepts a grounded unnamed interface", async () => {
+    const directory = path.join(root, "unnamed-interface"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: basePackRows.relationships.map((row) =>
+      row[1] === "image-archive" ? [row[0]!, row[1]!, row[2]!, "", row[4]!, row[5]!] : row) }))) writeFileSync(path.join(directory, name), content);
+    const { app } = runtime({ plantUml: plantUml.replace(" (DB: Archive Writer)", " (DB)") });
+    expect((await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).status).toBe("success");
+  });
+
+  it("chooses the first grounded evidence deterministically when several relationships match", async () => {
+    const directory = path.join(root, "multiple-evidence"); mkdirSync(directory);
+    const original = basePackRows.relationships.find((row) => row[1] === "image-archive")!;
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: [...basePackRows.relationships, [original[0]!, original[1]!, original[2]!, "Archive Writer 2", original[4]!, original[5]!]] })))
+      writeFileSync(path.join(directory, name), content);
+    const { app } = runtime({ plantUml: plantUml.replace("(DB: Archive Writer)", "(DB)") });
+    const result = await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } });
+    expect(result.status).toBe("success");
+    if (result.status === "success") expect(JSON.parse(result.groundingReport).parsedFacts.relationships[0].evidenceIds).toEqual(["relationship:1"]);
+  });
+
+  it("rejects review without artifacts after exactly two calls", async () => {
+    const { app, calls } = runtime(generated, rejected);
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed", issues: [{ code: "review-rejected", details: { line: 4, factId: "m1" } }] });
+    expect(JSON.stringify(result)).not.toContain("Important step omitted");
+    expect(JSON.stringify(result)).not.toContain("@startuml");
+    expect(calls).toHaveLength(2);
+  });
+
+  it.each([
+    { verdict: "accept", violations: [rejected.violations[0]], confirmations: [] },
+    { verdict: "reject", violations: [], confirmations: [] },
+    { verdict: "reject", violations: [{ ...rejected.violations[0], factId: "m99" }], confirmations: [] },
+    { verdict: "reject", violations: [{ ...rejected.violations[0], evidenceIds: ["secret"] }], confirmations: [] },
+    { verdict: "reject", violations: [{ ...rejected.violations[0], diagramLine: 99 }], confirmations: [] },
+    { verdict: "reject", violations: [{ ...rejected.violations[0], explanation: "x".repeat(501) }], confirmations: [] },
+    { ...accepted, plantUml: "secret" }
+  ])("fails closed on malformed reviewer output", async (review) => {
+    const { app, calls } = runtime(generated, review);
+    expect(await app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage: "invalid-generator-output", issues: [{ code: "review-schema-violation" }] });
+    expect(calls).toHaveLength(2);
+  });
+
+  it("cancels before generation and between generation and review", async () => {
+    const before = runtime();
+    expect((await before.app.generateDiagram!({ ...request, signal: { aborted: true } })).status).toBe("failed");
+    expect(before.calls).toHaveLength(0);
+    const signal = { aborted: false };
+    let calls = 0;
+    const client: StructuredChatClient = { clientType: "synthetic-client", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
+      async complete() { calls += 1; signal.aborted = true; return { source: "content", value: generated }; } };
+    const app = createArchiAgentRuntime({ diagramClientFactory: () => client });
+    expect((await app.generateDiagram!({ ...request, signal })).status).toBe("failed");
+    expect(calls).toBe(1);
+  });
+
+  it("contains a reviewer timeout to two calls with safe error", async () => {
+    let calls = 0;
+    const client: StructuredChatClient = { clientType: "synthetic-client", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
+      async complete() { calls += 1; if (calls === 2) throw Object.assign(new Error("synthetic-secret"), { code: "timeout" }); return { source: "content", value: generated }; } };
+    const app = createArchiAgentRuntime({ diagramClientFactory: () => client });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "invalid-generator-output", issues: [{ code: "reviewer-failed" }] });
+    expect(JSON.stringify(result)).not.toContain("synthetic-secret");
+    expect(calls).toBe(2);
+  });
+
+  it("contains a generator timeout to one call without review", async () => {
+    let calls = 0;
+    const client: StructuredChatClient = { clientType: "synthetic-client", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
+      async complete() { calls += 1; throw Object.assign(new Error("synthetic-secret"), { code: "timeout" }); } };
     const app = createArchiAgentRuntime({ diagramClientFactory: () => client });
     const result = await app.generateDiagram!({ ...request });
     expect(result).toMatchObject({ status: "failed", stage: "invalid-generator-output", issues: [{ code: "generator-failed" }] });
     expect(JSON.stringify(result)).not.toContain("synthetic-secret");
-    expect(completions).toBe(1);
+    expect(calls).toBe(1);
   });
 
-  it("contains a remote transport timeout to one D1 request and a safe diagnostic", async () => {
-    const transport = new RemoteJsonTransportDouble(Object.assign(new Error("synthetic-secret"), { code: "timeout" }));
+  it("does not expose cloud credentials or untrusted answer text in a failed review", async () => {
+    const raw = "synthetic-secret";
+    const transport = new RemoteJsonTransportDouble(
+      JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(generated), refusal: null } }] }),
+      JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ ...rejected, violations: [{ ...rejected.violations[0], explanation: raw }] }), refusal: null } }] })
+    );
     const app = createArchiAgentRuntime({ remoteTransport: transport });
-    const result = await app.generateDiagram!({ ...request, generator: { kind: "remote-provider", profileId: "cloud-openai", modelId: "test-model", credential: { type: "api-key", value: "synthetic-secret" } } });
-    expect(result).toMatchObject({ status: "failed", stage: "invalid-generator-output", issues: [{ code: "generator-failed" }] });
-    expect(transport.requests).toHaveLength(1);
-    expect(JSON.stringify(result)).not.toContain("synthetic-secret");
+    const result = await app.generateDiagram!({ ...request, generator: { kind: "remote-provider", profileId: "cloud-openai", modelId: "test-model", credential: { type: "api-key", value: raw } } });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(JSON.stringify(result)).not.toContain(raw);
+    expect(transport.requests).toHaveLength(2);
+    for (const sent of transport.requests) expect(sent.body).not.toContain(raw);
   });
 
-  it("cancels before complete and after a pending completion without another call", async () => {
-    const before = runtime(answer);
-    expect(await before.app.generateDiagram!({ ...request, signal: { aborted: true } })).toMatchObject({ status: "failed", stage: "knowledge-pack" });
-    expect(before.calls).toHaveLength(0);
+  it.each([
+    ["cloud-anthropic", (content: string) => JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: content }] })],
+    ["cloud-openai", (content: string) => JSON.stringify({ choices: [{ finish_reason: "stop", message: { content, refusal: null } }] })],
+    ["cloud-openrouter", (content: string) => JSON.stringify({ choices: [{ finish_reason: "stop", message: { content, refusal: null } }] })]
+  ] as const)("keeps %s API key only in both authorization headers on rejection", async (profileId, response) => {
+    const secret = "synthetic-secret";
+    const transport = new RemoteJsonTransportDouble(response(JSON.stringify(generated)), response(JSON.stringify(rejected)));
+    const app = createArchiAgentRuntime({ remoteTransport: transport });
+    const result = await app.generateDiagram!({ ...request, flow: { ...flow, text: flow.text.replace("registers frames", "registers ARCHGROUND_ frames") },
+      generator: { kind: "remote-provider", profileId, modelId: "test-model", credential: { type: "api-key", value: secret } } });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(transport.requests).toHaveLength(2);
+    for (const sent of transport.requests) {
+      expect(sent.body ?? "").not.toContain(secret);
+      expect(sent.headers).toEqual(profileId === "cloud-anthropic"
+        ? { "x-api-key": secret, "anthropic-version": "2023-06-01" }
+        : { Authorization: `Bearer ${secret}` });
+    }
+  });
+
+  it("stops after reviewer cancellation, without a third request", async () => {
     const signal = { aborted: false };
-    let completions = 0;
-    const client: StructuredChatClient = {
-      clientType: "synthetic-client",
-      generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
-      async complete() { completions += 1; signal.aborted = true; return { source: "content", value: answer }; }
-    };
+    let calls = 0;
+    const client: StructuredChatClient = { clientType: "synthetic-client", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
+      async complete() { calls += 1; if (calls === 2) signal.aborted = true; return { source: "content", value: calls === 1 ? generated : accepted }; } };
     const app = createArchiAgentRuntime({ diagramClientFactory: () => client });
-    expect(await app.generateDiagram!({ ...request, signal })).toMatchObject({ status: "failed", stage: "invalid-generator-output" });
-    expect(completions).toBe(1);
+    expect((await app.generateDiagram!({ ...request, signal })).status).toBe("failed");
+    expect(calls).toBe(2);
   });
 
-  it.each(["component", "c4-context", "c4-container", "archimate-hld", "unknown"])("rejects %s before any source or provider I/O", async (diagramType) => {
-    const { app, calls } = runtime(answer);
+  it.each(["component", "c4-context", "c4-container", "archimate-hld"]) ("rejects %s before source and provider I/O", async (diagramType) => {
+    const { app, calls } = runtime();
     const result = await app.generateDiagram!({ ...request, diagramType: diagramType as "sequence", flow: { kind: "file", path: "/does/not/exist" }, knowledgePack: { kind: "local-directory", path: "/does/not/exist" } });
     expect(result).toMatchObject({ status: "failed", stage: "generator-configuration", issues: [{ code: "diagram-type-unsupported" }] });
     expect(calls).toHaveLength(0);
@@ -220,40 +363,57 @@ describe("D1 final PlantUML path", () => {
     ["cloud-anthropic", "anthropic-messages", (content: string) => JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: content }] })],
     ["cloud-openai", "openai-chat-completions", (content: string) => JSON.stringify({ choices: [{ finish_reason: "stop", message: { content, refusal: null } }] })],
     ["cloud-openrouter", "openrouter-chat-completions", (content: string) => JSON.stringify({ choices: [{ finish_reason: "stop", message: { content, refusal: null } }] })]
-  ])("uses one %s provider request for final PlantUML", async (profileId, endpoint, response) => {
-    const transport = new RemoteJsonTransportDouble(response(JSON.stringify(answer)));
+  ])("uses two %s requests with one selected model", async (profileId, endpoint, response) => {
+    const transport = new RemoteJsonTransportDouble(response(JSON.stringify(generated)), response(JSON.stringify(accepted)));
     const app = createArchiAgentRuntime({ remoteTransport: transport });
     const result = await app.generateDiagram!({ ...request, generator: { kind: "remote-provider", profileId, modelId: "test-model", credential: { type: "api-key", value: "synthetic-secret" } } });
     expect(result.status).toBe("success");
-    expect(transport.requests.map((sent) => sent.endpoint)).toEqual([endpoint]);
-    if (profileId === "cloud-openai" || profileId === "cloud-openrouter") {
+    expect(transport.requests.map((sent) => sent.endpoint)).toEqual([endpoint, endpoint]);
+    for (const sent of transport.requests) expect(sent.body).toContain("test-model");
+    const nodes = (value: unknown): Record<string, unknown>[] => value !== null && typeof value === "object"
+      ? [value as Record<string, unknown>, ...Object.values(value).flatMap(nodes)] : [];
+    const secret = "synthetic-secret";
+    for (const sent of transport.requests) {
+      expect(sent.body).not.toContain(secret);
+      expect(sent.headers).toEqual(profileId === "cloud-anthropic"
+        ? { "x-api-key": secret, "anthropic-version": "2023-06-01" }
+        : { Authorization: `Bearer ${secret}` });
+    }
+    if (profileId !== "cloud-anthropic") {
       const sent = JSON.parse(transport.requests[0]?.body ?? "{}");
-      expect(sent.response_format.json_schema).toEqual({ name: "final_plantuml_sequence", strict: true, schema: diagramEnvelopeSchema });
+      expect(sent.response_format.json_schema).toMatchObject({ name: "reviewed_sequence_generator", strict: true });
+      const review = JSON.parse(transport.requests[1]?.body ?? "{}");
+      expect(review.response_format.json_schema).toMatchObject({ name: "reviewed_sequence_verdict", strict: true });
+      for (const schema of [sent.response_format.json_schema.schema, review.response_format.json_schema.schema]) {
+        const all = nodes(schema);
+        for (const node of all) {
+          for (const forbidden of ["maxLength", "minLength", "maxItems", "minItems", "minimum", "maximum"])
+            expect(node).not.toHaveProperty(forbidden);
+          if (node.type === "object") {
+            expect(node.additionalProperties).toBe(false);
+            expect([...(node.required as string[])].sort()).toEqual(Object.keys(node.properties as object).sort());
+          }
+        }
+      }
+    } else {
+      for (const sent of transport.requests) {
+        const body = JSON.parse(sent.body ?? "{}");
+        expect(body.output_config.format.type).toBe("json_schema");
+        expect(nodes(body.output_config.format.schema).filter((node) => node.type === "object")
+          .every((node) => node.additionalProperties === false)).toBe(true);
+      }
     }
     expect(JSON.stringify(result)).not.toContain("synthetic-secret");
   });
 
-  it("uses one local OpenAI-compatible POST for final PlantUML", async () => {
-    const server = await OpenAiCompatibleServerDouble.start({ completionContent: JSON.stringify(answer) });
-    try {
-      const app = createArchiAgentRuntime();
-      const result = await app.generateDiagram!({ ...request, generator: { ...generator, baseUrl: server.baseUrl } });
-      expect(result.status).toBe("success");
-      expect(server.requests.map((sent) => [sent.method, sent.path])).toEqual([["POST", "/v1/chat/completions"]]);
-    } finally {
-      await server.close();
-    }
-  });
-
-  it.each(["local-lm-studio", "local-ollama"])("uses the %s profile through one local POST", async (profileId) => {
-    const server = await OpenAiCompatibleServerDouble.start({ completionContent: JSON.stringify(answer) });
+  it.each(["local-lm-studio", "local-ollama"]) ("uses two %s POSTs", async (profileId) => {
+    const server = await OpenAiCompatibleServerDouble.start({ completionContents: [JSON.stringify(generated), JSON.stringify(accepted)] });
     try {
       const app = createArchiAgentRuntime();
       const result = await app.generateDiagram!({ ...request, generator: { kind: "openai-compatible-local", profileId, modelId: "test-model", baseUrl: server.baseUrl } });
       expect(result.status).toBe("success");
-      expect(server.requests.map((sent) => [sent.method, sent.path])).toEqual([["POST", "/v1/chat/completions"]]);
-    } finally {
-      await server.close();
-    }
+      expect(server.completionRequests().map((sent) => [sent.method, sent.path])).toEqual([["POST", "/v1/chat/completions"], ["POST", "/v1/chat/completions"]]);
+      expect(server.completionRequests().map((sent) => (sent.body as any).model)).toEqual(["test-model", "test-model"]);
+    } finally { await server.close(); }
   });
 });

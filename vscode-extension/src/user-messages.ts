@@ -82,7 +82,7 @@ function boundedLines(lines: readonly string[]): readonly string[] {
 }
 
 function generatorProblem(failure: GenerateSequenceDiagramFailure): string | undefined {
-  const generatorIssue = failure.issues.find((issue) => issue.code === "generator-failed");
+  const generatorIssue = failure.issues.find((issue) => issue.code === "generator-failed" || issue.code === "reviewer-failed");
   const problem = generatorIssue?.details?.["problem"];
   return typeof problem === "string" ? problem : generatorIssue === undefined ? undefined : "generator-failed";
 }
@@ -151,7 +151,11 @@ export function describeFailure(failure: GenerateSequenceDiagramFailure, context
       break;
     }
     case "semantic-validation-failed":
-      text = "The model answer violates the grounded architecture (participants, relationships or modes). No diagram was produced.";
+      text = failure.issues.some((issue) => issue.code === "review-rejected")
+        ? "The independent semantic review rejected the diagram. No diagram was produced."
+        : failure.issues.some((issue) => issue.code === "plantuml-structure")
+          ? "The PlantUML structure is invalid. No diagram was produced."
+          : "The model answer violates the grounded architecture (participants, relationships or modes). No diagram was produced.";
       break;
     case "render-validation-failed":
       text = "The rendered PlantUML failed the structural check. No diagram was produced.";

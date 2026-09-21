@@ -102,6 +102,18 @@ describe("describeFailure", () => {
     expect(describeFailure(failure("render-validation-failed", []), { baseUrl }).text).toContain("structural check");
   });
 
+  it("distinguishes reviewer and PlantUML structure failures without exposing model data", () => {
+    const secret = "synthetic-secret";
+    const review = describeFailure(failure("semantic-validation-failed", [{ severity: "error", code: "review-rejected", message: "The semantic reviewer rejected the diagram.", details: { count: 1 } }]), { baseUrl });
+    expect(review.text).toContain("semantic review rejected");
+    expect(JSON.stringify(review)).not.toContain(secret);
+    const structure = describeFailure(failure("semantic-validation-failed", [{ severity: "error", code: "plantuml-structure", message: "The emitted PlantUML failed structural validation.", line: 6 }]), { baseUrl });
+    expect(structure.text).toContain("PlantUML structure");
+    expect(structure.details[0]).toContain("line 6");
+    const timeout = describeFailure(failure("invalid-generator-output", [{ severity: "error", code: "reviewer-failed", message: "The semantic reviewer did not complete.", details: { problem: "timeout" } }]), { baseUrl });
+    expect(timeout.text).toContain("did not answer (timeout)");
+  });
+
   it("bounds the number of detail lines", () => {
     const issues = Array.from({ length: messageLimits.maxDetailLines + 5 }, (_, index) => ({ severity: "error" as const, code: `code-${index}`, message: "m" }));
     const message = describeFailure(failure("semantic-validation-failed", issues), { baseUrl });

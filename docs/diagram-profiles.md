@@ -27,7 +27,7 @@ Each profile defines:
 
 A diagram profile is not a local renderer.
 
-The approved D1.1 target (not implemented on the base commit) is:
+The implemented D1.1 sequence path follows the approved shape:
 
 ```text
 ArchitectureSnapshot
@@ -106,7 +106,7 @@ They do not receive full enterprise repositories.
 ## LLM-first target
 
 For reviewed generation, the LLM is expected to produce final PlantUML without a second
-model-generated message ledger. D1.1 implements only `sequence` and is not yet in the code.
+model-generated message ledger. D1.1 implements only `sequence`; later profiles remain planned.
 
 Archi Agent provides:
 
@@ -125,8 +125,8 @@ A separate handcrafted renderer should not be created for each diagram profile.
 
 ## Status
 
-**Current code:** implemented through the validated compatibility pipeline and experimental
-D1 final-PlantUML ledger path. D1 passed automatic checks but failed owner smoke. Its findings
+**Current code:** the reviewed D1.1 `sequence` path and the separate validated compatibility
+pipeline. D1 passed automatic checks but failed owner smoke. Its findings
 are archived on `checkpoint/d1-ledger-pipeline`.
 
 The experimental D1 path receives final PlantUML and a strict message ledger in one structured-chat
@@ -134,10 +134,10 @@ response. Each ledger message has a required physical `lineNumber`, continuous `
 `interfaceName` set to a string or `null`. Local validation accepts only the closed sequence grammar and grounded interactions.
 The compatibility renderer and its golden outputs remain unchanged.
 
-**Approved target:** D1.1 receives strict `{ plantUml }` only, computes facts and physical
+**Implemented D1.1:** the generator returns strict `{ plantUml }` only; the parser computes facts and physical
 line numbers locally, validates them, then calls a separate semantic reviewer. Successful
-reviewed generation makes exactly two model calls. D1.1 is the next implementation stage;
-S1 owner smoke must pass before D2. See
+reviewed generation makes exactly two model calls. Automatic checks pass; S1 owner smoke remains
+pending and must pass before D2. See
 [`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md).
 
 ---
@@ -610,14 +610,14 @@ validateFacts
 buildReviewerRequest
 ```
 
-These are conceptual operations, not implemented TypeScript. The profile must not contain a
+The sequence implementation has this narrow boundary; it is not a registry. The profile must not contain a
 local diagram-generation algorithm or become a universal framework in D1.1.
 
 ---
 
 # Generation flow
 
-Approved D1.1 flow for `sequence` (not implemented):
+Implemented D1.1 flow for `sequence` (pending S1 owner smoke):
 
 ```text
 User selects diagram type

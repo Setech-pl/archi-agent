@@ -195,8 +195,9 @@ describe("clean runtime execution", () => {
       "    return { participants, messages };",
       "  }",
       "};",
+      "let diagramCalls = 0;",
       "const diagramClient = { clientType: 'clean-runtime-chat', generationMetadata: { modelId: 'unused-model', temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },",
-      "  async complete() { return { source: 'content', value: { plantUml: '@startuml\\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\\ndatabase \"Image Archive\" as kp_image_archive\\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\\n@enduml\\n', messages: [{ order: 1, lineNumber: 4, from: { elementId: 'telescope-scheduler' }, to: { elementId: 'image-archive' }, label: 'Registers frames', interfaceType: 'DB', interfaceName: 'Archive Writer', async: false, isResponse: false }] } }; } };",
+      "  async complete() { diagramCalls += 1; return { source: 'content', value: diagramCalls === 1 ? { plantUml: '@startuml\\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\\ndatabase \"Image Archive\" as kp_image_archive\\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\\n@enduml\\n' } : { verdict: 'accept', violations: [], confirmations: [] } }; } };",
       "const instance = runtime.createArchiAgentRuntime({ generatorFactory: () => generator, diagramClientFactory: () => diagramClient });",
       "const generationRequest = {",
       `  flow: { kind: "document", text: ${JSON.stringify(flow)}, fileName: "observation-run.md" },`,
@@ -204,7 +205,7 @@ describe("clean runtime execution", () => {
       '  generator: { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "unused-model" }',
       "};",
       "Promise.all([instance.generateSequenceDiagram(generationRequest), instance.generateDiagram({ ...generationRequest, diagramType: 'sequence' })]).then(([result, d1]) => {",
-      "  process.stdout.write(JSON.stringify({ cwd: process.cwd(), status: result.status, stage: result.stage, diagramName: result.diagramName, plantUml: result.plantUml, report: result.groundingReport, summary: result.summary, d1Status: d1.status, d1PlantUml: d1.plantUml, d1Report: d1.groundingReport }));",
+      "  process.stdout.write(JSON.stringify({ cwd: process.cwd(), status: result.status, stage: result.stage, diagramName: result.diagramName, plantUml: result.plantUml, report: result.groundingReport, summary: result.summary, d1Status: d1.status, d1Stage: d1.stage, d1Issues: d1.issues, d1PlantUml: d1.plantUml, d1Report: d1.groundingReport }));",
       "}, (error) => { process.stdout.write(JSON.stringify({ status: 'threw', name: error && error.name })); });",
       ""
     ].join(LF);
@@ -225,7 +226,7 @@ describe("clean runtime execution", () => {
     expect(child.stderr).toBe("");
     expect(child.status).toBe(0);
 
-    const output = JSON.parse(child.stdout) as { cwd: string; status: string; diagramName: string; plantUml: string; report: string; summary: { messageCount: number }; d1Status: string; d1PlantUml: string; d1Report: string };
+    const output = JSON.parse(child.stdout) as { cwd: string; status: string; diagramName: string; plantUml: string; report: string; summary: { messageCount: number }; d1Status: string; d1Stage?: string; d1Issues?: unknown; d1PlantUml: string; d1Report: string };
     expect(output.status).toBe("success");
     expect(realpathSync(output.cwd)).toBe(workingDir);
     expect(output.diagramName).toBe("observation-run");
@@ -233,9 +234,10 @@ describe("clean runtime execution", () => {
     expect(output.summary.messageCount).toBe(3);
     expect(output.report).not.toContain(packRoot);
     expect(output.plantUml).not.toContain(projectRoot);
-    expect(output.d1Status).toBe("success");
+    expect({ status: output.d1Status, stage: output.d1Stage, issues: output.d1Issues }).toEqual({ status: "success", stage: undefined, issues: undefined });
     expect(output.d1PlantUml).toContain("Registers frames (DB: Archive Writer)");
     expect(output.d1Report).not.toContain(packRoot);
+    expect(JSON.parse(output.d1Report).reportSchemaVersion).toBe(2);
   }, 90_000);
 });
 

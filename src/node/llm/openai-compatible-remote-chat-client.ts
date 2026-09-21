@@ -8,6 +8,7 @@ import {
   type StructuredChatResult
 } from "../../core/llm/structured-chat-client.js";
 import { stableCompare } from "../../core/util/ordering.js";
+import { projectOpenAiStrictJsonSchema } from "./anthropic-json-schema.js";
 import {
   checkedApiKey,
   checkedRemoteTimeout,
@@ -67,7 +68,7 @@ export function buildOpenAiRemoteRequest(request: StructuredChatRequest, modelId
     max_completion_tokens: request.maxTokens,
     response_format: Object.freeze({
       type: "json_schema",
-      json_schema: Object.freeze({ name: request.schemaName, strict: true, schema: request.schema })
+      json_schema: Object.freeze({ name: request.schemaName, strict: true, schema: projectOpenAiStrictJsonSchema(request.schema) })
     })
   });
 }
@@ -80,7 +81,7 @@ export function buildOpenRouterRemoteRequest(request: StructuredChatRequest, mod
     max_tokens: request.maxTokens,
     response_format: Object.freeze({
       type: "json_schema",
-      json_schema: Object.freeze({ name: request.schemaName, strict: true, schema: request.schema })
+      json_schema: Object.freeze({ name: request.schemaName, strict: true, schema: projectOpenAiStrictJsonSchema(request.schema) })
     }),
     provider: Object.freeze({ allow_fallbacks: false, require_parameters: true })
   });

@@ -1,12 +1,17 @@
 # Cloud model providers
 
-## D1 final PlantUML
+## Reviewed D1.1 sequence
 
-The D1 `generateDiagram` sequence path uses the selected Anthropic, OpenAI or OpenRouter
-structured-chat adapter and makes one generation request. The cloud key is read by the VS Code
-host immediately before the request; unsupported diagram types stop before that read. The
-response is validated locally as a strict `{ plantUml, messages }` envelope and a grounded
-sequence document. The legacy sequence command and provider transport behavior remain compatible.
+The D1.1 `generateDiagram` sequence path uses the selected Anthropic, OpenAI or OpenRouter
+structured-chat adapter for one strict `{ plantUml }` generator request and, after deterministic
+acceptance, one separate semantic-review request with the same profile/model. The cloud key is
+read by the VS Code host immediately before the runtime operation; unsupported diagram types stop
+before that read. The legacy sequence command still makes one call; transport behavior remains
+compatible. No paid cloud smoke is part of automatic verification.
+
+The OpenAI and OpenRouter adapters project strict wire JSON Schema to provider-supported
+keywords. Required properties, closed objects and nullable fields remain; complete size and
+count limits are enforced locally. Anthropic retains its existing schema projection.
 
 Archi Agent supports three fixed cloud profiles alongside LM Studio and Ollama. Cloud access is
 opt-in: activation, profile selection and API-key management perform no network request. Model
@@ -38,6 +43,8 @@ Commands:
 - **Archi Agent: Delete Saved API Key** — explicit confirmation, no provider request;
 - **Archi Agent: Select Model** — exactly one bounded model-list request;
 - **Archi Agent: Generate Sequence Diagram** — exactly one generation request.
+- **Archi Agent: Generate Diagram → Sequence** — one generator request, then one reviewer request
+  only after deterministic acceptance; no retry.
 
 The P1 command identifiers for local provider/model selection remain hidden compatibility aliases.
 
@@ -182,7 +189,8 @@ streaming, provider/model fallback or automatic key test.
 
 These are manual and excluded from automatic Definition of Done. **Each successful generation may
 incur provider cost.** Use a disposable synthetic flow/Knowledge Pack when possible and inspect the
-provider dashboard/logs to confirm at most one generation request.
+provider dashboard/logs to confirm one request for the compatibility command or exactly two
+requests for a deterministically valid reviewed sequence (one if local validation rejects it).
 
 1. Package and verify the VSIX, then install it in a clean VS Code profile outside the repository.
 2. Configure a synthetic Knowledge Pack and open a synthetic flow.

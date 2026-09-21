@@ -14,7 +14,7 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 The current mandatory sequence is: **R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL**.
 R0, B1, P1 and P2 were implemented earlier. D1 is an automatically verified experimental
 checkpoint, not an accepted product path: owner smoke exposed a brittle model-generated ledger.
-R1 records the replacement architecture; D1.1 is the next implementation step. D2 is blocked
+R1 recorded the replacement architecture; D1.1 is implemented and automatically verified. S1 is next. D2 is blocked
 until S1 owner smoke passes. See [ADR 0001](adr/0001-reviewed-diagram-generation.md) and
 [the target pipeline contract](reviewed-diagram-pipeline.md).
 
@@ -222,8 +222,8 @@ Ordered as agreed in [Product priority](#product-priority).
 | --- | --- | --- | --- | --- |
 | P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | implemented | HTTPS only with production-boundary transport tests, fixed host/path allowlist, strictly validated API keys in VS Code `SecretStorage`, capability-filtered bounded model listing, strict cloud finish contracts, one generation call, no retry/repair/fallback. | P1 |
 | D1 | Experimental final-PlantUML ledger path | automatically verified; owner smoke failed | Archived on `checkpoint/d1-ledger-pipeline`; not the target architecture. | Grounding core |
-| R1 | Reviewed-pipeline architecture and governance | accepted documentation step | ADR, target contract, KISS/BUZI and branch handoff. | D1 findings |
-| D1.1 | Reviewed sequence pipeline | planned — next implementation | Generator `{ plantUml }`, local facts and validation, independent reviewer. | R1 |
+| R1 | Reviewed-pipeline architecture and governance | completed | ADR, target contract, KISS/BUZI and branch handoff. | D1 findings |
+| D1.1 | Reviewed sequence pipeline | implemented and automatically verified | Generator `{ plantUml }`, local facts and validation, independent reviewer; S1 pending. | R1 |
 | S1 | Owner smoke Ollama `qwen3:30b` | planned | Must PASS before D2. | D1.1 |
 | D2 | Profile `component` | planned | | S1 |
 | C1 | VS Code Chat Participant `@archi-agent` and `/diagram` | planned | Uses the reviewed path and only its own conversation history; no automatic access to other chat histories or panels. | D2 |
@@ -421,19 +421,19 @@ EA exports may be supplied through:
 
 # Phase 4 — LLM-first final PlantUML
 
-**Current code:** D1 is an automatically verified experimental path. It supports sequence with
+**Historical base code:** D1 is an automatically verified experimental path. It supports sequence with
 one structured-chat call and strict `{ plantUml, messages }` output, including a physical-line
 ledger. The Generate Diagram picker offers only Sequence; other types are rejected before I/O.
 Its owner smoke did not pass, so it is not a completed product path. The full smoke diagnosis
 is archived on `checkpoint/d1-ledger-pipeline`.
 
-**Approved target:** D1.1 replaces the ledger with one `{ plantUml }` generator call,
+**Current code:** D1.1 replaces the ledger with one `{ plantUml }` generator call,
 deterministic parsing/validation and a separate semantic-review call. Successful reviewed runs
 make exactly two model calls, deterministic rejection after generation makes one, and invalid
-context makes none. No retry, repair or fallback. D1.1 is next; S1 owner smoke gates D2.
+context makes none. No retry, repair or fallback. D1.1 passed automatic checks; S1 owner smoke is next and gates D2.
 See [the reviewed pipeline](reviewed-diagram-pipeline.md).
 
-The current sequence pipeline uses an intermediate sequence model and deterministic renderer.
+The separate compatibility sequence pipeline uses an intermediate sequence model and deterministic renderer.
 
 For multi-diagram generation the target architecture is different.
 
@@ -464,15 +464,15 @@ The current deterministic sequence renderer may remain as:
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: sequence exists in the experimental D1 ledger path and deterministic compatibility path;
-D1.1 reviewed sequence is planned next.** `component` (D2) follows S1 PASS, C1 follows D2,
+**Status: reviewed D1.1 sequence and deterministic compatibility path are implemented;
+the experimental D1 ledger path is archived.** `component` (D2) follows S1 PASS, C1 follows D2,
 M1 follows C1, then `c4-context`/`c4-container` (D3/D4) and `archimate-hld` (D5).
 
 Profiles:
 
 ## Sequence
 
-D1 implements an experimental ledger-based Sequence path; D1.1 will replace it on the active
+D1 implemented an experimental ledger-based Sequence path; D1.1 replaces it on the active
 branch with reviewed final PlantUML. The deterministic sequence renderer remains a compatibility
 path and regression oracle, not an automatic fallback.
 
@@ -500,7 +500,7 @@ See:
 
 # Phase 6 — Semantic diagram review
 
-**Status: approved for D1.1; not yet implemented.**
+**Status: implemented for D1.1 sequence; S1 owner smoke pending.**
 
 Deterministic validation detects structural and evidence problems but cannot fully determine whether a diagram correctly represents the user's intent.
 
@@ -879,8 +879,8 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
 | P2 — cloud providers Anthropic, OpenAI, OpenRouter | implemented and automatically verified |
 | D1 — ledger-based final PlantUML | experimental checkpoint; automatic checks passed, owner smoke failed |
-| R1 — reviewed architecture ADR and governance | accepted documentation step |
-| D1.1 — generator, deterministic validation, reviewer | planned — next implementation |
+| R1 — reviewed architecture ADR and governance | completed |
+| D1.1 — generator, deterministic validation, reviewer | implemented and automatically verified; S1 pending |
 | S1 — Ollama `qwen3:30b` owner smoke | planned; D2 gate |
 | D2 — Component diagram | planned after S1 PASS |
 | C1 — VS Code Chat Participant | planned after D2 |
@@ -890,7 +890,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
 | K3 — Knowledge Pack Builder UI and five-file write | planned |
 | REL — `v0.3.0-alpha.1` | planned |
-| Semantic reviewer in the D1.1 path | planned |
+| Semantic reviewer in the D1.1 path | implemented; S1 pending |
 | Repair loop | deferred |
 | Quality modes | deferred |
 | Document sources (PDF, DOCX; Confluence/Jira via MCP) | planned |

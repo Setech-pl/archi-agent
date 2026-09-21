@@ -35,7 +35,7 @@ The runtime contract (`src/runtime/runtime-types.ts`) speaks about sources, not 
 a flow source (document text, an absolute file path or a plain description), a Knowledge Pack source
 (today: one local directory), a provider-neutral generator configuration (legacy local endpoint or
 profile/model/credential selection) and a result carrying the validated PlantUML, the grounding report and safe issues. D1
-adds `generateDiagram` next to `generateSequenceDiagram`; later knowledge
+added `generateDiagram` next to `generateSequenceDiagram`; D1.1 routes it through reviewed generation. Later knowledge
 sources and model providers add variants to the source and generator unions. Hosts written against
 the interface do not change.
 
@@ -84,7 +84,9 @@ after one `SecretStorage.get` and one model-list GET. That cancellation writes n
 and does not start generation.
 
 `Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
-The D1 picker offers only Sequence and runs the final PlantUML path for `sequence`. The four
+The picker offers only Sequence and runs the reviewed D1.1 path for `sequence`: one strict
+`{ plantUml }` generator request, local parsing/grounding checks and one independent semantic
+review request after deterministic acceptance. It emits report v2 on success. The four
 reserved types remain unsupported through direct runtime calls before any credential read or
 provider I/O. `Archi Agent: Generate
 Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and
@@ -323,5 +325,6 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
   extension and its user-facing text use `Archi Agent`. Renaming the root package is deferred.
 - Deferred by design at this checkpoint: Enterprise Architect XML and API sources, Confluence,
   Google Drive, OneDrive and SharePoint, component, C4 and ArchiMate profiles,
-  semantic review, the repair loop and marketplace publishing. The runtime contract leaves room for
+  the repair loop and marketplace publishing. Semantic review is implemented for D1.1 Sequence;
+  the runtime contract leaves room for
   each of them without changing the editor layer.

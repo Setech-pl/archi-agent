@@ -53,6 +53,8 @@ export interface ServerDoubleOptions {
   readonly scenario?: ServerDoubleScenario;
   /** choices[0].message.content for the completion scenario. */
   readonly completionContent?: string;
+  /** Optional ordered answers for multi-phase structured-chat tests. */
+  readonly completionContents?: readonly string[];
   /** Entries of the model list: strings become { id }, other values are used as they are. */
   readonly models?: readonly unknown[];
   /** Raw body of the model list, replacing the generated one. */
@@ -90,6 +92,7 @@ export class OpenAiCompatibleServerDouble {
   public readonly requests: CapturedRequest[] = [];
   public scenario: ServerDoubleScenario;
   public completionContent: string;
+  public readonly completionContents: string[];
   public models: readonly unknown[];
   public modelsBody: string | undefined;
   public reasoningContent: string | undefined;
@@ -99,6 +102,7 @@ export class OpenAiCompatibleServerDouble {
   private constructor(options: ServerDoubleOptions) {
     this.scenario = options.scenario ?? "completion";
     this.completionContent = options.completionContent ?? "{}";
+    this.completionContents = [...(options.completionContents ?? [])];
     this.models = options.models ?? [];
     this.modelsBody = options.modelsBody;
     this.reasoningContent = options.reasoningContent;
@@ -222,7 +226,7 @@ export class OpenAiCompatibleServerDouble {
           this.#send(response, 200, completionEnvelope(scenarioContents[this.scenario]));
           return;
         default:
-          this.#send(response, 200, completionEnvelope(this.completionContent), contentType);
+          this.#send(response, 200, completionEnvelope(this.completionContents.shift() ?? this.completionContent), contentType);
           return;
       }
     }
