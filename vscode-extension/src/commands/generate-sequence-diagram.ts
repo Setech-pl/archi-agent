@@ -2,6 +2,7 @@ import path from "node:path";
 import * as vscode from "vscode";
 import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, FlowSource, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
+import { readApiKey } from "../api-key-storage.js";
 import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
 import {
   describeCancellation,
@@ -23,6 +24,7 @@ import { selectLocalModel } from "./local-provider-selection.js";
 export interface GenerateCommandDependencies {
   readonly runtime: ArchiAgentRuntime;
   readonly output: vscode.OutputChannel;
+  readonly secrets?: vscode.SecretStorage;
 }
 
 const openSettingsAction = "Open Settings";
@@ -210,7 +212,7 @@ async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): P
 }
 
 export async function generateSequenceDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
-  const { runtime, output } = dependencies;
+  const { runtime, output, secrets } = dependencies;
   const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection));
 
   if (!settingsResult.ok) {
@@ -219,6 +221,16 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
   }
 
   let settings = settingsResult.settings;
+  const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === settings.localModel.profileId);
+  if (profile === undefined) {
+    await show(output, {
+      level: "error",
+      text: "Archi Agent: the selected provider profile is not registered.",
+      details: Object.freeze(["[unknown-provider-profile] provider configuration failed"]),
+      suggestSettings: true
+    });
+    return;
+  }
   const flow = await pickFlowSource(settings);
 
   if (flow === undefined) {
@@ -226,7 +238,7 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
   }
 
   if (settings.localModel.modelId === undefined) {
-    const selection = await selectLocalModel(runtime, output);
+    const selection = await selectLocalModel(runtime, output, secrets);
 
     if (selection.status !== "selected" || selection.settings.modelId === undefined) {
       return;
@@ -241,12 +253,34 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
     return;
   }
 
+  let apiKey: string | undefined;
+  try {
+    apiKey = secrets === undefined ? undefined : await readApiKey(secrets, profile);
+  } catch {
+    await show(output, {
+      level: "error",
+      text: "Archi Agent: secure key storage could not be read.",
+      details: Object.freeze(["[secret-storage-read-failed] provider request blocked before network I/O"]),
+      suggestSettings: false
+    });
+    return;
+  }
+  if (profile.credentialRequirement === "api-key" && apiKey === undefined) {
+    await show(output, {
+      level: "error",
+      text: `Archi Agent: no valid API key is saved for ${profile.displayName}. Run “Archi Agent: Set or Update API Key”.`,
+      details: Object.freeze(["[credential-required] provider request blocked before network I/O"]),
+      suggestSettings: false
+    });
+    return;
+  }
+
   const outcome = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: "Archi Agent: generating sequence diagram", cancellable: true },
     (_progress, token) =>
       runSequenceGenerationSession({
         runtime,
-        request: buildGenerationRequest(settings, flow, modelId, cancellationSignal(token)),
+        request: buildGenerationRequest(settings, flow, modelId, cancellationSignal(token), apiKey),
         prompts: resolutionPrompts()
       })
   );
@@ -257,7 +291,7 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
   }
 
   if (outcome.result.status === "failed") {
-    await show(output, describeFailure(outcome.result, { baseUrl: settings.localModel.baseUrl }));
+    await show(output, describeFailure(outcome.result, { providerName: profile.displayName, baseUrl: settings.localModel.baseUrl }));
     return;
   }
 

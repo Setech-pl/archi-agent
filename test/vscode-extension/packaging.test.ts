@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createArchiAgentRuntime, type GenerateSequenceDiagramRequest } from "../../src/runtime/index.js";
 import { buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
+import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
+import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
 
 /**
  * Packaging checks: the bundles build, the runtime bundle runs on its own from a directory that
@@ -26,7 +29,7 @@ interface PackageModule {
 }
 
 interface VerifyModule {
-  verifyVsix(filePath: string): { ok: boolean; entries: readonly string[]; violations: readonly string[] };
+  verifyVsix(filePath: string, options?: { forbiddenText?: string }): { ok: boolean; entries: readonly string[]; violations: readonly string[] };
   requiredEntries: readonly string[];
   prohibitedEntryRules: readonly { rule: string; pattern: RegExp }[];
 }
@@ -36,6 +39,7 @@ const extensionRoot = path.join(projectRoot, "vscode-extension");
 const scriptUrl = (name: string): string => new URL(`../../vscode-extension/scripts/${name}`, import.meta.url).href;
 const LF = String.fromCharCode(10);
 const workspaces: string[] = [];
+const syntheticSecretSentinel = "ARCHI_AGENT_TEST_SENTINEL_DO_NOT_PACKAGE_7F3A";
 
 function temporaryDirectory(prefix: string): string {
   const directory = realpathSync(mkdtempSync(path.join(tmpdir(), prefix)));
@@ -85,6 +89,63 @@ describe("bundles", () => {
     expect(text).not.toContain("child_process");
     expect(text).not.toMatch(/\bnpm\s+run\b/);
     expect(text).toContain("createArchiAgentRuntime");
+  });
+
+  it("keeps the synthetic sentinel out of both production bundles", () => {
+    expect(readFileSync(bundles.runtimeFile, "utf8")).not.toContain(syntheticSecretSentinel);
+    expect(readFileSync(bundles.extensionFile, "utf8")).not.toContain(syntheticSecretSentinel);
+  });
+});
+
+describe("synthetic secret leak guard", () => {
+  it("keeps the sentinel out of generated artifacts, diagnostics and thrown errors", async () => {
+    const root = temporaryDirectory("archi-agent-sentinel-pack-");
+    const packDirectory = path.join(root, "architecture");
+    mkdirSync(packDirectory);
+    for (const [name, content] of Object.entries(buildPackFiles())) writeFileSync(path.join(packDirectory, name), content, "utf8");
+    const flow = [
+      "---",
+      "diagram_name: sentinel-run",
+      "flow_name: Sentinel run",
+      "author: Packaging Test",
+      "---",
+      "The Night Observer asks the Scheduler for observation slots.",
+      "The Telescope Scheduler signals the Dome Controller and registers frames in the Archive.",
+      ""
+    ].join(LF);
+    const baseRequest = {
+      flow: { kind: "document" as const, text: flow, fileName: "sentinel-run.md" },
+      knowledgePack: { kind: "local-directory" as const, path: packDirectory }
+    };
+    const echo = new ContextEchoGenerator();
+    await createArchiAgentRuntime({ generatorFactory: () => echo }).generateSequenceDiagram({
+      ...baseRequest,
+      generator: { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "echo" }
+    });
+    const grounded = echo.requests[0];
+    if (grounded === undefined) throw new Error("missing synthetic grounded request");
+    const model = await echo.generate(grounded);
+    const request: GenerateSequenceDiagramRequest = {
+      ...baseRequest,
+      generator: {
+        kind: "remote-provider",
+        profileId: "cloud-openai",
+        modelId: "gpt-test",
+        credential: { type: "api-key", value: syntheticSecretSentinel }
+      }
+    };
+    const success = await createArchiAgentRuntime({
+      remoteTransport: new RemoteJsonTransportDouble(
+        JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(model), refusal: null } }] })
+      )
+    }).generateSequenceDiagram(request);
+    expect(JSON.stringify(success)).not.toContain(syntheticSecretSentinel);
+
+    const failure = await createArchiAgentRuntime({
+      remoteTransport: { exchange: () => Promise.reject(Object.assign(new Error(syntheticSecretSentinel), { code: "connection-failed" })) }
+    }).generateSequenceDiagram(request);
+    expect(JSON.stringify(failure)).not.toContain(syntheticSecretSentinel);
+    expect(String(failure)).not.toContain(syntheticSecretSentinel);
   });
 });
 
@@ -180,7 +241,7 @@ describe("VSIX", () => {
   }, 180_000);
 
   it("packages and contains exactly the bounded runtime files", () => {
-    const result = verifyModule.verifyVsix(vsixPath);
+    const result = verifyModule.verifyVsix(vsixPath, { forbiddenText: syntheticSecretSentinel });
 
     expect(result.violations).toEqual([]);
     expect(result.ok).toBe(true);

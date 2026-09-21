@@ -1,7 +1,7 @@
 {
   "name": "archi-agent",
   "displayName": "Archi Agent",
-  "description": "Grounded architecture diagram generation with a local model: validated PlantUML sequence diagrams from flow descriptions and an Architecture Knowledge Pack.",
+  "description": "Grounded architecture diagram generation with local or cloud models: validated PlantUML sequence diagrams from flow descriptions and an Architecture Knowledge Pack.",
   "version": "0.2.0-alpha.1",
   "publisher": "setech-pl",
   "private": true,
@@ -22,6 +22,10 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "onCommand:archiAgent.generateSequenceDiagram",
+    "onCommand:archiAgent.selectProviderProfile",
+    "onCommand:archiAgent.selectModel",
+    "onCommand:archiAgent.setApiKey",
+    "onCommand:archiAgent.deleteApiKey",
     "onCommand:archiAgent.selectLocalProviderProfile",
     "onCommand:archiAgent.selectLocalModel"
   ],
@@ -55,13 +59,23 @@
         "category": "Archi Agent"
       },
       {
-        "command": "archiAgent.selectLocalProviderProfile",
-        "title": "Select Local Provider Profile",
+        "command": "archiAgent.selectProviderProfile",
+        "title": "Select Provider Profile",
         "category": "Archi Agent"
       },
       {
-        "command": "archiAgent.selectLocalModel",
-        "title": "Select Local Model",
+        "command": "archiAgent.selectModel",
+        "title": "Select Model",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.setApiKey",
+        "title": "Set or Update API Key",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.deleteApiKey",
+        "title": "Delete Saved API Key",
         "category": "Archi Agent"
       }
     ],
@@ -87,27 +101,33 @@
           "type": "string",
           "enum": [
             "local-lm-studio",
-            "local-ollama"
+            "local-ollama",
+            "cloud-anthropic",
+            "cloud-openai",
+            "cloud-openrouter"
           ],
           "enumItemLabels": [
             "LM Studio",
-            "Ollama"
+            "Ollama",
+            "Anthropic",
+            "OpenAI",
+            "OpenRouter"
           ],
           "default": "local-lm-studio",
           "scope": "machine",
-          "markdownDescription": "Local provider profile used on this computer. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace. Use **Archi Agent: Select Local Provider Profile** to change it."
+          "markdownDescription": "Provider profile used on this computer. Cloud API keys are stored separately in VS Code SecretStorage. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace. Use **Archi Agent: Select Provider Profile** to change it."
         },
         "archiAgent.localModel.selectedModel": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "Model selected for the explicit local provider profile on this computer. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace."
+          "markdownDescription": "Model selected for the explicit provider profile on this computer. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace."
         },
         "archiAgent.localModel.selectedModelProfile": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "Internal binding between the selected model and its local provider profile. Archi Agent manages this machine-scoped setting automatically; do not edit it manually."
+          "markdownDescription": "Internal binding between the selected model and its provider profile. Archi Agent manages this machine-scoped setting automatically; do not edit it manually."
         },
         "archiAgent.localModel.timeoutSeconds": {
           "type": "number",

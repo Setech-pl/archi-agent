@@ -16,6 +16,7 @@ import type {
 import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
 import { buildPackFiles, basePackRows } from "../doubles/knowledge-pack-fixture.js";
 import { OpenAiCompatibleServerDouble } from "../doubles/openai-compatible-server-double.js";
+import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
 
 const LF = String.fromCharCode(10);
 const workspaces: string[] = [];
@@ -370,10 +371,13 @@ describe("runtime: ambiguity and new participants stay explicit", () => {
 });
 
 describe("runtime: local model listing", () => {
-  it("lists immutable LM Studio and Ollama profiles without network I/O", () => {
+  it("lists immutable local and cloud profiles without network I/O", () => {
     const profiles = createArchiAgentRuntime().listProviderProfiles();
 
     expect(profiles.map((profile) => [profile.profileId, profile.displayName, profile.providerKind])).toEqual([
+      ["cloud-anthropic", "Anthropic", "anthropic-remote"],
+      ["cloud-openai", "OpenAI", "openai-remote"],
+      ["cloud-openrouter", "OpenRouter", "openrouter-remote"],
       ["local-lm-studio", "LM Studio", "openai-compatible-local"],
       ["local-ollama", "Ollama", "openai-compatible-local"]
     ]);
@@ -437,6 +441,82 @@ describe("runtime: local model listing", () => {
     }
   });
 
+  it("runs every cloud profile through exactly one explicit generation request with truthful report metadata", async () => {
+    const echo = new ContextEchoGenerator();
+    expectSuccess(await runtimeWith(echo).generateSequenceDiagram(request(packDirectory)));
+    const groundedRequest = echo.requests[0];
+    if (groundedRequest === undefined) throw new Error("The echo generator must capture the grounded request.");
+    const content = JSON.stringify(await echo.generate(groundedRequest));
+    const cases = [
+      {
+        profileId: "cloud-anthropic",
+        modelId: "claude-test",
+        generatorType: "anthropic-remote",
+        endpoint: "anthropic-messages",
+        response: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: content }] })
+      },
+      {
+        profileId: "cloud-openai",
+        modelId: "gpt-test",
+        generatorType: "openai-remote",
+        endpoint: "openai-chat-completions",
+        response: JSON.stringify({ choices: [{ finish_reason: "stop", message: { content, refusal: null } }] })
+      },
+      {
+        profileId: "cloud-openrouter",
+        modelId: "vendor/model-test",
+        generatorType: "openrouter-remote",
+        endpoint: "openrouter-chat-completions",
+        response: JSON.stringify({ choices: [{ finish_reason: "stop", message: { content, refusal: null } }] })
+      }
+    ] as const;
+
+    for (const entry of cases) {
+      const transport = new RemoteJsonTransportDouble(entry.response);
+      const result = expectSuccess(
+        await createArchiAgentRuntime({ remoteTransport: transport }).generateSequenceDiagram(
+          request(packDirectory, {
+            generator: {
+              kind: "remote-provider",
+              profileId: entry.profileId,
+              modelId: entry.modelId,
+              credential: { type: "api-key", value: "synthetic-secret" }
+            }
+          })
+        )
+      );
+      const report = JSON.parse(result.groundingReport) as { generatorType: string; modelGeneration: unknown };
+      expect(result.generatorType).toBe(entry.generatorType);
+      expect(report).toMatchObject({
+        generatorType: entry.generatorType,
+        modelGeneration: { modelId: entry.modelId, temperature: null, seed: null, attemptCount: 1, structuredOutput: true }
+      });
+      expect(transport.requests.map((sent) => sent.endpoint)).toEqual([entry.endpoint]);
+      expect(result.groundingReport).not.toContain("synthetic-secret");
+    }
+  });
+
+  it("blocks missing or invalid cloud credentials before generation transport I/O", async () => {
+    for (const credential of [undefined, { type: "api-key" as const, value: "x".repeat(1025) }]) {
+      const transport = new RemoteJsonTransportDouble();
+      const result = expectFailure(
+        await createArchiAgentRuntime({ remoteTransport: transport }).generateSequenceDiagram(
+          request(packDirectory, {
+            generator: {
+              kind: "remote-provider",
+              profileId: "cloud-openai",
+              modelId: "gpt-test",
+              ...(credential === undefined ? {} : { credential })
+            }
+          })
+        ),
+        "generator-configuration"
+      );
+      expect(result.issues.map((entry) => entry.code)).toEqual([credential === undefined ? "credential-required" : "invalid-credential"]);
+      expect(transport.requests).toEqual([]);
+    }
+  });
+
   it("rejects an unknown profile before any request", async () => {
     const double = await OpenAiCompatibleServerDouble.start({ models: ["must-not-be-read"] });
 
@@ -469,6 +549,7 @@ describe("runtime: local model listing", () => {
         profileId: "local-disabled",
         providerKind: "openai-compatible-local",
         displayName: "Disabled test profile",
+        credentialRequirement: "none",
         capabilities: { modelListing: false, structuredChat: false }
       }
     ]);

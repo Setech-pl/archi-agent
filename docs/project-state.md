@@ -10,11 +10,12 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-20 |
+| Data aktualizacji | 2026-09-21 |
 | Stan Git | Bieżący HEAD, branch i stan publikacji należy odczytywać z Git. Commit `3d1c55c` był bazą implementacji B1. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
-| Następny etap | P2 — providerzy chmurowi Anthropic, OpenAI i OpenRouter zgodnie z roadmapą. |
+| Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
+| Następny etap | D1 — LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu diagramu. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -65,6 +66,47 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
   zgodnym bindingiem. Ręczna zmiana profilu pozostawia stary model nieaktywny; Ollama ignoruje legacy
   URL/model, a istniejące ustawienia nie są usuwane.
 
+## Implementacja P2
+
+- Profile `cloud-anthropic`, `cloud-openai` i `cloud-openrouter` rozszerzają ten sam neutralny
+  `ProviderRegistry`. Każdy deklaruje wymaganie `api-key`; profile lokalne deklarują `none` i ich
+  zachowanie, generator type (`openai-compatible-local`) oraz metadane 0/42 pozostają bez zmian.
+- `src/node/llm/remote-json-transport.ts` jest transportem HTTPS-only z zamkniętą allowlistą sześciu
+  kombinacji host/metoda/ścieżka. Odrzuca redirecty, ogranicza request/response, timeout i listę
+  modeli, obsługuje cancellation i zwraca wyłącznie bezpieczne kody. Nie przyjmuje URL od użytkownika.
+  Granica produkcyjnego `NodeHttpsJsonTransport` jest testowana przez wąski double `https.request`:
+  dokładne opcje i nagłówki, bajtowy `Content-Length`, statusy i błędy socket/TLS, limity, ucięcie,
+  timeout/cancellation z `destroy()` oraz brak retry.
+- Anthropic ma osobny adapter natywnego Messages API. Używa stabilnego `output_config.format`, bez
+  beta headera, temperature i thinking; parser wymaga dokładnie jednego text block oraz
+  `stop_reason=end_turn`. Wire schema jest niemutującą projekcją pełnego generated-model schema;
+  lokalna walidacja Zod i cały pipeline pozostają bez zmian. Listing dopuszcza wyłącznie rekordy z
+  `capabilities.structured_outputs.supported === true`; kolejne początkowe system messages są łączone
+  przez `\n\n`, a system message po pierwszej roli niesystemowej jest odrzucana przed I/O.
+- OpenAI i OpenRouter współdzielą wyłącznie zdalny adapter OpenAI-compatible. OpenAI mapuje
+  `maxTokens` do `max_completion_tokens`; OpenRouter do `max_tokens` i zawsze wysyła
+  `provider.allow_fallbacks=false`, `provider.require_parameters=true`, bez pola `models`. Oba
+  adaptery wymagają dokładnie `finish_reason=stop`, bez zmiany lokalnej kompatybilności parsera.
+- Model listing jest osobno parsowany per provider. OpenRouter używa dokładnie
+  `/api/v1/models?supported_parameters=response_format&limit=1000`, ponownie sprawdza
+  `supported_parameters`, nie paginuje i odrzuca uciętą stronę. Identyfikatory są walidowane,
+  deduplikowane i sortowane deterministycznie.
+- VS Code udostępnia generyczne komendy wyboru profilu/modelu oraz ustawienia/usunięcia klucza.
+  Trzy stałe identyfikatory sekretów żyją wyłącznie w `SecretStorage`; input ma `password: true`,
+  wspólna neutralna walidacja wymaga 1–1024 znaków bez brzegowego whitespace i znaków kontrolnych,
+  a brak klucza blokuje provider I/O. Picker profilu nie odczytuje sekretów ani nie pokazuje ich
+  statusu; klucz jest odczytywany dopiero bezpośrednio przed jawnym listingiem lub generowaniem.
+  Aktywacja, wybór profilu i set/delete key nie wykonują sieci. Stare command IDs P1 są ukrytymi aliasami.
+- Profil i model/binding nadal są machine-scoped i zachowują się po restarcie; klucz nie trafia do
+  settings/globalState/logów/błędów/raportów/artefaktów/VSIX. Szczegóły i ręczne smoke flows:
+  [`cloud-models.md`](cloud-models.md).
+- Kontrakt anulowania rozróżnia wcześniejsze pickery od pickera modelu: anulowanie profilu lub
+  źródła flow następuje przed odczytem sekretu i I/O, natomiast cloud model picker może powstać
+  dopiero po jednym `SecretStorage.get` i jednym GET listy modeli. Jego anulowanie nie zapisuje
+  modelu/bindingu i nie uruchamia generacyjnego POST ani generowania. Generate z już wybranym
+  modelem pomija listing i czyta sekret bezpośrednio przed generowaniem; profile lokalne nie czytają
+  `SecretStorage`.
+
 ## Knowledge Pack Builder — etap A
 
 Knowledge Pack Builder — **wyłącznie etap A: deterministyczny rdzeń** (bez LLM, bez dostępu do plików
@@ -114,7 +156,9 @@ obejmującym dwie korekty zakresu (granica decyzji/basis, jednoznaczność alias
 - Pipeline sequence z walidacją deterministyczną i rendererem PlantUML (compatibility path).
 - Lokalny adapter OpenAI-compatible (loopback, jedno żądanie, bez retry/repair), demo offline,
   profile LM Studio i Ollama.
-- Rozszerzenie VS Code: komendy generowania i wyboru profilu/modelu, ustawienia, dwa bundle,
+- Zdalne adaptery Anthropic/OpenAI/OpenRouter (fixed HTTPS allowlist, bounded I/O, strict parsing,
+  jedno żądanie, bez retry/repair/fallbacku) i credential boundary w VS Code `SecretStorage`.
+- Rozszerzenie VS Code: komendy generowania, wyboru profilu/modelu i zarządzania cloud keys, dwa bundle,
   skrypty `extension:package` i `extension:verify`.
 - Knowledge Pack Builder, etap A: model kandydatów i dowodów, walidacja draftu, deterministyczny
   renderer pięciu plików, round-trip in-memory przez loader (tylko core, bez runtime i UI).
@@ -175,14 +219,13 @@ sesji, HEAD `d4de130790726f09819bd3821cc78ef0b0d22d4e`, rozmiar 180305 B, SHA-25
 Status ręcznego testu: **PASS**. Checkpoint `v0.2.0-alpha.1` jest implemented, automatically
 verified i owner smoke accepted.
 
-## Wyłącznie planowane
+## Kierunek dalszych prac
 
 W kolejności ustalonej przez właściciela (2026-09-19; pełny opis w roadmapie, „Product priority”):
 
-1. **P1 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz wybór
-   profilu i modelu w rozszerzeniu. **P2 (następny):** dostawcy chmurowi Anthropic, OpenAI, OpenRouter (tylko HTTPS, stała
-   allowlista hostów, `SecretStorage`, lista modeli z API dostawcy, jedno wywołanie, bez retry).
-2. **D1:** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
+1. **P1 i P2 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz
+   Anthropic/OpenAI/OpenRouter, machine-scoped wybór profilu/modelu i cloud keys w `SecretStorage`.
+2. **D1 (następny):** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
    diagramu; **D2–D5:** `component`, `c4-context`, `c4-container`, `archimate-hld`. Sekwencja
    pozostaje compatibility path i regression oracle.
 3. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
@@ -200,6 +243,46 @@ bezpiecznego, publicznego fixture; w repo nie ma kodu parsowania EA ani XML, fix
 testów (jedyne odwołania do `.xml` dotyczą manifestu VSIX).
 
 ## Weryfikacja
+
+### Korekta kontraktu anulowania cloud model pickera (2026-09-21)
+
+Bez zmian kodu produkcyjnego dodano regresje zarejestrowanych komend VS Code dla **Select Model**
+oraz **Generate** bez wybranego modelu. Obie potwierdzają: dokładnie jeden odczyt
+`SecretStorage`, jeden GET listy modeli wymagany przed pokazaniem pickera, zero zapisów
+modelu/bindingu, zero generacyjnych POST i zero uruchomień generowania po anulowaniu pickera.
+Osobny test potwierdza, że anulowanie wyboru źródła flow następuje przed odczytem sekretu i przed
+provider I/O. Bieżące wyniki: celowany `extension-command.test.ts` — PASS, 40/40;
+`npm run extension:typecheck` — PASS; `npm run extension:test` — PASS, 8/8 plików i 139/139 testów.
+
+### P2 (2026-09-20)
+
+`npm ci` przeszło bez zmiany root `package.json` ani `package-lock.json`. Testy providerów używają
+wyłącznie syntetycznych danych oraz doubles `https.request`/transportu; żaden test nie kontaktuje się
+z Anthropic, OpenAI ani OpenRouter. Produkcyjna logika `NodeHttpsJsonTransport` jest wykonywana przez
+testy primitive, a nie zastępowana double na poziomie `exchange()`.
+
+| Kontrola | Wynik |
+| --- | --- |
+| Testy celowane P2, transportu, runtime, VS Code i pakowania | PASS — 13/13 plików, 210/210 testów |
+| `npm test` | PASS — 80/80 plików, 1187/1187 testów |
+| `npm run typecheck` | PASS |
+| `npm run extension:typecheck` | PASS |
+| `npm run extension:test` | PASS — 8/8 plików, 137/137 testów; powtórzone poza sandboxem po środowiskowym `listen EPERM` dla loopback |
+| `npm run extension:build` | PASS |
+| `npm run extension:package` | PASS — dokładnie 6 plików, 185,42 KB |
+| `npm run extension:verify` | PASS — wyłącznie 6 dozwolonych wpisów, kontrola sekretów aktywna |
+| Samowystarczalny runtime/VSIX poza repo | PASS — 1/1 plik, 12/12 testów; pusty katalog bez repo, `node_modules`, npm i dostępnego `PATH` |
+| Sentinel secret | PASS — nieobecny w runtime bundle, extension bundle, VSIX, artefaktach, komunikatach i błędach |
+| Root `package.json` / `package-lock.json` | Bez zmian; brak nowych zależności |
+
+Końcowy automatycznie zweryfikowany artefakt lokalny:
+`vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`, 190346 B, SHA-256
+`750ff9bdd99221f4451e9091faec7b63e8c86bb7960793fc80bd89cc3f9264ea`. Test pakowania uruchomił
+runtime z pustego katalogu bez repozytorium, `node_modules`, npm i dostępnego `PATH`.
+
+Owner smoke Anthropic/OpenAI/OpenRouter nie był wykonywany: wymaga prawdziwych kluczy, wykonuje
+płatne requesty i zgodnie z DoD pozostaje oddzielnym, opcjonalnym krokiem właściciela. Minimalne
+przepływy i ostrzeżenia kosztowe są w [`cloud-models.md`](cloud-models.md).
 
 ### P1 (2026-09-20)
 
@@ -277,5 +360,6 @@ wykonywano.
 
 ## Następny krok
 
-**P2** — osobna faza PLANOWANIA dla providerów chmurowych Anthropic, OpenAI i OpenRouter zgodnie z
-ograniczeniami roadmapy (HTTPS, allowlista hostów, `SecretStorage`, jedno wywołanie, bez retry).
+**D1** — osobna faza PLANOWANIA dla ścieżki LLM-first final PlantUML ze wspólną walidacją
+strukturalną i wyborem typu diagramu. P2 jest zaimplementowane; ręczne owner smoke providerów
+chmurowych pozostaje opcjonalne i kosztowe, poza automatycznym DoD.

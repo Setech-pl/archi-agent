@@ -5,6 +5,14 @@
 
 export const commandIds = Object.freeze({
   generateSequenceDiagram: "archiAgent.generateSequenceDiagram",
+  selectProviderProfile: "archiAgent.selectProviderProfile",
+  selectModel: "archiAgent.selectModel",
+  setApiKey: "archiAgent.setApiKey",
+  deleteApiKey: "archiAgent.deleteApiKey"
+});
+
+/** Hidden compatibility aliases for command IDs shipped by P1. */
+export const legacyCommandIds = Object.freeze({
   selectLocalProviderProfile: "archiAgent.selectLocalProviderProfile",
   selectLocalModel: "archiAgent.selectLocalModel"
 });

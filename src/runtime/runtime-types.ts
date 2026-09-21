@@ -52,7 +52,7 @@ export interface LocalModelEndpointConfig {
   readonly timeoutMs?: number;
 }
 
-/** Which generator plans the diagram. Only the local OpenAI-compatible adapter exists today. */
+/** Legacy local generator configuration retained for backward compatibility. */
 export type LegacyLocalGeneratorConfig = LocalModelEndpointConfig & {
   readonly kind: "openai-compatible-local";
   /** Chosen explicitly by the caller; the runtime never selects a model. */
@@ -68,13 +68,28 @@ export type ProviderGeneratorConfig = {
   readonly baseUrl?: string;
 };
 
+export interface ProviderCredential {
+  readonly type: "api-key";
+  readonly value: string;
+}
+
+/** Profile-based remote generation. Hosts obtain the credential from secure storage per action. */
+export type RemoteProviderGeneratorConfig = {
+  readonly kind: "remote-provider";
+  readonly profileId: string;
+  readonly modelId: string;
+  readonly credential?: ProviderCredential;
+  readonly timeoutMs?: number;
+};
+
 /** The legacy endpoint variant remains public for backward compatibility. */
-export type GeneratorConfig = LegacyLocalGeneratorConfig | ProviderGeneratorConfig;
+export type GeneratorConfig = LegacyLocalGeneratorConfig | ProviderGeneratorConfig | RemoteProviderGeneratorConfig;
 
 export interface ProviderModelSelection {
   readonly profileId: string;
   readonly timeoutMs?: number;
   readonly baseUrl?: string;
+  readonly credential?: ProviderCredential;
 }
 
 export interface GenerateSequenceDiagramRequest {

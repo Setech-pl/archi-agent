@@ -41,6 +41,11 @@ export interface DoubleState {
   /** One-based update call numbers that reject before mutating configuration. */
   configurationUpdateFailureCalls: Set<number>;
   configurationUpdates: { key: string; value: unknown; target: unknown }[];
+  secrets: Map<string, string>;
+  secretReads: string[];
+  secretWrites: { key: string; value: string }[];
+  secretDeletes: string[];
+  secretFailures: Set<"get" | "store" | "delete">;
   quickPickAnswers: QuickPickAnswer[];
   quickPicks: { items: readonly unknown[]; options: unknown }[];
   inputBoxAnswers: (string | undefined)[];
@@ -67,6 +72,11 @@ function freshState(): DoubleState {
     configurationUpdateFailures: new Set(),
     configurationUpdateFailureCalls: new Set(),
     configurationUpdates: [],
+    secrets: new Map(),
+    secretReads: [],
+    secretWrites: [],
+    secretDeletes: [],
+    secretFailures: new Set(),
     quickPickAnswers: [],
     quickPicks: [],
     inputBoxAnswers: [],
@@ -275,11 +285,33 @@ export const commands = {
   },
   executeCommand(command: string, ...args: unknown[]): Promise<unknown> {
     state.executedCommands.push({ command, args });
-    return Promise.resolve(undefined);
+    const handler = state.registeredCommands.get(command);
+    return handler === undefined ? Promise.resolve(undefined) : Promise.resolve(handler(...args));
   }
 };
 
-/** Minimal extension context: only the subscriptions the extension pushes into. */
-export function createExtensionContext(): { subscriptions: { dispose(): unknown }[] } {
-  return { subscriptions: [] };
+export const secretStorage = {
+  get(key: string): Promise<string | undefined> {
+    state.secretReads.push(key);
+    if (state.secretFailures.has("get")) return Promise.reject(new Error("synthetic secret read failure"));
+    return Promise.resolve(state.secrets.get(key));
+  },
+  store(key: string, value: string): Promise<void> {
+    if (state.secretFailures.has("store")) return Promise.reject(new Error("synthetic secret write failure"));
+    state.secretWrites.push({ key, value });
+    state.secrets.set(key, value);
+    return Promise.resolve();
+  },
+  delete(key: string): Promise<void> {
+    if (state.secretFailures.has("delete")) return Promise.reject(new Error("synthetic secret delete failure"));
+    state.secretDeletes.push(key);
+    state.secrets.delete(key);
+    return Promise.resolve();
+  },
+  onDidChange: () => new Disposable()
+};
+
+/** Minimal extension context: subscriptions and SecretStorage used by the extension. */
+export function createExtensionContext(): { subscriptions: { dispose(): unknown }[]; secrets: typeof secretStorage } {
+  return { subscriptions: [], secrets: secretStorage };
 }

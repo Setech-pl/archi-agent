@@ -45,23 +45,34 @@ export function buildGenerationRequest(
   settings: ArchiAgentSettings,
   flow: FlowSource,
   modelId: string,
-  signal?: CancellationSignal
+  signal?: CancellationSignal,
+  apiKey?: string
 ): GenerateSequenceDiagramRequest {
   const generator =
     settings.localModel.selectionMode === "legacy"
       ? Object.freeze({
           kind: "openai-compatible-local" as const,
-          baseUrl: settings.localModel.baseUrl,
+          baseUrl: settings.localModel.baseUrl ?? "",
           modelId,
           timeoutMs: settings.localModel.timeoutMs
         })
-      : Object.freeze({
-          kind: "openai-compatible-local" as const,
-          profileId: settings.localModel.profileId,
-          modelId,
-          timeoutMs: settings.localModel.timeoutMs,
-          ...(settings.localModel.profileId === localLmStudioProfileId ? { baseUrl: settings.localModel.baseUrl } : {})
-        });
+      : settings.localModel.baseUrl !== undefined || settings.localModel.profileId === localLmStudioProfileId
+        ? Object.freeze({
+            kind: "openai-compatible-local" as const,
+            profileId: settings.localModel.profileId,
+            modelId,
+            timeoutMs: settings.localModel.timeoutMs,
+            ...(settings.localModel.profileId === localLmStudioProfileId && settings.localModel.baseUrl !== undefined
+              ? { baseUrl: settings.localModel.baseUrl }
+              : {})
+          })
+        : Object.freeze({
+            kind: "remote-provider" as const,
+            profileId: settings.localModel.profileId,
+            modelId,
+            timeoutMs: settings.localModel.timeoutMs,
+            ...(apiKey === undefined ? {} : { credential: Object.freeze({ type: "api-key" as const, value: apiKey }) })
+          });
 
   return Object.freeze({
     flow,

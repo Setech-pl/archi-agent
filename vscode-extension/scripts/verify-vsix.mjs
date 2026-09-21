@@ -73,7 +73,7 @@ function isAllowedEntry(name) {
  * Returns { ok, entries, violations }. Each violation is "<rule>: <entry or detail>" and never
  * contains file content.
  */
-export function verifyVsix(filePath) {
+export function verifyVsix(filePath, options = {}) {
   const violations = [];
   let archive;
 
@@ -100,6 +100,16 @@ export function verifyVsix(filePath) {
 
     if (!isAllowedEntry(name)) {
       violations.push(`unexpected-entry: ${name}`);
+    }
+
+    if (typeof options.forbiddenText === "string" && options.forbiddenText.length > 0) {
+      try {
+        if (archive.read(name).includes(Buffer.from(options.forbiddenText, "utf8"))) {
+          violations.push(`forbidden-text: ${name}`);
+        }
+      } catch {
+        violations.push(`entry-unreadable: ${name}`);
+      }
     }
   }
 
@@ -141,8 +151,10 @@ export function verifyVsix(filePath) {
 
       const requiredCommands = [
         "archiAgent.generateSequenceDiagram",
-        "archiAgent.selectLocalProviderProfile",
-        "archiAgent.selectLocalModel"
+        "archiAgent.selectProviderProfile",
+        "archiAgent.selectModel",
+        "archiAgent.setApiKey",
+        "archiAgent.deleteApiKey"
       ];
 
       if (requiredCommands.some((command) => !commands.includes(command))) {
@@ -150,6 +162,10 @@ export function verifyVsix(filePath) {
       }
 
       const properties = manifest.contributes?.configuration?.properties ?? {};
+
+      if (Object.keys(properties).some((setting) => /api.?key|secret|credential/i.test(setting))) {
+        violations.push("manifest-secret-setting: credentials must not be ordinary settings");
+      }
 
       for (const setting of [
         "archiAgent.localModel.profile",
@@ -184,6 +200,9 @@ export function verifyVsix(filePath) {
     }
 
     const text = content.toString("utf8");
+    if (/sk-ant-api\d{2}-[A-Za-z0-9_-]{16,}|sk-or-v1-[A-Fa-f0-9]{16,}|sk-proj-[A-Za-z0-9_-]{16,}/.test(text)) {
+      violations.push(`bundle-credential-pattern: ${entry}`);
+    }
     const specifiers = requireSpecifiers(text);
     const allowed = new Set([...builtins, ...(expectVscode ? ["vscode", `./${bundleFileNames.runtime}`] : [])]);
 

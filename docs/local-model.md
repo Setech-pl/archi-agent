@@ -2,7 +2,8 @@
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
 a local OpenAI-compatible server with structured-output support: LM Studio or Ollama, on the loopback
-interface only. Both profiles use the same adapter; remote providers do not exist yet. A
+interface only. Both profiles use the same adapter; cloud profiles use separate HTTPS adapters and
+do not change this loopback policy (see `cloud-models.md`). A
 self-contained VS Code extension exists and was verified at checkpoint `v0.2.0-alpha.1` on commit
 `d4de130`.
 
@@ -110,7 +111,7 @@ generation. Provider-specific loading behavior is outside ArchGround.
 
 ## VS Code profile and migration behavior
 
-Use **Archi Agent: Select Local Provider Profile** and **Archi Agent: Select Local Model**. The
+Use **Archi Agent: Select Provider Profile** and **Archi Agent: Select Model**. The
 explicit profile, selected model and the extension-managed `selectedModelProfile` binding are
 machine-scoped user settings: VS Code Settings Sync does not copy them, and workspace or
 workspace-folder settings cannot override them. A Windows computer can therefore keep an LM Studio

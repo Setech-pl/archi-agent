@@ -138,7 +138,7 @@ prompt and schema, makes one structured-chat call and returns the value to the u
 pipeline.
 
 Provider identity is also neutral in core. `ProviderProfile` contains only an identifier, provider
-kind, display name and immutable capability flags; `ProviderRegistry` validates, sorts and resolves
+kind, display name, credential requirement and immutable capability flags; `ProviderRegistry` validates, sorts and resolves
 profiles without I/O. Concrete LM Studio and Ollama names and loopback defaults live in
 `src/node/llm/local-provider-profiles.ts`. The runtime resolves a profile and capability before
 constructing the existing local adapter; it reports `unknown-provider-profile` or
@@ -150,7 +150,7 @@ the host ignores a model when that binding is absent, invalid or mismatched. Onl
 profile value enables the legacy LM Studio settings. A present unknown profile fails closed before
 the runtime can construct a transport.
 
-Two adapters exist:
+Provider transports exist in separate Node adapters:
 
 - `openai-compatible-local` (`src/node/llm`): LM Studio and Ollama profiles share this transport;
   the model plans the diagram. The provider-neutral
@@ -160,13 +160,20 @@ Two adapters exist:
   strict parser (`src/core/llm`) accepts exactly one JSON object. One request per generation,
   loopback only, temperature 0 and seed 42, no retry, repair or provider fallback. See
   `docs/local-model.md`.
+- `anthropic-remote`: native HTTPS Messages API with stable structured outputs and a projected wire
+  schema; its strict parser accepts exactly one text block ending with `end_turn`.
+- `openai-remote` and `openrouter-remote`: a shared HTTPS OpenAI-compatible adapter with distinct
+  fixed hosts, paths and request mappings. OpenRouter disables provider fallback and requires
+  structured-output parameter support. Remote profiles report `temperature: null` and `seed: null`
+  because neither field is sent. See `docs/cloud-models.md`.
 - `scripted-demo` (`src/demo`): a deterministic script used as an offline regression fixture,
   smoke-test baseline and pipeline demonstration; it is not the production generation strategy.
 
 Deterministic code covers parsing, grounding, candidate selection, limits, the structured-output
 contract, validation, rendering and output safety. Message creation, wording, relationship choice,
-interaction semantics, fragments and level of detail belong to the model. Remote providers are not
-implemented.
+interaction semantics, fragments and level of detail belong to the model. Cloud credentials remain
+in the VS Code host's `SecretStorage` and are supplied to the host-neutral runtime only for an
+explicit operation.
 
 ## Generation pipeline
 

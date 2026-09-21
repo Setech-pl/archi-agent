@@ -14,12 +14,14 @@ export const localProviderProfiles: readonly ProviderProfile[] = Object.freeze([
     profileId: localLmStudioProfileId,
     providerKind: "openai-compatible-local",
     displayName: "LM Studio",
+    credentialRequirement: "none",
     capabilities: Object.freeze({ modelListing: true, structuredChat: true })
   }),
   Object.freeze({
     profileId: localOllamaProfileId,
     providerKind: "openai-compatible-local",
     displayName: "Ollama",
+    credentialRequirement: "none",
     capabilities: Object.freeze({ modelListing: true, structuredChat: true })
   })
 ]);

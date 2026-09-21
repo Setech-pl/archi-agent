@@ -12,7 +12,7 @@ AI SDLC techniques on a working product. The product must provide:
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
 The exact sequence is: **R0 → B1 → P1 → P2 → D1–D5 → K1–K4 → Demo and release**.
-R0, B1 and P1 are implemented; P2 is the next implementation step.
+R0, B1, P1 and P2 are implemented; D1 is the next implementation step.
 
 Agreed order of work:
 
@@ -21,7 +21,7 @@ Agreed order of work:
 | 0 | R0 | Documentation update in this changeset. |
 | 1 | B1 | Implemented: neutral `StructuredChatClient` port and extraction of the local transport. |
 | 2 | P1 | Implemented: provider profile model and registry; LM Studio and Ollama profiles; machine-scoped profile and model selection in the extension. |
-| 3 | P2 | Next implementation step: cloud providers Anthropic, OpenAI, OpenRouter: HTTPS only, fixed host allowlist, `SecretStorage`, model list from the provider API, one call, no retry. |
+| 3 | P2 | Implemented: cloud providers Anthropic, OpenAI and OpenRouter; fixed HTTPS allowlist, `SecretStorage`, provider model listing, one generation call, no retry or fallback. |
 | 4 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection. |
 | 5 | D2 | Profile `component`. Sequence stays the compatibility path and regression oracle. |
 | 6 | D3 | Profile `c4-context`. |
@@ -208,7 +208,7 @@ Ordered as agreed in [Product priority](#product-priority).
 
 | Order | Item | Status | Notes | Depends on |
 | --- | --- | --- | --- | --- |
-| P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | planned — next | HTTPS only, fixed host allowlist, API keys in VS Code `SecretStorage`, model list from the provider API, one call, no retry. No remote provider code exists. | P1 |
+| P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | implemented | HTTPS only with production-boundary transport tests, fixed host/path allowlist, strictly validated API keys in VS Code `SecretStorage`, capability-filtered bounded model listing, strict cloud finish contracts, one generation call, no retry/repair/fallback. | P1 |
 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection | planned (sequence validation implemented) | Sequence pipeline stays the compatibility path and regression oracle. | Grounding core |
 | D2 | Profile `component` | planned | | D1 |
 | D3 | Profile `c4-context` | planned | | D1 |
@@ -265,9 +265,9 @@ Remaining work in this phase:
 The production application should be a self-contained VS Code extension. The foundation exists:
 a VSIX built from bundled JavaScript with generation and local profile/model commands, loopback-only local model settings, an
 explicit Knowledge Pack path, interactive ambiguity resolution and `[NEW]` confirmation, and
-package-content verification (see `docs/vscode-extension.md`). Artifact persistence, richer
-configuration UI and remote provider profiles are further extensions of this foundation, not
-gaps blocking the checkpoint.
+package-content verification (see `docs/vscode-extension.md`). Cloud provider profiles now extend
+this foundation. Artifact persistence and richer configuration UI remain further extensions, not
+gaps blocking the accepted checkpoint.
 
 Target installation:
 
@@ -328,15 +328,14 @@ Implemented foundation:
 
 * B1 — a neutral `StructuredChatClient` port, with the local transport extracted behind it,
 
-Next direction — not implemented; part of the mandatory product scope (see
-[Product priority](#product-priority)):
+Implemented next step in the mandatory product scope (see [Product priority](#product-priority)):
 
-* P2 — cloud profiles for Anthropic, OpenAI and OpenRouter: HTTPS only, a fixed host allowlist,
-  the model list fetched from the provider API, one call per generation, no retry,
+* P2 — cloud profiles for Anthropic, OpenAI and OpenRouter: HTTPS only, a fixed host/path allowlist,
+  the model list fetched from the provider API, one call per generation, no retry/repair/fallback,
 * runtime contracts stay provider-neutral.
 
-Remote provider credentials must not be stored in ordinary settings or in the repository. In P2,
-API keys will be kept in VS Code `SecretStorage`; remote providers and credential handling are not implemented.
+Remote provider credentials are not stored in ordinary settings or in the repository. API keys are
+kept in provider-specific VS Code `SecretStorage` entries; see `cloud-models.md`.
 
 ---
 
@@ -792,8 +791,8 @@ Architecture catalogs remain on the workstation.
 
 Only reduced grounded context is supplied to the model.
 
-Cloud providers (Anthropic, OpenAI, OpenRouter) are planned (P2) and must use the same
-provider-neutral application boundary. Local models remain a supported choice for sensitive
+Cloud providers (Anthropic, OpenAI, OpenRouter) are implemented through the same provider-neutral
+application boundary. Local models remain a supported choice for sensitive
 environments.
 
 ---
@@ -849,7 +848,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | Documentation/public repository cleanup | partial |
 | B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
 | P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
-| P2 — cloud providers Anthropic, OpenAI, OpenRouter | planned — next |
+| P2 — cloud providers Anthropic, OpenAI, OpenRouter | implemented and automatically verified |
 | D1 — LLM-first PlantUML path with shared structural validation | planned |
 | D2 — Component diagram | planned |
 | D3/D4 — C4 context / container | planned |

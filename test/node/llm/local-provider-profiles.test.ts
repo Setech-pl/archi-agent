@@ -16,12 +16,14 @@ describe("local provider profiles", () => {
         profileId: "local-lm-studio",
         providerKind: "openai-compatible-local",
         displayName: "LM Studio",
+        credentialRequirement: "none",
         capabilities: { modelListing: true, structuredChat: true }
       },
       {
         profileId: "local-ollama",
         providerKind: "openai-compatible-local",
         displayName: "Ollama",
+        credentialRequirement: "none",
         capabilities: { modelListing: true, structuredChat: true }
       }
     ]);
