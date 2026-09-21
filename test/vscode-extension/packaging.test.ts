@@ -1,10 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createArchiAgentRuntime, type GenerateSequenceDiagramRequest } from "../../src/runtime/index.js";
 import { buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
+import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
+import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
 
 /**
  * Packaging checks: the bundles build, the runtime bundle runs on its own from a directory that
@@ -26,7 +29,7 @@ interface PackageModule {
 }
 
 interface VerifyModule {
-  verifyVsix(filePath: string): { ok: boolean; entries: readonly string[]; violations: readonly string[] };
+  verifyVsix(filePath: string, options?: { forbiddenText?: string }): { ok: boolean; entries: readonly string[]; violations: readonly string[] };
   requiredEntries: readonly string[];
   prohibitedEntryRules: readonly { rule: string; pattern: RegExp }[];
 }
@@ -36,6 +39,7 @@ const extensionRoot = path.join(projectRoot, "vscode-extension");
 const scriptUrl = (name: string): string => new URL(`../../vscode-extension/scripts/${name}`, import.meta.url).href;
 const LF = String.fromCharCode(10);
 const workspaces: string[] = [];
+const syntheticSecretSentinel = "ARCHI_AGENT_TEST_SENTINEL_DO_NOT_PACKAGE_7F3A";
 
 function temporaryDirectory(prefix: string): string {
   const directory = realpathSync(mkdtempSync(path.join(tmpdir(), prefix)));
@@ -86,10 +90,67 @@ describe("bundles", () => {
     expect(text).not.toMatch(/\bnpm\s+run\b/);
     expect(text).toContain("createArchiAgentRuntime");
   });
+
+  it("keeps the synthetic sentinel out of both production bundles", () => {
+    expect(readFileSync(bundles.runtimeFile, "utf8")).not.toContain(syntheticSecretSentinel);
+    expect(readFileSync(bundles.extensionFile, "utf8")).not.toContain(syntheticSecretSentinel);
+  });
+});
+
+describe("synthetic secret leak guard", () => {
+  it("keeps the sentinel out of generated artifacts, diagnostics and thrown errors", async () => {
+    const root = temporaryDirectory("archi-agent-sentinel-pack-");
+    const packDirectory = path.join(root, "architecture");
+    mkdirSync(packDirectory);
+    for (const [name, content] of Object.entries(buildPackFiles())) writeFileSync(path.join(packDirectory, name), content, "utf8");
+    const flow = [
+      "---",
+      "diagram_name: sentinel-run",
+      "flow_name: Sentinel run",
+      "author: Packaging Test",
+      "---",
+      "The Night Observer asks the Scheduler for observation slots.",
+      "The Telescope Scheduler signals the Dome Controller and registers frames in the Archive.",
+      ""
+    ].join(LF);
+    const baseRequest = {
+      flow: { kind: "document" as const, text: flow, fileName: "sentinel-run.md" },
+      knowledgePack: { kind: "local-directory" as const, path: packDirectory }
+    };
+    const echo = new ContextEchoGenerator();
+    await createArchiAgentRuntime({ generatorFactory: () => echo }).generateSequenceDiagram({
+      ...baseRequest,
+      generator: { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "echo" }
+    });
+    const grounded = echo.requests[0];
+    if (grounded === undefined) throw new Error("missing synthetic grounded request");
+    const model = await echo.generate(grounded);
+    const request: GenerateSequenceDiagramRequest = {
+      ...baseRequest,
+      generator: {
+        kind: "remote-provider",
+        profileId: "cloud-openai",
+        modelId: "gpt-test",
+        credential: { type: "api-key", value: syntheticSecretSentinel }
+      }
+    };
+    const success = await createArchiAgentRuntime({
+      remoteTransport: new RemoteJsonTransportDouble(
+        JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(model), refusal: null } }] })
+      )
+    }).generateSequenceDiagram(request);
+    expect(JSON.stringify(success)).not.toContain(syntheticSecretSentinel);
+
+    const failure = await createArchiAgentRuntime({
+      remoteTransport: { exchange: () => Promise.reject(Object.assign(new Error(syntheticSecretSentinel), { code: "connection-failed" })) }
+    }).generateSequenceDiagram(request);
+    expect(JSON.stringify(failure)).not.toContain(syntheticSecretSentinel);
+    expect(String(failure)).not.toContain(syntheticSecretSentinel);
+  });
 });
 
 describe("clean runtime execution", () => {
-  it("runs the packaged runtime from an empty directory with no repository, node_modules, npm or PATH", () => {
+  it("runs runtime extracted from VSIX in an empty directory with no repository, node_modules, npm or PATH", async () => {
     const runtimeDir = temporaryDirectory("archi-agent-runtime-");
     const packRoot = temporaryDirectory("archi-agent-clean-pack-");
     const workingDir = temporaryDirectory("archi-agent-clean-cwd-");
@@ -101,7 +162,10 @@ describe("clean runtime execution", () => {
       writeFileSync(path.join(packDirectory, name), content, "utf8");
     }
 
-    copyFileSync(bundles.runtimeFile, path.join(runtimeDir, buildModule.bundleFileNames.runtime));
+    const packageModule = (await import(scriptUrl("package-vsix.mjs"))) as PackageModule;
+    const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };
+    const vsix = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-clean-vsix-"), bundleDir: temporaryDirectory("archi-agent-clean-vsix-bundles-") });
+    writeFileSync(path.join(runtimeDir, buildModule.bundleFileNames.runtime), openVsix(vsix).read(`extension/dist/${buildModule.bundleFileNames.runtime}`));
     const flow = [
       "---",
       "diagram_name: observation-run",
@@ -131,13 +195,16 @@ describe("clean runtime execution", () => {
       "    return { participants, messages };",
       "  }",
       "};",
-      "const instance = runtime.createArchiAgentRuntime({ generatorFactory: () => generator });",
-      "instance.generateSequenceDiagram({",
+      "const diagramClient = { clientType: 'clean-runtime-chat', generationMetadata: { modelId: 'unused-model', temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },",
+      "  async complete() { return { source: 'content', value: { plantUml: '@startuml\\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\\ndatabase \"Image Archive\" as kp_image_archive\\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\\n@enduml\\n', messages: [{ order: 1, lineNumber: 4, from: { elementId: 'telescope-scheduler' }, to: { elementId: 'image-archive' }, label: 'Registers frames', interfaceType: 'DB', interfaceName: 'Archive Writer', async: false, isResponse: false }] } }; } };",
+      "const instance = runtime.createArchiAgentRuntime({ generatorFactory: () => generator, diagramClientFactory: () => diagramClient });",
+      "const generationRequest = {",
       `  flow: { kind: "document", text: ${JSON.stringify(flow)}, fileName: "observation-run.md" },`,
       `  knowledgePack: { kind: "local-directory", path: ${JSON.stringify(packDirectory)} },`,
       '  generator: { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "unused-model" }',
-      "}).then((result) => {",
-      "  process.stdout.write(JSON.stringify({ cwd: process.cwd(), status: result.status, stage: result.stage, diagramName: result.diagramName, plantUml: result.plantUml, report: result.groundingReport, summary: result.summary }));",
+      "};",
+      "Promise.all([instance.generateSequenceDiagram(generationRequest), instance.generateDiagram({ ...generationRequest, diagramType: 'sequence' })]).then(([result, d1]) => {",
+      "  process.stdout.write(JSON.stringify({ cwd: process.cwd(), status: result.status, stage: result.stage, diagramName: result.diagramName, plantUml: result.plantUml, report: result.groundingReport, summary: result.summary, d1Status: d1.status, d1PlantUml: d1.plantUml, d1Report: d1.groundingReport }));",
       "}, (error) => { process.stdout.write(JSON.stringify({ status: 'threw', name: error && error.name })); });",
       ""
     ].join(LF);
@@ -158,7 +225,7 @@ describe("clean runtime execution", () => {
     expect(child.stderr).toBe("");
     expect(child.status).toBe(0);
 
-    const output = JSON.parse(child.stdout) as { cwd: string; status: string; diagramName: string; plantUml: string; report: string; summary: { messageCount: number } };
+    const output = JSON.parse(child.stdout) as { cwd: string; status: string; diagramName: string; plantUml: string; report: string; summary: { messageCount: number }; d1Status: string; d1PlantUml: string; d1Report: string };
     expect(output.status).toBe("success");
     expect(realpathSync(output.cwd)).toBe(workingDir);
     expect(output.diagramName).toBe("observation-run");
@@ -166,6 +233,9 @@ describe("clean runtime execution", () => {
     expect(output.summary.messageCount).toBe(3);
     expect(output.report).not.toContain(packRoot);
     expect(output.plantUml).not.toContain(projectRoot);
+    expect(output.d1Status).toBe("success");
+    expect(output.d1PlantUml).toContain("Registers frames (DB: Archive Writer)");
+    expect(output.d1Report).not.toContain(packRoot);
   }, 90_000);
 });
 
@@ -180,7 +250,7 @@ describe("VSIX", () => {
   }, 180_000);
 
   it("packages and contains exactly the bounded runtime files", () => {
-    const result = verifyModule.verifyVsix(vsixPath);
+    const result = verifyModule.verifyVsix(vsixPath, { forbiddenText: syntheticSecretSentinel });
 
     expect(result.violations).toEqual([]);
     expect(result.ok).toBe(true);

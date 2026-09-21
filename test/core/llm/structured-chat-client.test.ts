@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   isSafeModelId,
+  isSafeModelGenerationMetadata,
   isValidStructuredChatMaxTokens,
   safeErrorCode,
   structuredChatLimits
@@ -28,6 +29,12 @@ describe("structured chat contract", () => {
     for (const rejected of [0, -1, 16_385, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, "1", null]) {
       expect(isValidStructuredChatMaxTokens(rejected)).toBe(false);
     }
+  });
+
+  it("accepts truthful nullable cloud sampling metadata while preserving local values", () => {
+    expect(isSafeModelGenerationMetadata({ modelId: "gpt-test", temperature: null, seed: null, attemptCount: 1, structuredOutput: true })).toBe(true);
+    expect(isSafeModelGenerationMetadata({ modelId: "local-test", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true })).toBe(true);
+    expect(isSafeModelGenerationMetadata({ modelId: "gpt-test", temperature: undefined, seed: null, attemptCount: 1, structuredOutput: true })).toBe(false);
   });
 
   it("returns only codes matching the exact safe pattern", () => {

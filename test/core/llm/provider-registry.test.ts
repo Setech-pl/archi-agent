@@ -8,6 +8,7 @@ function profile(profileId: string, displayName = profileId): ProviderProfile {
     profileId,
     providerKind: "synthetic-provider",
     displayName,
+    credentialRequirement: "none",
     capabilities: { modelListing: true, structuredChat: false }
   };
 }
@@ -42,6 +43,7 @@ describe("ProviderRegistry", () => {
     );
     expect(() => new ProviderRegistry([{ ...profile("valid"), displayName: "" }])).toThrowError(ProviderRegistryError);
     expect(() => new ProviderRegistry([{ ...profile("valid"), capabilities: { modelListing: true } as never }])).toThrowError(ProviderRegistryError);
+    expect(() => new ProviderRegistry([{ ...profile("valid"), credentialRequirement: "token" as never }])).toThrowError(ProviderRegistryError);
   });
 
   it("keeps core free of concrete providers, endpoints, HTTP, Node and VS Code", () => {

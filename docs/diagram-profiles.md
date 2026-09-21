@@ -120,9 +120,12 @@ A separate handcrafted renderer should not be created for each diagram profile.
 
 ## Status
 
-**Implemented through the current validated sequence pipeline.**
+**Implemented through both the validated compatibility pipeline and D1 final PlantUML path.**
 
-A future LLM-first path may coexist with the deterministic renderer during migration.
+The D1 path receives the final PlantUML and a strict message ledger in one structured-chat
+response. Each ledger message has a required physical `lineNumber`, continuous `order`, and
+`interfaceName` set to a string or `null`. Local validation accepts only the closed sequence grammar and grounded interactions.
+The compatibility renderer and its golden outputs remain unchanged.
 
 ---
 
@@ -617,7 +620,7 @@ The profile must not contain a local diagram-generation algorithm.
 
 # Generation flow
 
-Target flow:
+Implemented D1 flow for `sequence`:
 
 ```text
 User selects diagram type
@@ -634,7 +637,7 @@ common validation
         ↓
 profile validation
         ↓
-optional semantic review
+grounding report
 ```
 
 ---

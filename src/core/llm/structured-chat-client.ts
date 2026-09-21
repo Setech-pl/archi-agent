@@ -2,7 +2,7 @@ import type { CancellationSignal } from "../knowledge-pack/knowledge-pack-source
 
 /** A provider-neutral chat message accepted by structured generation clients. */
 export interface ChatMessage {
-  readonly role: "system" | "user";
+  readonly role: "system" | "user" | "assistant";
   readonly content: string;
 }
 
@@ -49,8 +49,10 @@ export interface StructuredChatResult {
  */
 export interface ModelGenerationMetadata {
   readonly modelId: string;
-  readonly temperature: number;
-  readonly seed: number;
+  /** Null when the request did not send a temperature. */
+  readonly temperature: number | null;
+  /** Null when the request did not send a seed. */
+  readonly seed: number | null;
   readonly attemptCount: number;
   readonly structuredOutput: boolean;
 }
@@ -90,13 +92,9 @@ export function isSafeModelGenerationMetadata(value: unknown): value is ModelGen
   return (
     Object.keys(record).sort().join(",") === metadataKeys &&
     isSafeModelId(record["modelId"]) &&
-    typeof temperature === "number" &&
-    Number.isFinite(temperature) &&
-    temperature >= 0 &&
-    temperature <= 2 &&
-    typeof seed === "number" &&
-    Number.isSafeInteger(seed) &&
-    seed >= 0 &&
+    (temperature === null ||
+      (typeof temperature === "number" && Number.isFinite(temperature) && temperature >= 0 && temperature <= 2)) &&
+    (seed === null || (typeof seed === "number" && Number.isSafeInteger(seed) && seed >= 0)) &&
     typeof attemptCount === "number" &&
     Number.isSafeInteger(attemptCount) &&
     attemptCount >= 1 &&

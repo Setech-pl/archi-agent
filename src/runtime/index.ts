@@ -15,6 +15,8 @@ export type {
   CancellationSignal,
   FlowLanguage,
   FlowSource,
+  DiagramType,
+  GenerateDiagramRequest,
   GenerateSequenceDiagramFailure,
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult,
@@ -27,13 +29,17 @@ export type {
   ListLocalModelsResult,
   LocalModelEndpointConfig,
   ProviderGeneratorConfig,
+  ProviderCredential,
   ProviderModelSelection,
+  RemoteProviderGeneratorConfig,
   RuntimeFailureStage,
   RuntimeIssue,
   RuntimeIssueDetailValue,
   RuntimeIssueSeverity
 } from "./runtime-types.js";
 export type { ProviderCapabilities, ProviderProfile } from "../core/llm/provider-profile.js";
+export { apiKeyLimits, validateApiKey } from "../core/llm/api-key.js";
+export type { ApiKeyValidationCode, ApiKeyValidationResult } from "../core/llm/api-key.js";
 export { ProviderRegistry, ProviderRegistryError, providerRegistryErrorCodes } from "../core/llm/provider-registry.js";
 export type { ProviderRegistryErrorCode } from "../core/llm/provider-registry.js";
 export { defaultLocalModelBaseUrl, parseLoopbackEndpoint } from "../node/llm/loopback-endpoint.js";
@@ -45,4 +51,11 @@ export {
   localProviderDefaultBaseUrls,
   localProviderProfiles
 } from "../node/llm/local-provider-profiles.js";
+export {
+  anthropicRemoteProfileId,
+  openAiRemoteProfileId,
+  openRouterRemoteProfileId,
+  remoteProviderProfiles
+} from "../node/llm/remote-provider-profiles.js";
 export { isSafeModelId } from "../core/pipeline/sequence-model-generator.js";
+export { diagramTypes, isDiagramType, isSupportedDiagramType } from "../core/model/diagram-type.js";
