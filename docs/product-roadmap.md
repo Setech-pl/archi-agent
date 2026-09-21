@@ -2,7 +2,7 @@
 
 ## Product priority
 
-Owner decision (2026-09-19), amended on 2026-09-21 to place C1 after D2. The priority of the
+Owner decision (2026-09-19), superseded by accepted R1 on 2026-09-21. The priority of the
 project is to demonstrate vibe-coding and AI SDLC techniques on a working product. The product must provide:
 
 1. generation of several PlantUML diagram types;
@@ -11,28 +11,28 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The exact sequence is: **R0 → B1 → P1 → P2 → D1 → D2 → C1 → D3–D5 → K1–K4 → Demo and release**.
-R0, B1, P1 and P2 are implemented; D1 is completed and verified. D2 is next, followed by C1.
+The current mandatory sequence is: **R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL**.
+R0, B1, P1 and P2 were implemented earlier. D1 is an automatically verified experimental
+checkpoint, not an accepted product path: owner smoke exposed a brittle model-generated ledger.
+R1 records the replacement architecture; D1.1 is the next implementation step. D2 is blocked
+until S1 owner smoke passes. See [ADR 0001](adr/0001-reviewed-diagram-generation.md) and
+[the target pipeline contract](reviewed-diagram-pipeline.md).
 
 Agreed order of work:
 
 | Order | Step | Scope |
 | --- | --- | --- |
-| 0 | R0 | Documentation update in this changeset. |
-| 1 | B1 | Implemented: neutral `StructuredChatClient` port and extraction of the local transport. |
-| 2 | P1 | Implemented: provider profile model and registry; LM Studio and Ollama profiles; machine-scoped profile and model selection in the extension. |
-| 3 | P2 | Implemented: cloud providers Anthropic, OpenAI and OpenRouter; fixed HTTPS allowlist, `SecretStorage`, provider model listing, one generation call, no retry or fallback. |
-| 4 | D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection. |
-| 5 | D2 | Profile `component`. Sequence stays the compatibility path and regression oracle. |
-| 6 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; uses the configured Archi Agent provider and existing `generateDiagram()` path. See [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
-| 7 | D3 | Profile `c4-context`. |
-| 8 | D4 | Profile `c4-container`. |
-| 9 | D5 | Profile `archimate-hld`. |
-| 10 | K1 | Provider-neutral architecture catalog contract. |
-| 11 | K2 | Knowledge Pack Builder stages B2 and B3 (approved stage B decisions unchanged). |
-| 12 | K3 | Knowledge Pack Builder stage C: runtime API, source adapters, review UI, atomic write of the five files. |
-| 13 | K4 | MCP as a knowledge source: MCP client in the node layer, deterministic tool calls made by the extension (the LLM does not drive tools), mapping of results to the catalog, demonstration MCP server with Space Mission data. |
-| 14 | Demo | AI SDLC demo and release: Archi Agent branding, description of the agentic workflow, demo scenario, comparison of local and cloud models, VSIX checkpoint with owner smoke test. |
+| 1 | R1 | Record governance, ADR, reviewed-pipeline contract and branch checkpoint; documentation only. |
+| 2 | D1.1 | Implement sequence generator `{ plantUml }`, deterministic parsing/validation and independent semantic reviewer; exactly two model calls on a successful reviewed run. |
+| 3 | S1 | Owner smoke of D1.1 with Ollama `qwen3:30b`; gate before D2. |
+| 4 | D2 | Profile `component`; keep the old sequence command as compatibility path. |
+| 5 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram` over the reviewed runtime path; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
+| 6 | M1 | ArchitectureSnapshot source boundary and deterministic MCP adapter; map tool results before model calls. |
+| 7 | D3/D4 | Profiles `c4-context` and `c4-container`. |
+| 8 | D5 | Profile `archimate-hld`. |
+| 9 | K2 | Knowledge Pack Builder extraction and evidence verifier (remaining stage B scope). |
+| 10 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
+| 11 | REL | `v0.3.0-alpha.1`: AI SDLC demo, branding, provider comparison and accepted owner smoke. |
 
 ### C1 — VS Code Chat Participant
 
@@ -40,11 +40,11 @@ Agreed order of work:
 request may come from the active file, a selection, a file explicitly named by the user, or text
 sent to `@archi-agent`. Conversation history may be used only when it belongs to interactions with
 `@archi-agent`; the participant does not automatically read other participants' history or separate
-chat panels. C1 reuses the existing `generateDiagram()` runtime path and the configured Archi Agent
-provider, retaining grounding, validation and exactly one generation call. Integration with Codex
-or other agents through MCP remains in K4. C1 adds no implementation scope to D1.
+chat panels. C1 reuses the reviewed `generateDiagram()` path and configured Archi Agent provider,
+retaining grounding, deterministic validation and semantic review under the D1.1 call policy.
+Deterministic MCP integration follows in M1, after C1. C1 adds no implementation scope to D1.1.
 
-Later, in no committed order: semantic review, bounded repair, quality modes, document sources
+Later, in no committed order: bounded repair, quality modes, document sources
 (PDF, DOCX; Confluence and Jira preferably through MCP), EA XML (still deferred — no safe fixture),
 EA API, Prolaborate, external artifact providers (HTTPS, Google Drive, OneDrive, SharePoint).
 
@@ -66,7 +66,7 @@ The system should combine:
 * LLM reasoning,
 * strict validation,
 * source attribution,
-* optional independent semantic review.
+* independent semantic review on the D1.1 path.
 
 The target user workflow is:
 
@@ -83,9 +83,9 @@ LLM generation
         ↓
 deterministic validation
         ↓
-optional semantic review
+independent semantic review
         ↓
-optional repair
+optional future repair (not in D1.1)
         ↓
 PlantUML
 ```
@@ -166,9 +166,10 @@ small grounded context
 LLM
 ```
 
-Most requests should require one model generation call.
-
-Additional model calls should be driven by quality policy or concrete validation failures.
+The D1.1 reviewed path makes one generator call and, after deterministic acceptance, one
+independent review call. Invalid context makes none; deterministic rejection makes one.
+The older compatibility path retains its existing one-call behavior. No retry or repair is
+part of D1.1.
 
 ---
 
@@ -220,17 +221,18 @@ Ordered as agreed in [Product priority](#product-priority).
 | Order | Item | Status | Notes | Depends on |
 | --- | --- | --- | --- | --- |
 | P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | implemented | HTTPS only with production-boundary transport tests, fixed host/path allowlist, strictly validated API keys in VS Code `SecretStorage`, capability-filtered bounded model listing, strict cloud finish contracts, one generation call, no retry/repair/fallback. | P1 |
-| D1 | LLM-first final PlantUML path with shared structural validation and diagram-type selection | completed and verified | Sequence pipeline stays the compatibility path and regression oracle. | Grounding core |
-| D2 | Profile `component` | planned | | D1 |
-| C1 | VS Code Chat Participant `@archi-agent` and `/diagram` | planned | Active file, selection, explicitly indicated file or text sent to the participant; only its own conversation history; existing `generateDiagram()` and configured provider; grounding, validation and one generation call. No automatic access to other chat histories or panels; agent integration through MCP stays in K4. | D2 |
-| D3 | Profile `c4-context` | planned | | D1 |
-| D4 | Profile `c4-container` | planned | | D1 |
-| D5 | Profile `archimate-hld` | planned | | D1 |
-| K1 | Provider-neutral architecture catalog contract | partial | The runtime source union has one kind (`local-directory`) and the `KnowledgePackSource` port reads the five Markdown pack files; no source-independent catalog contract exists yet. | Phase 2 runtime contract |
-| K2 | Knowledge Pack Builder stages B2 and B3 | planned | Approved stage B decisions unchanged. The model only proposes candidates; the final Markdown always comes from the deterministic renderer. | Stage A, B1 |
-| K3 | Knowledge Pack Builder stage C: runtime API, source adapters, review UI, atomic write of the five files | planned | | K1, K2 |
-| K4 | MCP knowledge source | planned | MCP client in the node layer; the extension makes deterministic tool calls (the LLM does not drive tools); results are mapped to the architecture catalog; demonstration MCP server with Space Mission data. No MCP code exists. See [Source architecture](#source-architecture). | K1 |
-| Demo | AI SDLC demo and release | planned | Archi Agent branding, description of the agentic workflow, demo scenario, comparison of local and cloud models, VSIX checkpoint with owner smoke test. | Preceding steps |
+| D1 | Experimental final-PlantUML ledger path | automatically verified; owner smoke failed | Archived on `checkpoint/d1-ledger-pipeline`; not the target architecture. | Grounding core |
+| R1 | Reviewed-pipeline architecture and governance | accepted documentation step | ADR, target contract, KISS/BUZI and branch handoff. | D1 findings |
+| D1.1 | Reviewed sequence pipeline | planned — next implementation | Generator `{ plantUml }`, local facts and validation, independent reviewer. | R1 |
+| S1 | Owner smoke Ollama `qwen3:30b` | planned | Must PASS before D2. | D1.1 |
+| D2 | Profile `component` | planned | | S1 |
+| C1 | VS Code Chat Participant `@archi-agent` and `/diagram` | planned | Uses the reviewed path and only its own conversation history; no automatic access to other chat histories or panels. | D2 |
+| M1 | ArchitectureSnapshot and deterministic MCP adapter | planned | Extends D1.1's minimal Knowledge Pack snapshot boundary; MCP tools are called by the orchestrator, never autonomously by LLM. | C1 |
+| D3/D4 | Profiles `c4-context` and `c4-container` | planned | | M1 |
+| D5 | Profile `archimate-hld` | planned | | D3/D4 |
+| K2 | Knowledge Pack Builder extraction and evidence verifier | planned | Approved stage B decisions unchanged; model proposes candidates, deterministic renderer writes final Markdown. | D5, stage A/B1 |
+| K3 | Knowledge Pack Builder UI and five-file write | planned | Runtime integration, review UI and atomic output. | K2 |
+| REL | `v0.3.0-alpha.1` | planned | Demo, branding, provider comparison and owner-accepted VSIX. | K3 |
 
 ## Later
 
@@ -238,12 +240,12 @@ The order of the items below is not a commitment.
 
 | Item | Status | Depends on |
 | --- | --- | --- |
-| Semantic review | deferred | Deterministic validation, LLM-first path |
+| Additional semantic-review modes beyond mandatory D1.1 review | deferred | D1.1 |
 | Controlled, bounded repair | deferred | Deterministic validation, semantic review |
 | Quality modes `economy`, `balanced`, `quality` | deferred | `economy`: deterministic validation; `balanced`: semantic review; `quality`: semantic review and repair |
-| Document sources (Markdown, plain text, PDF, DOCX; Confluence and Jira preferably through MCP) as a separate path | planned | Evidence classes kept distinct from architecture sources; K4 for MCP-backed sources |
-| EA XML export as an architecture source, from a local file | deferred | No safe, public fixture that represents real EA data; no EA or XML parsing code exists. K1, safe synthetic EA fixture |
-| Further architecture sources: reduced JSON catalog, EA API, Prolaborate | planned | K1 |
+| Document sources (Markdown, plain text, PDF, DOCX; Confluence and Jira preferably through MCP) as a separate path | planned | Evidence classes kept distinct from architecture sources; M1 for MCP-backed sources |
+| EA XML export as an architecture source, from a local file | deferred | No safe, public fixture that represents real EA data; no EA or XML parsing code exists. M1 source boundary and a safe synthetic EA fixture would be prerequisites. |
+| Further architecture sources: reduced JSON catalog, EA API, Prolaborate | planned | M1 source boundary |
 | External artifact providers: HTTPS, then Google Drive, OneDrive, SharePoint | planned | Local-file architecture source |
 
 ---
@@ -356,9 +358,8 @@ kept in provider-specific VS Code `SecretStorage` entries; see `cloud-models.md`
 **Status: partial — stage A implemented.** After the extension foundation was merged to `main`
 (`b759bb9`), the priority moved from the EA XML source to building a Knowledge Pack from project
 material. EA XML is deferred because no safe, public fixture representing real EA data is
-available. Under the [Product priority](#product-priority) the first part of stage B (B1, the
-neutral model port) comes first; the remaining builder stages follow the provider and diagram work
-(K2, K3).
+available. B1 (the neutral model port) is implemented; the remaining builder stages follow the
+reviewed diagram work as K2 and K3.
 
 The builder produces the same five Markdown files that the loader already reads. A language model
 may later propose candidates, but it never writes the pack: every candidate carries evidence and an
@@ -420,22 +421,34 @@ EA exports may be supplied through:
 
 # Phase 4 — LLM-first final PlantUML
 
-**Status: implemented (D1).** The new path supports sequence through one structured-chat call and a strict `{ plantUml, messages }` envelope. Its message ledger records the exact physical PlantUML arrow line and a required nullable interface name. The Generate Diagram picker offers only Sequence. The four other identifiers are reserved and rejected before provider I/O when called directly through runtime. D2 is next, then planned C1, D3, D4, D5 and K1–K4.
+**Current code:** D1 is an automatically verified experimental path. It supports sequence with
+one structured-chat call and strict `{ plantUml, messages }` output, including a physical-line
+ledger. The Generate Diagram picker offers only Sequence; other types are rejected before I/O.
+Its owner smoke did not pass, so it is not a completed product path. The full smoke diagnosis
+is archived on `checkpoint/d1-ledger-pipeline`.
+
+**Approved target:** D1.1 replaces the ledger with one `{ plantUml }` generator call,
+deterministic parsing/validation and a separate semantic-review call. Successful reviewed runs
+make exactly two model calls, deterministic rejection after generation makes one, and invalid
+context makes none. No retry, repair or fallback. D1.1 is next; S1 owner smoke gates D2.
+See [the reviewed pipeline](reviewed-diagram-pipeline.md).
 
 The current sequence pipeline uses an intermediate sequence model and deterministic renderer.
 
 For multi-diagram generation the target architecture is different.
 
 ```text
-GroundedDiagramContext
+ArchitectureSnapshot
         ↓
-diagram prompt profile
+sequence profile generator request
         ↓
-LLM
+LLM generator { plantUml }
         ↓
-final PlantUML
+local parser and validation
         ↓
-local validation
+independent semantic reviewer
+        ↓
+local final decision
 ```
 
 Archi Agent should not create a new handcrafted renderer for every diagram type.
@@ -451,13 +464,17 @@ The current deterministic sequence renderer may remain as:
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: sequence implemented through the D1 LLM-first path and the deterministic compatibility path; `component` (D2), `c4-context` (D3), `c4-container` (D4), `archimate-hld` (D5) planned in this order.**
+**Status: sequence exists in the experimental D1 ledger path and deterministic compatibility path;
+D1.1 reviewed sequence is planned next.** `component` (D2) follows S1 PASS, C1 follows D2,
+M1 follows C1, then `c4-context`/`c4-container` (D3/D4) and `archimate-hld` (D5).
 
 Profiles:
 
 ## Sequence
 
-D1 implements Sequence in the LLM-first final-PlantUML pipeline. The deterministic sequence renderer remains a compatibility path and regression oracle.
+D1 implements an experimental ledger-based Sequence path; D1.1 will replace it on the active
+branch with reviewed final PlantUML. The deterministic sequence renderer remains a compatibility
+path and regression oracle, not an automatic fallback.
 
 ## Component
 
@@ -483,11 +500,11 @@ See:
 
 # Phase 6 — Semantic diagram review
 
-**Status: deferred.**
+**Status: approved for D1.1; not yet implemented.**
 
 Deterministic validation detects structural and evidence problems but cannot fully determine whether a diagram correctly represents the user's intent.
 
-An independent LLM reviewer is planned.
+An independent LLM reviewer is mandatory after deterministic acceptance in D1.1.
 
 Reviewer input:
 
@@ -496,7 +513,7 @@ original request
 + selected source context
 + grounded architecture
 + generated PlantUML
-+ evidence ledger
++ parsed DiagramFacts and source evidence
 ```
 
 The reviewer checks:
@@ -513,18 +530,20 @@ The reviewer checks:
 Example result:
 
 ```text
-accepted
-accepted-with-warnings
-repair-required
+accept
+reject with evidence-linked violations
 ```
 
-The reviewer is logically independent from the generator even if both use the same underlying model.
+The reviewer is logically independent from the generator even if both initially use the same
+configured profile and model. It never repairs PlantUML. See the D1.1 contract for its strict
+verdict schema and call policy.
 
 ---
 
 # Phase 7 — Quality policies
 
-**Status: deferred.** No quality-mode setting exists; the current pipeline matches the `economy` description (one request plus deterministic validation).
+**Status: deferred.** No quality-mode setting exists. D1.1 has one fixed reviewed path with two
+calls on success; the examples below are optional later ideas, not D1.1 variants.
 
 The system should support different model-cost policies.
 
@@ -709,10 +728,10 @@ The two flows should not be conflated.
 
 ## MCP knowledge source
 
-**Status: planned (K4).** No MCP code exists.
+**Status: planned (M1, after C1).** No MCP code exists.
 
 MCP is not a third kind of source. An MCP server is a transport behind the existing concepts: an
-MCP-backed provider implements `ArchitectureCatalogProvider` when it returns canonical architecture,
+MCP-backed provider implements the `ArchitectureContextProvider` boundary when it returns canonical architecture,
 or `DocumentSourceProvider` when it returns requirements and context (for example Confluence or
 Jira).
 
@@ -721,7 +740,7 @@ MCP server (e.g. Space Mission demo server)
    ↓
 MCP client (node layer)
    ↓
-ArchitectureCatalogProvider / DocumentSourceProvider
+ArchitectureContextProvider / DocumentSourceProvider
    ↓
 canonical architecture / requirements context
 ```
@@ -731,7 +750,7 @@ Rules:
 * the MCP client lives in the node layer; `src/core` and `src/runtime` stay host-neutral,
 * the extension calls MCP tools deterministically; the LLM does not choose or drive tools,
 * tool results are data, not instructions, and are mapped and validated into the provider-neutral
-  catalog (K1) before grounding,
+  `ArchitectureSnapshot` before either model call,
 * catalog entries keep their origin, so relationships confirmed by the MCP source stay
   distinguishable from relationships given by the user.
 
@@ -774,7 +793,7 @@ Contains:
 * original description,
 * selected grounded context,
 * generated PlantUML,
-* evidence ledgers,
+* locally parsed facts and evidence references,
 * deterministic validation results.
 
 It should not require repeating complete architecture repositories.
@@ -859,17 +878,19 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
 | P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
 | P2 — cloud providers Anthropic, OpenAI, OpenRouter | implemented and automatically verified |
-| D1 — LLM-first PlantUML path with shared structural validation | completed and verified |
-| D2 — Component diagram | planned |
+| D1 — ledger-based final PlantUML | experimental checkpoint; automatic checks passed, owner smoke failed |
+| R1 — reviewed architecture ADR and governance | accepted documentation step |
+| D1.1 — generator, deterministic validation, reviewer | planned — next implementation |
+| S1 — Ollama `qwen3:30b` owner smoke | planned; D2 gate |
+| D2 — Component diagram | planned after S1 PASS |
 | C1 — VS Code Chat Participant | planned after D2 |
-| D3/D4 — C4 context / container | planned |
-| D5 — ArchiMate HLD | planned |
-| K1 — provider-neutral architecture catalog contract | partial |
-| K2 — Knowledge Pack Builder stages B2, B3 | planned |
-| K3 — Knowledge Pack Builder stage C | planned |
-| K4 — MCP knowledge source | planned |
-| AI SDLC demo and release checkpoint | planned |
-| Semantic reviewer | deferred |
+| M1 — ArchitectureSnapshot and MCP adapter | planned after C1 |
+| D3/D4 — C4 context / container | planned after M1 |
+| D5 — ArchiMate HLD | planned after D3/D4 |
+| K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
+| K3 — Knowledge Pack Builder UI and five-file write | planned |
+| REL — `v0.3.0-alpha.1` | planned |
+| Semantic reviewer in the D1.1 path | planned |
 | Repair loop | deferred |
 | Quality modes | deferred |
 | Document sources (PDF, DOCX; Confluence/Jira via MCP) | planned |

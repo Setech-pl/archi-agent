@@ -11,13 +11,13 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-09-21 |
-| Stan Git | Bieżący HEAD, branch i stan publikacji należy odczytywać z Git. Commit `3d1c55c` był bazą implementacji B1. |
+| Stan Git | Bazą nowej pracy jest `4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`; aktywny branch rozwojowy: `feature/reviewed-diagram-pipeline`. Bieżący HEAD i publikację zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
-| Stan D1 | Implemented and verified; baza D1: `00c8b9d62e73fff2cdb154113f15a42756f25b07`. Automatyczne bramki D1 przeszły w sesji 2026-09-21. |
-| Następny etap | D2 — profil `component`. |
-| Etap po D2 | C1 — VS Code Chat Participant `@archi-agent` z `/diagram`; zaplanowany, bez implementacji w D1. |
+| Stan D1 | Eksperymentalny checkpoint automatycznie zweryfikowany; dwa owner smoke Ollamy `qwen3:30b` nie przeszły. Ledger i diagnoza zachowane na `checkpoint/d1-ledger-pipeline` (`973b604694ad06181deaa56989b9361f4b4ba52e`). To nie jest gotowy produkt. |
+| Następny etap | D1.1 — generator `{ plantUml }` → deterministyczna walidacja → niezależny semantic reviewer; potem S1 owner smoke Ollamy. |
+| Etapy po S1 | D2 dopiero po S1 PASS; C1 po D2; M1 (ArchitectureSnapshot/MCP) po C1. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -26,9 +26,10 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
   checkpoint `v0.2.0-alpha.1`) oraz dokumentów documentation governance do `main`.
 - Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
   ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
-- 2026-09-19 — decyzja właściciela o nowych priorytetach (demonstracja vibe coding i AI SDLC),
-  uzupełniona 2026-09-21 o C1 po D2. Obecna kolejność: R0 → B1 → P1 → P2 → D1 → D2 → C1 → D3–D5 → K1–K4 → Demo and release. Szczegóły: sekcja „Product priority”
-  w [`product-roadmap.md`](product-roadmap.md).
+- 2026-09-19 — wcześniejsza decyzja o priorytetach (demonstracja vibe coding i AI SDLC),
+  następnie zastąpiona decyzją R1 z 2026-09-21. Obowiązująca kolejność:
+  R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL; zob.
+  [`product-roadmap.md`](product-roadmap.md).
 
 ## Implementacja B1
 
@@ -223,23 +224,21 @@ verified i owner smoke accepted.
 
 ## Kierunek dalszych prac
 
-W kolejności ustalonej przez właściciela (2026-09-19, aktualizacja 2026-09-21; pełny opis w roadmapie, „Product priority”):
+W kolejności ustalonej przez właściciela w R1 (2026-09-21; pełny opis w roadmapie, „Product priority”):
 
 1. **P1 i P2 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz
    Anthropic/OpenAI/OpenRouter, machine-scoped wybór profilu/modelu i cloud keys w `SecretStorage`.
-2. **D1 (implemented):** ścieżka LLM-first final PlantUML ze wspólną walidacją strukturalną i wyborem typu
-   diagramu; **D2 (następny):** `component`; **C1 (po D2):** VS Code Chat Participant
-   `@archi-agent` z `/diagram` i istniejącym `generateDiagram()`, tylko z historią własnych rozmów;
-   **D3–D5:** `c4-context`, `c4-container`, `archimate-hld`. Integracja agentów przez MCP pozostaje w K4.
-3. **K1:** provider-neutral kontrakt katalogu architektury (dziś częściowy); **K2:** Knowledge Pack
-   Builder B2 i B3 (zatwierdzone decyzje etapu B bez zmian); **K3:** etap C — runtime API, adaptery
-   źródeł, UI review, atomowy zapis pięciu plików; **K4:** MCP jako źródło wiedzy (klient MCP
-   w warstwie node, deterministyczne wywołania narzędzi przez rozszerzenie, mapowanie do katalogu,
-   demonstracyjny serwer MCP z danymi Space Mission).
-4. **Demo AI SDLC i release:** branding Archi Agent, opis workflow agentowego, scenariusz demo,
-   porównanie modeli lokalnych i chmurowych, checkpoint VSIX z owner smoke.
+2. **D1** pozostaje eksperymentalnym checkpointem, nie ścieżką produkcyjną. **D1.1 (następna
+   implementacja)** zastępuje ledger generatorem `{ plantUml }`, lokalnymi `DiagramFacts`,
+   deterministyczną walidacją i niezależnym reviewerem. **S1** to wymagany owner smoke Ollamy;
+   **D2** `component` jest zablokowany do S1 PASS.
+3. **C1 po D2:** VS Code Chat Participant `@archi-agent` z `/diagram`, tylko z historią własnych
+   rozmów; **M1 po C1:** źródło MCP mapowane deterministycznie do `ArchitectureSnapshot`;
+   **D3/D4**, potem **D5**: kolejne profile diagramów.
+4. **K2/K3:** ekstrakcja Knowledge Pack i evidence verifier, potem UI i zapis pięciu plików;
+   **REL:** `v0.3.0-alpha.1` z demonstracją i owner smoke.
 
-Później (bez zobowiązującej kolejności): semantic review, bounded repair, quality modes, document
+Później (bez zobowiązującej kolejności): bounded repair, quality modes, document
 sources (PDF, DOCX; Confluence/Jira preferencyjnie przez MCP), EA API, Prolaborate, zewnętrzni
 dostawcy artefaktów. **EA XML pozostaje odłożone (deferred), brak implementacji** — brak
 bezpiecznego, publicznego fixture; w repo nie ma kodu parsowania EA ani XML, fixture'ów EA ani
@@ -363,8 +362,12 @@ wykonywano.
 
 ## Następny krok
 
-**D2** — profil `component`; po nim zaplanowano C1, bez rozszerzania D1. P2 jest zaimplementowane; ręczne owner smoke providerów
-chmurowych pozostaje opcjonalne i kosztowe, poza automatycznym DoD.
+**D1.1** — zaimplementować zatwierdzony reviewed pipeline z
+[`ADR 0001`](adr/0001-reviewed-diagram-generation.md) i
+[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md), po osobnym poleceniu
+implementacji. Następnie S1 owner smoke z Ollamą `qwen3:30b`; dopiero S1 PASS odblokowuje D2,
+a C1 następuje po D2. P2 jest zaimplementowane; ręczne smoke providerów chmurowych pozostaje
+opcjonalne i kosztowe, poza automatycznym DoD.
 
 ## Implementacja D1
 
@@ -393,3 +396,38 @@ Korekta po review D1: ledger wymaga `lineNumber` zgodnego z fizyczną linią str
 walidacją Zod. Odpowiedź jest powiązana wyłącznie z wcześniejszym synchronicznym żądaniem o tych
 samych końcach, typie i nazwie interfejsu. Picker D1 oferuje tylko Sequence; pozostałe
 identyfikatory pozostają w runtime jako punkty rozszerzenia.
+
+## R1 — handoff zatwierdzonej architektury (2026-09-21)
+
+Nowa praca bazuje na czystym commicie
+`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b` na branchu
+`feature/reviewed-diagram-pipeline`. Eksperymentalna implementacja D1 z ledgerem, dopuszczenie
+braku końcowego LF, szczegółowa diagnostyka i testy odpowiedzi Ollamy zostały zachowane osobno
+na `checkpoint/d1-ledger-pipeline` w commicie
+`973b604694ad06181deaa56989b9361f4b4ba52e`. Checkpoint jest archiwalny: jego
+implementacja nie została przeniesiona na nowy branch. Bazowy commit D1 nie jest usunięty z
+historii Git.
+
+Pierwszy owner smoke nowej komendy z Ollamą `qwen3:30b` wykrył brak końcowego LF i deklaracje
+uczestników bez kanonicznej nazwy; drugi wykrył `sequence-arrow-ledger-mismatch` w fizycznej
+linii 6. Na tym samym syntetycznym fixture kontrolowana diagnoza wskazała brak adnotacji
+`interfaceType`/`interfaceName` w PlantUML przy zgodnym `order`, `lineNumber`, końcach i typie
+strzałki. Oba przebiegi owner smoke wykonały po jednym wywołaniu bez retry/fallbacku; żaden
+nie dał diagramu. **D1 owner smoke nie jest PASS**. Automatyczna weryfikacja D1 nie zastępuje
+akceptacji produktu.
+
+Właściciel zatwierdził zastąpienie ledgeru ścieżką: jeden minimalny `ArchitectureSnapshot` →
+generator zwracający wyłącznie `{ plantUml }` → lokalny parser i deterministyczna walidacja →
+niezależny semantic reviewer → lokalna decyzja. Udany przebieg D1.1 ma dokładnie dwa wywołania
+modelu, odrzucenie deterministyczne po generatorze jedno, a błędny kontekst lub nieobsługiwany
+typ zero. Bez retry, repair i fallbacku. Szczegóły są w
+[`ADR 0001`](adr/0001-reviewed-diagram-generation.md) i
+[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md). R1 utrwala dokumenty;
+**D1.1 nie jest jeszcze zaimplementowane**.
+
+KISS/BUZI w `AGENTS.md` i `CLAUDE.md` jest obowiązującą zasadą: najprostszy działający pionowy
+przepływ, bez spekulacyjnej złożoności; odstępstwo architektoniczne wymaga zatrzymania pracy i
+jawnej decyzji właściciela. Obowiązująca kolejność to
+R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL. Następny krok implementacyjny to
+D1.1 po osobnym zleceniu. D2 jest zablokowany do S1 PASS, C1 następuje po D2, MCP po C1.
+R1 jest zmianą dokumentacji; testy, typecheck, build i pakowanie nie są jego bramkami.

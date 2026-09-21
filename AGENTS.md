@@ -26,6 +26,20 @@ Na początku pracy przeczytaj:
   architekturę opisz jako pytania albo otwarte decyzje.
 - Polecenia Git przekazywane właścicielowi krótko objaśnij.
 
+## KISS/BUZI
+
+- Zawsze wybieraj najprostsze rozwiązanie, które daje działający produkt i spełnia aktualne
+  Definition of Done. Preferuj działający pionowy przepływ end-to-end nad kompletnym frameworkiem.
+- Nie dodawaj abstrakcji, konfiguracji, warstw, modeli, wywołań LLM, fallbacków ani mechanizmów
+  „na przyszłość”, jeśli nie są potrzebne w bieżącym etapie. Reużywaj istniejącego, sprawdzonego
+  kodu, jeśli upraszcza rozwiązanie.
+- Każde zwiększenie złożoności architektury albo odejście od zatwierdzonego rozwiązania wymaga
+  zatrzymania pracy. Przed zmianą przedstaw właścicielowi konkretny problem, dlaczego obecna
+  architektura go nie rozwiązuje, najprostsze alternatywy oraz wpływ na kod, testy, koszty i
+  roadmapę. Nie implementuj zmiany architektury bez jawnej zgody właściciela.
+- Drobne decyzje implementacyjne w zatwierdzonych granicach nie wymagają osobnej zgody.
+  Priorytetem jest działające, możliwe do zademonstrowania narzędzie.
+
 ## Planowanie a implementacja
 
 - Prompt oznaczony **PLANOWANIE** nie upoważnia do zmiany kodu. Analizujesz repo, identyfikujesz

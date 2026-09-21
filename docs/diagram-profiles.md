@@ -27,16 +27,20 @@ Each profile defines:
 
 A diagram profile is not a local renderer.
 
-The target architecture is:
+The approved D1.1 target (not implemented on the base commit) is:
 
 ```text
-GroundedDiagramContext
+ArchitectureSnapshot
         ↓
-DiagramProfile
+DiagramProfile.buildGeneratorRequest
         ↓
-LLM
+LLM generator { plantUml }
         ↓
-final PlantUML
+DiagramProfile.parsePlantUml + validateFacts
+        ↓
+DiagramProfile.buildReviewerRequest
+        ↓
+independent semantic reviewer + local final decision
 ```
 
 ---
@@ -101,7 +105,8 @@ They do not receive full enterprise repositories.
 
 ## LLM-first target
 
-For future multi-diagram generation, the LLM is expected to produce final PlantUML.
+For reviewed generation, the LLM is expected to produce final PlantUML without a second
+model-generated message ledger. D1.1 implements only `sequence` and is not yet in the code.
 
 Archi Agent provides:
 
@@ -110,7 +115,7 @@ Archi Agent provides:
 * validation,
 * evidence,
 * semantic review,
-* repair orchestration.
+* an independent semantic-review gate in D1.1; repair is outside its scope.
 
 A separate handcrafted renderer should not be created for each diagram profile.
 
@@ -120,12 +125,20 @@ A separate handcrafted renderer should not be created for each diagram profile.
 
 ## Status
 
-**Implemented through both the validated compatibility pipeline and D1 final PlantUML path.**
+**Current code:** implemented through the validated compatibility pipeline and experimental
+D1 final-PlantUML ledger path. D1 passed automatic checks but failed owner smoke. Its findings
+are archived on `checkpoint/d1-ledger-pipeline`.
 
-The D1 path receives the final PlantUML and a strict message ledger in one structured-chat
+The experimental D1 path receives final PlantUML and a strict message ledger in one structured-chat
 response. Each ledger message has a required physical `lineNumber`, continuous `order`, and
 `interfaceName` set to a string or `null`. Local validation accepts only the closed sequence grammar and grounded interactions.
 The compatibility renderer and its golden outputs remain unchanged.
+
+**Approved target:** D1.1 receives strict `{ plantUml }` only, computes facts and physical
+line numbers locally, validates them, then calls a separate semantic reviewer. Successful
+reviewed generation makes exactly two model calls. D1.1 is the next implementation stage;
+S1 owner smoke must pass before D2. See
+[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md).
 
 ---
 
@@ -587,57 +600,43 @@ Avoid mixing:
 
 # Profile architecture
 
-A profile should conceptually contain:
+A D1.1 profile has the smallest boundary needed by the vertical `sequence` path:
 
 ```text
 id
-display name
-purpose
-system instructions
-diagram instructions
-supported concepts
-abstraction rules
-validation policy
-semantic-review criteria
+buildGeneratorRequest
+parsePlantUml
+validateFacts
+buildReviewerRequest
 ```
 
-Example:
-
-```ts
-interface DiagramProfile {
-  id: DiagramType;
-  displayName: string;
-  purpose: string;
-  generationInstructions: string;
-  validationPolicy: DiagramValidationPolicy;
-  reviewCriteria: DiagramReviewCriteria;
-}
-```
-
-The profile must not contain a local diagram-generation algorithm.
+These are conceptual operations, not implemented TypeScript. The profile must not contain a
+local diagram-generation algorithm or become a universal framework in D1.1.
 
 ---
 
 # Generation flow
 
-Implemented D1 flow for `sequence`:
+Approved D1.1 flow for `sequence` (not implemented):
 
 ```text
 User selects diagram type
         ↓
-GroundedDiagramContext
+ArchitectureSnapshot
         ↓
-profile registry
+sequence profile
         ↓
-profile-specific compact prompt
+generator request
         ↓
-LLM generates PlantUML
+LLM generates strict { plantUml }
         ↓
-common validation
+document and profile parser
         ↓
-profile validation
+local DiagramFacts and deterministic validation
         ↓
-grounding report
+independent semantic review
+        ↓
+local decision and report v2
 ```
 
 ---
@@ -650,7 +649,7 @@ Regardless of profile, Archi Agent should validate:
 * bounded output size,
 * canonical architecture names,
 * `[NEW]` conventions,
-* accountability ledger consistency,
+* locally parsed DiagramFacts consistency,
 * known source references,
 * relationship evidence values,
 * unsupported architecture references.
