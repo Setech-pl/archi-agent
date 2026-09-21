@@ -102,6 +102,35 @@ describe("describeFailure", () => {
     expect(describeFailure(failure("render-validation-failed", []), { baseUrl }).text).toContain("structural check");
   });
 
+  it("shows a structural violation and line without response or prompt text", () => {
+    const message = describeFailure(failure("render-validation-failed", [{
+      severity: "error", code: "plantuml-structure", message: "The emitted PlantUML failed structural validation.",
+      details: { count: 1, violation: "forbidden-directive", line: 5 }
+    }]), { baseUrl });
+    expect(message.details[0]).toContain("violation forbidden-directive");
+    expect(message.details[0]).toContain("line 5");
+    for (const forbidden of ["!include", "@startuml", "Generate one grounded", "synthetic-secret"])
+      expect(JSON.stringify(message)).not.toContain(forbidden);
+  });
+
+  it("distinguishes ledger structure from grounded architecture in semantic failures", () => {
+    const structural = describeFailure(failure("semantic-validation-failed", [{
+      severity: "error", code: "plantuml-structure", message: "The emitted PlantUML failed structural validation.",
+      details: { violation: "sequence-ledger-interface-type-mismatch", line: 6, order: 1 }
+    }]), { baseUrl });
+    expect(structural.text).toContain("PlantUML or its message ledger");
+    expect(structural.text).not.toContain("violates the grounded architecture");
+    expect(structural.details[0]).toContain("violation sequence-ledger-interface-type-mismatch");
+    expect(structural.details[0]).toContain("line 6");
+    expect(structural.details[0]).toContain("order 1");
+    for (const unsafe of ["Submit command", "qwen3:30b", "synthetic-secret", "Generate one grounded"])
+      expect(JSON.stringify(structural)).not.toContain(unsafe);
+    const grounded = describeFailure(failure("semantic-validation-failed", [{
+      severity: "error", code: "unknown-participant", message: "A participant is not grounded."
+    }]), { baseUrl });
+    expect(grounded.text).toContain("violates the grounded architecture");
+  });
+
   it("bounds the number of detail lines", () => {
     const issues = Array.from({ length: messageLimits.maxDetailLines + 5 }, (_, index) => ({ severity: "error" as const, code: `code-${index}`, message: "m" }));
     const message = describeFailure(failure("semantic-validation-failed", issues), { baseUrl });

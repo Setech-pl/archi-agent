@@ -151,7 +151,9 @@ export function describeFailure(failure: GenerateSequenceDiagramFailure, context
       break;
     }
     case "semantic-validation-failed":
-      text = "The model answer violates the grounded architecture (participants, relationships or modes). No diagram was produced.";
+      text = failure.issues.some((issue) => issue.code === "plantuml-structure")
+        ? "The generated PlantUML or its message ledger failed structural validation. No diagram was produced."
+        : "The model answer violates the grounded architecture (participants, relationships or modes). No diagram was produced.";
       break;
     case "render-validation-failed":
       text = "The rendered PlantUML failed the structural check. No diagram was produced.";

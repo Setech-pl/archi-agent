@@ -15,7 +15,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
-| Stan D1 | Implemented and verified; baza D1: `00c8b9d62e73fff2cdb154113f15a42756f25b07`. Automatyczne bramki D1 przeszły w sesji 2026-09-21. |
+| Stan D1 | Implemented; baza D1: `00c8b9d62e73fff2cdb154113f15a42756f25b07`. Automatyczne DoD D1 przeszło wcześniej. Pierwszy i drugi owner smoke nowej ścieżki z Ollamą `qwen3:30b` wykryły błędy strukturalne; po poprawce wymagany jest trzeci owner smoke. D1 smoke nie jest PASS. |
 | Następny etap | D2 — profil `component`. |
 | Etap po D2 | C1 — VS Code Chat Participant `@archi-agent` z `/diagram`; zaplanowany, bez implementacji w D1. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
@@ -393,3 +393,71 @@ Korekta po review D1: ledger wymaga `lineNumber` zgodnego z fizyczną linią str
 walidacją Zod. Odpowiedź jest powiązana wyłącznie z wcześniejszym synchronicznym żądaniem o tych
 samych końcach, typie i nazwie interfejsu. Picker D1 oferuje tylko Sequence; pozostałe
 identyfikatory pozostają w runtime jako punkty rozszerzenia.
+
+### Pierwszy owner smoke D1 z Ollamą (2026-09-21)
+
+Nowa komenda Generate Diagram, profil `local-ollama`, model `qwen3:30b`, syntetyczny flow i
+Knowledge Pack: **FAIL** `plantuml-structure` (count 1), bez utworzonego diagramu. Log Ollamy
+potwierdził dokładnie jeden `POST /v1/chat/completions` w tym smoke; aplikacja nie wykonała retry
+ani fallbacku. Starsza komenda Generate Sequence Diagram przechodziła osobno, ale nie potwierdza D1.
+
+Ostatni log błędu pochodzi z izolowanego profilu `fKMHrP`, którego `knowledgePackPath` wskazuje
+na jego niepusty katalog: 1 aktor, 3 systemy, 3 relacje, 2 aliasy i 1 reguła. Drugi profil
+`GDUWY7` ma bajtowo identyczne pięć plików Knowledge Pack, flow i zainstalowane bundle VSIX.
+Jednorazowa diagnoza w `GDUWY7` na tym samym syntetycznym fixture (jeden dodatkowy POST) wykazała brak
+końcowego LF w odpowiedzi. Po pominięciu tego technicznego wymogu parser wskazał właściwy błąd
+groundingu prezentacji: deklaracje uczestników miały postać `actor ALIAS`, `participant ALIAS`
+i `queue ALIAS`, bez kanonicznej nazwy w cudzysłowie i `as ALIAS` (pierwsze naruszenie:
+`sequence-declaration-syntax`, linia 2). Ledger miał cztery wpisy z numerami linii 6–9; nie było
+CR/CRLF, code fences, komentarzy, legendy, pustych linii, dodatkowych markerów, treści poza
+diagramem ani niedozwolonych dyrektyw. Surową odpowiedź zapisano tylko lokalnie w katalogu
+izolowanego smoke z prawami `600`; nie ma jej w repo.
+Oryginalna odpowiedź z `fKMHrP` nie była zachowana, więc jej bajtowej identyczności z odpowiedzią
+diagnostyczną nie da się potwierdzić; oba uruchomienia dały ten sam publiczny błąd o liczności 1.
+
+Walidator dopuszcza teraz końcowy LF lub jego brak, ponieważ nie wpływa to na poprawność PlantUML;
+wynik jest zachowywany bajt w bajt, bez repair. Prompt D1 jawnie wymaga pełnych deklaracji
+z kanoniczną nazwą i zawiera przykład składni. Deklaracje zawierające sam alias nadal są
+odrzucane. Błąd strukturalny przekazuje bezpieczny kod naruszenia i numer linii (gdy dotyczy),
+bez linii modelu, promptu i sekretów. Smoke na nowym VSIX **wymaga ponowienia; nie jest PASS**.
+
+Weryfikacja korekty: celowane testy D1/walidatora/komunikatów 67/67, `npm test` 1249/1249,
+`npm run typecheck`, `npm run extension:typecheck`, `npm run extension:test` 185/185,
+`npm run extension:build`, `npm run extension:package`, `npm run extension:verify` i
+`npm run demo:dry-run` — PASS. Runtime wyjęty z nowego VSIX przeszedł test poza repo na
+syntetycznej odpowiedzi bez końcowego LF i bez sieci. Nowy VSIX:
+`vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`, 195449 B,
+SHA-256 `03a39e1733694313491c255cbf717a37f266e9756c2559f35c4f921a722b7697`.
+Ten automatyczny wynik nie zastępuje ponownego owner smoke Ollamy.
+
+### Drugi owner smoke D1 z Ollamą (2026-09-21)
+
+Po instalacji VSIX z pierwszą poprawką ten sam izolowany profil `fKMHrP`, syntetyczny
+Knowledge Pack i flow oraz Ollama `qwen3:30b` zwróciły **FAIL** `plantuml-structure`,
+`sequence-arrow-ledger-mismatch`, fizyczna linia 6; diagram nie powstał. Pierwszy smoke
+wykrył brak końcowego LF i deklaracje bez kanonicznej nazwy, drugi — rozbieżność ledgeru.
+Oba przebiegi owner smoke wykonały po jednym wywołaniu generacyjnym, bez retry ani fallbacku.
+
+Odpowiedź drugiego przebiegu nie została zachowana w bezpiecznym pliku diagnostycznym w `fKMHrP`.
+Jedno kontrolowane wywołanie diagnostyczne na tych samych plikach w `fKMHrP` odtworzyło ten sam
+błąd w linii 6. Surowa odpowiedź została zapisana wyłącznie w `/private/tmp` z prawami `600`,
+nie w repo ani trwałym logu. Cztery wpisy ledgeru miały poprawne `order` 1–4 i `lineNumber`
+6–9; źródła, cele i strzałki były zgodne. W linii 6 tekst strzałki był równy wpisowi `label`
+(`Submit command (Operator Console)`), lecz nie zawierał osobnej wymaganej adnotacji
+`(INTERNAL: Operator Console)` dla `interfaceType` i `interfaceName`. Pozostałe trzy strzałki
+miały analogiczny brak typu/nazwy interfejsu w PlantUML. To błąd składniowej zgodności
+ledgeru i PlantUML, nie błędny `lineNumber` ani dowód braku relacji w katalogu.
+
+Decyzja kontraktowa: **`lineNumber` pozostaje wymagany w zewnętrznym strict JSON Schema**,
+ponieważ diagnoza potwierdziła jego poprawność; walidator dalej porównuje go z fizyczną
+linią strzałki. Prompt jawnie rozdziela `label` od adnotacji, podaje zamknięty enum
+`interfaceType`, dokładną składnię `label (interfaceType: interfaceName)` oraz regułę
+`interfaceName` string/null. Osobne bezpieczne kody wskazują teraz konkretny mismatch
+(numer linii, order, źródło, cel, typ strzałki, async, response, typ/nazwa interfejsu,
+liczność, etykieta), z fizyczną linią i order bez treści modelu. Komunikat VS Code
+odróżnia błąd struktury PlantUML/ledgeru od rzeczywistego naruszenia groundingu.
+Finalny PlantUML nie jest modyfikowany; bez retry, repair i fallbacku.
+
+Nowe testy celowane D1/walidatora/komunikatów: 80/80 PASS. Pozostałe bramki automatyczne
+oraz smoke runtime z nowego VSIX: do wykonania. **Owner smoke nadal wymaga ponowienia;
+nie oznaczać jako PASS i nie przechodzić do D2.**

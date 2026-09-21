@@ -48,6 +48,7 @@ describe("D1 final PlantUML path", () => {
     const message = (diagramEnvelopeSchema["properties"] as Record<string, any>)["messages"].items;
     expect(message.required).toContain("interfaceName");
     expect(message.required).toContain("lineNumber");
+    expect(message.properties.interfaceType.enum).toEqual(["REST API", "SOAP", "EVENT", "FILE", "DB", "INTERNAL"]);
     expect(JSON.stringify(message.properties.interfaceName)).toContain('"null"');
   });
 
@@ -78,6 +79,92 @@ describe("D1 final PlantUML path", () => {
     expect(calls[0]?.schemaName).toBe("final_plantuml_sequence");
     expect(calls[0]?.messages[1]?.content).not.toContain("Night Observer");
     expect(calls[0]?.messages[1]?.content).toContain('"kp:telescope-scheduler","kp_telescope_scheduler"');
+    expect(calls[0]?.messages[0]?.content).toContain("(REST API)");
+    expect(calls[0]?.messages[0]?.content).toContain("Submit command (INTERNAL: Operator Console)");
+    expect(calls[0]?.messages[0]?.content).toContain("when the supplied relationship has no name");
+  });
+
+  it("keeps a qwen3:30b style answer without final LF byte-for-byte", async () => {
+    const withoutFinalLf = plantUml.slice(0, -1);
+    const { app, calls } = runtime({ plantUml: withoutFinalLf, messages: [entry] });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result.status).toBe("success");
+    if (result.status === "success") expect(result.plantUml).toBe(withoutFinalLf);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("rejects the captured qwen3:30b alias-only declaration shape at line 2", async () => {
+    const aliasOnly = ["@startuml", "actor a", "participant b", "participant c", "queue d", "a -> b : request (API)", "b -> c : validate (API)", "c --> b : accepted (API)", "c ->> d : publish (EVENT)", "@enduml"].join("\n");
+    const messages = [6, 7, 8, 9].map((lineNumber, index) => ({ ...entry, order: index + 1, lineNumber }));
+    const { app, calls } = runtime({ plantUml: aliasOnly, messages });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed", issues: [{ code: "plantuml-structure", details: { violation: "sequence-declaration-syntax", line: 2 } }] });
+    expect(JSON.stringify(result)).not.toContain(aliasOnly);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.messages[0]?.content).toContain('actor "Example Actor" as kp_example_actor');
+  });
+
+  it("reports a bounded structural rule and physical line without model text", async () => {
+    const secret = "synthetic-secret";
+    const unsafe = plantUml.replace("@enduml", `!include ${secret}\n@enduml`);
+    const { app } = runtime({ plantUml: unsafe, messages: [entry] });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "render-validation-failed", issues: [{ code: "plantuml-structure", details: { violation: "forbidden-directive", line: 5, count: 1 } }] });
+    const safe = JSON.stringify(result);
+    expect(safe).not.toContain(secret);
+    expect(safe).not.toContain("!include");
+    expect(safe).not.toContain("@startuml");
+    expect(safe).not.toContain("Generate one grounded sequence diagram");
+  });
+
+  it("identifies the second Ollama smoke shape: label copied, but interface type and name omitted from the arrow", async () => {
+    const copiedLabel = "Registers frames (Archive Writer)";
+    const text = plantUml.replace("Registers frames (DB: Archive Writer)", copiedLabel);
+    const { app, calls } = runtime({ plantUml: text, messages: [{ ...entry, label: copiedLabel }] });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed", issues: [{
+      code: "plantuml-structure", details: { violation: "sequence-ledger-interface-type-mismatch", line: 4, order: 1 }
+    }] });
+    expect(calls).toHaveLength(1);
+    for (const unsafe of [copiedLabel, "synthetic-secret", "test-model", "Generate one grounded", text])
+      expect(JSON.stringify(result)).not.toContain(unsafe);
+  });
+
+  it.each([
+    ["lineNumber", { ...entry, lineNumber: 5 }, plantUml, "sequence-ledger-line-number-mismatch"],
+    ["order", { ...entry, order: 2 }, plantUml, "sequence-ledger-order-mismatch"],
+    ["source", entry, plantUml.replace("kp_telescope_scheduler ->", "kp_image_archive ->"), "sequence-ledger-source-mismatch"],
+    ["target", entry, plantUml.replace("-> kp_image_archive :", "-> kp_telescope_scheduler :"), "sequence-ledger-target-mismatch"],
+    ["arrow", { ...entry, async: true }, plantUml.replace(" -> ", " --> "), "sequence-ledger-arrow-mismatch"],
+    ["async", { ...entry, async: true }, plantUml, "sequence-ledger-async-mismatch"],
+    ["isResponse", { ...entry, isResponse: true }, plantUml, "sequence-ledger-response-mismatch"],
+    ["interfaceType", entry, plantUml.replace("(DB: Archive Writer)", "(REST API: Archive Writer)"), "sequence-ledger-interface-type-mismatch"],
+    ["interfaceName", entry, plantUml.replace("(DB: Archive Writer)", "(DB: Different Name)"), "sequence-ledger-interface-name-mismatch"],
+    ["label", entry, plantUml.replace("Registers frames", "Different label"), "sequence-ledger-label-mismatch"]
+  ])("reports safe %s ledger mismatch", async (_name, ledger, text, violation) => {
+    const { app, calls } = runtime({ plantUml: text, messages: [ledger] });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed", issues: [{
+      code: "plantuml-structure", details: { violation, line: 4, order: 1 }
+    }] });
+    expect(calls).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain("Different Name");
+    expect(JSON.stringify(result)).not.toContain("Different label");
+  });
+
+  it("binds order N to the N-th arrow, not to a declaration, fragment or other arrow", async () => {
+    const two = plantUml.replace("@enduml", "opt Save again\nkp_telescope_scheduler -> kp_image_archive : Again (DB: Archive Writer)\nend\n@enduml");
+    const second = { ...entry, order: 2, lineNumber: 6, label: "Again" };
+    const good = runtime({ plantUml: two, messages: [entry, second] });
+    expect((await good.app.generateDiagram!({ ...request })).status).toBe("success");
+    const swapped = runtime({ plantUml: two, messages: [second, entry] });
+    expect(await swapped.app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", issues: [{ details: { violation: "sequence-ledger-order-mismatch", line: 4, order: 1 } }] });
+    const omitted = runtime({ plantUml: two, messages: [entry] });
+    expect(await omitted.app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", issues: [{ details: { violation: "sequence-ledger-count-mismatch", line: 6, order: 2 } }] });
+    const extra = runtime({ plantUml, messages: [entry, second] });
+    expect(await extra.app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", issues: [{ details: { violation: "sequence-ledger-count-mismatch", line: 5, order: 2 } }] });
+    const skipped = runtime({ plantUml: two, messages: [entry, { ...second, order: 3 }] });
+    expect(await skipped.app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", issues: [{ details: { violation: "sequence-ledger-order-mismatch", line: 6, order: 2 } }] });
   });
 
   it("accepts a balanced opt fragment without rewriting final PlantUML", async () => {
