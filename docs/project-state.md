@@ -10,15 +10,15 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-21 |
+| Data aktualizacji | 2026-09-22 |
 | Stan Git | Bazą nowej pracy jest `4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`; aktywny branch rozwojowy: `feature/reviewed-diagram-pipeline`. Bieżący HEAD i publikację zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
 | Stan D1 | Eksperymentalny checkpoint automatycznie zweryfikowany; dwa owner smoke Ollamy `qwen3:30b` nie przeszły. Ledger i diagnoza zachowane na `checkpoint/d1-ledger-pipeline` (`973b604694ad06181deaa56989b9361f4b4ba52e`). To nie jest gotowy produkt. |
 | Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
-| Stan D1.1 | Implemented and automatically verified — generator `{ plantUml }` → lokalne `DiagramFacts` i walidacja → niezależny semantic reviewer; owner smoke jeszcze nie wykonany. |
-| Następny etap | S1 — owner smoke Ollamy `qwen3:30b` na nowym VSIX; D2 dopiero po S1 PASS. |
+| Stan D1.1 | Implemented and automatically verified — generator `{ plantUml }` → lokalne `DiagramFacts` i walidacja → niezależny semantic reviewer; korekty parsera i trybów wiadomości po pierwszym S1 zostały zweryfikowane automatycznie. |
+| Następny etap | Pierwsza próba S1: FAIL; ponowić owner smoke Ollamy `qwen3:30b` na nowym VSIX. D2 dopiero po S1 PASS. |
 | Etapy po S1 | D2 dopiero po S1 PASS; C1 po D2; M1 (ArchitectureSnapshot/MCP) po C1. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -460,7 +460,8 @@ I/O. Testy adapterów lokalnych i chmurowych używają wyłącznie syntetycznych
 płatnych połączeń. Automatyczne bramki D1.1: `npm ci`, testy celowane, `npm test`, oba typechecki,
 `extension:test`, `extension:build`, `extension:package`, `extension:verify`, `demo:dry-run` oraz
 runtime wyjęty z VSIX i uruchomiony poza repo — PASS. Dokładne liczby testów i artefaktu
-należy weryfikować na bieżąco w repo. **S1 owner smoke nie został wykonany; D2 jest zablokowany.**
+należy weryfikować na bieżąco w repo. **Na 2026-09-21 S1 owner smoke nie był jeszcze wykonany;
+D2 pozostawało zablokowane.**
 
 Korekta końcowego review D1.1: digest powstaje z jednego kanonicznego payloadu snapshotu
 zawierającego także logiczny plik flow, tekst i fizyczne linie flow evidence oraz pliki i linie
@@ -469,3 +470,51 @@ lokalizacji źródłowej i zgodność digestu w obu requestach oraz raporcie v2.
 testy celowane 59/59, `npm test` 1265/1265, oba typechecki, `extension:test` 194/194,
 `extension:build`, `extension:package`, `extension:verify` (6 wpisów), `demo:dry-run` i osobny
 test runtime wyjętego z VSIX poza repo — PASS. S1 owner smoke pozostaje jedyną bramką produktu.
+
+### Korekta po pierwszej próbie S1 (2026-09-22)
+
+Pierwsza próba owner smoke S1 pozostaje **FAIL**. Zapisany model output użył legalnych wariantów
+PlantUML: `alias as "Canonical Name"` oraz cytowanych etykiet bez spacji przed dwukropkiem.
+Parser D1.1 akceptuje teraz obie kolejności nazwy i aliasu oraz bezpieczne etykiety cytowane i
+niecytowane z opcjonalnymi spacjami przy dwukropku. Zaakceptowany PlantUML pozostaje bajt w bajt
+niezmieniony. Prompt preferuje `"Canonical Name" as alias` i niecytowaną etykietę oraz podaje
+jawny kontrakt strzałek i dozwoloną strzałkę dla każdej source-confirmed relacji.
+
+Ten sam output miał błędne tryby: linie 7 i 10 użyły asynchronicznego `->>` wobec relacji
+source-confirmed o trybie synchronous; odpowiedzi w liniach 8 i 11 nie miały wcześniejszego
+pasującego synchronicznego requestu. Lokalna walidacja zwraca odpowiednio
+`interaction-mode-mismatch` i `response-without-request` przed reviewerem. Sprzeczność z
+source-confirmed relacją nie przechodzi do review jako user-stated; dopiero brak relacji
+source-confirmed dla pary uczestników może trafić do niezależnego review, a jawny zakaz nadal
+blokuje pipeline.
+Linia 13 zapisanego diagramu jest kandydatem user-stated, nie automatycznym potwierdzeniem.
+
+Walidacja offline zapisanego `generator-diagnostic.puml`: dokument i parser PASS; produkcyjny
+pipeline odrzuca semantycznie linie 7, 8, 10 i 11 po jednym syntetycznym wywołaniu generatora,
+bez wywołania reviewera ani Ollamy.
+
+Końcowa korekta kontraktu source-confirmed D1.1: relacja tej samej pary i kierunku z innym
+typem interfejsu daje lokalny `interface-type-mismatch`, zamiast przejść jako user-stated.
+Dowód wymaga pełnej zgodności typu, trybu i nazwy interfejsu; pominięta lub błędna nazwa
+przy nazwanej relacji daje `interface-name-mismatch`. Przy wielu relacjach wybór następuje
+po pełnym dopasowaniu, bez wildcardu dla `null`. Stary `generateSequenceDiagram` zachowuje
+dotychczasową politykę nazw. W D1.1 wyłącznie `relationship.mode` wyznacza strzałkę:
+`synchronous` → `->` z możliwą odpowiedzią `-->`, `asynchronous` → `->>` bez odpowiedzi,
+również dla EVENT. Prompt i projekcja snapshotu podają ten sam kontrakt. Sprzeczności są
+odrzucane po jednym wywołaniu generatora, przed reviewerem; poprawny wynik przechodzi przez
+dwa wywołania, a błąd kontekstu zatrzymuje się przed modelem.
+
+Wyniki poprzedniej sesji: testy celowane 190/190, `npm ci` bez zmiany lockfile, `npm test` 1295/1295,
+oba typechecki, `extension:test` 201/201, `extension:build`, `extension:package`,
+`extension:verify` (6 wpisów), `demo:dry-run` oraz osobny test runtime wyjętego z VSIX
+poza repo (1/1) — PASS. Nowy VSIX: `vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`,
+199212 B, SHA-256 `d5ce1c3ff7206a36e1f0b0ee3ac703d53fa408db07551becb0ca42ecf9030cdf`.
+**Ponowny owner smoke S1 na nowym VSIX nie został jeszcze wykonany; D2 pozostaje zablokowane
+do S1 PASS.**
+
+Finalizacja korekty (2026-09-22): `npm ci --offline` bez zmiany lockfile, testy celowane
+149/149, `npm test` 1296/1296, `extension:test` 202/202, oba typechecki, build, package,
+verify, `demo:dry-run` i runtime wyjęty z VSIX poza repo (1/1) — PASS. Bieżący lokalny VSIX
+ma 6 wpisów, 199212 B i SHA-256
+`9e503a2dd540dcc6c2bc1819acbe2b82b7d271768fb3318dc5ecb52b3f47d2b3`.
+Pierwsza próba S1 pozostaje FAIL; ponowny owner smoke nie został wykonany.

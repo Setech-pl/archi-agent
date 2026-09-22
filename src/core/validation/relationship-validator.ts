@@ -85,7 +85,8 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
       matches.push(Object.freeze({ order: message.order, verification, relationships: Object.freeze([...relationships]) }));
     };
 
-    if (response && !model.messages.slice(0, index).some((candidate) => isRequestFor(candidate, message))) {
+    const responseWithoutRequest = response && !model.messages.slice(0, index).some((candidate) => isRequestFor(candidate, message));
+    if (responseWithoutRequest) {
       issues.push(createModelIssue("response-without-request", { path, details }));
     }
 
@@ -121,8 +122,10 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const candidates = between(sourceId, targetId);
 
     if (candidates.length === 0) {
-      if (allowUserStatedReview) { record("user-stated-review"); return; }
-      const code = between(targetId, sourceId).length > 0 ? "relationship-direction" : internal ? "internal-endpoint-mismatch" : "missing-relationship";
+      const reverse = between(targetId, sourceId).length > 0;
+      if (allowUserStatedReview && !reverse) { record("user-stated-review"); return; }
+      const code = reverse || (!allowUserStatedReview && between(targetId, sourceId).length > 0)
+        ? "relationship-direction" : internal ? "internal-endpoint-mismatch" : "missing-relationship";
       issues.push(createModelIssue(code, { path, details: { ...details, fromId: sourceId, toId: targetId } }));
       record("grounded");
       return;
@@ -131,7 +134,6 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const byType = candidates.filter((relationship) => relationship.interfaceType === packInterfaceType(message.interfaceType));
 
     if (byType.length === 0) {
-      if (allowUserStatedReview) { record("user-stated-review"); return; }
       const typeDetails: Readonly<Record<string, string>> = internal
         ? {}
         : {
@@ -152,7 +154,6 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
     const byMode = byType.filter((relationship) => relationship.mode === mode);
 
     if (byMode.length === 0) {
-      if (allowUserStatedReview) { record("user-stated-review"); return; }
       issues.push(
         createModelIssue("interaction-mode-mismatch", {
           path,
@@ -161,10 +162,17 @@ export function validateRelationships(model: GeneratedSequenceModel, context: Gr
       );
     }
 
+    const byName = allowUserStatedReview && byMode.length > 0
+      ? byMode.filter((relationship) => relationship.interfaceName === (message.interfaceName ?? null))
+      : byMode;
+    if (allowUserStatedReview && byMode.length > 0 && byName.length === 0 && !responseWithoutRequest) {
+      issues.push(createModelIssue("interface-name-mismatch", { path, details: { ...details, fromId: sourceId, toId: targetId } }));
+    }
+
     if (!allowUserStatedReview && context.rules.some((rule) => rule.rule === "forbid" && rule.fromId === sourceId && rule.toId === targetId)) {
       issues.push(createModelIssue("forbidden-interaction", { path, details: { ...details, fromId: sourceId, toId: targetId } }));
     }
-    record("grounded", byMode);
+    record("grounded", byName);
   });
 
   const inDiagram = new Set(model.participants.flatMap((participant) => (participant.origin === "knowledge-pack" ? [participant.elementId] : [])));

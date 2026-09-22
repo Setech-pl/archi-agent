@@ -97,9 +97,9 @@ export const parseGeneratorResponse = (value: unknown) => generatorSchema.safePa
 export interface DiagramFact { readonly factId: string; readonly lineNumber: number; readonly kind: "element" | "relationship" | "annotation"; readonly elementId?: string; readonly order?: number; readonly fromId?: string; readonly toId?: string; readonly arrow?: string; readonly label?: string; readonly async?: boolean; readonly isResponse?: boolean; readonly interfaceType?: string; readonly interfaceName?: string | null; readonly fragmentKind?: string; readonly condition?: string }
 export interface DiagramFacts { readonly elements: readonly DiagramFact[]; readonly relationships: readonly DiagramFact[]; readonly annotations: readonly DiagramFact[]; readonly model: GeneratedSequenceModel }
 
-const declaration = /^(actor|participant|database|queue) "([^"]+)" as ([A-Za-z][A-Za-z0-9_]*)$/;
-const arrow = /^([A-Za-z][A-Za-z0-9_]*) (->>|-->|->) ([A-Za-z][A-Za-z0-9_]*) : (.+)$/;
-const label = /^(.*) \((REST API|SOAP|EVENT|FILE|DB|INTERNAL)(?:: (.+))?\)$/;
+const declaration = /^(actor|participant|database|queue) (?:"([^"]+)" as ([A-Za-z][A-Za-z0-9_]*)|([A-Za-z][A-Za-z0-9_]*) as "([^"]+)")$/;
+const arrow = /^([A-Za-z][A-Za-z0-9_]*) (->>|-->|->) ([A-Za-z][A-Za-z0-9_]*) *: *(.*)$/;
+const label = /^(.*?) +\((REST API|SOAP|EVENT|FILE|DB|INTERNAL)(?:: (.+))?\) *$/;
 const fragment = /^(alt|opt|loop|group) (.+)$/;
 const branch = /^else (.+)$/;
 const kinds = { actor: "actor", participant: "system", database: "database", queue: "queue" } as const;
@@ -126,9 +126,10 @@ export function parseSequenceFacts(text: string, snapshot: ArchitectureSnapshot)
     if (line === "") continue;
     const participant = declaration.exec(line);
     if (participant) {
-      const alias = participant[3]!;
+      const alias = (participant[3] ?? participant[4])!;
+      const canonicalName = participant[2] ?? participant[5];
       const candidate = candidates.get(alias);
-      if (bodyStarted || !candidate || declared.has(alias) || candidate.canonicalName !== participant[2] ||
+      if (bodyStarted || !candidate || declared.has(alias) || candidate.canonicalName !== canonicalName ||
           (candidate.kind !== "new" && candidate.kind !== kinds[participant[1] as keyof typeof kinds])) return structure(lineNumber);
       declared.set(alias, candidate);
       participants.push(candidate.kind === "new"
@@ -164,17 +165,21 @@ export function parseSequenceFacts(text: string, snapshot: ArchitectureSnapshot)
     const interaction = arrow.exec(line);
     if (!interaction) return structure(lineNumber);
     const parts = label.exec(interaction[4]!);
+    const rawLabel = parts?.[1] ?? "";
+    const quotedLabel = rawLabel.startsWith('"') ? /^"([^"\\]+)"$/.exec(rawLabel) : null;
+    const messageLabel = quotedLabel?.[1] ?? rawLabel;
     const from = declared.get(interaction[1]!);
     const to = declared.get(interaction[3]!);
-    if (!parts || !from || !to || displayTextProblem(parts[1], messageLabelTextOptions) !== undefined ||
+    if (!parts || !from || !to || (rawLabel.startsWith('"') && !quotedLabel) ||
+        displayTextProblem(messageLabel, messageLabelTextOptions) !== undefined ||
         (parts[3] !== undefined && displayTextProblem(parts[3]) !== undefined) ||
         !allowedInterfaceTypes.includes(parts[2] as typeof allowedInterfaceTypes[number]) || messages.length >= sequenceModelLimits.maxMessages) return structure(lineNumber);
     bodyStarted = true;
     const ref = (entry: typeof from) => entry.kind === "new" ? { newName: entry.id.slice(4) } : { elementId: entry.id };
-    messages.push({ from: ref(from), to: ref(to), label: parts[1], interfaceType: parts[2],
+    messages.push({ from: ref(from), to: ref(to), label: messageLabel, interfaceType: parts[2],
       ...(parts[3] === undefined ? {} : { interfaceName: parts[3] }), async: interaction[2] === "->>", isResponse: interaction[2] === "-->", order: messages.length + 1 });
     relationships.push(Object.freeze({ factId: `m${messages.length}`, lineNumber, kind: "relationship", order: messages.length,
-      fromId: from.id, toId: to.id, arrow: interaction[2], label: parts[1], async: interaction[2] === "->>",
+      fromId: from.id, toId: to.id, arrow: interaction[2], label: messageLabel, async: interaction[2] === "->>",
       isResponse: interaction[2] === "-->", interfaceType: parts[2], interfaceName: parts[3] ?? null }));
   }
   if (stack.length || !messages.length || !participants.length) return structure(lines.length);
@@ -185,7 +190,13 @@ export function parseSequenceFacts(text: string, snapshot: ArchitectureSnapshot)
 }
 
 export function buildGeneratorRequest(flow: FlowDocument, snapshot: ArchitectureSnapshot): string {
-  const user = JSON.stringify({ task: { name: flow.metadata.flowName, language: flow.metadata.language, description: flow.body }, snapshot });
+  const relationshipArrowContract = snapshot.relationships.map((relationship) => ({
+    from: relationship.fromId, to: relationship.toId, interfaceType: relationship.interfaceType,
+    interfaceName: relationship.interfaceName, mode: relationship.mode,
+    requestArrow: relationship.mode === "asynchronous" ? "->>" : "->",
+    responseAllowed: relationship.mode === "synchronous"
+  }));
+  const user = JSON.stringify({ task: { name: flow.metadata.flowName, language: flow.metadata.language, description: flow.body }, snapshot, relationshipArrowContract });
   if (user.length > 65_536) throw Object.assign(new Error("Prompt rejected"), { code: "prompt-too-large" });
   return user;
 }

@@ -86,6 +86,15 @@ describe("D1.1 reviewed sequence path", () => {
     expect(generatorInput.snapshot.digest).toBe(report.snapshotDigest.value);
     expect(reviewerInput.snapshot.digest).toBe(report.snapshotDigest.value);
     expect(generatorInput.snapshot.relationships[0].evidenceClass).toBe("source-confirmed");
+    expect(generatorInput.relationshipArrowContract).toEqual(expect.arrayContaining([
+      { from: "telescope-scheduler", to: "image-archive", interfaceType: "DB", interfaceName: "Archive Writer",
+        mode: "synchronous", requestArrow: "->", responseAllowed: true }
+    ]));
+    const instructions = calls[0]?.messages[0]?.content ?? "";
+    expect(instructions).toContain("Synchronous request: A -> B : Label (TYPE)");
+    expect(instructions).toContain("matching response: B --> A : Label (TYPE)");
+    expect(instructions).toContain("Asynchronous request: A ->> B : Label (TYPE)");
+    expect(instructions).toContain("The relationship mode determines the arrow for every interface type, including EVENT");
   });
 
   it("derives shifted line numbers, ordered arrows and fragments without rewriting", async () => {
@@ -120,6 +129,99 @@ describe("D1.1 reviewed sequence path", () => {
   });
 
   it.each([
+    plantUml.replace('participant "Telescope Scheduler" as kp_telescope_scheduler', 'participant kp_telescope_scheduler as "Telescope Scheduler"')
+      .replace('database "Image Archive" as kp_image_archive', 'database kp_image_archive as "Image Archive"')
+      .replace(' : Registers frames ', ': "Registers frames" '),
+    plantUml.replace(' : Registers frames ', '  :  Registers frames ')
+  ])("accepts both safe declaration and message forms without changing PlantUML", async (text) => {
+    const { app, calls } = runtime({ plantUml: text });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result.status).toBe("success");
+    if (result.status !== "success") return;
+    expect(result.plantUml).toBe(text);
+    expect(JSON.parse(calls[1]?.messages[1]?.content ?? "{}").facts.relationships[0].label).toBe("Registers frames");
+  });
+
+  it("enforces an asynchronous source-confirmed EVENT and forbids its response", async () => {
+    const directory = path.join(root, "async-event"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: [
+      ...basePackRows.relationships.filter((row) => row[1] !== "image-archive"),
+      ["telescope-scheduler", "image-archive", "EVENT", "", "asynchronous", "Signals frames"]
+    ] }))) writeFileSync(path.join(directory, name), content);
+    const event = plantUml.replace(" -> kp_image_archive : Registers frames (DB: Archive Writer)", " ->> kp_image_archive : Registers frames (EVENT)");
+    const eventRequest = { ...request, knowledgePack: { kind: "local-directory" as const, path: directory } };
+    const good = runtime({ plantUml: event });
+    expect((await good.app.generateDiagram!({ ...eventRequest })).status).toBe("success");
+    expect(JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").relationshipArrowContract).toEqual(expect.arrayContaining([
+      { from: "telescope-scheduler", to: "image-archive", interfaceType: "EVENT", interfaceName: null,
+        mode: "asynchronous", requestArrow: "->>", responseAllowed: false }
+    ]));
+    const wrongArrow = runtime({ plantUml: event.replace(" ->> kp_image_archive", " -> kp_image_archive") });
+    expect(await wrongArrow.app.generateDiagram!({ ...eventRequest })).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
+      issues: [{ code: "interaction-mode-mismatch" }] });
+    expect(wrongArrow.calls).toHaveLength(1);
+    const wrongResponse = runtime({ plantUml: event.replace("@enduml", "kp_image_archive --> kp_telescope_scheduler : Response (EVENT)\n@enduml") });
+    const responseResult = await wrongResponse.app.generateDiagram!({ ...eventRequest });
+    expect(responseResult).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    if (responseResult.status === "failed") expect(responseResult.issues.map((issue) => issue.code)).toContain("response-without-request");
+    expect(wrongResponse.calls).toHaveLength(1);
+  });
+
+  it("uses synchronous mode for EVENT even when its interface type is EVENT", async () => {
+    const directory = path.join(root, "sync-event"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: [
+      ...basePackRows.relationships.filter((row) => row[1] !== "image-archive"),
+      ["telescope-scheduler", "image-archive", "EVENT", "", "synchronous", "Signals frames"]
+    ] }))) writeFileSync(path.join(directory, name), content);
+    const eventRequest = { ...request, knowledgePack: { kind: "local-directory" as const, path: directory } };
+    const sync = plantUml.replace("(DB: Archive Writer)", "(EVENT)");
+    const good = runtime({ plantUml: sync });
+    expect((await good.app.generateDiagram!({ ...eventRequest })).status).toBe("success");
+    expect(JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").relationshipArrowContract).toEqual(expect.arrayContaining([
+      { from: "telescope-scheduler", to: "image-archive", interfaceType: "EVENT", interfaceName: null,
+        mode: "synchronous", requestArrow: "->", responseAllowed: true }
+    ]));
+    const wrong = runtime({ plantUml: sync.replace(" -> kp_image_archive", " ->> kp_image_archive") });
+    expect(await wrong.app.generateDiagram!({ ...eventRequest })).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
+      issues: [{ code: "interaction-mode-mismatch" }] });
+    expect(wrong.calls).toHaveLength(1);
+  });
+
+  it("rejects the saved S1 syntax with precise source-confirmed mode errors before review", async () => {
+    const directory = path.join(root, "s1-mode-diagnostic"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({
+      systems: [
+        ["intake-app", "Intake App", "system", "Starts a job"],
+        ["workflow-service", "Workflow Service", "service", "Processes a job"],
+        ["audit-store", "Audit Store", "database", "Stores records"],
+        ["notification-hub", "Notification Hub", "system", "Receives events"]
+      ], actors: [], aliases: [], rules: [], relationships: [
+        ["intake-app", "workflow-service", "REST_API", "Submit Job", "synchronous", "Starts a job"],
+        ["workflow-service", "audit-store", "DB", "Job Record", "synchronous", "Stores a record"]
+      ]
+    }))) writeFileSync(path.join(directory, name), content);
+    const diagnostic = [
+      "@startuml", 'participant kp_intake_app as "Intake App"', 'participant kp_workflow_service as "Workflow Service"',
+      'database kp_audit_store as "Audit Store"', 'participant kp_notification_hub as "Notification Hub"', "",
+      'kp_intake_app ->> kp_workflow_service: "Submit Job" (REST API)',
+      'kp_workflow_service --> kp_intake_app: "Response" (REST API)', "",
+      'kp_workflow_service ->> kp_audit_store: "Job Record" (DB)',
+      'kp_audit_store --> kp_workflow_service: "Response" (DB)', "",
+      'kp_workflow_service -> kp_notification_hub: "Job Ready" (EVENT)', "@enduml"
+    ].join("\n");
+    const diagnosticFlow = { kind: "document" as const, text: "---\ndiagram_name: job\nflow_name: Job\nauthor: Test\nlanguage: en\n---\nIntake App sends to Workflow Service, which uses Audit Store and Notification Hub.\n" };
+    const { app, calls } = runtime({ plantUml: diagnostic });
+    const result = await app.generateDiagram!({ ...request, flow: diagnosticFlow,
+      knowledgePack: { kind: "local-directory", path: directory } });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    if (result.status === "failed") expect(result.issues.map((issue) => [issue.code, issue.details?.["line"]])).toEqual([
+      ["interaction-mode-mismatch", 7], ["response-without-request", 8],
+      ["interaction-mode-mismatch", 10], ["response-without-request", 11]
+    ]);
+    expect(calls).toHaveLength(1);
+  });
+
+  it.each([
     ["extra envelope field", { ...generated, other: true }, "invalid-generator-output"],
     ["missing plantUml", {}, "invalid-generator-output"],
     ["oversized", { plantUml: "x".repeat(256 * 1024 + 1) }, "invalid-generator-output"],
@@ -135,22 +237,68 @@ describe("D1.1 reviewed sequence path", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it.each([
-    plantUml.replace("kp_telescope_scheduler -> kp_image_archive", "kp_image_archive -> kp_telescope_scheduler"),
-    plantUml.replace(" -> ", " ->> "),
-    plantUml.replace("(DB: Archive Writer)", "(EVENT)"),
-    plantUml.replace("Archive Writer", "Invented")
-  ])("requires reviewer evidence for a relationship without an exact pack match", async (text) => {
+  it("rejects a different interface type before review without exposing model text", async () => {
+    const text = plantUml.replace("(DB: Archive Writer)", "(EVENT)");
     const { app, calls } = runtime({ plantUml: text }, rejected);
-    expect(await app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
-    expect(calls).toHaveLength(2);
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
+      issues: [{ code: "interface-type-mismatch", details: { line: 4, factId: "m1" } }] });
+    expect(JSON.stringify(result)).not.toContain("Registers frames");
+    expect(JSON.stringify(result)).not.toContain("user-stated");
+    expect(calls).toHaveLength(1);
+  });
+
+  it.each([
+    [plantUml.replace("kp_telescope_scheduler -> kp_image_archive", "kp_image_archive -> kp_telescope_scheduler"), "relationship-direction"],
+    [plantUml.replace(" -> ", " ->> "), "interaction-mode-mismatch"],
+    [plantUml.replace("Archive Writer", "Invented"), "interface-name-mismatch"],
+    [plantUml.replace(": Archive Writer", ""), "interface-name-mismatch"]
+  ])("blocks a source-confirmed contradiction before review", async (text, code) => {
+    const { app, calls } = runtime({ plantUml: text });
+    const result = await app.generateDiagram!({ ...request });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    if (result.status === "failed") expect(result.issues.map((issue) => issue.code)).toContain(code);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("chooses only a complete type, mode and name match among relationships for one pair", async () => {
+    const directory = path.join(root, "multiple-interfaces"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: [
+      ...basePackRows.relationships.filter((row) => row[1] !== "image-archive"),
+      ["telescope-scheduler", "image-archive", "EVENT", "Signals", "asynchronous", "Signals frames"],
+      ["telescope-scheduler", "image-archive", "DB", "Other Writer", "synchronous", "Writes elsewhere"],
+      ["telescope-scheduler", "image-archive", "DB", "Archive Writer", "synchronous", "Registers frames"]
+    ] }))) writeFileSync(path.join(directory, name), content);
+    const multiRequest = { ...request, knowledgePack: { kind: "local-directory" as const, path: directory } };
+    const good = runtime();
+    const result = await good.app.generateDiagram!({ ...multiRequest });
+    expect(result.status).toBe("success");
+    if (result.status === "success") {
+      const snapshot = JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").snapshot;
+      const matching = snapshot.relationships.find((entry: { interfaceType: string; interfaceName: string }) =>
+        entry.interfaceType === "DB" && entry.interfaceName === "Archive Writer");
+      expect(JSON.parse(result.groundingReport).parsedFacts.relationships[0].evidenceIds).toEqual([matching.evidenceId]);
+    }
+    for (const [text, code] of [
+      [plantUml.replace("Archive Writer", "Unknown Writer"), "interface-name-mismatch"],
+      [plantUml.replace("DB: Archive Writer", "EVENT: Archive Writer"), "interaction-mode-mismatch"]
+    ]) {
+      const attempt = runtime({ plantUml: text });
+      const failure = await attempt.app.generateDiagram!({ ...multiRequest });
+      expect(failure).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+      if (failure.status === "failed") expect(failure.issues.map((issue) => issue.code)).toContain(code);
+      expect(attempt.calls).toHaveLength(1);
+    }
   });
 
   it("sends an ungrounded known-to-known relation to review", async () => {
+    const directory = path.join(root, "reverse-unrelated"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: basePackRows.relationships.filter((row) => row[1] !== "image-archive") })))
+      writeFileSync(path.join(directory, name), content);
     const text = plantUml.replace("kp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)",
       "kp_image_archive -> kp_telescope_scheduler : Invented event (EVENT)");
     const { app, calls } = runtime({ plantUml: text }, { ...rejected, violations: [{ ...rejected.violations[0], evidenceIds: ["flow:7"] }] });
-    expect(await app.generateDiagram!({ ...request })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+    expect(await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
     expect(calls).toHaveLength(2);
   });
 
@@ -238,15 +386,45 @@ describe("D1.1 reviewed sequence path", () => {
     expect((await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } })).status).toBe("success");
   });
 
-  it("chooses the first grounded evidence deterministically when several relationships match", async () => {
+  it("rejects a named fact against an unnamed source-confirmed interface before review", async () => {
+    const directory = path.join(root, "unnamed-interface-with-named-fact"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({ relationships: basePackRows.relationships.map((row) =>
+      row[1] === "image-archive" ? [row[0]!, row[1]!, row[2]!, "", row[4]!, row[5]!] : row) }))) writeFileSync(path.join(directory, name), content);
+    const label = "SENSITIVE_LABEL_TOKEN";
+    const prompt = "SENSITIVE_PROMPT_TOKEN";
+    const secret = "synthetic-credential-sentinel";
+    const answer = { plantUml: plantUml.replace("Registers frames", label) };
+    const transport = new RemoteJsonTransportDouble(JSON.stringify({ choices: [{ finish_reason: "stop", message: {
+      content: JSON.stringify(answer), refusal: null } }] }));
+    const app = createArchiAgentRuntime({ remoteTransport: transport });
+    const result = await app.generateDiagram!({ ...request,
+      flow: { ...flow, text: flow.text.replace("registers frames", `registers ${prompt} frames`) },
+      knowledgePack: { kind: "local-directory", path: directory },
+      generator: { kind: "remote-provider", profileId: "cloud-openai", modelId: "test-model",
+        credential: { type: "api-key", value: secret } } });
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
+      issues: [{ code: "interface-name-mismatch", details: { line: 4, factId: "m1" } }] });
+    expect(transport.requests).toHaveLength(1);
+    expect(result).not.toHaveProperty("plantUml");
+    expect(result).not.toHaveProperty("groundingReport");
+    const diagnostic = JSON.stringify(result);
+    for (const sensitive of [label, prompt, JSON.stringify(answer), secret, "user-stated", "@startuml"])
+      expect(diagnostic).not.toContain(sensitive);
+  });
+
+  it("chooses the exact named evidence deterministically when several relationships match", async () => {
     const directory = path.join(root, "multiple-evidence"); mkdirSync(directory);
     const original = basePackRows.relationships.find((row) => row[1] === "image-archive")!;
     for (const [name, content] of Object.entries(buildPackFiles({ relationships: [...basePackRows.relationships, [original[0]!, original[1]!, original[2]!, "Archive Writer 2", original[4]!, original[5]!]] })))
       writeFileSync(path.join(directory, name), content);
-    const { app } = runtime({ plantUml: plantUml.replace("(DB: Archive Writer)", "(DB)") });
+    const { app, calls } = runtime();
     const result = await app.generateDiagram!({ ...request, knowledgePack: { kind: "local-directory", path: directory } });
     expect(result.status).toBe("success");
-    if (result.status === "success") expect(JSON.parse(result.groundingReport).parsedFacts.relationships[0].evidenceIds).toEqual(["relationship:1"]);
+    if (result.status === "success") {
+      const snapshot = JSON.parse(calls[0]?.messages[1]?.content ?? "{}").snapshot;
+      const matching = snapshot.relationships.find((entry: { interfaceName: string }) => entry.interfaceName === "Archive Writer");
+      expect(JSON.parse(result.groundingReport).parsedFacts.relationships[0].evidenceIds).toEqual([matching.evidenceId]);
+    }
   });
 
   it("rejects review without artifacts after exactly two calls", async () => {
