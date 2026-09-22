@@ -164,7 +164,7 @@ describe("clean runtime execution", () => {
 
     const packageModule = (await import(scriptUrl("package-vsix.mjs"))) as PackageModule;
     const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };
-    const vsix = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-clean-vsix-"), bundleDir: temporaryDirectory("archi-agent-clean-vsix-bundles-") });
+    const vsix = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-clean-vsix-") });
     writeFileSync(path.join(runtimeDir, buildModule.bundleFileNames.runtime), openVsix(vsix).read(`extension/dist/${buildModule.bundleFileNames.runtime}`));
     const flow = [
       "---",
@@ -251,7 +251,7 @@ describe("VSIX", () => {
   beforeAll(async () => {
     const packageModule = (await import(scriptUrl("package-vsix.mjs"))) as PackageModule;
     verifyModule = (await import(scriptUrl("verify-vsix.mjs"))) as VerifyModule;
-    vsixPath = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-vsix-"), bundleDir: temporaryDirectory("archi-agent-vsix-bundles-") });
+    vsixPath = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-vsix-") });
   }, 180_000);
 
   it("packages and contains exactly the bounded runtime files", () => {
@@ -263,6 +263,14 @@ describe("VSIX", () => {
       ["[Content_Types].xml", "extension.vsixmanifest", "extension/package.json", "extension/readme.md", "extension/dist/archi-agent-runtime.js", "extension/dist/extension.js"].sort()
     );
     expect(path.basename(vsixPath)).toBe("archi-agent-0.2.0-alpha.1.vsix");
+  });
+
+  it("packages the corrected D1.2 plan-validation mapping in the runtime bundle", async () => {
+    const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };
+    const runtime = openVsix(vsixPath).read("extension/dist/archi-agent-runtime.js").toString("utf8");
+    expect(runtime).toContain("diagram-plan-invalid");
+    expect(runtime).toContain("interaction-mode-mismatch");
+    expect(runtime).toContain("reviewed_sequence_plan");
   });
 
   it("rejects prohibited content by rule", () => {

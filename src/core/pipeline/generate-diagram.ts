@@ -10,7 +10,7 @@ import { createModelIssue } from "../validation/model-validator.js";
 import { validatePlantUmlDocument } from "../validation/plantuml-document-validator.js";
 import { knowledgePackArchitectureProvider } from "./reviewed-sequence.js";
 import { renderSequencePlan, sequencePlanResponseSchema, sequenceReviewResponseSchema, validateSequencePlan, validateSequenceReview } from "./sequence-diagram-plan.js";
-import type { PipelineOutcome } from "./generation-outcome.js";
+import type { PipelineOutcome, RenderValidationFailedOutcome } from "./generation-outcome.js";
 
 /** D1.2 reviewed plan path; generateSequenceDiagram remains independent. */
 export interface GenerateDiagramRequest {
@@ -80,6 +80,16 @@ function invalid(code: "schema-violation" | "generator-failed" | "generation-can
   return { status: "invalid-generator-output", issues: [createModelIssue(code, problem === undefined ? {} : { details: { problem } })], schemaProblems: [] };
 }
 
+/** Keep document rule and physical line while exposing only bounded validator codes. */
+export function renderedDocumentFailure(plantUml: string): RenderValidationFailedOutcome | undefined {
+  const structureIssues = validatePlantUmlDocument(plantUml);
+  if (structureIssues.length === 0) return undefined;
+  const first = structureIssues[0]!;
+  return { status: "render-validation-failed", issues: [createModelIssue("plantuml-structure", {
+    details: { rule: first.rule, ...(first.line === undefined ? {} : { line: first.line }) }
+  })], structureIssues };
+}
+
 /** D1.2: one plan call, local validation and rendering, one independent verdict call. */
 export async function generateDiagram(request: GenerateDiagramRequest): Promise<PipelineOutcome> {
   if (request.diagramType !== "sequence") return invalid("schema-violation", "diagram-type-unsupported");
@@ -113,18 +123,19 @@ export async function generateDiagram(request: GenerateDiagramRequest): Promise<
   if (request.signal?.aborted) return invalid("generation-cancelled");
   if (envelopeTooLarge(raw)) return invalid("schema-violation");
   const validation = validateSequencePlan(raw, snapshot);
-  if (!validation.ok) return { status: "semantic-validation-failed", issues: [createModelIssue(validation.code === "schema-violation" ? "schema-violation" : "plantuml-structure")] };
+  if (!validation.ok) return { status: "semantic-validation-failed", issues: [createModelIssue(validation.code === "schema-violation" ? "schema-violation" : "diagram-plan-invalid",
+    validation.code === "schema-violation" ? {} : { details: { rule: validation.code } })] };
   let rendered: ReturnType<typeof renderSequencePlan>;
   try { rendered = renderSequencePlan(validation.value, snapshot); }
-  catch { return { status: "render-validation-failed", issues: [createModelIssue("plantuml-structure")], structureIssues: [] }; }
-  const documentIssues = validatePlantUmlDocument(rendered.plantUml);
-  if (documentIssues.length) return { status: "render-validation-failed", issues: [createModelIssue("plantuml-structure")], structureIssues: [] };
+  catch { return { status: "render-validation-failed", issues: [createModelIssue("render-failed")], structureIssues: [] }; }
+  const documentFailure = renderedDocumentFailure(rendered.plantUml);
+  if (documentFailure !== undefined) return documentFailure;
   const factEvidence = validation.value.facts.map((entry) => ({ factId: entry.fact.factId, evidenceClass: entry.evidenceClass, evidenceId: entry.evidenceId,
     fromId: entry.fromId, toId: entry.toId, mode: entry.mode, interfaceType: entry.interfaceType, interfaceName: entry.interfaceName,
     source: entry.source, lineNumber: rendered.lines.get(entry.fact.factId)! }));
   const reviewInput = JSON.stringify({ task, snapshot, plan: validation.value.plan, factEvidence, plantUml: rendered.plantUml,
     factLines: Object.fromEntries(rendered.lines), deterministicValidation: "passed" });
-  if (reviewInput.length > 400_000) return { status: "render-validation-failed", issues: [createModelIssue("plantuml-structure")], structureIssues: [] };
+  if (reviewInput.length > 400_000) return invalid("schema-violation", "review-input-too-large");
   if (request.signal?.aborted) return invalid("generation-cancelled");
   let reviewRaw: unknown;
   try {

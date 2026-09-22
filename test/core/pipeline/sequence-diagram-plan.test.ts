@@ -133,10 +133,10 @@ describe("SequenceDiagramPlan validator and renderer", () => {
   });
 
   it("escapes quotes and backslashes while rejecting newline and control input", () => {
-    const result = checked(candidate({ label: 'Żółć "quoted" \\ path' }));
+    const result = checked(candidate({ label: 'Żółć "quoted" \\ path: (done)' }));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(renderSequencePlan(result.value, snapshot).plantUml).toContain('Żółć \\"quoted\\" \\\\ path');
-    for (const label of ["first\nsecond", "bad\u0001control", "@startuml", "https://example.test"])
+    if (result.ok) expect(renderSequencePlan(result.value, snapshot).plantUml).toContain('Żółć \\"quoted\\" \\\\ path: (done)');
+    for (const label of ["first\nsecond", "first\rsecond", "bad\u0001control", "bad\u007fcontrol", "first\u2028second", "@startuml", "https://example.test"])
       expect(checked(candidate({ label })).ok).toBe(false);
   });
 

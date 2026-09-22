@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { createArchiAgentRuntime } from "../../src/runtime/index.js";
 import type { StructuredChatClient, StructuredChatRequest } from "../../src/core/llm/structured-chat-client.js";
-import { diagramEnvelopeSchema, envelopeTooLarge } from "../../src/core/pipeline/generate-diagram.js";
+import { diagramEnvelopeSchema, envelopeTooLarge, renderedDocumentFailure } from "../../src/core/pipeline/generate-diagram.js";
 import { sequenceReviewResponseSchema } from "../../src/core/pipeline/sequence-diagram-plan.js";
 import { buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
 import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
@@ -97,6 +97,26 @@ describe("D1.2 deterministic reviewed sequence", () => {
     const run = runtime(plan, rejected);
     expect((await run.app.generateDiagram!({ ...request })).status).toBe("failed");
     expect(run.calls).toHaveLength(2);
+  });
+
+  it("reports the reproduced invalid request fact as a plan error before rendering or review", async () => {
+    const reproduced = { ...plan, messages: [{ ...message, requestFactId: "m1" }] };
+    const { app, calls } = runtime(reproduced);
+    const result = await app.generateDiagram!({ ...request });
+    expect(calls).toHaveLength(1);
+    expect(result).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
+      issues: [{ code: "diagram-plan-invalid", details: { rule: "interaction-mode-mismatch" } }] });
+    expect(JSON.stringify(result)).not.toContain("plantuml-structure");
+  });
+
+  it("retains the document validator's safe rule and physical line for an actual violation", () => {
+    const malformed = '@startuml\nparticipant "A" as kp_a\n!includeurl https://example.test/x\n@enduml\n';
+    expect(renderedDocumentFailure(malformed)).toMatchObject({
+      status: "render-validation-failed",
+      issues: [{ code: "plantuml-structure", details: { line: 3, rule: "forbidden-directive" } }],
+      structureIssues: [{ rule: "forbidden-directive", line: 3 }, { rule: "remote-url", line: 3 }]
+    });
+    expect(renderedDocumentFailure(golden)).toBeUndefined();
   });
 
   it("counts generator timeout, cancellation between phases and reviewer timeout/cancellation", async () => {

@@ -19,9 +19,9 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
 | Stan D1.1 | Implemented and automatically verified, lecz S1 FAIL; historyczna ścieżka `{ plantUml }` zachowana na `checkpoint/d1-final-plantuml-reviewed`, superseded jako aktywny kierunek. |
 | Stan R2 | Completed — właściciel zatwierdził DiagramPlan, lokalną walidację i deterministyczne renderery per typ; ADR 0002 i checkpoint D1.1. |
-| Stan D1.2 | Implemented and automatically verified — ścisły SequenceDiagramPlan, lokalna walidacja, deterministyczny renderer i niezależny reviewer; szczegóły w sekcji D1.2 niżej. |
-| Następny etap | Ponowny owner smoke S1 z D1.2; M1 i D2 nadal czekają. |
-| Bramka S1 | Próby D1.1: FAIL; S1 na D1.2 nie został wykonany i nie jest PASS. M1, D2 i stary gauntlet pozostają zablokowane do S1 PASS. |
+| Stan D1.2 | Implemented and automatically verified; korekta błędnego mapowania walidacji planu po nieudanym owner smoke S1 jest gotowa do ponownego smoke. Szczegóły w sekcji D1.2 niżej. |
+| Następny etap | Ponowny owner smoke S1 po korekcie D1.2; M1 i D2 nadal czekają. |
+| Bramka S1 | Próby D1.1: FAIL; owner smoke D1.2: FAIL z `plantuml-structure`, który może maskować odrzucenie planu. M1, D2 i stary gauntlet pozostają zablokowane do S1 PASS. |
 | Kolejność | R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -362,9 +362,9 @@ wykonywano.
 
 ## Następny krok
 
-**S1 owner smoke na D1.2** — wykonać osobno z Ollamą `qwen3:30b` i zainstalowanym VSIX.
-Automatyczne bramki D1.2 nie zastępują tej decyzji właściciela. Bez S1 PASS nie zaczynać
-M1, D2 ani starego gauntletu. Nie uruchomiono płatnych requestów ani rzeczywistego owner smoke.
+**Ponowny S1 owner smoke po korekcie D1.2** — zainstalować nowy VSIX w izolowanym profilu,
+wybrać zamierzony model Ollamy i wykonać osobny smoke. Poprzedni S1 był FAIL; automatyczne
+bramki nie zastępują decyzji właściciela. Bez S1 PASS nie zaczynać M1, D2 ani gauntletu.
 
 ## Implementacja D1
 
@@ -601,5 +601,46 @@ Test runtime wyjętego z VSIX, uruchomionego z pustego katalogu poza repo bez
 syntetycznego sentinela, prywatnych kluczy i wzorców tokenów — PASS. Lokalny artefakt:
 `vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`, 197792 B, SHA-256
 `fa5b933b1ca658c9f2bd8cbaf794c86a1c99fdfc62c15439e742218007cd9bdf`.
-Nie wykonano owner smoke ani płatnych requestów. Następny krok: S1 owner smoke D1.2;
+W tamtej sesji nie wykonano owner smoke ani płatnych requestów. Następny krok: S1 owner smoke D1.2;
 M1 i D2 nadal czekają na S1 PASS. Bieżący Git należy porównać z tym handoffem.
+
+### Korekta po nieudanym owner smoke S1 na D1.2 (2026-09-22)
+
+Owner smoke aktywnego Generate Diagram → Sequence zakończył się **FAIL** z komunikatem
+`plantuml-structure`. Preflight korekty potwierdził `af3239e05e2ac52436cc3c21bb915ec463f437c7`
+lokalnie i na upstreamie, czyste drzewo i staging, VSIX 197792 B o SHA-256
+`fa5b933b1ca658c9f2bd8cbaf794c86a1c99fdfc62c15439e742218007cd9bdf` oraz
+bajtową zgodność obu bundle zainstalowanych w izolowanym profilu z VSIX. To nie był stary
+bundle.
+
+Produkcyjny snapshot z fixture S1 i minimalny poprawny plan dały PlantUML przechodzący
+walidację planu, document validator i parser kontrolny. Oryginalny plan owner smoke nie został
+zachowany. Dokładnie jedna lokalna reprodukcja przez produkcyjny adapter Ollamy `qwen3:30b`
+(bez reviewera) zwróciła niepoprawny plan: `requestFactId` dwóch faktów `request` wskazywał
+własne `factId`; dalszy fakt `user-stated` miał `proposed: null`. Walidator odrzucił plan z
+`interaction-mode-mismatch` przed renderowaniem, więc ta reprodukcja nie ma PlantUML ani jego
+fizycznej linii błędu. Jest osobnym przebiegiem, nie bajtową kopią owner smoke. Zapis ustawień
+izolowanego profilu wskazywał w chwili diagnozy `qwen3-coder:30b`, podczas gdy zgłoszony model
+to `qwen3:30b`; bez oryginalnego planu nie da się przypisać pierwotnej próbie dokładnie tego
+samego naruszenia.
+
+Przyczyna mylącego komunikatu jest jednoznaczna w integracji: każdy nie-schema błąd
+`validateSequencePlan` był mapowany na `plantuml-structure`, zanim powstał jakikolwiek
+PlantUML. Korekta zachowuje odrzucenie i politykę 0/1/2, lecz zwraca `diagram-plan-invalid`
+z bezpiecznym kodem reguły. Faktyczny błąd document validatora nadal odrzuca dokument,
+teraz z kodem reguły i fizyczną linią w szczegółach. Renderer, ADR 0002, kontrakt planu,
+zakazy dokumentu i compatibility path pozostają bez zmian. Regresje obejmują syntetyczny
+snapshot S1, golden output, klasy relacji, mapę linii, błąd planu i pakowany bundle.
+
+Walidacja semantyki i relacji dla D1.2 odbywa się w `validateSequencePlan`; legacy
+model/relationship validator należy do starego compatibility path. Nie był uruchamiany jako
+osobny etap aktywnej ścieżki. Celowane testy 88/88, `npm test` 1246/1246, oba typechecki,
+`extension:test` 156/156, `extension:build`, `extension:package`, `extension:verify` i
+`demo:dry-run` — PASS. `npm ci` nie zmienił lockfile. Runtime wyjęty z finalnego VSIX działał
+poza repo; niezależny review read-only nie znalazł high/medium ani blokujących DoD. Nowy VSIX:
+`vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`, 197917 B, SHA-256
+`7e2766bcc23891befd44d491938b6996cb8939644c3254858ee0773afc1d0a94`, dokładnie
+sześć wpisów; oba bundle są bajtowo zgodne z bieżącym buildem.
+
+S1 pozostaje **FAIL** i wymaga ponownego owner smoke po instalacji nowego VSIX. M1, D2 i
+gauntlet pozostają zablokowane.

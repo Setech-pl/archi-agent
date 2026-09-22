@@ -110,6 +110,7 @@ const definitions = {
   "interface-name-mismatch": { severity: "error", message: "The interface name does not match a grounded relationship." },
   "render-failed": { severity: "error", message: "The validated model could not be rendered safely." },
   "plantuml-structure": { severity: "error", message: "The emitted PlantUML failed structural validation." },
+  "diagram-plan-invalid": { severity: "error", message: "The generated diagram plan failed local validation." },
   "review-schema-violation": { severity: "error", message: "The semantic reviewer returned an invalid verdict." },
   "reviewer-failed": { severity: "error", message: "The semantic reviewer did not complete." },
   "review-rejected": { severity: "error", message: "The semantic reviewer rejected the diagram." },
