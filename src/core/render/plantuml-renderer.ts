@@ -6,7 +6,7 @@ import {
   type GeneratedSequenceModel,
   type SequenceFragment
 } from "../model/sequence-diagram-model.schema.js";
-import { newParticipantPrefix, type ParticipantKind, type SequenceMessage } from "../model/types.js";
+import { newParticipantPrefix, participantDeclarationKeywords, type SequenceMessage } from "../model/types.js";
 import { createModelIssue, type ModelIssue } from "../validation/model-validator.js";
 import { allocateAliases } from "./alias-allocator.js";
 import { legendLines } from "./legend.js";
@@ -35,13 +35,6 @@ export interface RenderRequest {
 export type RenderResult =
   | { readonly ok: true; readonly text: string }
   | { readonly ok: false; readonly issues: readonly ModelIssue[] };
-
-const declarationKeywords: Readonly<Record<ParticipantKind, string>> = Object.freeze({
-  actor: "actor",
-  system: "participant",
-  database: "database",
-  queue: "queue"
-});
 
 export const arrows = Object.freeze({ synchronous: "->", asynchronous: "->>", response: "-->" });
 
@@ -112,7 +105,7 @@ export function renderPlantUml(request: RenderRequest): RenderResult {
         label = `"${newParticipantPrefix} ${assertSafeDisplayText(grounded.displayName)}"`;
       }
 
-      return `${declarationKeywords[participant.kind]} ${label} as ${aliasOf(participantKey(participant))}`;
+      return `${participantDeclarationKeywords[participant.kind]} ${label} as ${aliasOf(participantKey(participant))}`;
     });
 
     const messageLine = (message: SequenceMessage): string => {

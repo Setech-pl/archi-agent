@@ -17,8 +17,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
 | Stan D1 | Eksperymentalny checkpoint automatycznie zweryfikowany; dwa owner smoke Ollamy `qwen3:30b` nie przeszły. Ledger i diagnoza zachowane na `checkpoint/d1-ledger-pipeline` (`973b604694ad06181deaa56989b9361f4b4ba52e`). To nie jest gotowy produkt. |
 | Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
-| Stan D1.1 | Implemented and automatically verified — generator `{ plantUml }` → lokalne `DiagramFacts` i walidacja → niezależny semantic reviewer; korekty parsera i trybów wiadomości po pierwszym S1 zostały zweryfikowane automatycznie. |
-| Następny etap | Pierwsza próba S1: FAIL; ponowić owner smoke Ollamy `qwen3:30b` na nowym VSIX. D2 dopiero po S1 PASS. |
+| Stan D1.1 | Implemented and automatically verified — generator `{ plantUml }` → lokalne `DiagramFacts` i walidacja → niezależny semantic reviewer; prompt przekazuje literalne deklaracje i sygnatury ze snapshotu. |
+| Następny etap | Dwie próby S1: FAIL; nowy owner smoke Ollamy `qwen3:30b` na nowym VSIX nadal niewykonany. D2 dopiero po S1 PASS. |
 | Etapy po S1 | D2 dopiero po S1 PASS; C1 po D2; M1 (ArchitectureSnapshot/MCP) po C1. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -518,3 +518,31 @@ verify, `demo:dry-run` i runtime wyjęty z VSIX poza repo (1/1) — PASS. Bież�
 ma 6 wpisów, 199212 B i SHA-256
 `9e503a2dd540dcc6c2bc1819acbe2b82b7d271768fb3318dc5ecb52b3f47d2b3`.
 Pierwsza próba S1 pozostaje FAIL; ponowny owner smoke nie został wykonany.
+
+### Punktowa korekta promptu po drugiej próbie S1 (2026-09-22)
+
+Drugi owner smoke S1 zakończył się **FAIL** z `plantuml-structure` w fizycznej linii 4.
+Odpowiedź nie została zachowana w dozwolonych logach/artefaktach; osobna reprodukcja na tym
+samym syntetycznym flow, Knowledge Pack i lokalnym `qwen3:30b` odtworzyła błąd: model zadeklarował
+znaną bazę jako `participant`, choć snapshot wymagał `database`. Po korekcie rodzaju elementu
+walidacja offline wykazała brak wymaganych dokładnych nazw interfejsów w czterech
+source-confirmed requestach/odpowiedziach. Reprodukcja nie jest bajtowo identycznym zapisem
+odpowiedzi owner smoke; jej artefakty pozostają poza repo.
+
+Generator D1.1 otrzymuje teraz jedną projekcję snapshotu z dokładnymi deklaracjami uczestników
+oraz literalnymi prefiksami i sufiksami dozwolonych requestów i odpowiedzi source-confirmed.
+Sufiks zachowuje typ oraz dokładną nazwę interfejsu; `relationship.mode` wyznacza strzałkę,
+także dla EVENT. Odpowiedź jest oferowana wyłącznie dla relacji synchronicznych.
+Model wstawia tylko etykietę wiadomości pomiędzy prefiks i sufiks. User-stated pozostaje
+kandydatem wymagającym dotychczasowej walidacji i niezależnego evidence reviewera. Parser,
+walidatory, liczba wywołań i compatibility path nie zostały zmienione.
+
+Bieżąca weryfikacja: `npm ci` bez zmiany lockfile; celowane testy 152/152; `npm test`
+1299/1299; `npm run typecheck`, `npm run extension:typecheck`, `npm run extension:test`
+203/203, `extension:build`, `extension:package`, `extension:verify`, `demo:dry-run` — PASS.
+Test runtime wyjętego z VSIX poza repo: 1/1 PASS. Niezależny przegląd read-only: PASS;
+po przywróceniu oryginalnej stałej parsera celowane regresje 103/103 PASS. Finalny VSIX ma
+6 dozwolonych wpisów, 199723 B i SHA-256
+`74a3c85f42f137f0187ddb37d8cf8337dd9d7bbf9fce3c7a88fd843798e9f9c3`.
+Nowy owner smoke nie został wykonany. S1 nadal nie jest PASS; D2, M1 i gauntlet pozostają
+zablokowane do S1 PASS.

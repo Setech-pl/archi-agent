@@ -4,9 +4,11 @@ import type { GroundedContext, GroundingOutcome } from "../grounding/grounded-co
 import { groundedContextSchemaVersion } from "../grounding/grounded-context.js";
 import type { JsonSchemaObject } from "../llm/structured-chat-client.js";
 import { parseGeneratedSequenceModel, sequenceModelLimits, type GeneratedSequenceModel } from "../model/sequence-diagram-model.schema.js";
-import { allowedInterfaceTypes } from "../model/types.js";
+import { allowedInterfaceTypes, newParticipantPrefix, participantDeclarationKeywords, type ParticipantKind } from "../model/types.js";
 import { allocateAliases } from "../render/alias-allocator.js";
-import { displayTextProblem, messageLabelTextOptions } from "../render/plantuml-escape.js";
+import { assertSafeDisplayText, displayTextProblem, messageLabelTextOptions, quotedName } from "../render/plantuml-escape.js";
+import { modelInterfaceTypeFromPack } from "../validation/relationship-validator.js";
+import type { InterfaceType as PackInterfaceType } from "../knowledge-pack/knowledge-pack.schema.js";
 import { stableDigest } from "../util/stable-digest.js";
 import { stableCompare } from "../util/ordering.js";
 import { createModelIssue, type ModelIssue } from "../validation/model-validator.js";
@@ -190,13 +192,28 @@ export function parseSequenceFacts(text: string, snapshot: ArchitectureSnapshot)
 }
 
 export function buildGeneratorRequest(flow: FlowDocument, snapshot: ArchitectureSnapshot): string {
-  const relationshipArrowContract = snapshot.relationships.map((relationship) => ({
-    from: relationship.fromId, to: relationship.toId, interfaceType: relationship.interfaceType,
-    interfaceName: relationship.interfaceName, mode: relationship.mode,
-    requestArrow: relationship.mode === "asynchronous" ? "->>" : "->",
-    responseAllowed: relationship.mode === "synchronous"
-  }));
-  const user = JSON.stringify({ task: { name: flow.metadata.flowName, language: flow.metadata.language, description: flow.body }, snapshot, relationshipArrowContract });
+  const aliasById = new Map(snapshot.elements.map((element) => [element.id, element.alias]));
+  const participantDeclarations = snapshot.elements.map((element) => {
+    const kind = element.kind === "new" ? "system" : element.kind as ParticipantKind;
+    const name = element.kind === "new"
+      ? `"${newParticipantPrefix} ${assertSafeDisplayText(element.canonicalName.slice(newParticipantPrefix.length + 1))}"`
+      : quotedName(element.canonicalName);
+    return `${participantDeclarationKeywords[kind]} ${name} as ${element.alias}`;
+  });
+  const sourceConfirmedRequestSignatures: { prefix: string; suffix: string }[] = [];
+  const sourceConfirmedResponseSignatures: { prefix: string; suffix: string }[] = [];
+  for (const relationship of snapshot.relationships) {
+    const from = aliasById.get(relationship.fromId);
+    const to = aliasById.get(relationship.toId);
+    if (from === undefined || to === undefined) throw new Error("Snapshot relationship endpoint missing.");
+    const type = modelInterfaceTypeFromPack(relationship.interfaceType as PackInterfaceType);
+    const name = relationship.interfaceName === null ? "" : `: ${assertSafeDisplayText(relationship.interfaceName, { maxChars: sequenceModelLimits.maxInterfaceNameChars })}`;
+    const suffix = ` (${type}${name})`;
+    sourceConfirmedRequestSignatures.push({ prefix: `${from} ${relationship.mode === "asynchronous" ? "->>" : "->"} ${to} : `, suffix });
+    if (relationship.mode === "synchronous") sourceConfirmedResponseSignatures.push({ prefix: `${to} --> ${from} : `, suffix });
+  }
+  const allowedPlantUml = { participantDeclarations, sourceConfirmedRequestSignatures, sourceConfirmedResponseSignatures };
+  const user = JSON.stringify({ task: { name: flow.metadata.flowName, language: flow.metadata.language, description: flow.body }, snapshot, allowedPlantUml });
   if (user.length > 65_536) throw Object.assign(new Error("Prompt rejected"), { code: "prompt-too-large" });
   return user;
 }

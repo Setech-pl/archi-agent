@@ -35,6 +35,11 @@ export const participantKinds = ["actor", "system", "database", "queue"] as cons
 
 export type ParticipantKind = (typeof participantKinds)[number];
 
+/** The declaration keyword shared by the compatibility renderer and reviewed prompt. */
+export const participantDeclarationKeywords: Readonly<Record<ParticipantKind, "actor" | "participant" | "database" | "queue">> = Object.freeze({
+  actor: "actor", system: "participant", database: "database", queue: "queue"
+});
+
 /** A system or actor declared in the knowledge pack. */
 export interface ArchitectureElement {
   elementId: string;

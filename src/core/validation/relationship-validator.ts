@@ -66,6 +66,12 @@ const modelInterfaceTypes = new Map(
   (Object.entries(packInterfaceTypes) as [ModelInterfaceType, PackInterfaceType][]).map(([model, pack]) => [pack, model] as const)
 );
 
+export function modelInterfaceTypeFromPack(type: PackInterfaceType): ModelInterfaceType {
+  const result = modelInterfaceTypes.get(type);
+  if (result === undefined) throw new Error("Unknown validated interface type.");
+  return result;
+}
+
 /** Sorted distinct values joined with "or", used only as a diagnostic detail. */
 function choices(values: readonly string[]): string {
   return [...new Set(values)].sort().join(" or ");

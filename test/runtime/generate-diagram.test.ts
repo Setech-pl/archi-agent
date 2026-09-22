@@ -86,15 +86,21 @@ describe("D1.1 reviewed sequence path", () => {
     expect(generatorInput.snapshot.digest).toBe(report.snapshotDigest.value);
     expect(reviewerInput.snapshot.digest).toBe(report.snapshotDigest.value);
     expect(generatorInput.snapshot.relationships[0].evidenceClass).toBe("source-confirmed");
-    expect(generatorInput.relationshipArrowContract).toEqual(expect.arrayContaining([
-      { from: "telescope-scheduler", to: "image-archive", interfaceType: "DB", interfaceName: "Archive Writer",
-        mode: "synchronous", requestArrow: "->", responseAllowed: true }
-    ]));
+    expect(generatorInput.allowedPlantUml.participantDeclarations).toEqual([
+      'database "Image Archive" as kp_image_archive',
+      'participant "Telescope Scheduler" as kp_telescope_scheduler'
+    ]);
+    expect(generatorInput.allowedPlantUml.sourceConfirmedRequestSignatures).toContainEqual({
+      prefix: "kp_telescope_scheduler -> kp_image_archive : ", suffix: " (DB: Archive Writer)"
+    });
+    expect(generatorInput.allowedPlantUml.sourceConfirmedResponseSignatures).toContainEqual({
+      prefix: "kp_image_archive --> kp_telescope_scheduler : ", suffix: " (DB: Archive Writer)"
+    });
     const instructions = calls[0]?.messages[0]?.content ?? "";
-    expect(instructions).toContain("Synchronous request: A -> B : Label (TYPE)");
-    expect(instructions).toContain("matching response: B --> A : Label (TYPE)");
-    expect(instructions).toContain("Asynchronous request: A ->> B : Label (TYPE)");
-    expect(instructions).toContain("The relationship mode determines the arrow for every interface type, including EVENT");
+    expect(instructions).toContain("ALLOWED PARTICIPANT DECLARATIONS — COPY EXACTLY");
+    expect(instructions).toContain("ALLOWED SOURCE-CONFIRMED REQUEST SIGNATURES");
+    expect(instructions).toContain("ALLOWED SOURCE-CONFIRMED RESPONSE SIGNATURES");
+    expect(instructions).toContain("USER-STATED CANDIDATES");
   });
 
   it("derives shifted line numbers, ordered arrows and fragments without rewriting", async () => {
@@ -152,10 +158,9 @@ describe("D1.1 reviewed sequence path", () => {
     const eventRequest = { ...request, knowledgePack: { kind: "local-directory" as const, path: directory } };
     const good = runtime({ plantUml: event });
     expect((await good.app.generateDiagram!({ ...eventRequest })).status).toBe("success");
-    expect(JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").relationshipArrowContract).toEqual(expect.arrayContaining([
-      { from: "telescope-scheduler", to: "image-archive", interfaceType: "EVENT", interfaceName: null,
-        mode: "asynchronous", requestArrow: "->>", responseAllowed: false }
-    ]));
+    const allowed = JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").allowedPlantUml;
+    expect(allowed.sourceConfirmedRequestSignatures).toContainEqual({ prefix: "kp_telescope_scheduler ->> kp_image_archive : ", suffix: " (EVENT)" });
+    expect(allowed.sourceConfirmedResponseSignatures).not.toContainEqual({ prefix: "kp_image_archive --> kp_telescope_scheduler : ", suffix: " (EVENT)" });
     const wrongArrow = runtime({ plantUml: event.replace(" ->> kp_image_archive", " -> kp_image_archive") });
     expect(await wrongArrow.app.generateDiagram!({ ...eventRequest })).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
       issues: [{ code: "interaction-mode-mismatch" }] });
@@ -177,10 +182,9 @@ describe("D1.1 reviewed sequence path", () => {
     const sync = plantUml.replace("(DB: Archive Writer)", "(EVENT)");
     const good = runtime({ plantUml: sync });
     expect((await good.app.generateDiagram!({ ...eventRequest })).status).toBe("success");
-    expect(JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").relationshipArrowContract).toEqual(expect.arrayContaining([
-      { from: "telescope-scheduler", to: "image-archive", interfaceType: "EVENT", interfaceName: null,
-        mode: "synchronous", requestArrow: "->", responseAllowed: true }
-    ]));
+    const allowed = JSON.parse(good.calls[0]?.messages[1]?.content ?? "{}").allowedPlantUml;
+    expect(allowed.sourceConfirmedRequestSignatures).toContainEqual({ prefix: "kp_telescope_scheduler -> kp_image_archive : ", suffix: " (EVENT)" });
+    expect(allowed.sourceConfirmedResponseSignatures).toContainEqual({ prefix: "kp_image_archive --> kp_telescope_scheduler : ", suffix: " (EVENT)" });
     const wrong = runtime({ plantUml: sync.replace(" -> kp_image_archive", " ->> kp_image_archive") });
     expect(await wrong.app.generateDiagram!({ ...eventRequest })).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
       issues: [{ code: "interaction-mode-mismatch" }] });
@@ -219,6 +223,60 @@ describe("D1.1 reviewed sequence path", () => {
       ["interaction-mode-mismatch", 10], ["response-without-request", 11]
     ]);
     expect(calls).toHaveLength(1);
+  });
+
+  it("keeps the S1-shaped kind and named-interface failures local, then reviews a valid user-stated fact", async () => {
+    const directory = path.join(root, "s1-literal-regression"); mkdirSync(directory);
+    for (const [name, content] of Object.entries(buildPackFiles({
+      systems: [
+        ["intake-app", "Intake App", "system", "Starts a job"],
+        ["workflow-service", "Workflow Service", "service", "Processes a job"],
+        ["audit-store", "Audit Store", "database", "Stores records"],
+        ["notification-hub", "Notification Hub", "system", "Receives events"]
+      ], actors: [], aliases: [], rules: [], relationships: [
+        ["intake-app", "workflow-service", "REST_API", "Submit Job", "synchronous", "Starts a job"],
+        ["workflow-service", "audit-store", "DB", "Job Record", "synchronous", "Stores a record"]
+      ]
+    }))) writeFileSync(path.join(directory, name), content);
+    const lines = [
+      "@startuml", 'participant "Intake App" as kp_intake_app', 'participant "Workflow Service" as kp_workflow_service',
+      'database "Audit Store" as kp_audit_store', 'participant "Notification Hub" as kp_notification_hub', "",
+      'kp_intake_app -> kp_workflow_service : Submit (REST API: Submit Job)',
+      'kp_workflow_service --> kp_intake_app : Accepted (REST API: Submit Job)', "",
+      'kp_workflow_service -> kp_audit_store : Store (DB: Job Record)',
+      'kp_audit_store --> kp_workflow_service : Stored (DB: Job Record)', "",
+      'kp_workflow_service ->> kp_notification_hub : Ready (EVENT)', "@enduml"
+    ];
+    const scoped = { ...request,
+      flow: { kind: "document" as const, text: "---\ndiagram_name: job\nflow_name: Job\nauthor: Test\nlanguage: en\n---\nIntake App sends to Workflow Service, which stores in Audit Store and informs Notification Hub.\n" },
+      knowledgePack: { kind: "local-directory" as const, path: directory } };
+    const run = (next: string[], reviewerAnswer: unknown = accepted) => runtime({ plantUml: next.join("\n") }, reviewerAnswer);
+    const wrongKind = run(lines.map((line, index) => index === 3 ? 'participant "Audit Store" as kp_audit_store' : line));
+    expect(await wrongKind.app.generateDiagram!({ ...scoped })).toMatchObject({ status: "failed", stage: "semantic-validation-failed",
+      issues: [{ code: "plantuml-structure", details: { line: 4 } }] });
+    expect(wrongKind.calls).toHaveLength(1);
+    for (const index of [6, 7, 9, 10]) {
+      for (const name of [")", ": Other Name)"]) {
+        const wrongName = run(lines.map((line, at) => at === index ? line.replace(/: (Submit Job|Job Record)\)/, name) : line));
+        const outcome = await wrongName.app.generateDiagram!({ ...scoped });
+        expect(outcome).toMatchObject({ status: "failed", stage: "semantic-validation-failed" });
+        if (outcome.status === "failed") expect(outcome.issues).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: index === 7 || index === 10 ? "response-without-request" : "interface-name-mismatch",
+            details: expect.objectContaining({ line: index + 1 }) })
+        ]));
+        expect(wrongName.calls).toHaveLength(1);
+      }
+    }
+    const valid = run(lines, { ...accepted, confirmations: [{ factId: "m5", flowEvidenceIds: ["flow:7"] }] });
+    const result = await valid.app.generateDiagram!({ ...scoped });
+    expect(result.status).toBe("success");
+    expect(valid.calls).toHaveLength(2);
+    if (result.status === "success") {
+      const report = JSON.parse(result.groundingReport);
+      expect(report.parsedFacts.relationships.map((fact: { evidenceIds: string[] }) => fact.evidenceIds)).toEqual([
+        ["relationship:1"], ["relationship:1"], ["relationship:2"], ["relationship:2"], ["flow:7"]
+      ]);
+    }
   });
 
   it.each([

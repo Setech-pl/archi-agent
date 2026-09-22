@@ -1,7 +1,7 @@
 # Reviewed diagram pipeline — target implementation contract
 
 Status: D1.1 `sequence` implemented and automatically verified on
-`feature/reviewed-diagram-pipeline`; owner smoke S1 remains pending. The experimental D1 ledger pipeline is
+`feature/reviewed-diagram-pipeline`; two owner smoke S1 attempts failed and a new smoke is pending. The experimental D1 ledger pipeline is
 archived on `checkpoint/d1-ledger-pipeline`; see
 [`ADR 0001`](adr/0001-reviewed-diagram-generation.md). This document specifies the smallest
 end-to-end path needed for D1.1 `sequence`, not a general diagram framework.
@@ -56,6 +56,13 @@ The generator receives the user task and only relevant canonical snapshot conten
 rules and evidence. Its strict Structured Outputs schema is exactly `{ "plantUml": string }`:
 the sole property is required, additional properties are forbidden, and size is bounded.
 There are no model-generated `messages`, ledger entries, `order` values or `lineNumber` fields.
+The generator prompt includes one snapshot-derived projection of exact participant declaration
+lines and source-confirmed request/response signatures. Each signature supplies a literal prefix
+and suffix around the model's message label. The suffix includes the exact interface type and,
+when present, interface name. Only synchronous relationships offer response signatures; the
+relationship mode alone selects the request arrow, including for EVENT. The model must copy these
+fragments exactly. Other interactions remain user-stated candidates subject to the existing local
+checks and independent evidence review; the projection grants them no source-confirmed evidence.
 One completion is attempted. OpenAI and OpenRouter project the strict wire schema to supported
 JSON Schema keywords while the complete local Zod limits remain in force. Provider adapters retain existing allowlists, limits and credential
 boundaries. Invalid JSON or PlantUML is rejected, not normalized into a different answer.
