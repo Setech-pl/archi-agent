@@ -1,14 +1,13 @@
 # Local model generation (LM Studio and Ollama)
 
-## Implemented D1.1 sequence and compatibility path (historical target)
+## Reviewed Sequence and compatibility path
 
-`generateDiagram` for Sequence sends one generator request returning exactly `{ plantUml }`.
-Local parsing and validation derive facts and physical lines; only a valid result reaches one
-independent semantic-review request on the same selected local profile/model. Success or reviewer
-rejection uses two calls; deterministic rejection uses one. The existing `generateSequenceDiagram`
-request and deterministic renderer remain available with one call. There is no retry, repair,
-fallback or streaming. S1 owner smoke of D1.1 with Ollama failed; R2 superseded this
-generation contract with a DiagramPlan and deterministic renderer target. D1.2 is next; see
+`generateDiagram` for Sequence sends one strict `SequenceDiagramPlan` request. Local code validates
+the plan and renders PlantUML, then sends the plan, evidence, snapshot and rendered candidate to an
+independent reviewer using the same selected profile and model. A valid run uses two calls; local
+plan rejection uses one; blocked input uses zero. There is no retry, repair, fallback or streaming.
+`generateSequenceDiagram` and the CLI retain their one-call compatibility path and report v1.
+S1 owner smoke must be repeated on D1.2; earlier D1.1 smoke failed. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md).
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
@@ -59,7 +58,7 @@ domain heuristics, fuzzy matching or correction of model output. The scripted Sp
 generator (`scripted-demo`) remains an offline regression fixture, a deterministic smoke-test
 baseline and a demonstration of the pipeline; it is never used as a fallback for the model.
 
-## What the model receives
+## What the compatibility generator receives
 
 One system message with the planning rules and one user message with:
 
@@ -71,8 +70,13 @@ One system message with the planning rules and one user message with:
 - the applicable grounded rules;
 - the supported fragment kinds.
 
-It never receives source paths or line numbers, the author, element descriptions, aliases, whole
+The compatibility generator never receives source paths or line numbers, the author, element descriptions, aliases, whole
 Knowledge Pack files, machine paths, environment values, credentials or scanner and audit data.
+
+The D1.2 reviewed generator and reviewer receive the same bounded `ArchitectureSnapshot` with
+logical source references and physical lines. The reviewer also receives the validated plan,
+selected evidence, deterministic candidate and fact-to-line map. Neither request contains a
+credential or full Knowledge Pack file.
 Untrusted text is placed between explicit markers, and text containing the marker prefix is
 refused. The markers do not prevent prompt injection; the security boundary is the strict schema
 and the semantic validation of the answer. A prompt above 65536 characters is refused, never

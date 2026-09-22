@@ -2,7 +2,7 @@
 
 ArchGround turns a plain-language flow description into a sequence diagram that is grounded
 in an Architecture Knowledge Pack. This document distinguishes the historical code on base commit
-`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the implemented D1.1 sequence path, the accepted R2 target,
+`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the historical D1.1 sequence path, the implemented D1.2 path,
 and later extensions. All examples use the synthetic Space Mission sample. The experimental D1
 ledger diagnosis is preserved on `checkpoint/d1-ledger-pipeline`; its owner smoke did not pass.
 
@@ -221,7 +221,7 @@ D1.1 is automatically verified but S1 owner smoke failed. Its final-PlantUML pat
 superseded as the active target by [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md);
 the exact code remains on `checkpoint/d1-final-plantuml-reviewed`.
 
-## Accepted R2 target — semantic plan and deterministic rendering
+## Implemented D1.2 — semantic plan and deterministic rendering
 
 ```text
 ArchitectureSnapshot + digest
@@ -241,7 +241,16 @@ The same configured provider and model serve both separate calls. Invalid input 
 model calls; local rejection makes one; success makes exactly two. No retry, repair, fallback
 or third call. Report v2 contains no prompts or raw responses.
 
-D1.2 implements `sequence` first. S1 follows D1.2; then M1, D2, C1, D3, D4 and D5
+D1.2 implements `sequence` first. Its plan has ordered participant IDs and message facts with
+stable fact IDs, kinds, response references, safe labels and exactly one evidence class. A
+source-confirmed fact cites a snapshot relationship; local code derives its direction, mode,
+interface type and exact name. A user-stated fact cites a physical flow line and proposed
+interface data, which the reviewer must confirm by fact ID and flow evidence ID. The renderer
+uses the shared canonical alias allocator and participant keywords, emits one bounded PlantUML
+document with terminal LF, and maps each fact to its physical line. Report v2 records those lines
+and evidence sources without prompts or raw responses.
+
+S1 follows D1.2; then M1, D2, C1, D3, D4 and D5
 follow the roadmap order. Each diagram type gets its own plan contract, validator and renderer,
 rather than a mega-schema. C4 and ArchiMate use no external includes or macro downloads.
 The old `generateSequenceDiagram` remains the separate compatibility path. See the

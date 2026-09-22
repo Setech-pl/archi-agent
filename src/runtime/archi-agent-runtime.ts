@@ -560,6 +560,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     if (!resolved.ok) return failure("generator-configuration", resolved.issues);
     return mapOutcome(await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
       client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
+      ...("profileId" in request.generator ? { providerProfileId: request.generator.profileId } : {}),
       sources: { flowFile: flow.flowFile, knowledgePackDirectory: pack.directoryName },
       ...(request.selections === undefined ? {} : { selections: request.selections }),
       ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),

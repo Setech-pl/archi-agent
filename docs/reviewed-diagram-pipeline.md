@@ -1,7 +1,7 @@
 # Reviewed diagram pipeline — active target contract
 
-Status: R2 accepted; D1.2 is next and not implemented. The current D1.1 code still uses
-`{ plantUml }`; it is superseded as the active target after failed S1 owner smoke. Its exact
+Status: R2 accepted; D1.2 Sequence is implemented and automatically verified. The D1.1 code used
+`{ plantUml }`; it was superseded after failed S1 owner smoke. Its exact
 implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md). ADR 0001 and the D1 ledger
 checkpoint remain historical records.
@@ -28,8 +28,12 @@ do not enter either request. The same immutable snapshot and digest are supplied
 ## Generator and plan
 
 The generator selects diagram content, elements, relationships/interactions and order. It
-returns a bounded structured `DiagramPlan`, not PlantUML or a line ledger. `sequence` is
-the first contract in D1.2. Each later type owns a separate plan schema, validator and renderer,
+returns a bounded structured `SequenceDiagramPlan`, without PlantUML or a line ledger. The plan
+contains `planVersion: 1`, ordered `participantIds`, and ordered message facts with `factId`,
+`fromId`, `toId`, `kind`, nullable `requestFactId`, a bounded label and exactly one evidence class.
+Source-confirmed facts cite an `evidenceId` and carry no proposed relation data. User-stated
+facts cite a `flowEvidenceId` and carry proposed interface type, name and mode. Core applies the
+full limits after provider wire-schema projection. Each later type owns a separate plan schema, validator and renderer,
 with no universal mega-schema.
 
 The type-specific validator checks schema and limits, grounded IDs and canonical names,
@@ -58,6 +62,7 @@ Local code validates verdict shape, fact/evidence references and coverage, then 
 when plan validation, rendering checks and reviewer verdict all pass. Invalid reviewer output
 fails closed. Generator and reviewer use the same configured provider profile and model in
 separate requests and contexts; logical independence does not require a second provider.
+The reviewer must confirm each user-stated fact by its exact `factId` and `flowEvidenceId`.
 
 ## Call and cancellation policy
 

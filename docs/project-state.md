@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-09-22 |
-| Stan Git | Bazą nowej pracy jest `4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`; aktywny branch rozwojowy: `feature/reviewed-diagram-pipeline`. Bieżący HEAD i publikację zawsze sprawdzaj w Git. |
+| Stan Git | D1.2 wykonano na `feature/reviewed-diagram-pipeline`. Bieżący HEAD, upstream, publikację i czystość working tree zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -19,8 +19,9 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
 | Stan D1.1 | Implemented and automatically verified, lecz S1 FAIL; historyczna ścieżka `{ plantUml }` zachowana na `checkpoint/d1-final-plantuml-reviewed`, superseded jako aktywny kierunek. |
 | Stan R2 | Completed — właściciel zatwierdził DiagramPlan, lokalną walidację i deterministyczne renderery per typ; ADR 0002 i checkpoint D1.1. |
-| Następny etap | D1.2 — sequence DiagramPlan, lokalny walidator i deterministyczny renderer; potem ponowny S1. |
-| Bramka S1 | Próby D1.1: FAIL; S1 nie jest PASS. M1, D2 i stary gauntlet pozostają zablokowane do S1 PASS na D1.2. |
+| Stan D1.2 | Implemented and automatically verified — ścisły SequenceDiagramPlan, lokalna walidacja, deterministyczny renderer i niezależny reviewer; szczegóły w sekcji D1.2 niżej. |
+| Następny etap | Ponowny owner smoke S1 z D1.2; M1 i D2 nadal czekają. |
+| Bramka S1 | Próby D1.1: FAIL; S1 na D1.2 nie został wykonany i nie jest PASS. M1, D2 i stary gauntlet pozostają zablokowane do S1 PASS. |
 | Kolejność | R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -230,7 +231,7 @@ verified i owner smoke accepted.
 
 Właściciel zatwierdził R2: generator oddaje DiagramPlan, lokalny kod waliduje plan i renderuje
 PlantUML per typ, a niezależny reviewer zwraca wyłącznie werdykt i referencje. D1.2
-(`sequence`) jest następnym zadaniem implementacyjnym. S1 z Ollamą `qwen3:30b` następuje
+(`sequence`) jest zaimplementowane i automatycznie zweryfikowane. S1 z Ollamą `qwen3:30b` następuje
 po D1.2 i pozostaje FAIL/not passed po próbach D1.1. M1, D2 i stary gauntlet są zablokowane
 do S1 PASS. Dalej obowiązuje M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL.
 Szczegóły: [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) i
@@ -361,12 +362,9 @@ wykonywano.
 
 ## Następny krok
 
-**D1.2** — osobne zadanie implementacyjne dla `sequence`: DiagramPlan, lokalna walidacja,
-deterministyczny renderer i zachowany niezależny reviewer według
-[ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) oraz
-[reviewed-diagram-pipeline.md](reviewed-diagram-pipeline.md). Obecny kod D1.1 nadal używa
-`{ plantUml }`; niniejszy checkpoint R2 zmienia tylko dokumentację. Po D1.2 wymagany jest
-owner smoke S1. Bez S1 PASS nie zaczynać M1, D2 ani starego gauntletu.
+**S1 owner smoke na D1.2** — wykonać osobno z Ollamą `qwen3:30b` i zainstalowanym VSIX.
+Automatyczne bramki D1.2 nie zastępują tej decyzji właściciela. Bez S1 PASS nie zaczynać
+M1, D2 ani starego gauntletu. Nie uruchomiono płatnych requestów ani rzeczywistego owner smoke.
 
 ## Implementacja D1
 
@@ -562,6 +560,46 @@ Polityka 0/1/2 wywołań, report v2 i compatibility path `generateSequenceDiagra
 Nie ma retry, repair, fallbacku ani trzeciego wywołania. Osobne kontrakty, walidatory i
 renderery powstają kolejno w D1.2, D2, D3, D4 i D5; w R2 nie zmieniono kodu.
 
-Następne zadanie: **D1.2**. Dopiero jego S1 PASS odblokowuje M1, potem D2. C1, D3, D4,
-D5, K2, K3 i REL pozostają planned. Zmiana zatwierdzonej architektury wymaga ponownej
-decyzji właściciela.
+Po decyzji R2 następnym zadaniem było **D1.2**; bieżący wynik opisuje sekcja niżej.
+Dopiero S1 PASS odblokowuje M1, potem D2. C1, D3, D4, D5, K2, K3 i REL pozostają
+planned. Zmiana zatwierdzonej architektury wymaga ponownej decyzji właściciela.
+
+## D1.2 — deterministycznie renderowany SequenceDiagramPlan (2026-09-22)
+
+Aktywne **Generate Diagram → Sequence** buduje jeden `ArchitectureSnapshot` i digest po
+groundingu. Generator zwraca ścisły `SequenceDiagramPlan` z wersją 1, uporządkowanymi ID
+użytych uczestników i wiadomościami z trwałym `factId`, rodzajem, końcami, referencją
+requestu dla response, etykietą oraz dokładnie jedną klasą dowodu. Source-confirmed podaje
+wyłącznie `evidenceId`: kierunek, tryb, typ i dokładna nazwa interfejsu pochodzą ze snapshotu.
+User-stated podaje dokładny `flowEvidenceId` i minimalne proponowane dane interfejsu;
+lokalna walidacja odrzuca nieznanych uczestników, konflikty z potwierdzoną relacją oraz
+jawny zakaz. Reviewer musi potwierdzić każdy taki fakt jego `factId` i `flowEvidenceId`.
+
+Renderer używa istniejących kanonicznych aliasów i keywordów uczestników. Emituje jedną
+bezpieczną sekwencję PlantUML z LF na końcu oraz mapą fakt → fizyczna linia; wspólny
+document validator sprawdza kandydat przed reviewerem. Reviewer widzi ten sam snapshot,
+digest, plan, dowody, linie i kandydata; zwraca tylko werdykt, kody i referencje. Lokalna
+decyzja jest fail-closed. Sukces i odrzucenie reviewera to dwa wywołania, lokalny błąd
+planu/renderera jedno, blokujące wejście zero; bez retry, repair, fallbacku i trzeciego
+requestu. Report v2 używa `generationPath: reviewed-plan-rendered`, bezpiecznego ID profilu
+providera (jeśli wybrano profil) i fizycznych dowodów,
+bez surowych odpowiedzi, promptów i pełnego flow. Stara komenda `generateSequenceDiagram`,
+CLI, renderer i report v1 nadal działają niezależnie. Nie dodano zależności.
+
+Preflight tej implementacji: `feature/reviewed-diagram-pipeline`, wyjściowy HEAD
+`3e9ffb19106558591135bbab95a5f0d52ec75498`, pusty working tree i staging,
+upstream i `git ls-remote` zgodne. Zdalny checkpoint D1.1
+`checkpoint/d1-final-plantuml-reviewed` wskazywał
+`0abafa853bd10df3b2e87070197eb063a3e99233`.
+
+Bramki wykonane w tej sesji: `npm ci --offline` i `npm ci` bez zmiany root lockfile, celowane testy
+D1.2 29/29, `npm test` 1242/1242, oba typechecki, `extension:test` 153/153,
+`extension:build`, `extension:package`, `extension:verify`, `demo:dry-run` — PASS.
+Test runtime wyjętego z VSIX, uruchomionego z pustego katalogu poza repo bez
+`node_modules`, npm i dostępnego `PATH`, przeszedł wraz z testem compatibility path
+(celowany `packaging.test.ts` 12/12). VSIX ma dokładnie 6 dozwolonych wpisów; skan
+syntetycznego sentinela, prywatnych kluczy i wzorców tokenów — PASS. Lokalny artefakt:
+`vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`, 197792 B, SHA-256
+`fa5b933b1ca658c9f2bd8cbaf794c86a1c99fdfc62c15439e742218007cd9bdf`.
+Nie wykonano owner smoke ani płatnych requestów. Następny krok: S1 owner smoke D1.2;
+M1 i D2 nadal czekają na S1 PASS. Bieżący Git należy porównać z tym handoffem.

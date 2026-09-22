@@ -197,7 +197,10 @@ describe("clean runtime execution", () => {
       "};",
       "let diagramCalls = 0;",
       "const diagramClient = { clientType: 'clean-runtime-chat', generationMetadata: { modelId: 'unused-model', temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },",
-      "  async complete() { diagramCalls += 1; return { source: 'content', value: diagramCalls === 1 ? { plantUml: '@startuml\\nparticipant \"Telescope Scheduler\" as kp_telescope_scheduler\\ndatabase \"Image Archive\" as kp_image_archive\\nkp_telescope_scheduler -> kp_image_archive : Registers frames (DB: Archive Writer)\\n@enduml\\n' } : { verdict: 'accept', violations: [], confirmations: [] } }; } };",
+      "  async complete(chat) { diagramCalls += 1; if (diagramCalls === 2) return { source: 'content', value: { verdict: 'accept', violations: [], confirmations: [] } };",
+      "    const snapshot = JSON.parse(chat.messages[1].content).snapshot;",
+      "    const relationship = snapshot.relationships.find((entry) => entry.fromId === 'telescope-scheduler' && entry.toId === 'image-archive');",
+      "    return { source: 'content', value: { planVersion: 1, participantIds: ['telescope-scheduler', 'image-archive'], messages: [{ factId: 'm1', fromId: 'telescope-scheduler', toId: 'image-archive', kind: 'request', requestFactId: null, label: 'Registers frames', evidenceClass: 'source-confirmed', evidenceId: relationship.evidenceId, flowEvidenceId: null, proposed: null }] } }; } };",
       "const instance = runtime.createArchiAgentRuntime({ generatorFactory: () => generator, diagramClientFactory: () => diagramClient });",
       "const generationRequest = {",
       `  flow: { kind: "document", text: ${JSON.stringify(flow)}, fileName: "observation-run.md" },`,
@@ -237,7 +240,7 @@ describe("clean runtime execution", () => {
     expect({ status: output.d1Status, stage: output.d1Stage, issues: output.d1Issues }).toEqual({ status: "success", stage: undefined, issues: undefined });
     expect(output.d1PlantUml).toContain("Registers frames (DB: Archive Writer)");
     expect(output.d1Report).not.toContain(packRoot);
-    expect(JSON.parse(output.d1Report).reportSchemaVersion).toBe(2);
+    expect(JSON.parse(output.d1Report)).toMatchObject({ reportSchemaVersion: 2, generationPath: "reviewed-plan-rendered" });
   }, 90_000);
 });
 

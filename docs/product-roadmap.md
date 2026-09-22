@@ -12,7 +12,7 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
 The current mandatory sequence is: **R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
-R2 is completed by this documentation commit. D1.2 is next. D1.1 passed automatic checks,
+R2 is completed, and D1.2 is implemented and automatically verified. S1 is next. D1.1 passed automatic checks,
 but repeated Ollama `qwen3:30b` S1 owner smoke failed; S1 is not passed. The D1.1 code is
 preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
@@ -23,7 +23,7 @@ Agreed order of work:
 | Order | Step | Scope |
 | --- | --- | --- |
 | 1 | R2 | Record the DiagramPlan decision and checkpoint D1.1; documentation only. |
-| 2 | D1.2 | Implement the `sequence` DiagramPlan, local validator and deterministic renderer; retain the independent reviewer. |
+| 2 | D1.2 | Implemented: `sequence` DiagramPlan, local validator and deterministic renderer; independent reviewer retained. |
 | 3 | S1 | Owner smoke of D1.2 with Ollama `qwen3:30b`; currently FAIL/not passed. |
 | 4 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
 | 5 | D2 | `component` plan, validator and renderer. |
@@ -222,7 +222,7 @@ Ordered as agreed in [Product priority](#product-priority).
 | R1 | completed; superseded as active architecture | ADR 0001 and governance retained historically. | D1 |
 | D1.1 | implemented and automatically verified; superseded as active path | Final PlantUML path on `checkpoint/d1-final-plantuml-reviewed`; S1 failed. | R1 |
 | R2 | completed | ADR 0002 and documentation of DiagramPlan architecture. | D1.1 findings |
-| D1.2 | planned; next | `sequence` plan, validator, deterministic renderer and independent reviewer. | R2 |
+| D1.2 | implemented and automatically verified | `sequence` plan, validator, deterministic renderer and independent reviewer. | R2 |
 | S1 | FAIL/not passed | Owner smoke with Ollama `qwen3:30b` must pass on D1.2. | D1.2 |
 | M1 | planned | Deterministic MCP adapter into ArchitectureSnapshot. | S1 |
 | D2 | planned | `component` plan, validator and renderer. | M1 |
@@ -427,10 +427,11 @@ the same snapshot and digest, plan, evidence and rendered candidate; it returns 
 verdict and fact/evidence references. The final decision is local. Success uses exactly two model
 calls, local rejection one and invalid input zero. There is no retry, repair, fallback or third call.
 
-**Current code:** D1.1 still returns final `{ plantUml }` and has passed automatic checks but
-failed repeated S1 owner smoke with Ollama `qwen3:30b`. Its implementation is preserved on
+**Current code:** D1.2 generates a strict SequenceDiagramPlan, validates it and renders PlantUML
+deterministically before independent review. D1.1 passed automatic checks but failed repeated
+S1 owner smoke with Ollama `qwen3:30b`. Its implementation is preserved on
 `checkpoint/d1-final-plantuml-reviewed`. D1's earlier ledger path remains historical on
-`checkpoint/d1-ledger-pipeline`. D1.2 is the next implementation step. The separate
+`checkpoint/d1-ledger-pipeline`. S1 on D1.2 is the next acceptance step. The separate
 `generateSequenceDiagram` compatibility path retains its deterministic renderer.
 
 ```text
@@ -446,7 +447,7 @@ See [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and the
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: D1.2 planned next.** Each diagram type has its own plan contract, local validator
+**Status: D1.2 implemented and automatically verified.** Each diagram type has its own plan contract, local validator
 and deterministic renderer. D1.2 adds `sequence`; S1 must pass before M1, then D2 adds
 `component`, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
 `archimate-hld`. C4 and ArchiMate use no external includes or downloaded macros.
@@ -459,7 +460,7 @@ See [diagram-profiles.md](diagram-profiles.md).
 
 # Phase 6 — Semantic diagram review
 
-**Status: D1.1 reviewer implemented; R2 target retained for D1.2. S1 is FAIL/not passed.**
+**Status: D1.2 independent reviewer implemented and automatically verified. S1 on D1.2 is pending; earlier D1.1 smoke failed.**
 
 The independent reviewer checks coverage, meaning, unsupported inference, abstraction level
 and diagram-type fit after local validation and deterministic rendering. It receives the same
@@ -781,7 +782,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | R1 — reviewed architecture ADR and governance | completed; superseded as active architecture |
 | D1.1 — final-PlantUML reviewed path | implemented and automatically verified; S1 failed; superseded |
 | R2 — DiagramPlan architecture decision and checkpoint | completed |
-| D1.2 — Sequence DiagramPlan, validator and renderer | planned; next |
+| D1.2 — Sequence DiagramPlan, validator and renderer | implemented and automatically verified; S1 pending |
 | S1 — Ollama `qwen3:30b` owner smoke | FAIL/not passed; D1.2 gate |
 | M1 — ArchitectureSnapshot MCP adapter | planned after S1 |
 | D2 — Component diagram | planned after M1 |

@@ -84,11 +84,9 @@ after one `SecretStorage.get` and one model-list GET. That cancellation writes n
 and does not start generation.
 
 `Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
-The picker offers only Sequence and currently runs the implemented D1.1 path for `sequence`: one strict
-`{ plantUml }` generator request, local parsing/grounding checks and one independent semantic
-review request after deterministic acceptance. It emits report v2 on success. This path is
-superseded as the active target by D1.2 DiagramPlan and deterministic rendering; S1 has not
-passed. The four
+The picker offers only Sequence and runs the D1.2 path: one strict `SequenceDiagramPlan`
+generator request, local plan validation and deterministic PlantUML rendering, then one independent
+semantic review request. It emits report v2 on success. S1 owner smoke on D1.2 remains pending. The four
 reserved types remain unsupported through direct runtime calls before any credential read or
 provider I/O. `Archi Agent: Generate
 Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and

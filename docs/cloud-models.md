@@ -1,10 +1,11 @@
 # Cloud model providers
 
-## Reviewed D1.1 sequence
+## Reviewed D1.2 sequence
 
-The D1.1 `generateDiagram` sequence path uses the selected Anthropic, OpenAI or OpenRouter
-structured-chat adapter for one strict `{ plantUml }` generator request and, after deterministic
-acceptance, one separate semantic-review request with the same profile/model. The cloud key is
+The `generateDiagram` sequence path uses the selected Anthropic, OpenAI or OpenRouter
+structured-chat adapter for one strict `SequenceDiagramPlan` generator request and, after local
+plan validation and deterministic PlantUML rendering, one separate semantic-review request with
+the same profile/model. The reviewer returns only a verdict and fact/evidence references. The cloud key is
 read by the VS Code host immediately before the runtime operation; unsupported diagram types stop
 before that read. The legacy sequence command still makes one call; transport behavior remains
 compatible. No paid cloud smoke is part of automatic verification.

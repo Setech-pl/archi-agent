@@ -103,7 +103,7 @@ They do not receive full enterprise repositories.
 
 ---
 
-## R2 target
+## D1.2 Sequence implementation
 
 For reviewed generation, the LLM produces a semantic DiagramPlan without PlantUML.
 D1.2 adds the first type-specific plan, validator and renderer for `sequence`; later profiles
@@ -127,7 +127,7 @@ universal mega-schema or renderer framework.
 
 ## Status
 
-**Current code:** the reviewed D1.1 `sequence` path and the separate validated compatibility
+**Current code:** the reviewed D1.2 `sequence` plan and renderer path and the separate validated compatibility
 pipeline. D1 passed automatic checks but failed owner smoke. Its findings
 are archived on `checkpoint/d1-ledger-pipeline`.
 
@@ -136,10 +136,10 @@ response. Each ledger message has a required physical `lineNumber`, continuous `
 `interfaceName` set to a string or `null`. Local validation accepts only the closed sequence grammar and grounded interactions.
 The compatibility renderer and its golden outputs remain unchanged.
 
-**Implemented D1.1:** the generator returns strict `{ plantUml }` only; the parser computes facts and physical
+**Historical D1.1:** the generator returned strict `{ plantUml }` only; the parser computed facts and physical
 line numbers locally, validates them, then calls a separate semantic reviewer. Successful
 reviewed generation makes exactly two model calls. Automatic checks passed, but S1 owner smoke
-failed. This implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`; D1.2 is next. See
+failed. This implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`; D1.2 now owns the active path. See
 [`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md).
 
 ---
@@ -621,7 +621,7 @@ not use external includes or downloaded macros.
 
 # Generation flow
 
-Accepted R2 target flow (not yet implemented):
+Implemented D1.2 Sequence flow under R2:
 
 ```text
 User selects diagram type

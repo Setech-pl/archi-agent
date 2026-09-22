@@ -298,7 +298,9 @@ Diagram-specific behavior should primarily live in:
 * validation rules,
 * supported PlantUML conventions.
 
-The current deterministic sequence renderer remains a compatibility path and regression oracle.
+The reviewed Sequence command now uses a strict `SequenceDiagramPlan`, local validation and a
+deterministic renderer before independent semantic review. The earlier
+`Generate Sequence Diagram` command and CLI retain their separate compatibility path and report v1.
 
 ---
 
