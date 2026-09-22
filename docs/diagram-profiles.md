@@ -25,9 +25,9 @@ Each profile defines:
 * validation rules,
 * semantic-review criteria.
 
-A diagram profile is not a local renderer.
+Each target type has a separate plan contract, validator and deterministic renderer.
 
-The implemented D1.1 sequence path follows the approved shape:
+The implemented D1.1 sequence path, now superseded as the active target, was:
 
 ```text
 ArchitectureSnapshot
@@ -103,10 +103,11 @@ They do not receive full enterprise repositories.
 
 ---
 
-## LLM-first target
+## R2 target
 
-For reviewed generation, the LLM is expected to produce final PlantUML without a second
-model-generated message ledger. D1.1 implements only `sequence`; later profiles remain planned.
+For reviewed generation, the LLM produces a semantic DiagramPlan without PlantUML.
+D1.2 adds the first type-specific plan, validator and renderer for `sequence`; later profiles
+remain planned.
 
 Archi Agent provides:
 
@@ -117,7 +118,8 @@ Archi Agent provides:
 * semantic review,
 * an independent semantic-review gate in D1.1; repair is outside its scope.
 
-A separate handcrafted renderer should not be created for each diagram profile.
+Each supported type needs its own small deterministic renderer to control notation. Avoid a
+universal mega-schema or renderer framework.
 
 ---
 
@@ -136,8 +138,8 @@ The compatibility renderer and its golden outputs remain unchanged.
 
 **Implemented D1.1:** the generator returns strict `{ plantUml }` only; the parser computes facts and physical
 line numbers locally, validates them, then calls a separate semantic reviewer. Successful
-reviewed generation makes exactly two model calls. Automatic checks pass; S1 owner smoke remains
-pending and must pass before D2. See
+reviewed generation makes exactly two model calls. Automatic checks passed, but S1 owner smoke
+failed. This implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`; D1.2 is next. See
 [`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md).
 
 ---
@@ -600,7 +602,7 @@ Avoid mixing:
 
 # Profile architecture
 
-A D1.1 profile has the smallest boundary needed by the vertical `sequence` path:
+The historical D1.1 profile boundary is:
 
 ```text
 id
@@ -610,14 +612,16 @@ validateFacts
 buildReviewerRequest
 ```
 
-The sequence implementation has this narrow boundary; it is not a registry. The profile must not contain a
-local diagram-generation algorithm or become a universal framework in D1.1.
+R2 replaces this target with a separate DiagramPlan contract, local validator and deterministic
+renderer for each diagram type. D1.2 starts with `sequence`; D2 adds `component`, D3
+`c4-context`, D4 `c4-container`, and D5 `archimate-hld`. C4 and ArchiMate output must
+not use external includes or downloaded macros.
 
 ---
 
 # Generation flow
 
-Implemented D1.1 flow for `sequence` (pending S1 owner smoke):
+Accepted R2 target flow (not yet implemented):
 
 ```text
 User selects diagram type
@@ -628,11 +632,11 @@ sequence profile
         ↓
 generator request
         ↓
-LLM generates strict { plantUml }
+LLM generates type-specific DiagramPlan
         ↓
-document and profile parser
+local plan validation
         ↓
-local DiagramFacts and deterministic validation
+type-specific deterministic PlantUML renderer
         ↓
 independent semantic review
         ↓
@@ -649,7 +653,7 @@ Regardless of profile, Archi Agent should validate:
 * bounded output size,
 * canonical architecture names,
 * `[NEW]` conventions,
-* locally parsed DiagramFacts consistency,
+* validated DiagramPlan fact consistency,
 * known source references,
 * relationship evidence values,
 * unsupported architecture references.

@@ -1,155 +1,85 @@
-# Reviewed diagram pipeline — target implementation contract
+# Reviewed diagram pipeline — active target contract
 
-Status: D1.1 `sequence` implemented and automatically verified on
-`feature/reviewed-diagram-pipeline`; two owner smoke S1 attempts failed and a new smoke is pending. The experimental D1 ledger pipeline is
-archived on `checkpoint/d1-ledger-pipeline`; see
-[`ADR 0001`](adr/0001-reviewed-diagram-generation.md). This document specifies the smallest
-end-to-end path needed for D1.1 `sequence`, not a general diagram framework.
+Status: R2 accepted; D1.2 is next and not implemented. The current D1.1 code still uses
+`{ plantUml }`; it is superseded as the active target after failed S1 owner smoke. Its exact
+implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`. See
+[ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md). ADR 0001 and the D1 ledger
+checkpoint remain historical records.
 
-## End-to-end path
+## Boundary and flow
 
 ```text
 flow + selected architecture source
-  → ArchitectureContextProvider → one validated ArchitectureSnapshot + digest
-  → sequence DiagramProfile.buildGeneratorRequest → generator { plantUml }
-  → document boundary → sequence parser → DiagramFacts → deterministic validation
-  → sequence DiagramProfile.buildReviewerRequest → independent semantic reviewer
-  → deterministic final decision → unchanged PlantUML + report v2
+  → one minimal, validated ArchitectureSnapshot + digest
+  → generator: strict, type-specific DiagramPlan
+  → local plan validation
+  → deterministic, type-specific PlantUML renderer
+  → independent semantic reviewer
+  → local decision and grounding report v2
+  → result
 ```
 
-No model call precedes successful context resolution and profile selection. The parser and
-validators never repair the diagram. The final PlantUML is the validated generator text,
-byte-for-byte. No new renderer is introduced.
+Grounding resolves canonical names, aliases, ambiguity, explicit resolutions and `[NEW]`
+elements locally. The first snapshot provider wraps the Knowledge Pack. The planned M1 MCP
+adapter maps untrusted tool results into the same provider-neutral snapshot before either model
+call; the model never chooses MCP tools. Full repositories, raw exports and unrelated documents
+do not enter either request. The same immutable snapshot and digest are supplied to both calls.
 
-## ArchitectureSnapshot and provider
+## Generator and plan
 
-The neutral snapshot contains `snapshotId`, `digest`, `elements`, `relationships`, `rules`,
-`flowEvidence`, and `sources`. Each element has a stable ID, canonical name, controlled aliases, kind and source
-references. Relationships and rules use stable endpoint IDs and retain source references,
-direction, mode, interface information and evidence class. `sources` identify provenance
-without including full documents or raw exports. Knowledge Pack relationships are
-`source-confirmed`. Each nonempty physical flow line has a stable `flowEvidenceId`, its line
-number and bounded text with class `user-stated`. This is a reference to text, not an extracted
-relationship; absence in a source does not prove nonexistence.
-The digest is deterministic over the canonical semantic snapshot, independent of input ordering.
+The generator selects diagram content, elements, relationships/interactions and order. It
+returns a bounded structured `DiagramPlan`, not PlantUML or a line ledger. `sequence` is
+the first contract in D1.2. Each later type owns a separate plan schema, validator and renderer,
+with no universal mega-schema.
 
-`ArchitectureContextProvider` is a provider-neutral operation that resolves the minimal
-architecture relevant to the request, validates it and returns either one snapshot or bounded
-safe issues. D1.1's first implementation wraps the existing Knowledge Pack loader and grounding
-logic; it does not duplicate that loader. The provider never sends whole packs to the LLM.
-Later M1 maps deterministic MCP results to the same contract, not to a separate model-facing
-shape. D1.1 may keep the minimal snapshot representation local to its vertical path; M1 extends
-the source boundary only when needed. The generator and reviewer receive the same selected
-snapshot and digest in separate, purpose-specific prompts.
+The type-specific validator checks schema and limits, grounded IDs and canonical names,
+explicit new elements, endpoints, order, supported concepts, source-confirmed relationships,
+direction, modes, response constraints, interface type/name and blocking rules as applicable.
+Source-confirmed and user-stated evidence remain distinct. A missing relationship in the
+architecture source is not proof that no relationship exists. Invalid or prohibited facts are
+rejected locally before review. No rejected plan is repaired.
 
-## Minimal DiagramProfile boundary
+The deterministic renderer alone writes PlantUML: markers, declarations, stable aliases,
+element kinds, arrows, interface names, labels, escaping and the supported notation subset.
+Its output is bounded and checked for safe structure. C4 and ArchiMate renderers use no external
+includes, remote macros or downloads. Renderers are separate implementations matching their
+diagram types; the old sequence renderer remains only for the compatibility command.
 
-The D1.1 profile has only `id`, `buildGeneratorRequest`, `parsePlantUml`, `validateFacts`, and
-`buildReviewerRequest`. Only the `sequence` implementation is in D1.1. Each operation uses
-bounded, provider-neutral inputs and outputs. The profile is not a renderer, registry framework,
-configuration system or source loader. Unsupported types fail before source or provider I/O;
-later D2, D3/D4 and D5 add their own accepted PlantUML subsets and checks when approved.
+## Independent reviewer and local decision
 
-## Generator contract
+After local acceptance and rendering, the reviewer receives the original task, the same
+snapshot and digest, the validated plan, selected evidence, local validation summary and the
+deterministically rendered candidate. It checks coverage, meaning, abstraction level,
+unsupported inference and diagram-type fit. It returns only a strict `accept`/`reject` verdict
+and references to plan facts and snapshot evidence, with bounded violation codes. It does not
+render, regenerate, edit or repair PlantUML or the plan. Explanations are untrusted text.
 
-The generator receives the user task and only relevant canonical snapshot content, aliases,
-rules and evidence. Its strict Structured Outputs schema is exactly `{ "plantUml": string }`:
-the sole property is required, additional properties are forbidden, and size is bounded.
-There are no model-generated `messages`, ledger entries, `order` values or `lineNumber` fields.
-The generator prompt includes one snapshot-derived projection of exact participant declaration
-lines and source-confirmed request/response signatures. Each signature supplies a literal prefix
-and suffix around the model's message label. The suffix includes the exact interface type and,
-when present, interface name. Only synchronous relationships offer response signatures; the
-relationship mode alone selects the request arrow, including for EVENT. The model must copy these
-fragments exactly. Other interactions remain user-stated candidates subject to the existing local
-checks and independent evidence review; the projection grants them no source-confirmed evidence.
-One completion is attempted. OpenAI and OpenRouter project the strict wire schema to supported
-JSON Schema keywords while the complete local Zod limits remain in force. Provider adapters retain existing allowlists, limits and credential
-boundaries. Invalid JSON or PlantUML is rejected, not normalized into a different answer.
-
-## Local DiagramFacts and deterministic validation
-
-The sequence parser accepts a closed PlantUML subset and derives `DiagramFacts` exclusively
-from its physical lines: declared elements, directed relationships/interactions, annotations
-(including labels, interface information, fragments and modes), physical line numbers and
-stable local fact IDs. Fact IDs allow violations to point to parsed facts, not model-authored
-ledger references. The parser does not infer unsupported syntax and does not modify PlantUML.
-
-Validation order is fail-closed:
-
-1. Document safety: exact markers, bounded bytes/lines/text, controls, directives, includes and
-   remote URLs rejected; a final LF is not required solely for formatting.
-2. Profile syntax: only permitted declarations, arrows and balanced fragments.
-3. Grounding: aliases resolve to stable snapshot IDs; participant declarations use canonical
-   names and allowed `[NEW]` conventions.
-4. Semantics: source-confirmed relationships, direction, sync/async and response mode, interface
-   type/name and explicit blocking rules are checked against the snapshot. A fact without matching
-   source-confirmed evidence proceeds to semantic review. No local text heuristic infers a
-   user-stated relationship; an explicit prohibition stops before review.
-
-Missing evidence is reported as missing evidence, not silently converted into an assertion that
-the relationship does not exist. Every rejection exposes a safe code, line/fact identifier when
-valid, and bounded counts or evidence IDs; never the prompt, raw model answer or secret.
-An invalid deterministic result stops before semantic review.
-
-## Independent semantic reviewer
-
-After deterministic acceptance, `buildReviewerRequest` constructs a separate compact request
-from the same snapshot/digest, the task, the unchanged PlantUML, parsed facts and validation
-summary. The reviewer evaluates coverage, meaning, abstraction level, unsupported inference
-and diagram-type fit. It does not repair or regenerate the diagram.
-
-Its strict bounded response has required `verdict` (`accept` or `reject`), `violations` and
-`confirmations`. On accept, exactly one confirmation per pending fact links its `factId` to one
-or more distinct `flowEvidenceId` values in the same snapshot. The reviewer judges direction,
-meaning, mode and interface information; local code validates coverage and references without
-reinterpreting the flow text.
-Each violation has required `code`, `diagramLine`, `factId`, `evidenceIds` and `explanation`;
-extra fields are forbidden. The accepted verdict has no violations. A rejected verdict has at
-least one. The closed codes are `coverage-gap`, `meaning-mismatch`, `abstraction-level`,
-`unsupported-inference` and `diagram-type-fit`. `diagramLine` and `factId` identify the same
-locally parsed fact, or both are `null` for a missing fact; every `evidenceIds` entry resolves
-to the selected snapshot. Explanations are untrusted bounded text and never become instructions. Malformed
-or ungrounded review output fails closed. The final decision is local: accept only if both
-deterministic validation and the reviewer accept; otherwise reject without altering PlantUML.
-
-Initially both calls use the same configured provider profile and model, but separate requests
-and contexts. This is logical independence of the reviewer, not a requirement for a second
-provider or configuration surface.
+Local code validates verdict shape, fact/evidence references and coverage, then accepts only
+when plan validation, rendering checks and reviewer verdict all pass. Invalid reviewer output
+fails closed. Generator and reviewer use the same configured provider profile and model in
+separate requests and contexts; logical independence does not require a second provider.
 
 ## Call and cancellation policy
 
 | Condition | Model calls | Result |
 | --- | ---: | --- |
-| Unsupported type, invalid flow/snapshot/context, or cancellation before generation | 0 | Safe rejection |
-| Generator result rejected by schema, parser or deterministic validation | 1 | Safe rejection; no review |
-| Deterministically valid result sent to review | 2 | Local final accept/reject decision |
+| Unsupported type, invalid input/snapshot/context, or cancellation before generation | 0 | Safe rejection |
+| Generator schema/plan validation rejection, or local rendering rejection | 1 | Safe rejection; no review |
+| Locally valid candidate sent to review | 2 | Local final accept/reject decision |
 
-Successful generation requires exactly two calls. There is no retry, repair, fallback or extra
-model call. Cancellation between phases prevents the next call; cancellation during a call is
-propagated through the existing client boundary and prevents later phases.
+A successful run uses exactly two calls. There is no retry, repair, fallback or third call.
+Cancellation prevents subsequent calls and propagates through the existing client boundary.
 
-## Grounding report v2
+## Grounding report v2 and safety
 
-The reviewed path emits a versioned report with `reportSchemaVersion: 2`, `diagramType`,
-`generationPath`, `snapshotDigest`, generator and reviewer metadata, parsed-facts summary,
-deterministic-validation result, semantic-review verdict and violations, `sources`, and
-`outputs`. Metadata records safe model/provider identifiers and call counts, not credentials.
-Every reported fact carries selected source-confirmed or reviewer-confirmed user-stated evidence
-IDs. The source map records evidence class, logical file and line, allowing fact → evidence →
-source tracing without embedding entire documents or raw exports.
-The report contains no prompts, raw responses or secrets. It is produced only after the final
-decision and follows the existing safe artifact-output boundary.
+The reviewed path retains `reportSchemaVersion: 2`, `diagramType`, `generationPath`,
+`snapshotDigest`, safe generator/reviewer metadata and call counts, fact and validation
+summaries, semantic verdict, `sources` and `outputs`. Facts trace to selected evidence class,
+logical file and line. The report contains no prompts, raw model responses, credentials,
+whole source documents or raw exports. Safe error codes and bounded identifiers apply to
+rejections. Imported content and MCP results are data, never instructions.
 
-## Security and compatibility
-
-PlantUML is untrusted text within a closed grammar: no include, URL, remote fetch, arbitrary
-directive or execution. Enforce limits before deep parsing. Existing provider allowlists,
-loopback-only local transport, HTTPS-only cloud transport, VS Code `SecretStorage`, safe error
-codes and no sensitive logging remain in force. Imported content and MCP results are data,
-not instructions.
-
-The old `Generate Sequence Diagram` command and deterministic sequence renderer remain on the
-existing compatibility pipeline. They are not an automatic fallback if D1.1 rejects an answer.
-R1 recorded this contract; D1.1 implements the Knowledge Pack-backed sequence path, reviewer
-and report v2. MCP remains a later M1 step. S1 must pass before D2.
+The existing `Generate Sequence Diagram` / `generateSequenceDiagram` pipeline and its renderer,
+report v1 and golden outputs stay as a compatibility path. It is not an automatic fallback for
+the reviewed path. D1.2 changes the reviewed `sequence` path only; S1 owner smoke follows D1.2
+before D2 or M1 proceeds.

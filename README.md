@@ -278,16 +278,18 @@ Grounded Diagram Context
         ↓
 diagram profile
         ↓
-LLM generates final PlantUML
+LLM generates a type-specific DiagramPlan
         ↓
-deterministic validation
+local plan validation
         ↓
-optional semantic LLM review
+deterministic PlantUML renderer for the type
         ↓
-optional repair
+independent semantic LLM review
+        ↓
+local decision
 ```
 
-Archi Agent will not implement a separate handcrafted renderer for every supported diagram type.
+Each supported diagram type will have its own bounded plan, validator and deterministic renderer.
 
 Diagram-specific behavior should primarily live in:
 
@@ -296,7 +298,7 @@ Diagram-specific behavior should primarily live in:
 * validation rules,
 * supported PlantUML conventions.
 
-The current deterministic sequence renderer remains useful as a compatibility path, regression oracle and controlled sequence implementation while the LLM-first pipeline evolves.
+The current deterministic sequence renderer remains a compatibility path and regression oracle.
 
 ---
 

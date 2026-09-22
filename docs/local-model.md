@@ -1,13 +1,15 @@
 # Local model generation (LM Studio and Ollama)
 
-## Reviewed D1.1 sequence and compatibility path
+## Implemented D1.1 sequence and compatibility path (historical target)
 
 `generateDiagram` for Sequence sends one generator request returning exactly `{ plantUml }`.
 Local parsing and validation derive facts and physical lines; only a valid result reaches one
 independent semantic-review request on the same selected local profile/model. Success or reviewer
 rejection uses two calls; deterministic rejection uses one. The existing `generateSequenceDiagram`
 request and deterministic renderer remain available with one call. There is no retry, repair,
-fallback or streaming. S1 owner smoke of D1.1 with Ollama remains pending.
+fallback or streaming. S1 owner smoke of D1.1 with Ollama failed; R2 superseded this
+generation contract with a DiagramPlan and deterministic renderer target. D1.2 is next; see
+[ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md).
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
 a local OpenAI-compatible server with structured-output support: LM Studio or Ollama, on the loopback

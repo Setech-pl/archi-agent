@@ -2,7 +2,7 @@
 
 ArchGround turns a plain-language flow description into a sequence diagram that is grounded
 in an Architecture Knowledge Pack. This document distinguishes the historical code on base commit
-`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the implemented D1.1 sequence path,
+`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the implemented D1.1 sequence path, the accepted R2 target,
 and later extensions. All examples use the synthetic Space Mission sample. The experimental D1
 ledger diagnosis is preserved on `checkpoint/d1-ledger-pipeline`; its owner smoke did not pass.
 
@@ -194,7 +194,7 @@ repair, fallback, streaming or second model call. This D1 path passed automatic 
 an experimental checkpoint: owner smoke exposed a brittle duplicated ledger contract. It is
 not the approved architecture for further development.
 
-## Active D1.1 reviewed sequence pipeline
+## Implemented D1.1 reviewed sequence pipeline (historical active path)
 
 D1.1 uses one minimal, validated `ArchitectureSnapshot` from a provider-neutral
 `ArchitectureContextProvider`; the first provider wraps the existing Knowledge Pack loader.
@@ -215,12 +215,37 @@ Report v2 links every fact to selected evidence and its logical file and line.
 Generator and reviewer initially use the same configured profile/model but separate contexts
 and the same snapshot/digest. The old `Generate Sequence Diagram` command remains on its
 compatibility pipeline, never as an automatic fallback. See
-[`ADR 0001`](adr/0001-reviewed-diagram-generation.md) and the
-[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md) implementation contract.
+[`ADR 0001`](adr/0001-reviewed-diagram-generation.md) for the historical D1.1 contract.
 
-This sequence implementation is automatically verified, not owner-smoke accepted. Later D2 adds `component` only after S1 owner smoke passes; C1 follows D2. M1 follows C1 and
-maps deterministic MCP tool results into the same snapshot before either model call. D3/D4 and
-D5 follow later. None of these later stages is implemented by D1.1.
+D1.1 is automatically verified but S1 owner smoke failed. Its final-PlantUML path is
+superseded as the active target by [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md);
+the exact code remains on `checkpoint/d1-final-plantuml-reviewed`.
+
+## Accepted R2 target — semantic plan and deterministic rendering
+
+```text
+ArchitectureSnapshot + digest
+  → LLM generates type-specific DiagramPlan
+  → local plan validation
+  → deterministic renderer for the diagram type
+  → independent semantic reviewer
+  → local decision → result and report v2
+```
+
+The generator chooses elements, relationships, interactions and order. It returns no PlantUML.
+Local validation checks grounding, evidence, modes and type-specific constraints. The renderer
+controls PlantUML syntax, aliases, element kinds, arrows, interface names and escaping.
+The reviewer receives the same snapshot and digest, plan, evidence and rendered candidate;
+it returns only a strict verdict and fact/evidence references, without rendering or repair.
+The same configured provider and model serve both separate calls. Invalid input makes zero
+model calls; local rejection makes one; success makes exactly two. No retry, repair, fallback
+or third call. Report v2 contains no prompts or raw responses.
+
+D1.2 implements `sequence` first. S1 follows D1.2; then M1, D2, C1, D3, D4 and D5
+follow the roadmap order. Each diagram type gets its own plan contract, validator and renderer,
+rather than a mega-schema. C4 and ArchiMate use no external includes or macro downloads.
+The old `generateSequenceDiagram` remains the separate compatibility path. See the
+[reviewed pipeline contract](reviewed-diagram-pipeline.md).
 
 The earlier `generateSequenceDiagram` pipeline remains the compatibility path:
 

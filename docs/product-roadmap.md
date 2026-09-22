@@ -2,7 +2,7 @@
 
 ## Product priority
 
-Owner decision (2026-09-19), superseded by accepted R1 on 2026-09-21. The priority of the
+Owner decision (2026-09-19), superseded by accepted R1 on 2026-09-21 and R2 on 2026-09-22. The priority of the
 project is to demonstrate vibe-coding and AI SDLC techniques on a working product. The product must provide:
 
 1. generation of several PlantUML diagram types;
@@ -11,28 +11,29 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The current mandatory sequence is: **R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL**.
-R0, B1, P1 and P2 were implemented earlier. D1 is an automatically verified experimental
-checkpoint, not an accepted product path: owner smoke exposed a brittle model-generated ledger.
-R1 recorded the replacement architecture; D1.1 is implemented and automatically verified. S1 is next. D2 is blocked
-until S1 owner smoke passes. See [ADR 0001](adr/0001-reviewed-diagram-generation.md) and
+The current mandatory sequence is: **R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
+R2 is completed by this documentation commit. D1.2 is next. D1.1 passed automatic checks,
+but repeated Ollama `qwen3:30b` S1 owner smoke failed; S1 is not passed. The D1.1 code is
+preserved on `checkpoint/d1-final-plantuml-reviewed`. See
+[ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
 [the target pipeline contract](reviewed-diagram-pipeline.md).
 
 Agreed order of work:
 
 | Order | Step | Scope |
 | --- | --- | --- |
-| 1 | R1 | Record governance, ADR, reviewed-pipeline contract and branch checkpoint; documentation only. |
-| 2 | D1.1 | Implement sequence generator `{ plantUml }`, deterministic parsing/validation and independent semantic reviewer; exactly two model calls on a successful reviewed run. |
-| 3 | S1 | Owner smoke of D1.1 with Ollama `qwen3:30b`; gate before D2. |
-| 4 | D2 | Profile `component`; keep the old sequence command as compatibility path. |
-| 5 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram` over the reviewed runtime path; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
-| 6 | M1 | ArchitectureSnapshot source boundary and deterministic MCP adapter; map tool results before model calls. |
-| 7 | D3/D4 | Profiles `c4-context` and `c4-container`. |
-| 8 | D5 | Profile `archimate-hld`. |
-| 9 | K2 | Knowledge Pack Builder extraction and evidence verifier (remaining stage B scope). |
-| 10 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
-| 11 | REL | `v0.3.0-alpha.1`: AI SDLC demo, branding, provider comparison and accepted owner smoke. |
+| 1 | R2 | Record the DiagramPlan decision and checkpoint D1.1; documentation only. |
+| 2 | D1.2 | Implement the `sequence` DiagramPlan, local validator and deterministic renderer; retain the independent reviewer. |
+| 3 | S1 | Owner smoke of D1.2 with Ollama `qwen3:30b`; currently FAIL/not passed. |
+| 4 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
+| 5 | D2 | `component` plan, validator and renderer. |
+| 6 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
+| 7 | D3 | `c4-context` plan, validator and renderer. |
+| 8 | D4 | `c4-container` plan, validator and renderer. |
+| 9 | D5 | `archimate-hld` plan, validator and renderer. |
+| 10 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
+| 11 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
+| 12 | REL | `v0.3.0-alpha.1`: AI SDLC demo, branding, provider comparison and accepted owner smoke. |
 
 ### C1 — VS Code Chat Participant
 
@@ -41,8 +42,8 @@ request may come from the active file, a selection, a file explicitly named by t
 sent to `@archi-agent`. Conversation history may be used only when it belongs to interactions with
 `@archi-agent`; the participant does not automatically read other participants' history or separate
 chat panels. C1 reuses the reviewed `generateDiagram()` path and configured Archi Agent provider,
-retaining grounding, deterministic validation and semantic review under the D1.1 call policy.
-Deterministic MCP integration follows in M1, after C1. C1 adds no implementation scope to D1.1.
+retaining grounding, deterministic rendering and semantic review under the R2 call policy.
+Deterministic MCP integration precedes C1 in M1. C1 adds no implementation scope to D1.2.
 
 Later, in no committed order: bounded repair, quality modes, document sources
 (PDF, DOCX; Confluence and Jira preferably through MCP), EA XML (still deferred — no safe fixture),
@@ -66,28 +67,24 @@ The system should combine:
 * LLM reasoning,
 * strict validation,
 * source attribution,
-* independent semantic review on the D1.1 path.
+* independent semantic review on the accepted R2 path.
 
 The target user workflow is:
 
 ```text
-architecture sources
-+ requirements
-+ user description
+architecture sources + requirements + user description
         ↓
-grounding
+minimal ArchitectureSnapshot and digest
         ↓
-compact architecture context
+LLM DiagramPlan
         ↓
-LLM generation
+local plan validation
         ↓
-deterministic validation
+deterministic type-specific PlantUML renderer
         ↓
 independent semantic review
         ↓
-optional future repair (not in D1.1)
-        ↓
-PlantUML
+local decision and result
 ```
 
 ---
@@ -166,10 +163,10 @@ small grounded context
 LLM
 ```
 
-The D1.1 reviewed path makes one generator call and, after deterministic acceptance, one
-independent review call. Invalid context makes none; deterministic rejection makes one.
-The older compatibility path retains its existing one-call behavior. No retry or repair is
-part of D1.1.
+The accepted R2 path makes one generator call and, after local plan validation and rendering,
+one independent review call. Invalid input makes none; local rejection makes one; success makes
+exactly two. The older compatibility path retains its one-call behavior. No retry, repair,
+fallback or third call is part of R2.
 
 ---
 
@@ -218,21 +215,24 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 
 Ordered as agreed in [Product priority](#product-priority).
 
-| Order | Item | Status | Notes | Depends on |
-| --- | --- | --- | --- | --- |
-| P2 | Cloud model providers: Anthropic, OpenAI, OpenRouter | implemented | HTTPS only with production-boundary transport tests, fixed host/path allowlist, strictly validated API keys in VS Code `SecretStorage`, capability-filtered bounded model listing, strict cloud finish contracts, one generation call, no retry/repair/fallback. | P1 |
-| D1 | Experimental final-PlantUML ledger path | automatically verified; owner smoke failed | Archived on `checkpoint/d1-ledger-pipeline`; not the target architecture. | Grounding core |
-| R1 | Reviewed-pipeline architecture and governance | completed | ADR, target contract, KISS/BUZI and branch handoff. | D1 findings |
-| D1.1 | Reviewed sequence pipeline | implemented and automatically verified | Generator `{ plantUml }`, local facts and validation, independent reviewer; S1 pending. | R1 |
-| S1 | Owner smoke Ollama `qwen3:30b` | planned | Must PASS before D2. | D1.1 |
-| D2 | Profile `component` | planned | | S1 |
-| C1 | VS Code Chat Participant `@archi-agent` and `/diagram` | planned | Uses the reviewed path and only its own conversation history; no automatic access to other chat histories or panels. | D2 |
-| M1 | ArchitectureSnapshot and deterministic MCP adapter | planned | Extends D1.1's minimal Knowledge Pack snapshot boundary; MCP tools are called by the orchestrator, never autonomously by LLM. | C1 |
-| D3/D4 | Profiles `c4-context` and `c4-container` | planned | | M1 |
-| D5 | Profile `archimate-hld` | planned | | D3/D4 |
-| K2 | Knowledge Pack Builder extraction and evidence verifier | planned | Approved stage B decisions unchanged; model proposes candidates, deterministic renderer writes final Markdown. | D5, stage A/B1 |
-| K3 | Knowledge Pack Builder UI and five-file write | planned | Runtime integration, review UI and atomic output. | K2 |
-| REL | `v0.3.0-alpha.1` | planned | Demo, branding, provider comparison and owner-accepted VSIX. | K3 |
+| Item | Status | Notes | Depends on |
+| --- | --- | --- | --- |
+| P2 | implemented | Cloud providers Anthropic, OpenAI and OpenRouter. | P1 |
+| D1 | historical experiment; owner smoke failed | Ledger path on `checkpoint/d1-ledger-pipeline`. | Grounding core |
+| R1 | completed; superseded as active architecture | ADR 0001 and governance retained historically. | D1 |
+| D1.1 | implemented and automatically verified; superseded as active path | Final PlantUML path on `checkpoint/d1-final-plantuml-reviewed`; S1 failed. | R1 |
+| R2 | completed | ADR 0002 and documentation of DiagramPlan architecture. | D1.1 findings |
+| D1.2 | planned; next | `sequence` plan, validator, deterministic renderer and independent reviewer. | R2 |
+| S1 | FAIL/not passed | Owner smoke with Ollama `qwen3:30b` must pass on D1.2. | D1.2 |
+| M1 | planned | Deterministic MCP adapter into ArchitectureSnapshot. | S1 |
+| D2 | planned | `component` plan, validator and renderer. | M1 |
+| C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | D2 |
+| D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
+| D4 | planned | `c4-container` plan, validator and renderer; no external includes. | D3 |
+| D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
+| K2 | planned | Knowledge Pack Builder extraction and evidence verifier. | D5 |
+| K3 | planned | Knowledge Pack Builder UI and five-file write. | K2 |
+| REL | planned | `v0.3.0-alpha.1` demo and owner-accepted VSIX. | K3 |
 
 ## Later
 
@@ -342,7 +342,7 @@ Implemented foundation:
 
 * B1 — a neutral `StructuredChatClient` port, with the local transport extracted behind it,
 
-Implemented next step in the mandatory product scope (see [Product priority](#product-priority)):
+Implemented P2 capability (the next mandatory step is D1.2; see [Product priority](#product-priority)):
 
 * P2 — cloud profiles for Anthropic, OpenAI and OpenRouter: HTTPS only, a fixed host/path allowlist,
   the model list fetched from the provider API, one call per generation, no retry/repair/fallback,
@@ -419,131 +419,60 @@ EA exports may be supplied through:
 
 ---
 
-# Phase 4 — LLM-first final PlantUML
+# Phase 4 — Reviewed DiagramPlan generation
 
-**Historical base code:** D1 is an automatically verified experimental path. It supports sequence with
-one structured-chat call and strict `{ plantUml, messages }` output, including a physical-line
-ledger. The Generate Diagram picker offers only Sequence; other types are rejected before I/O.
-Its owner smoke did not pass, so it is not a completed product path. The full smoke diagnosis
-is archived on `checkpoint/d1-ledger-pipeline`.
+**Accepted target (R2):** The generator returns a bounded semantic DiagramPlan. Local code
+validates it and renders PlantUML for the selected diagram type. An independent reviewer sees
+the same snapshot and digest, plan, evidence and rendered candidate; it returns only a strict
+verdict and fact/evidence references. The final decision is local. Success uses exactly two model
+calls, local rejection one and invalid input zero. There is no retry, repair, fallback or third call.
 
-**Current code:** D1.1 replaces the ledger with one `{ plantUml }` generator call,
-deterministic parsing/validation and a separate semantic-review call. Successful reviewed runs
-make exactly two model calls, deterministic rejection after generation makes one, and invalid
-context makes none. No retry, repair or fallback. D1.1 passed automatic checks; S1 owner smoke is next and gates D2.
-See [the reviewed pipeline](reviewed-diagram-pipeline.md).
-
-The separate compatibility sequence pipeline uses an intermediate sequence model and deterministic renderer.
-
-For multi-diagram generation the target architecture is different.
+**Current code:** D1.1 still returns final `{ plantUml }` and has passed automatic checks but
+failed repeated S1 owner smoke with Ollama `qwen3:30b`. Its implementation is preserved on
+`checkpoint/d1-final-plantuml-reviewed`. D1's earlier ledger path remains historical on
+`checkpoint/d1-ledger-pipeline`. D1.2 is the next implementation step. The separate
+`generateSequenceDiagram` compatibility path retains its deterministic renderer.
 
 ```text
-ArchitectureSnapshot
-        ↓
-sequence profile generator request
-        ↓
-LLM generator { plantUml }
-        ↓
-local parser and validation
-        ↓
-independent semantic reviewer
-        ↓
-local final decision
+ArchitectureSnapshot → LLM DiagramPlan → local plan validation
+→ deterministic renderer for the type → independent reviewer
+→ local decision → report v2 and result
 ```
 
-Archi Agent should not create a new handcrafted renderer for every diagram type.
-
-The current deterministic sequence renderer may remain as:
-
-* compatibility path,
-* regression oracle,
-* controlled sequence implementation,
-* validation reference.
+See [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and the
+[reviewed pipeline contract](reviewed-diagram-pipeline.md).
 
 ---
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: reviewed D1.1 sequence and deterministic compatibility path are implemented;
-the experimental D1 ledger path is archived.** `component` (D2) follows S1 PASS, C1 follows D2,
-M1 follows C1, then `c4-context`/`c4-container` (D3/D4) and `archimate-hld` (D5).
+**Status: D1.2 planned next.** Each diagram type has its own plan contract, local validator
+and deterministic renderer. D1.2 adds `sequence`; S1 must pass before M1, then D2 adds
+`component`, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
+`archimate-hld`. C4 and ArchiMate use no external includes or downloaded macros.
 
-Profiles:
+The old sequence renderer remains a compatibility path, never an automatic fallback.
 
-## Sequence
-
-D1 implemented an experimental ledger-based Sequence path; D1.1 replaces it on the active
-branch with reviewed final PlantUML. The deterministic sequence renderer remains a compatibility
-path and regression oracle, not an automatic fallback.
-
-## Component
-
-Applications, components, services, databases, APIs, queues and dependencies.
-
-## C4 System Context — C1
-
-System context with users and external systems.
-
-## C4 Container — C2
-
-Container-level internal architecture.
-
-## ArchiMate HLD
-
-A constrained high-level ArchiMate profile rather than complete language support.
-
-See:
-
-[diagram-profiles.md](diagram-profiles.md)
+See [diagram-profiles.md](diagram-profiles.md).
 
 ---
 
 # Phase 6 — Semantic diagram review
 
-**Status: implemented for D1.1 sequence; S1 owner smoke pending.**
+**Status: D1.1 reviewer implemented; R2 target retained for D1.2. S1 is FAIL/not passed.**
 
-Deterministic validation detects structural and evidence problems but cannot fully determine whether a diagram correctly represents the user's intent.
-
-An independent LLM reviewer is mandatory after deterministic acceptance in D1.1.
-
-Reviewer input:
-
-```text
-original request
-+ selected source context
-+ grounded architecture
-+ generated PlantUML
-+ parsed DiagramFacts and source evidence
-```
-
-The reviewer checks:
-
-* coverage,
-* missing elements,
-* missing relationships,
-* unsupported elements,
-* unsupported relationships,
-* contradictions,
-* abstraction level,
-* diagram-type fit.
-
-Example result:
-
-```text
-accept
-reject with evidence-linked violations
-```
-
-The reviewer is logically independent from the generator even if both initially use the same
-configured profile and model. It never repairs PlantUML. See the D1.1 contract for its strict
-verdict schema and call policy.
+The independent reviewer checks coverage, meaning, unsupported inference, abstraction level
+and diagram-type fit after local validation and deterministic rendering. It receives the same
+snapshot/digest as generation, the validated plan, selected evidence and rendered candidate.
+It returns only a strict verdict and fact/evidence references. It does not render or repair.
+Local code validates its response and decides the outcome.
 
 ---
 
 # Phase 7 — Quality policies
 
-**Status: deferred.** No quality-mode setting exists. D1.1 has one fixed reviewed path with two
-calls on success; the examples below are optional later ideas, not D1.1 variants.
+**Status: deferred.** No quality-mode setting exists. R2 has one fixed reviewed path with two
+calls on success; the examples below are optional later ideas, not R2 variants.
 
 The system should support different model-cost policies.
 
@@ -728,7 +657,7 @@ The two flows should not be conflated.
 
 ## MCP knowledge source
 
-**Status: planned (M1, after C1).** No MCP code exists.
+**Status: planned (M1, after S1 and before D2).** No MCP code exists.
 
 MCP is not a third kind of source. An MCP server is a transport behind the existing concepts: an
 MCP-backed provider implements the `ArchitectureContextProvider` boundary when it returns canonical architecture,
@@ -788,15 +717,9 @@ Contains only:
 
 ## Review prompt
 
-Contains:
-
-* original description,
-* selected grounded context,
-* generated PlantUML,
-* locally parsed facts and evidence references,
-* deterministic validation results.
-
-It should not require repeating complete architecture repositories.
+Contains the original request, the same selected snapshot/digest, validated DiagramPlan,
+evidence, local validation summary and deterministically rendered PlantUML. It does not
+repeat complete architecture repositories.
 
 ---
 
@@ -828,37 +751,13 @@ environments.
 
 # Long-term product shape
 
-The target system becomes:
-
 ```text
-                     ┌──────────────────────┐
-                     │      VS Code UI      │
-                     └──────────┬───────────┘
-                                │
-                     ┌──────────▼───────────┐
-                     │  Archi Agent Runtime │
-                     └──────────┬───────────┘
-                                │
-             ┌──────────────────┼──────────────────┐
-             │                  │                  │
-     Architecture         Documents          User request
-        sources             sources
-             │                  │
-             └──────────┬───────┘
-                        │
-                 Grounding layer
-                        │
-                compact context
-                        │
-                     LLM
-                        │
-                   PlantUML
-                        │
-        deterministic validation
-                        │
-               semantic review
-                        │
-                optional repair
+VS Code UI → Archi Agent Runtime
+  → architecture sources + documents + user request
+  → deterministic grounding and compact ArchitectureSnapshot
+  → LLM DiagramPlan → local validation
+  → deterministic renderer for the diagram type
+  → independent semantic reviewer → local decision → result
 ```
 
 ---
@@ -878,19 +777,22 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | B1 — neutral `StructuredChatClient` port, local transport extracted | implemented |
 | P1 — provider profiles and registry, LM Studio/Ollama profiles, selection in the extension | implemented and automatically verified |
 | P2 — cloud providers Anthropic, OpenAI, OpenRouter | implemented and automatically verified |
-| D1 — ledger-based final PlantUML | experimental checkpoint; automatic checks passed, owner smoke failed |
-| R1 — reviewed architecture ADR and governance | completed |
-| D1.1 — generator, deterministic validation, reviewer | implemented and automatically verified; S1 pending |
-| S1 — Ollama `qwen3:30b` owner smoke | planned; D2 gate |
-| D2 — Component diagram | planned after S1 PASS |
+| D1 — ledger-based final PlantUML | historical experiment; owner smoke failed |
+| R1 — reviewed architecture ADR and governance | completed; superseded as active architecture |
+| D1.1 — final-PlantUML reviewed path | implemented and automatically verified; S1 failed; superseded |
+| R2 — DiagramPlan architecture decision and checkpoint | completed |
+| D1.2 — Sequence DiagramPlan, validator and renderer | planned; next |
+| S1 — Ollama `qwen3:30b` owner smoke | FAIL/not passed; D1.2 gate |
+| M1 — ArchitectureSnapshot MCP adapter | planned after S1 |
+| D2 — Component diagram | planned after M1 |
 | C1 — VS Code Chat Participant | planned after D2 |
-| M1 — ArchitectureSnapshot and MCP adapter | planned after C1 |
-| D3/D4 — C4 context / container | planned after M1 |
-| D5 — ArchiMate HLD | planned after D3/D4 |
+| D3 — C4 context | planned after C1 |
+| D4 — C4 container | planned after D3 |
+| D5 — ArchiMate HLD | planned after D4 |
 | K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
 | K3 — Knowledge Pack Builder UI and five-file write | planned |
 | REL — `v0.3.0-alpha.1` | planned |
-| Semantic reviewer in the D1.1 path | implemented; S1 pending |
+| Semantic reviewer in D1.1 | implemented; retained in R2 target |
 | Repair loop | deferred |
 | Quality modes | deferred |
 | Document sources (PDF, DOCX; Confluence/Jira via MCP) | planned |

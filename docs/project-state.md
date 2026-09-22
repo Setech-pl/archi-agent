@@ -17,9 +17,11 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
 | Stan D1 | Eksperymentalny checkpoint automatycznie zweryfikowany; dwa owner smoke Ollamy `qwen3:30b` nie przeszły. Ledger i diagnoza zachowane na `checkpoint/d1-ledger-pipeline` (`973b604694ad06181deaa56989b9361f4b4ba52e`). To nie jest gotowy produkt. |
 | Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
-| Stan D1.1 | Implemented and automatically verified — generator `{ plantUml }` → lokalne `DiagramFacts` i walidacja → niezależny semantic reviewer; prompt przekazuje literalne deklaracje i sygnatury ze snapshotu. |
-| Następny etap | Dwie próby S1: FAIL; nowy owner smoke Ollamy `qwen3:30b` na nowym VSIX nadal niewykonany. D2 dopiero po S1 PASS. |
-| Etapy po S1 | D2 dopiero po S1 PASS; C1 po D2; M1 (ArchitectureSnapshot/MCP) po C1. |
+| Stan D1.1 | Implemented and automatically verified, lecz S1 FAIL; historyczna ścieżka `{ plantUml }` zachowana na `checkpoint/d1-final-plantuml-reviewed`, superseded jako aktywny kierunek. |
+| Stan R2 | Completed — właściciel zatwierdził DiagramPlan, lokalną walidację i deterministyczne renderery per typ; ADR 0002 i checkpoint D1.1. |
+| Następny etap | D1.2 — sequence DiagramPlan, lokalny walidator i deterministyczny renderer; potem ponowny S1. |
+| Bramka S1 | Próby D1.1: FAIL; S1 nie jest PASS. M1, D2 i stary gauntlet pozostają zablokowane do S1 PASS na D1.2. |
+| Kolejność | R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
 ## Historia na `main`
@@ -29,8 +31,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 - Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
   ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
 - 2026-09-19 — wcześniejsza decyzja o priorytetach (demonstracja vibe coding i AI SDLC),
-  następnie zastąpiona decyzją R1 z 2026-09-21. Obowiązująca kolejność:
-  R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL; zob.
+  następnie zastąpiona R1 z 2026-09-21 i R2 z 2026-09-22. Obowiązująca kolejność:
+  R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL; zob.
   [`product-roadmap.md`](product-roadmap.md).
 
 ## Implementacja B1
@@ -226,19 +228,14 @@ verified i owner smoke accepted.
 
 ## Kierunek dalszych prac
 
-W kolejności ustalonej przez właściciela w R1 (2026-09-21; pełny opis w roadmapie, „Product priority”):
-
-1. **P1 i P2 (implemented):** neutralny model profilu i rejestr, profile LM Studio/Ollama oraz
-   Anthropic/OpenAI/OpenRouter, machine-scoped wybór profilu/modelu i cloud keys w `SecretStorage`.
-2. **D1** pozostaje eksperymentalnym checkpointem, nie ścieżką produkcyjną. **D1.1** zastępuje
-   ledger generatorem `{ plantUml }`, lokalnymi `DiagramFacts`, deterministyczną walidacją
-   i niezależnym reviewerem. **S1** to następny, wymagany owner smoke Ollamy;
-   **D2** `component` jest zablokowany do S1 PASS.
-3. **C1 po D2:** VS Code Chat Participant `@archi-agent` z `/diagram`, tylko z historią własnych
-   rozmów; **M1 po C1:** źródło MCP mapowane deterministycznie do `ArchitectureSnapshot`;
-   **D3/D4**, potem **D5**: kolejne profile diagramów.
-4. **K2/K3:** ekstrakcja Knowledge Pack i evidence verifier, potem UI i zapis pięciu plików;
-   **REL:** `v0.3.0-alpha.1` z demonstracją i owner smoke.
+Właściciel zatwierdził R2: generator oddaje DiagramPlan, lokalny kod waliduje plan i renderuje
+PlantUML per typ, a niezależny reviewer zwraca wyłącznie werdykt i referencje. D1.2
+(`sequence`) jest następnym zadaniem implementacyjnym. S1 z Ollamą `qwen3:30b` następuje
+po D1.2 i pozostaje FAIL/not passed po próbach D1.1. M1, D2 i stary gauntlet są zablokowane
+do S1 PASS. Dalej obowiązuje M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL.
+Szczegóły: [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) i
+[roadmapa](product-roadmap.md). D1.1 jest zachowane historycznie i na
+`checkpoint/d1-final-plantuml-reviewed`.
 
 Później (bez zobowiązującej kolejności): bounded repair, quality modes, document
 sources (PDF, DOCX; Confluence/Jira preferencyjnie przez MCP), EA API, Prolaborate, zewnętrzni
@@ -364,11 +361,12 @@ wykonywano.
 
 ## Następny krok
 
-**S1** — owner smoke D1.1 z Ollamą `qwen3:30b` na zbudowanym VSIX, zgodnie z
-[`ADR 0001`](adr/0001-reviewed-diagram-generation.md) i
-[`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md). Dopiero S1 PASS odblokowuje D2,
-a C1 następuje po D2. P2 jest zaimplementowane; ręczne smoke providerów chmurowych pozostaje
-opcjonalne i kosztowe, poza automatycznym DoD.
+**D1.2** — osobne zadanie implementacyjne dla `sequence`: DiagramPlan, lokalna walidacja,
+deterministyczny renderer i zachowany niezależny reviewer według
+[ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) oraz
+[reviewed-diagram-pipeline.md](reviewed-diagram-pipeline.md). Obecny kod D1.1 nadal używa
+`{ plantUml }`; niniejszy checkpoint R2 zmienia tylko dokumentację. Po D1.2 wymagany jest
+owner smoke S1. Bez S1 PASS nie zaczynać M1, D2 ani starego gauntletu.
 
 ## Implementacja D1
 
@@ -428,9 +426,9 @@ a osobne zadanie D1.1 zaimplementowało ten przepływ bez przenoszenia ledger ch
 
 KISS/BUZI w `AGENTS.md` i `CLAUDE.md` jest obowiązującą zasadą: najprostszy działający pionowy
 przepływ, bez spekulacyjnej złożoności; odstępstwo architektoniczne wymaga zatrzymania pracy i
-jawnej decyzji właściciela. Obowiązująca kolejność to
-R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL. Następny krok to S1;
-D2 jest zablokowany do S1 PASS, C1 następuje po D2, MCP po C1.
+jawnej decyzji właściciela. Wtedy obowiązywała kolejność
+R1 → D1.1 → S1 → D2 → C1 → M1 → D3/D4 → D5 → K2 → K3 → REL;
+R2 zastąpiło ją kolejnością podaną w aktualnym Snapshot i roadmapie.
 R1 jest zmianą dokumentacji; testy, typecheck, build i pakowanie nie są jego bramkami.
 
 ## D1.1 — reviewed sequence (2026-09-21)
@@ -546,3 +544,24 @@ po przywróceniu oryginalnej stałej parsera celowane regresje 103/103 PASS. Fin
 `74a3c85f42f137f0187ddb37d8cf8337dd9d7bbf9fce3c7a88fd843798e9f9c3`.
 Nowy owner smoke nie został wykonany. S1 nadal nie jest PASS; D2, M1 i gauntlet pozostają
 zablokowane do S1 PASS.
+
+## R2 — zatwierdzona zmiana architektury (2026-09-22)
+
+Właściciel zatwierdził zmianę po powtarzalnych niepowodzeniach S1 na realnym Ollama
+`qwen3:30b`: nawet literalne deklaracje i sygnatury w prompcie nie zapewniły jednocześnie
+poprawnej składni PlantUML i zgodności ze snapshotem. S1 pozostaje **FAIL/not passed**.
+D1.1 wraz z kolejnymi próbami smoke pozostaje opisane powyżej; dokładny stan kodu jest
+zachowany na `checkpoint/d1-final-plantuml-reviewed` przy
+`0abafa853bd10df3b2e87070197eb063a3e99233`. ADR 0001 jest historyczny.
+
+Aktywny kierunek to ArchitectureSnapshot → LLM DiagramPlan → lokalna walidacja planu →
+deterministyczny renderer typu → reviewer → lokalna decyzja → wynik. Generator odpowiada
+za semantykę, lokalny kod za zapis PlantUML. Reviewer dostaje ten sam snapshot/digest, plan,
+dowody i wyrenderowanego kandydata; zwraca tylko ścisły werdykt i referencje, bez repair.
+Polityka 0/1/2 wywołań, report v2 i compatibility path `generateSequenceDiagram` pozostają.
+Nie ma retry, repair, fallbacku ani trzeciego wywołania. Osobne kontrakty, walidatory i
+renderery powstają kolejno w D1.2, D2, D3, D4 i D5; w R2 nie zmieniono kodu.
+
+Następne zadanie: **D1.2**. Dopiero jego S1 PASS odblokowuje M1, potem D2. C1, D3, D4,
+D5, K2, K3 i REL pozostają planned. Zmiana zatwierdzonej architektury wymaga ponownej
+decyzji właściciela.
