@@ -9,6 +9,7 @@ import { isFilenameSafeDiagramId } from "../core/output/naming.js";
 import { baseNameFor } from "../core/output/output-planner.js";
 import { generateSequenceDiagram } from "../core/pipeline/generate-sequence-diagram.js";
 import { generateDiagram } from "../core/pipeline/generate-diagram.js";
+import { DiagnosticRun } from "../core/pipeline/diagnostics.js";
 import { isSupportedDiagramType } from "../core/model/diagram-type.js";
 import type { PipelineOutcome } from "../core/pipeline/generation-outcome.js";
 import { StructuredChatSequenceModelGenerator, isSafeModelId, type SequenceModelGenerator } from "../core/pipeline/sequence-model-generator.js";
@@ -41,6 +42,7 @@ import type {
   ArchiAgentRuntime,
   CancellationSignal,
   FlowSource,
+  GenerateDiagramOutcome,
   GenerateDiagramRequest,
   GenerateSequenceDiagramFailure,
   GenerateSequenceDiagramRequest,
@@ -549,22 +551,40 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     this.#diagramClientFactory = options.diagramClientFactory ?? ((config, endpoint) => new OpenAiCompatibleLocalChatClient({ endpoint, modelId: config.modelId, ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }) }));
   }
 
-  public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateSequenceDiagramResult> {
-    // This must precede flow-file, Knowledge Pack, credential and provider access.
-    if (!isSupportedDiagramType(request.diagramType)) return failure("generator-configuration", [issue("diagram-type-unsupported", "The selected diagram type is not supported in this version.")]);
-    const flow = await resolveFlow(request.flow);
-    if (!flow.ok) return failure("flow", flow.issues);
-    const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
-    if (!pack.ok) return failure("knowledge-pack", pack.issues);
-    const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
-    if (!resolved.ok) return failure("generator-configuration", resolved.issues);
-    return mapOutcome(await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
-      client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
-      ...("profileId" in request.generator ? { providerProfileId: request.generator.profileId } : {}),
-      sources: { flowFile: flow.flowFile, knowledgePackDirectory: pack.directoryName },
-      ...(request.selections === undefined ? {} : { selections: request.selections }),
-      ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
-      ...(request.signal === undefined ? {} : { signal: request.signal }) }));
+  public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {
+    const diagnostics = new DiagnosticRun(request.diagnosticSink);
+    diagnostics.emit("command.started", { diagramType: request.diagramType, flowSourceKind: request.flow.kind });
+    const execute = async (): Promise<GenerateDiagramOutcome> => {
+      // This must precede flow-file, Knowledge Pack, credential and provider access.
+      if (!isSupportedDiagramType(request.diagramType)) return failure("generator-configuration", [issue("diagram-type-unsupported", "The selected diagram type is not supported in this version.")]);
+      const flow = await resolveFlow(request.flow);
+      if (!flow.ok) return failure("flow", flow.issues);
+      const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
+      if (!pack.ok) return failure("knowledge-pack", pack.issues);
+      const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
+      if (!resolved.ok) return failure("generator-configuration", resolved.issues);
+      diagnostics.emit("provider.resolved", { profileId: "profileId" in request.generator ? request.generator.profileId : "local-lm-studio",
+        modelId: request.generator.modelId, generatorType: resolved.client.clientType });
+      const outcome = await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
+        client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
+        diagnostics,
+        ...("profileId" in request.generator ? { providerProfileId: request.generator.profileId } : {}),
+        sources: { flowFile: flow.flowFile, knowledgePackDirectory: pack.directoryName },
+        ...(request.selections === undefined ? {} : { selections: request.selections }),
+        ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
+        ...(request.signal === undefined ? {} : { signal: request.signal }) });
+      return outcome.status === "unverified" ? outcome : mapOutcome(outcome);
+    };
+    try {
+      const result = await execute();
+      diagnostics.complete(result.status === "success" ? "success" : result.status === "unverified" ? "unverified" : result.issues.some((entry) => entry.code === "generation-cancelled") ? "cancelled" : "rejected",
+        result.status === "unverified" ? result.review.status === "failed" ? result.review.problemCode : result.review.violationCodes[0] : result.status === "failed" ? result.issues[0]?.code : undefined,
+        result.status === "failed" && typeof result.issues[0]?.details?.["rule"] === "string" ? result.issues[0].details["rule"] : undefined);
+      return result;
+    } catch (error) {
+      diagnostics.complete("failed", "unexpected-error");
+      throw error;
+    }
   }
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {

@@ -27,6 +27,7 @@ stored only in VS Code `SecretStorage`.
 | `archiAgent.localModel.model` | Legacy LM Studio model used until a profile is explicitly selected. |
 | `archiAgent.localModel.timeoutSeconds` | Time limit of one model request. |
 | `archiAgent.defaultAuthor` | Author used when a flow is entered as a plain description. |
+| `archiAgent.diagnostics.verbose` | Optional machine-scoped safe JSON Lines diagnostics in the **Archi Agent** Output Channel; off by default. No prompts, model responses, secrets, message labels or full PlantUML are logged. |
 
 ## Commands
 
@@ -34,7 +35,7 @@ stored only in VS Code `SecretStorage`.
 - `Archi Agent: Set or Update API Key`
 - `Archi Agent: Delete Saved API Key`
 - `Archi Agent: Select Model`
-- `Archi Agent: Generate Diagram` — choose a type explicitly; D1 supports `sequence`.
+- `Archi Agent: Generate Diagram` — choose a type explicitly; Sequence uses Wire Plan v3, deterministic rendering and a minimal semantic verdict.
 - `Archi Agent: Generate Sequence Diagram`
 
 The other named types (`component`, `c4-context`, `c4-container`, `archimate-hld`) are
@@ -59,6 +60,10 @@ To generate:
 
 1. Choose the flow source: the active editor document, a flow file, or a description typed in.
 2. Resolve ambiguous references and confirm `[NEW: Name]` participants when asked.
-3. The validated PlantUML opens in an editor; the grounding report opens beside it.
+3. Verified PlantUML opens in an editor; grounding report v2 opens beside it. If semantic review
+   rejects or fails after local checks, a modal asks whether to inspect an unverified candidate.
+   Show opens one untitled, clearly marked PlantUML document without a report; Cancel opens nothing.
+   User cancellation during review does not offer a candidate. There is no retry, repair, fallback
+   or third model request.
 
 Diagrams and reports are not written to disk by this version; save the editors where you want them.

@@ -163,13 +163,18 @@ export function projectAnthropicJsonSchema(schema: JsonSchemaObject): JsonSchema
   return deepFreeze(projectNode(schema));
 }
 
-/** Reuse the closed projection; OpenAI-compatible strict output also disallows minItems. */
+/** Keep the OpenAI/OpenRouter wire subset portable across strict-output models. Local Zod retains every bound. */
 export function projectOpenAiStrictJsonSchema(schema: JsonSchemaObject): JsonSchemaObject {
-  const withoutMinItems = (value: JsonSchemaValue): JsonSchemaValue => {
-    if (Array.isArray(value)) return value.map(withoutMinItems);
-    if (isRecord(value)) return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "minItems")
-      .map(([key, child]) => [key, withoutMinItems(child)]));
+  const portable = (value: JsonSchemaValue): JsonSchemaValue => {
+    if (Array.isArray(value)) return value.map(portable);
+    if (isRecord(value)) {
+      const output = Object.fromEntries(Object.entries(value)
+        .filter(([key]) => !["minItems", "pattern", "format", "default", "const"].includes(key))
+        .map(([key, child]) => [key, portable(child)]));
+      if ("const" in value) output["enum"] = [value["const"]];
+      return output;
+    }
     return value;
   };
-  return deepFreeze(withoutMinItems(projectAnthropicJsonSchema(schema)) as JsonSchemaObject);
+  return deepFreeze(portable(projectAnthropicJsonSchema(schema)) as JsonSchemaObject);
 }

@@ -146,6 +146,12 @@
           "type": "string",
           "default": "Archi Agent",
           "markdownDescription": "Author written into the front matter when a flow is entered as a plain description instead of a flow document."
+        },
+        "archiAgent.diagnostics.verbose": {
+          "type": "boolean",
+          "default": false,
+          "scope": "machine",
+          "description": "Write safe structured Archi Agent pipeline diagnostics to the Archi Agent output channel."
         }
       }
     }

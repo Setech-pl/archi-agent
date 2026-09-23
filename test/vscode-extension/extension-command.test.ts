@@ -2,7 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { createArchiAgentRuntime, type ArchiAgentRuntime, type GenerateSequenceDiagramRequest } from "../../src/runtime/index.js";
+import { createArchiAgentRuntime, type ArchiAgentRuntime, type GenerateDiagramOutcome, type GenerateSequenceDiagramRequest } from "../../src/runtime/index.js";
+import type { StructuredChatClient, StructuredChatRequest } from "../../src/core/llm/structured-chat-client.js";
+import { validatePlantUmlDocument } from "../../src/core/validation/plantuml-document-validator.js";
 import { generateSequenceDiagramCommand } from "../../vscode-extension/src/commands/generate-sequence-diagram.js";
 import { secretIdForProfile } from "../../vscode-extension/src/api-key-storage.js";
 import { selectLocalModel, selectLocalProviderProfile } from "../../vscode-extension/src/commands/local-provider-selection.js";
@@ -74,6 +76,25 @@ function readAfterRestart() {
   return readLocalModelSettings(vscodeDouble.workspace.getConfiguration(settingsSection));
 }
 
+async function invokeReviewed(outcome: GenerateDiagramOutcome): Promise<void> {
+  configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model",
+    [settingKeys.diagnosticsVerbose]: true });
+  state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+  const inner = echoRuntime();
+  packagedRuntime.current = {
+    listProviderProfiles: () => inner.listProviderProfiles(),
+    listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+    listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+    generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request),
+    async generateDiagram() { return outcome; }
+  };
+  state.quickPickAnswers.push(pickByLabel("Sequence"), pickByLabel("active editor"));
+  activate(createExtensionContext() as never);
+  await state.registeredCommands.get(commandIds.generateDiagram)?.();
+}
+
+const candidate = '@startuml\nparticipant "A" as kp_a\nparticipant "B" as kp_b\nkp_a -> kp_b : Call (INTERNAL)\n@enduml\n';
+
 beforeAll(() => {
   const root = temporaryDirectory("archi-agent-ext-");
   packDirectory = path.join(root, "architecture");
@@ -84,6 +105,147 @@ beforeAll(() => {
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(path.join(packDirectory, name), content, "utf8");
   }
+});
+
+describe("Generate Diagram unverified candidate UX", () => {
+  it.each(["Show unverified candidate", "Cancel"])("drives the five-step invalid verdict through the registered command and %s", async (answer) => {
+    const fixturePath = path.join(temporaryDirectory("archi-agent-s1-"), "architecture");
+    mkdirSync(fixturePath);
+    const files = buildPackFiles({ actors: [["requester", "Requester", "role", "Starts work"]], systems: [
+      ["work-service", "Work Service", "service", "Processes work"],
+      ["audit-store", "Audit Store", "database", "Stores records"],
+      ["notification-hub", "Notification Hub", "queue", "Receives events"]],
+    relationships: [
+      ["requester", "work-service", "REST_API", "Submit Work", "synchronous", "Submits work"],
+      ["work-service", "audit-store", "DB", "Record Writer", "synchronous", "Writes records"],
+      ["work-service", "notification-hub", "EVENT", "Work Ready", "asynchronous", "Publishes completion"]],
+    aliases: [], rules: [] });
+    for (const [name, content] of Object.entries(files)) writeFileSync(path.join(fixturePath, name), content);
+    configure({ [settingKeys.knowledgePackPath]: fixturePath, [settingKeys.localModelId]: "test-model",
+      [settingKeys.diagnosticsVerbose]: true });
+    state.activeTextEditor = { document: makeDocument(flowDocument([
+      "Requester submits work to Work Service.",
+      "Work Service writes to Audit Store and publishes to Notification Hub.",
+      "Audit Store notifies Requester of the record."])) };
+    const calls: StructuredChatRequest[] = [];
+    const client: StructuredChatClient = { clientType: "openai-compatible-local", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
+      async complete(chat) {
+        calls.push(chat);
+        if (calls.length === 2) return { source: "content", value: { accepted: true,
+          confirmedUserStatedFactIds: ["fact-0001", "fact-0002", "fact-0005"], violations: [] } };
+        const input = JSON.parse(chat.messages[1]!.content);
+        const catalog = input.operationCatalog as { operationId: string; fromId: string; toId: string; kind: string }[];
+        const op = (fromId: string, toId: string, kind: string) => catalog.find((entry) => entry.fromId === fromId && entry.toId === toId && entry.kind === kind)!.operationId;
+        return { source: "content", value: { version: 3, groundedSteps: [
+          { order: 1, operationId: op("requester", "work-service", "request"), label: "Submit work" },
+          { order: 2, operationId: op("work-service", "audit-store", "request"), label: "Write record" },
+          { order: 3, operationId: op("audit-store", "work-service", "response"), label: "Recorded" },
+          { order: 4, operationId: op("work-service", "notification-hub", "asynchronous"), label: "Work ready" }],
+          userStatedSteps: [{ order: 5, fromId: "audit-store", toId: "requester", interactionKind: "request", interfaceType: "EVENT",
+            interfaceName: "Record Notice", flowEvidenceId: input.snapshot.flowEvidence[2].flowEvidenceId, label: "Notify requester" }] } };
+      } };
+    packagedRuntime.current = createArchiAgentRuntime({ diagramClientFactory: () => client });
+    state.languages.push("plantuml");
+    state.quickPickAnswers.push(pickByLabel("Sequence"), pickByLabel("active editor"));
+    state.messageAnswers.push(answer);
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect(calls).toHaveLength(2);
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0]).toMatchObject({ level: "warning", modal: true });
+    expect(state.openedDocuments).toHaveLength(answer === "Cancel" ? 0 : 1);
+    if (answer !== "Cancel") {
+      expect(state.openedDocuments[0]?.languageId).toBe("plantuml");
+      expect(state.openedDocuments[0]?.getText()).toContain("' Semantic review status: failed (invalid-verdict)");
+      expect(state.openedDocuments[0]?.getText().split("\n")).toHaveLength(16);
+    }
+    const diagnostics = state.outputLines.join("\n");
+    expect(diagnostics).toContain("accepted-confirmations-mismatch");
+    expect(diagnostics).not.toMatch(/SENTINEL_PROVIDER_BODY|Submit work|Write record|Record Notice|@startuml|reportSchemaVersion|\/private\/tmp/u);
+    expect(state.outputLines.some((line) => line.includes('"event":"artifacts.created"'))).toBe(false);
+    expect(state.outputLines.filter((line) => line.includes('"event":"run.completed"'))).toHaveLength(1);
+    expect(state.configurationUpdates).toEqual([]);
+  });
+
+  it("opens the normal two documents after verified success", async () => {
+    await invokeReviewed({ status: "success", diagramName: "observation", generatorType: "openai-compatible-local",
+      digest: "0".repeat(64), plantUml: candidate, diagramFileName: "observation.puml",
+      groundingReport: '{"reportSchemaVersion":2}\n', reportFileName: "observation.grounding.json",
+      summary: { participantCount: 2, knownParticipantCount: 2, newParticipantCount: 0, messageCount: 1,
+        synchronousCount: 1, asynchronousCount: 0, responseCount: 0, selfMessageCount: 0, warningCount: 0 }, warnings: [] });
+    expect(state.openedDocuments).toHaveLength(2);
+    expect(state.openedDocuments[0]?.getText()).toBe(candidate);
+    expect(state.openedDocuments[1]?.getText()).toContain("reportSchemaVersion");
+    expect(state.messages.filter((message) => message.level === "warning")).toHaveLength(0);
+    expect(state.openedDocuments[0]?.getText()).not.toContain("UNVERIFIED CANDIDATE");
+  });
+
+  it("offers truncated-output once and Show opens one marked untitled PlantUML without report", async () => {
+    state.messageAnswers.push("Show unverified candidate");
+    await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
+      review: { status: "failed", problemCode: "truncated-output" } });
+    expect(state.messages).toEqual([expect.objectContaining({ level: "warning", modal: true,
+      actions: ["Show unverified candidate", "Cancel"] })]);
+    expect(state.messages[0]?.text).toContain("Semantic review did not complete (truncated-output)");
+    expect(state.openedDocuments).toHaveLength(1);
+    expect(state.openedDocuments[0]).toMatchObject({ isUntitled: true });
+    expect(state.openedDocuments[0]?.getText()).toContain("' ARCHI AGENT — UNVERIFIED CANDIDATE\n");
+    expect(state.openedDocuments[0]?.getText()).toContain("' Semantic review status: failed (truncated-output)\n");
+    expect(state.openedDocuments[0]?.getText()).toContain("' Do not treat this document as a verified architecture artifact.");
+    expect(state.openedDocuments[0]?.getText().replace(/^@startuml\n(?:'[^\n]*\n){4}/u, "@startuml\n")).toBe(candidate);
+    expect(validatePlantUmlDocument(state.openedDocuments[0]!.getText())).toEqual([]);
+    expect(state.openedDocuments[0]?.languageId).toBe("plaintext");
+    expect(state.outputLines.some((line) => line.includes("unverified-candidate.opened"))).toBe(true);
+    expect(state.configurationUpdates).toEqual([]);
+  });
+
+  it("offers rejection codes and opens one marked candidate without report", async () => {
+    state.messageAnswers.push("Show unverified candidate");
+    await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
+      review: { status: "rejected", violationCodes: ["unsupported-user-stated-evidence", "sequence-inconsistency"] } });
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0]?.text).toContain("Semantic review rejected the candidate (unsupported-user-stated-evidence, sequence-inconsistency)");
+    expect(state.openedDocuments).toHaveLength(1);
+    expect(state.openedDocuments[0]?.getText()).toContain("' Semantic review status: rejected (unsupported-user-stated-evidence, sequence-inconsistency)");
+    expect(state.openedDocuments[0]?.getText()).not.toContain("reportSchemaVersion");
+  });
+
+  it.each(["Cancel", undefined])("dismisses the modal with %s without opening or writing anything", async (answer) => {
+    state.messageAnswers.push(answer);
+    await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
+      review: { status: "failed", problemCode: "truncated-output" } });
+    expect(state.messages).toHaveLength(1);
+    expect(state.openedDocuments).toEqual([]);
+    expect(state.configurationUpdates).toEqual([]);
+    expect(state.outputLines.some((line) => line.includes("unverified-candidate.dismissed"))).toBe(true);
+  });
+
+  it("never offers a candidate for cancellation or an earlier pipeline failure", async () => {
+    for (const [stage, code] of [["invalid-generator-output", "generation-cancelled"],
+      ["flow", "invalid-flow"], ["grounding-blocked", "grounding-blocked"],
+      ["semantic-validation-failed", "diagram-plan-invalid"],
+      ["semantic-validation-failed", "relation-conflict"],
+      ["semantic-validation-failed", "label-invalid"],
+      ["render-validation-failed", "plantuml-structure"]] as const) {
+      await invokeReviewed({ status: "failed", stage, issues: [{ severity: "error", code, message: "Safe failure." }],
+        ambiguities: [], unconfirmedNewParticipants: [] });
+      expect(state.messages.every((message) => !message.text.includes("unverified"))).toBe(true);
+      expect(state.openedDocuments).toEqual([]);
+      resetDouble();
+    }
+  });
+
+  it("allowlists review status before warning, diagnostics and document comments", async () => {
+    const secret = "API_KEY_SENTINEL\\r\\n/private/client/flow.md";
+    state.messageAnswers.push("Show unverified candidate");
+    await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
+      review: { status: "failed", problemCode: secret } } as unknown as GenerateDiagramOutcome);
+    const shown = `${state.messages[0]?.text}\n${state.outputLines.join("\n")}\n${state.openedDocuments[0]?.getText()}`;
+    expect(shown).not.toContain(secret);
+    expect(shown).not.toContain("API_KEY_SENTINEL");
+    expect(shown).not.toContain("/private/client/flow.md");
+    expect(shown).toContain("request-failed");
+  });
 });
 
 afterEach(() => {
@@ -115,6 +277,7 @@ describe("activation", () => {
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
+    expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
     expect(context.subscriptions.length).toBe(9);
     deactivate();
   });
@@ -149,6 +312,7 @@ describe("activation", () => {
       generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request),
       async generateDiagram(request) {
         seen.push(request.diagramType);
+        expect(request.diagnosticSink).toBeUndefined();
         return { status: "failed", stage: "invalid-generator-output", issues: [], ambiguities: [], unconfirmedNewParticipants: [] };
       }
     };
@@ -157,6 +321,27 @@ describe("activation", () => {
     await state.registeredCommands.get(commandIds.generateDiagram)?.();
     expect(seen).toEqual(["sequence"]);
     expect(state.secretReads).toEqual([]);
+  });
+
+  it("connects machine-scoped verbose to the existing Archi Agent output channel", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model",
+      [settingKeys.diagnosticsVerbose]: true });
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    const inner = echoRuntime();
+    packagedRuntime.current = { ...inner,
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request),
+      async generateDiagram(request) {
+      expect(request.diagnosticSink).toBeTypeOf("function");
+      request.diagnosticSink?.('{"event":"command.started"}');
+      return { status: "failed", stage: "invalid-generator-output", issues: [], ambiguities: [], unconfirmedNewParticipants: [] };
+    } };
+    state.quickPickAnswers.push(pickByLabel("Sequence"), pickByLabel("active editor"));
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect(state.outputLines).toContain('{"event":"command.started"}');
   });
 
   it("reports missing settings through the registered command without any runtime call", async () => {

@@ -34,8 +34,9 @@ The editor layer reaches the repository only through `src/runtime/index.ts`; a t
 The runtime contract (`src/runtime/runtime-types.ts`) speaks about sources, not implementations:
 a flow source (document text, an absolute file path or a plain description), a Knowledge Pack source
 (today: one local directory), a provider-neutral generator configuration (legacy local endpoint or
-profile/model/credential selection) and a result carrying the validated PlantUML, the grounding report and safe issues. D1
-added `generateDiagram` next to `generateSequenceDiagram`; D1.1 routes it through reviewed generation. Later knowledge
+profile/model/credential selection) and a typed result. Verified `generateDiagram` success carries
+PlantUML and report v2; its unverified result carries only the locally valid candidate and closed
+review codes. D1 added `generateDiagram` next to `generateSequenceDiagram`. Later knowledge
 sources and model providers add variants to the source and generator unions. Hosts written against
 the interface do not change.
 
@@ -84,9 +85,15 @@ after one `SecretStorage.get` and one model-list GET. That cancellation writes n
 and does not start generation.
 
 `Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
-The picker offers only Sequence and runs the D1.2 path: one strict `SequenceDiagramPlan`
-generator request, local plan validation and deterministic PlantUML rendering, then one independent
-semantic review request. It emits report v2 on success. S1 owner smoke on D1.2 remains pending. The four
+The picker offers only Sequence and runs the D1.2 Wire Plan v3 path: one strict operation-selection
+request, local plan resolution and deterministic PlantUML rendering, then one independent
+semantic review request. Verified success opens PlantUML and report v2. If review rejects or
+fails after all local checks, one modal offers the unverified candidate. **Show unverified
+candidate** opens one untitled PlantUML document with a fixed warning header and no report;
+**Cancel** or dismissal opens nothing. User cancellation during review never offers a candidate.
+No retry, repair, fallback or third request occurs. The latest Wire Plan v3 owner smoke passed
+local validation but reviewer output was truncated; S1 remains FAIL until verified owner smoke.
+The four
 reserved types remain unsupported through direct runtime calls before any credential read or
 provider I/O. `Archi Agent: Generate
 Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and
@@ -109,11 +116,13 @@ retains its existing output and report behavior.
    the pick cancels the command. If the flow contains unconfirmed `[NEW: Name]` markers, a
    multi-select quick pick asks which to confirm; a marker left unselected keeps the flow blocked.
    Resolution is bounded to three rounds.
-6. On success the PlantUML opens in an untitled editor (language `plantuml` when an extension
+7. On verified success the PlantUML opens in an untitled editor (language `plantuml` when an extension
    registered it, otherwise plain text) and the grounding report opens as JSON beside it. A
    notification shows the summary counts; the output channel **Archi Agent** lists the digest, the
    generator and every warning.
-7. On failure a notification explains the stage; **Show Details** opens the output channel with the
+8. On unverified review, a modal offers one marked PlantUML candidate. Cancel opens no document.
+   No grounding report is created on this path.
+9. On earlier failure a notification explains the stage; **Show Details** opens the output channel with the
    issue lines.
 
 Nothing is written to disk. Save the editors where you want the artifacts; versioned writing through
@@ -131,6 +140,7 @@ the existing artifact writer is a later checkpoint.
 | `archiAgent.localModel.model` | (empty) | Legacy LM Studio model only. New profile-aware choices are never stored here. |
 | `archiAgent.localModel.timeoutSeconds` | `120` | Time limit of one model request (1 to 600). |
 | `archiAgent.defaultAuthor` | `Archi Agent` | Author written into the front matter of a typed description. |
+| `archiAgent.diagnostics.verbose` | `false` | Machine-scoped safe JSON Lines pipeline diagnostics in the existing **Archi Agent** Output Channel. |
 
 In an untrusted workspace the path and model settings are read from user settings only
 (`restrictedConfigurations`), so a workspace cannot point the extension at another directory or
@@ -154,8 +164,11 @@ Ollama choice even when Settings Sync is enabled.
 - API keys exist only in `SecretStorage` and are never logged, displayed or written to generated
   artifacts. No request is made during activation, profile selection or key set/delete.
 - The model receives the compact grounded context of the current flow, never the whole pack.
-- Prompts, model answers, flow text and pack content are never logged. The output channel holds
-  issue codes, messages, positions, identifiers, counts and the loopback URL.
+- Verbose is off by default. When enabled, each bounded JSON Lines event carries timestamp, run ID,
+  phase, safe IDs/rules and counts. It never includes prompts, raw model answers, request or response
+  bodies, API keys, authorization headers, flow or Knowledge Pack fragments, message labels, full
+  PlantUML, full grounding report, local absolute paths or provider error responses. The Output
+  Channel still shows short user messages and safe issue details.
 - The pack directory is opened with the link-free, bounded Node adapters; only the five fixed file
   names are read.
 - The extension spawns no process and runs no npm script.
@@ -325,6 +338,6 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
   extension and its user-facing text use `Archi Agent`. Renaming the root package is deferred.
 - Deferred by design at this checkpoint: Enterprise Architect XML and API sources, Confluence,
   Google Drive, OneDrive and SharePoint, component, C4 and ArchiMate profiles,
-  the repair loop and marketplace publishing. Semantic review is implemented for D1.1 Sequence;
+  the repair loop and marketplace publishing. Semantic review is implemented for D1.2 Sequence;
   the runtime contract leaves room for
   each of them without changing the editor layer.

@@ -1,6 +1,6 @@
 import path from "node:path";
 import * as vscode from "vscode";
-import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, DiagramType, FlowSource, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
+import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, DiagramType, FlowSource, GenerateDiagramUnverified, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
 import { readApiKey } from "../api-key-storage.js";
 import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
@@ -29,6 +29,12 @@ export interface GenerateCommandDependencies {
 
 const openSettingsAction = "Open Settings";
 const showDetailsAction = "Show Details";
+const showUnverifiedAction = "Show unverified candidate";
+const cancelUnverifiedAction = "Cancel";
+const safeReviewProblems = new Set(["truncated-output", "timeout", "connection-failed", "response-truncated",
+  "response-too-large", "provider-unavailable", "response-refused", "invalid-verdict", "request-failed"]);
+const safeReviewViolations = new Set(["unsupported-user-stated-evidence", "sequence-inconsistency",
+  "participant-inconsistency", "candidate-semantics-invalid"]);
 const flowFileFilters = { "Flow documents": ["md", "txt"], "All files": ["*"] };
 const maxInlineFlowChars = 256;
 
@@ -211,6 +217,36 @@ async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): P
   await vscode.window.showTextDocument(report, { viewColumn: vscode.ViewColumn.Beside, preview: false, preserveFocus: true });
 }
 
+function safeUnverifiedReason(result: GenerateDiagramUnverified): string {
+  if (result.review.status === "failed") return safeReviewProblems.has(result.review.problemCode) ? result.review.problemCode : "request-failed";
+  const codes = result.review.violationCodes.filter((code) => safeReviewViolations.has(code));
+  return codes.length > 0 ? [...new Set(codes)].join(", ") : "candidate-semantics-invalid";
+}
+
+function unverifiedDocument(result: GenerateDiagramUnverified, reason: string): string {
+  const status = `${result.review.status} (${reason})`;
+  const header = ["' ARCHI AGENT — UNVERIFIED CANDIDATE", "' Local structural and grounding checks passed.",
+    `' Semantic review status: ${status}`, "' Do not treat this document as a verified architecture artifact."];
+  return result.plantUmlCandidate.replace(/^@startuml\r?\n/u, `@startuml\n${header.join("\n")}\n`);
+}
+
+async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, output: vscode.OutputChannel, verbose: boolean): Promise<void> {
+  const reason = safeUnverifiedReason(result);
+  const lead = result.review.status === "failed" ? "Semantic review did not complete" : "Semantic review rejected the candidate";
+  const message = `${lead} (${reason}). The diagram passed local structural and grounding checks but remains unverified. Do you want to inspect the candidate?`;
+  if (verbose) output.appendLine(JSON.stringify({ event: "unverified-candidate.offered", code: reason }));
+  const chosen = await vscode.window.showWarningMessage(message, { modal: true }, showUnverifiedAction, cancelUnverifiedAction);
+  if (chosen !== showUnverifiedAction) {
+    if (verbose) output.appendLine(JSON.stringify({ event: "unverified-candidate.dismissed" }));
+    return;
+  }
+  const languages = await vscode.languages.getLanguages();
+  const document = await vscode.workspace.openTextDocument({ language: languages.includes("plantuml") ? "plantuml" : "plaintext",
+    content: unverifiedDocument(result, reason) });
+  await vscode.window.showTextDocument(document, { viewColumn: vscode.ViewColumn.Active, preview: false });
+  if (verbose) output.appendLine(JSON.stringify({ event: "unverified-candidate.opened" }));
+}
+
 export async function generateDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
   const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const }],
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
@@ -293,6 +329,8 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
         runtime,
         request: buildGenerationRequest(settings, flow, modelId, cancellationSignal(token), apiKey),
         ...(diagramType === undefined ? {} : { diagramType }),
+        ...(diagramType === undefined || vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") !== true
+          ? {} : { diagnosticSink: (line: string) => output.appendLine(line) }),
         prompts: resolutionPrompts()
       })
   );
@@ -304,6 +342,11 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
 
   if (outcome.result.status === "failed") {
     await show(output, describeFailure(outcome.result, { providerName: profile.displayName, baseUrl: settings.localModel.baseUrl }));
+    return;
+  }
+
+  if (outcome.result.status === "unverified") {
+    await offerUnverifiedCandidate(outcome.result, output, vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") === true);
     return;
   }
 

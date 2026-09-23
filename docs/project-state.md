@@ -10,7 +10,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-22 |
+| Data aktualizacji | 2026-09-23 |
 | Stan Git | D1.2 wykonano na `feature/reviewed-diagram-pipeline`. Bieżący HEAD, upstream, publikację i czystość working tree zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
@@ -19,9 +19,9 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan R1 | Completed — ADR, architektura reviewed pipeline i KISS/BUZI zapisane na aktywnym branchu. |
 | Stan D1.1 | Implemented and automatically verified, lecz S1 FAIL; historyczna ścieżka `{ plantUml }` zachowana na `checkpoint/d1-final-plantuml-reviewed`, superseded jako aktywny kierunek. |
 | Stan R2 | Completed — właściciel zatwierdził DiagramPlan, lokalną walidację i deterministyczne renderery per typ; ADR 0002 i checkpoint D1.1. |
-| Stan D1.2 | Implemented and automatically verified; korekta błędnego mapowania walidacji planu po nieudanym owner smoke S1 jest gotowa do ponownego smoke. Szczegóły w sekcji D1.2 niżej. |
-| Następny etap | Ponowny owner smoke S1 po korekcie D1.2; M1 i D2 nadal czekają. |
-| Bramka S1 | Próby D1.1: FAIL; owner smoke D1.2: FAIL z `plantuml-structure`, który może maskować odrzucenie planu. M1, D2 i stary gauntlet pozostają zablokowane do S1 PASS. |
+| Stan D1.2 | Ukończone: Wire Plan v3, deterministyczny renderer sequence, minimalny reviewer, safe diagnostics i unverified candidate UX. |
+| Następny etap | M1 według aktualnej roadmapy, następnie D2; gauntlet jest odblokowany, lecz niewdrożony. |
+| Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 
@@ -231,9 +231,8 @@ verified i owner smoke accepted.
 
 Właściciel zatwierdził R2: generator oddaje DiagramPlan, lokalny kod waliduje plan i renderuje
 PlantUML per typ, a niezależny reviewer zwraca wyłącznie werdykt i referencje. D1.2
-(`sequence`) jest zaimplementowane i automatycznie zweryfikowane. S1 z Ollamą `qwen3:30b` następuje
-po D1.2 i pozostaje FAIL/not passed po próbach D1.1. M1, D2 i stary gauntlet są zablokowane
-do S1 PASS. Dalej obowiązuje M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL.
+(`sequence`) jest ukończone; owner smoke S1 z Ollamą `qwen3:30b` przeszedł 2026-09-23.
+M1 i gauntlet są odblokowane, lecz niewdrożone. Obowiązuje M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL.
 Szczegóły: [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) i
 [roadmapa](product-roadmap.md). D1.1 jest zachowane historycznie i na
 `checkpoint/d1-final-plantuml-reviewed`.
@@ -362,9 +361,8 @@ wykonywano.
 
 ## Następny krok
 
-**Ponowny S1 owner smoke po korekcie D1.2** — zainstalować nowy VSIX w izolowanym profilu,
-wybrać zamierzony model Ollamy i wykonać osobny smoke. Poprzedni S1 był FAIL; automatyczne
-bramki nie zastępują decyzji właściciela. Bez S1 PASS nie zaczynać M1, D2 ani gauntletu.
+**M1 — deterministyczny adapter MCP do ArchitectureSnapshot**, następnie D2 zgodnie z aktualną
+roadmapą. S1 PASS odblokował również gauntlet; nie został wdrożony.
 
 ## Implementacja D1
 
@@ -644,3 +642,196 @@ sześć wpisów; oba bundle są bajtowo zgodne z bieżącym buildem.
 
 S1 pozostaje **FAIL** i wymaga ponownego owner smoke po instalacji nowego VSIX. M1, D2 i
 gauntlet pozostają zablokowane.
+
+### D1.2 — Plan Contract V2 i bezpieczny verbose (2026-09-22)
+
+Punktowa korekta na branchu `feature/reviewed-diagram-pipeline` bazuje na czystym HEAD
+`09df6f635b3fb5825e8a19831e2733111971fb8a`, zgodnym z upstreamem. Aktywne
+**Generate Diagram → Sequence** buduje z jednego `ArchitectureSnapshot` deterministyczny katalog
+`op-0001`, `op-0002`, … . Model zwraca wyłącznie `{ version: 2, steps }`: dla
+`grounded-operation` wybiera `operationId` i podaje ograniczoną etykietę, a pozostałe pola
+relacji są `null`. Resolver nadaje `factId`, kierunek, tryb, typ i nazwę interfejsu, dowód,
+referencję request/response oraz uczestników w kolejności pierwszego użycia. Response może
+wybrać tylko operację katalogu po jej request. Dotychczasowe sprzeczności
+`evidence-conflict`, `interaction-mode-mismatch`, `interface-type-mismatch` i
+`interface-name-mismatch` nie mają reprezentacji w grounded wire planie.
+
+`user-stated-interaction` pozostaje odrębną ścieżką dla znanych końców i dokładnie jednego
+`flowEvidenceId`, z lokalnym odrzuceniem konfliktu z relacją źródłową i jawnego zakazu.
+Reviewer musi potwierdzić każdą referencję. D1.2 obsługuje tu tylko request i asynchronous;
+user-stated response nie ma kontraktu. Renderer otrzymuje resolved plan, wypisuje końcowy LF,
+mapę fizycznych linii i przechodzi document validator oraz parser kontrolny. Raport v2 wskazuje
+`operationId` albo `flowEvidenceId` i źródło; raport v1 oraz stara komenda są nietknięte.
+
+Opcjonalne `archiAgent.diagnostics.verbose` ma `default: false`, `scope: machine` i zapisuje
+ograniczone JSON Lines do istniejącego Output Channel **Archi Agent**. Każdy rozpoczęty run kończy
+się jednym `run.completed` z licznikami 0/1/2. Sink nie dostaje promptów, pełnych odpowiedzi,
+body, sekretów, nagłówków autoryzacji, etykiet wiadomości, PlantUML, pełnego flow ani Knowledge
+Pack, odpowiedzi błędu dostawcy i absolutnych ścieżek. Brak sinka nie zmienia pipeline.
+
+Automatyczne bramki tej korekty: `npm ci`, celowane testy kontraktu/runtime/providerów/
+rozszerzenia/pakowania (12 plików, 171 testów), `npm test` (86 plików, 1242 testy), oba
+typechecki, `extension:test` (9 plików, 160 testów), build/package/verify, `demo:dry-run`
+i pakowany runtime uruchomiony poza repo (1/1) — PASS. Finalny lokalny VSIX ma dokładnie
+6 wpisów, 200416 B i SHA-256
+`8f103dc705be99b78e4e3832a1f6ce47337983b14a674bf2f7c376201351c2a9`.
+Skan obu bundle i wszystkich zdekompresowanych wpisów na syntetyczny sentinel i wzorce
+credentiali nie znalazł trafień. Bieżący Git należy porównać z tym handoffem. Nie wykonano owner smoke z
+prawdziwym modelem. Pierwszy i kolejne dotychczasowe S1 pozostają FAIL; S1 nadal nie jest PASS.
+Następny krok to instalacja nowego VSIX i owner smoke S1. M1, D2 i gauntlet pozostają zablokowane.
+
+### D1.2 — korekta findings końcowego review Plan V2 (2026-09-22)
+
+Resolver odrzuca teraz przed reviewerem kodem `interaction-direction-mismatch` próbę zapisania
+jako user-stated odwrotności relacji source-confirmed z tą samą parą uczestników, typem interfejsu
+i nazwą równą po deterministycznym porównaniu bez rozróżniania wielkości liter; odrzuca też
+kandydata z `null`, gdy relacja źródłowa ma nazwę, oraz parę nazw `null`. Rzeczywiście inna
+niepusta nazwa lub inny typ interfejsu pozostaje kandydatem user-stated,
+a jawny forbid nadal blokuje lokalnie. Wspólna polityka tekstu PlantUML sprawdza etykietę bez
+zastępowania znaków: cudzysłów, backslash, CR/LF, kontrolki oraz istniejące niebezpieczne formy
+markup/directive/URL są odrzucane po jednym generatorze i przed rendererem/reviewerem.
+
+Centralny sanitizer identyfikatorów diagnostics wykrywa niezależnie od hosta absolutne ścieżki
+POSIX, Windows z oboma separatorami, UNC i każdy wariant `file:` (także `file:/` oraz wielkie
+litery), zastępując całość stałą redakcją bez basename
+i hasha. Testy transportowe analizują pełne schematy z rzeczywistych payloadów obu requestów dla
+LM Studio, Ollamy, Anthropic, OpenAI i OpenRouter: komplet required, zamknięte zagnieżdżone obiekty,
+enum/nullable i typy pól, brak pól rozstrzyganych lokalnie oraz właściwą projekcję limitów.
+Oczekiwania oracle są zapisane niezależnie od produkcyjnej funkcji budującej payload; pełne limity Zod
+pozostają lokalne.
+
+Bieżące bramki po korekcie trzech końcowych findings: testy celowane 28/28, `npm ci`, `npm test`
+1244/1244 (bez zmiany względem 1244; dwa wcześniejsze testy zbiorcze zawierają teraz dodatkowe
+przypadki), oba typechecki, `extension:test`
+161/161, build/package/verify, `demo:dry-run` i runtime wyjęty z VSIX poza repo 1/1 — PASS.
+VSIX ma dokładnie 6 dozwolonych wpisów, 200585 B i SHA-256
+`0daf101b1dae06d317e99c5b527d13feac63de708513bfa8f7300458985dd673`. Skan obu bundle i
+zdekompresowanych wpisów nie wykazał sentinela, credentiali ani absolutnych ścieżek testowych.
+Owner smoke nie był wykonywany: S1 nadal FAIL/not passed i wymaga ponowienia na tym VSIX; M1, D2
+i gauntlet pozostają zablokowane.
+
+### D1.2 — Split Wire Plan v3 (2026-09-23)
+
+Ostatni rzeczywisty owner smoke S1 z Ollamą `qwen3:30b` zwrócił poprawny JSON, lecz każdy
+płaski krok oznaczył jako `user-stated-interaction`, równocześnie podając
+`operationId: "op-0001"`. Lokalny walidator odrzucił go kodem `user-stated-fields-invalid`:
+`generatorCalls: 1`, `reviewerCalls: 0`. To nadal FAIL, podobnie jak pierwszy i wszystkie
+poprzednie S1.
+
+Wire Plan v3 ma dokładnie `version: 3`, wymagane `groundedSteps` i `userStatedSteps`.
+Grounded step zawiera tylko `order`, `operationId`, `label`; user-stated step zawiera `order`,
+`fromId`, `toId`, `interactionKind`, `interfaceType`, nullable `interfaceName`,
+`flowEvidenceId`, `label`. Nie ma `stepType` ani pól drugiego wariantu ustawianych na `null`.
+Resolver sprawdza globalnie dodatnie, unikalne i ciągłe `order` od 1, scala listy bez
+renumeracji, a następnie stosuje dotychczasowe sprawdzenia katalogu, źródeł, forbid i reviewera.
+Renderer i raport v2 zachowują dotychczasową semantykę. Stary płaski krok V2 nie przechodzi
+schema v3 i nie jest naprawiany; reviewer nie otrzymuje odrzuconego planu.
+
+Bieżąca weryfikacja: testy celowane 43/43; `npm ci`; `npm test` 1245/1245; oba typechecki;
+`extension:test` 163/163; build/package/verify; `demo:dry-run` — PASS. Test pakowania
+uruchomił runtime wyjęty z VSIX poza repo, bez `node_modules` i npm na PATH. Pięć profili
+transportowych ma testy rzeczywistych payloadów schemas generatora v3 i reviewera oraz dwóch
+requestów. Regresja S1 z czterema uczestnikami, dwiema relacjami source-confirmed, dwoma
+grounded steps i jednym user-stated asynchronous step przeszła z raportem v2 i wspólnym
+digestem.
+
+Nowy lokalny VSIX `vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix` ma 6 dozwolonych
+wpisów, 201019 B i SHA-256
+`187e28f9033ee4114444bfd33febae38d1afef60b4428601b0466a40743ca4ca`.
+Skan obu bundle oraz wszystkich zdekompresowanych wpisów nie znalazł sentinela, wzorców
+credentiali ani absolutnych ścieżek testowych. W tej sesji nie było owner smoke ani
+prawdziwych requestów internetowych. S1 nadal nie jest PASS. Należy zainstalować ten VSIX;
+następnym krokiem jest dokładnie jeden owner smoke z verbose. M1, D2 i gauntlet pozostają
+zablokowane.
+
+### D1.2 — minimalny reviewer i świadome otwarcie niezweryfikowanego kandydata (2026-09-23)
+
+Rzeczywisty owner smoke Wire Plan v3 na Ollamie `qwen3:30b` przeszedł grounding, katalog,
+parsowanie planu (4 grounded, 1 user-stated), resolver, renderer i lokalne kontrole PlantUML.
+Powstał 11-liniowy kandydat z 4 uczestnikami i 5 wiadomościami. Drugi request zakończył się
+`truncated-output`, więc S1 pozostaje FAIL. W tej sesji nie wykonywano ponownego owner smoke.
+
+Reviewer zwraca teraz dokładnie `accepted`, `confirmedUserStatedFactIds` i `violations` z
+zamkniętym enumem czterech kodów oraz nullable `factId`. Nie ma free-text wyjaśnień. Lokalny
+walidator sprawdza komplet potwierdzeń, referencje, duplikaty i spójność z `accepted`. Limit
+odpowiedzi reviewera wynosi 8192 tokenów przy maksymalnie 512 potwierdzeniach lub 32
+naruszeniach; generator pozostaje na 16384. Po pełnej lokalnej walidacji, ale nieudanym lub
+odrzucającym review, `generateDiagram` zwraca typowany `unverified` z dokładnym kandydatem i
+bezpiecznymi kodami, bez raportu v2. Komenda pyta modalnie; Show otwiera jeden niezapisany,
+oznaczony dokument PlantUML, Cancel albo zamknięcie monitu niczego nie otwiera. Cancellation
+reviewera nie oferuje kandydata. Brak retry, repair, fallbacku i trzeciego requestu.
+
+Bieżące bramki: testy celowane 96/96; `npm ci`; `npm test` 1255/1255; root i extension
+typecheck; `extension:test` 172/172; build, package, verify, `demo:dry-run` oraz osobny test
+runtime wyjętego z VSIX poza repo 1/1 — PASS. Pierwsze równoległe uruchomienie `npm test` i
+`extension:test` spowodowało kolizję testów pakowania na wspólnym `dist` i timeout; powtórzony
+sekwencyjnie `extension:test` przeszedł. Pięć providerów ma testy rzeczywistych schematów
+minimalnego werdyktu i dwóch requestów. VSIX ma 6 dozwolonych wpisów, 201922 B, SHA-256
+`91ba751943b16a3e469cb5cf2d4070f896367206b4c1a467f69caf31500e822b`. Skan obu
+bundle i zdekompresowanych wpisów nie znalazł sentinela, wzorców credentiali ani bezwzględnych
+ścieżek testowych. Bieżący Git należy porównać z tym handoffem. Nie wykonano commit ani push.
+
+### D1.2 — diagnoza `invalid-verdict` i punktowa korekta reviewera (2026-09-23)
+
+Nowszy owner smoke Wire Plan v3 na `qwen3:30b` przeszedł wszystkie lokalne kontrole i wyrenderował
+11-liniowego kandydata (4 grounded, 1 user-stated, 4 uczestników, 5 wiadomości). Odpowiedź
+reviewera została odebrana, lecz walidacja zwróciła ogólne `invalid-verdict`. Oryginalna surowa
+odpowiedź nie została zachowana, więc jej dokładnej zawartości nie można dowieść retrospektywnie.
+Kontrolowany request tylko do reviewera, na odtworzonym produkcyjnym snapshotcie o digescie
+`869d4f0629214f7d669b58900dfbc3baf2a3a0a0075faf16c01f190be06995eb` i dokładnie
+tym samym kandydacie, zwrócił `accepted: true`, pustą listę naruszeń oraz potwierdzenia
+`fact-0001`, `fact-0002`, `fact-0005`. Jedynym faktem user-stated jest `fact-0005`.
+Pierwszy nieudany etap reprodukcji to lokalna reguła dokładnego zestawu potwierdzeń;
+transport, JSON, schema i referencje faktów przeszły. Pierwszy request z sandboxu zakończył się
+`connection-failed`; drugi, poza sandboxem, zwrócił werdykt. Nie wywołano generatora ani
+trzeciego requestu. Surowa odpowiedź reprodukcji i analiza pozostały poza repozytorium.
+
+Krótki prompt teraz wymaga potwierdzania wyłącznie faktów user-stated i dokładnego ich zestawu
+przy akceptacji. Lokalna walidacja zachowuje fail-closed oraz publiczne `invalid-verdict`, ale
+`reviewer.failed` dodaje allowlistowany podkod, boolean `accepted` i liczby potwierdzeń/naruszeń.
+W tej reprodukcji podkod to `accepted-confirmations-mismatch`. Pozostałe podkody pokrywają
+schema, nieobsługiwany kod naruszenia, sprzeczność accepted/violations, pustą lub sprzeczną
+odmowę, nieznane referencje i duplikaty. Diagnostics nie zawierają odpowiedzi, promptu, flow,
+Knowledge Pack ani PlantUML. Regresje obejmują ten sam kształt 4+1, werdykt wadliwy i poprawny,
+2 wywołania, brak raportu dla unverified oraz Show/Cancel w komendzie VS Code.
+
+Bieżące bramki: testy celowane 80/80, `npm ci`, `npm test` 1257/1257, oba typechecki,
+`extension:test` 174/174, build/package/verify oraz `demo:dry-run` — PASS. Test pakowania
+uruchomił runtime wyjęty z VSIX poza repo. Pierwsze równoległe uruchomienie `npm test` i
+`extension:test` ponownie wywołało kolizję na wspólnym katalogu build i timeout;
+sekwencyjny `extension:test` przeszedł. VSIX ma 6 wpisów, 202425 B, SHA-256
+`e96d67a3a1453167f34e331cf98d527945a24c9a710fc7d40f22293b1ede1fa4`.
+Skan nie znalazł sentinela, credentiali ani absolutnych ścieżek testowych. Po korekcie nie
+wykonywano owner smoke. S1 pozostaje FAIL, M1, D2 i gauntlet pozostają zablokowane.
+
+Następny krok: zainstalować ten VSIX i ponowić owner smoke S1 z verbose. Normalny S1 PASS wymaga
+verified outcome; otwarcie unverified candidate nie jest PASS. M1, D2 i gauntlet są zablokowane.
+
+### Owner smoke S1 — PASS (2026-09-23)
+
+Właściciel potwierdził verified outcome na samowystarczalnym VSIX poza repozytorium:
+provider profile `local-ollama`, model `qwen3:30b`, generator type
+`openai-compatible-local`, diagram type `sequence`, generation path
+`reviewed-plan-rendered`, Wire Plan version 3. Wykonano 1 generator call i 1 reviewer call,
+łącznie 2 model calls, bez retry, repair, fallbacku ani trzeciego requestu. Reviewer zwrócił
+`accept`; normalny sukces nie pokazał modalu unverified. Wcześniejszą ścieżkę unverified
+candidate sprawdzono podczas poprzedniej próby.
+
+Powstały diagram i grounding report v2: 4 uczestników, 5 wiadomości, 4 fakty
+source-confirmed i 1 user-stated. Raport v2 zawierał ślad fact → evidence → source/line;
+reviewer potwierdził fakt user-stated. Snapshot digest:
+`sha256:869d4f0629214f7d669b58900dfbc3baf2a3a0a0075faf16c01f190be06995eb`.
+Całkowity czas smoke: 167036 ms; generator: 110686 ms; reviewer: 56328 ms.
+Safe verbose diagnostics potwierdziły pełną politykę 0/1/2 wywołań.
+
+D1.2 jest ukończone, S1 PASS. M1 i gauntlet zostały odblokowane, lecz nie wdrożone;
+następnym milestone implementacyjnym według aktualnej roadmapy jest M1, po nim D2.
+
+Końcowa weryfikacja w tej sesji: `npm test` 1257/1257, `npm run typecheck`,
+`npm run extension:typecheck`, `npm run extension:test` 174/174,
+`npm run extension:build`, `npm run extension:package`, `npm run extension:verify`
+i `npm run demo:dry-run` — PASS, uruchomione sekwencyjnie. Runtime wyjęty z finalnego
+VSIX uruchomiono poza repozytorium bez root `node_modules` — PASS. Finalny VSIX ma
+202425 B, SHA-256 `c23ea01cedcf23b9d3c26e236653e1dc5deadd23e0ca9b78ea32b957e8d044fc`
+i dokładnie 6 dozwolonych wpisów; skan obu bundle i zdekompresowanych wpisów na
+syntetyczny sentinel, wzorce credentiali i absolutne ścieżki testowe — PASS.

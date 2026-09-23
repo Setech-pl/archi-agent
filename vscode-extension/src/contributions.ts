@@ -29,6 +29,7 @@ export const settingKeys = Object.freeze({
   localModelSelectedModel: "localModel.selectedModel",
   localModelSelectedModelProfile: "localModel.selectedModelProfile",
   localModelTimeoutSeconds: "localModel.timeoutSeconds",
+  diagnosticsVerbose: "diagnostics.verbose",
   defaultAuthor: "defaultAuthor"
 });
 

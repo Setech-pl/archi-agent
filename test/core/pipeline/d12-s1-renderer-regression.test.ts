@@ -3,7 +3,7 @@ import { parseFlowDocument } from "../../../src/core/grounding/grounded-context-
 import { InMemoryKnowledgePackSource } from "../../../src/core/knowledge-pack/in-memory-knowledge-pack-source.js";
 import { loadKnowledgePack } from "../../../src/core/knowledge-pack/knowledge-pack-loader.js";
 import { knowledgePackArchitectureProvider } from "../../../src/core/pipeline/reviewed-sequence.js";
-import { renderSequencePlan, validateSequencePlan } from "../../../src/core/pipeline/sequence-diagram-plan.js";
+import { createOperationCatalog, renderSequencePlan, validateSequencePlan } from "../../../src/core/pipeline/sequence-diagram-plan.js";
 import { validatePlantUmlDocument } from "../../../src/core/validation/plantuml-document-validator.js";
 import { validatePlantUmlSubset } from "../../../src/core/validation/plantuml-validator.js";
 import { buildPackFiles } from "../../doubles/knowledge-pack-fixture.js";
@@ -33,17 +33,17 @@ describe("D1.2 S1-shaped renderer regression", () => {
     expect(resolved.status).not.toBe("blocked");
     if (!resolved.snapshot) return;
     const snapshot = resolved.snapshot;
-    const evidence = (fromId: string, toId: string) => snapshot.relationships.find((entry) => entry.fromId === fromId && entry.toId === toId)!.evidenceId;
-    const source = (factId: string, fromId: string, toId: string, kind: "request" | "interaction" | "response", requestFactId: string | null, label: string, evidenceId: string) =>
-      ({ factId, fromId, toId, kind, requestFactId, label, evidenceClass: "source-confirmed", evidenceId, flowEvidenceId: null, proposed: null });
-    const plan = { planVersion: 1, participantIds: ["requester", "work-service", "audit-store", "notification-hub"], messages: [
-      source("m1", "requester", "work-service", "request", null, "Submit work", evidence("requester", "work-service")),
-      source("m2", "work-service", "audit-store", "request", null, "Write record", evidence("work-service", "audit-store")),
-      source("m3", "audit-store", "work-service", "response", "m2", "Recorded", evidence("work-service", "audit-store")),
-      source("m4", "work-service", "notification-hub", "interaction", null, "Work ready", evidence("work-service", "notification-hub")),
-      { factId: "m5", fromId: "audit-store", toId: "requester", kind: "interaction", requestFactId: null, label: "Notify requester",
-        evidenceClass: "user-stated", evidenceId: null, flowEvidenceId: snapshot.flowEvidence[2]!.flowEvidenceId,
-        proposed: { interfaceType: "EVENT", interfaceName: "Record Notice", mode: "synchronous" } }
+    const catalog = createOperationCatalog(snapshot);
+    const source = (order: number, fromId: string, toId: string, kind: "request" | "response" | "asynchronous", label: string) =>
+      ({ order, operationId: catalog.find((entry) => entry.fromId === fromId && entry.toId === toId && entry.kind === kind)!.operationId, label });
+    const plan = { version: 3, groundedSteps: [
+      source(1, "requester", "work-service", "request", "Submit work"),
+      source(2, "work-service", "audit-store", "request", "Write record"),
+      source(3, "audit-store", "work-service", "response", "Recorded"),
+      source(4, "work-service", "notification-hub", "asynchronous", "Work ready")
+    ], userStatedSteps: [
+      { order: 5, fromId: "audit-store", toId: "requester", interactionKind: "request", label: "Notify requester",
+        interfaceType: "EVENT", interfaceName: "Record Notice", flowEvidenceId: snapshot.flowEvidence[2]!.flowEvidenceId }
     ] };
     const checked = validateSequencePlan(plan, snapshot);
     expect(checked.ok).toBe(true);
@@ -51,7 +51,7 @@ describe("D1.2 S1-shaped renderer regression", () => {
     const rendered = renderSequencePlan(checked.value, snapshot);
     const golden = '@startuml\nactor "Requester" as kp_requester\nparticipant "Work Service" as kp_work_service\ndatabase "Audit Store" as kp_audit_store\nqueue "Notification Hub" as kp_notification_hub\nkp_requester -> kp_work_service : Submit work (REST API: Submit Work)\nkp_work_service -> kp_audit_store : Write record (DB: Record Writer)\nkp_audit_store --> kp_work_service : Recorded (DB: Record Writer)\nkp_work_service ->> kp_notification_hub : Work ready (EVENT: Work Ready)\nkp_audit_store -> kp_requester : Notify requester (EVENT: Record Notice)\n@enduml\n';
     expect(rendered.plantUml).toBe(golden);
-    expect(Object.fromEntries(rendered.lines)).toEqual({ m1: 6, m2: 7, m3: 8, m4: 9, m5: 10 });
+    expect(Object.fromEntries(rendered.lines)).toEqual({ "fact-0001": 6, "fact-0002": 7, "fact-0003": 8, "fact-0004": 9, "fact-0005": 10 });
     expect(rendered.plantUml.endsWith("\n")).toBe(true);
     expect(rendered.plantUml.match(/@startuml/g)).toHaveLength(1);
     expect(rendered.plantUml.match(/@enduml/g)).toHaveLength(1);

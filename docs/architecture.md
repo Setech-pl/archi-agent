@@ -232,23 +232,46 @@ ArchitectureSnapshot + digest
   → local decision → result and report v2
 ```
 
-The generator chooses elements, relationships, interactions and order. It returns no PlantUML.
+The generator chooses grounded operations or user-stated interactions and their order. It returns no PlantUML.
 Local validation checks grounding, evidence, modes and type-specific constraints. The renderer
 controls PlantUML syntax, aliases, element kinds, arrows, interface names and escaping.
-The reviewer receives the same snapshot and digest, plan, evidence and rendered candidate;
-it returns only a strict verdict and fact/evidence references, without rendering or repair.
+The reviewer receives the same snapshot and digest, resolved plan, evidence and rendered candidate;
+it returns only `accepted`, `confirmedUserStatedFactIds` and closed `{ code, factId }` violations,
+without explanations, rendering or repair. Local code checks the entire verdict. Verified success
+returns PlantUML and report v2. After all local validations, a rejected or failed review yields a
+typed unverified candidate. VS Code offers it in one modal and, only on Show, opens one untitled
+PlantUML document with fixed warning comments. Cancellation offers nothing. No retry, repair,
+fallback or third request is used.
 The same configured provider and model serve both separate calls. Invalid input makes zero
 model calls; local rejection makes one; success makes exactly two. No retry, repair, fallback
 or third call. Report v2 contains no prompts or raw responses.
 
-D1.2 implements `sequence` first. Its plan has ordered participant IDs and message facts with
-stable fact IDs, kinds, response references, safe labels and exactly one evidence class. A
-source-confirmed fact cites a snapshot relationship; local code derives its direction, mode,
-interface type and exact name. A user-stated fact cites a physical flow line and proposed
-interface data, which the reviewer must confirm by fact ID and flow evidence ID. The renderer
+D1.2 implements `sequence` first. Wire Plan v3 has `version: 3` and separate required
+`groundedSteps` and `userStatedSteps` lists. Each step has a global `order`; the resolver
+rejects duplicates and gaps, then merges the lists without renumbering.
+For source-confirmed relationships, local code builds a deterministic catalog of opaque
+`operationId` values. The model chooses an operation and supplies only its label; a locally
+linked response operation requires its request to appear earlier. A separate user-stated step
+names known endpoints, request or asynchronous interaction, interface data and one physical
+`flowEvidenceId`. User-stated response is outside the D1.2 contract. The resolver derives
+participants in first-use order and assigns fact IDs, directions, modes, interfaces and evidence
+from the snapshot or the checked user-stated step. Reviewer confirmation is required for each
+user-stated fact. Reversing the same source-confirmed interface as user-stated is rejected locally;
+an independent reverse interface remains eligible. Labels pass the shared safe PlantUML text
+policy before rendering and are never silently rewritten. The renderer
 uses the shared canonical alias allocator and participant keywords, emits one bounded PlantUML
-document with terminal LF, and maps each fact to its physical line. Report v2 records those lines
-and evidence sources without prompts or raw responses.
+document with terminal LF, and maps each fact to its physical line. Report v2 records those lines,
+operation or flow evidence IDs and evidence sources without prompts or raw responses.
+
+The active VS Code command can send bounded JSON Lines diagnostics to the existing **Archi Agent**
+Output Channel when `archiAgent.diagnostics.verbose` is enabled. It is off by default and never
+records prompts, model responses, secrets, message labels, full PlantUML or absolute local paths.
+Its central identifier sanitizer redacts POSIX, Windows drive, UNC and all `file:` URI forms
+independently of the host platform.
+The latest S1 owner smoke with Ollama `qwen3:30b` used Wire Plan v3 and passed the local resolver,
+renderer, document validator and subset parser: four grounded and one user-stated step produced
+an 11-line candidate. The reviewer returned `truncated-output`. S1 remains FAIL; an unverified
+candidate does not count as acceptance. A new owner smoke must return a verified outcome.
 
 S1 follows D1.2; then M1, D2, C1, D3, D4 and D5
 follow the roadmap order. Each diagram type gets its own plan contract, validator and renderer,

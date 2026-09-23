@@ -7,7 +7,9 @@ import type {
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult
 } from "../../../src/runtime/index.js";
+import type { GenerateDiagramOutcome } from "../../../src/runtime/index.js";
 import type { DiagramType } from "../../../src/runtime/index.js";
+import type { DiagnosticSink } from "../../../src/runtime/index.js";
 import { localLmStudioProfileId } from "../../../src/runtime/index.js";
 import type { ArchiAgentSettings } from "../settings.js";
 
@@ -35,10 +37,11 @@ export interface SequenceGenerationSessionOptions {
   /** Upper bound of resolution rounds; defaults to sessionLimits.maxResolutionRounds. */
   readonly maxRounds?: number;
   readonly diagramType?: DiagramType;
+  readonly diagnosticSink?: DiagnosticSink;
 }
 
 export type SequenceGenerationSessionOutcome =
-  | { readonly status: "completed"; readonly result: GenerateSequenceDiagramResult; readonly rounds: number }
+  | { readonly status: "completed"; readonly result: GenerateSequenceDiagramResult | GenerateDiagramOutcome; readonly rounds: number }
   | { readonly status: "cancelled" };
 
 export const sessionLimits = Object.freeze({ maxResolutionRounds: 3 });
@@ -101,7 +104,8 @@ export async function runSequenceGenerationSession(options: SequenceGenerationSe
 
     const result = options.diagramType === undefined
       ? await options.runtime.generateSequenceDiagram(request)
-      : await options.runtime.generateDiagram!({ ...request, diagramType: options.diagramType });
+      : await options.runtime.generateDiagram!({ ...request, diagramType: options.diagramType,
+        ...(options.diagnosticSink === undefined ? {} : { diagnosticSink: options.diagnosticSink }) });
 
     if (result.status !== "failed" || !isResolvable(result) || rounds >= maxRounds) {
       return Object.freeze({ status: "completed", result, rounds });

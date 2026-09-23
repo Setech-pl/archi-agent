@@ -22,6 +22,7 @@ export interface RecordedMessage {
   readonly level: "error" | "warning" | "info";
   readonly text: string;
   readonly actions: readonly string[];
+  readonly modal?: boolean;
 }
 
 export interface RecordedShownDocument {
@@ -118,8 +119,8 @@ export function makeDocument(text: string, options: { fileName?: string; languag
   });
 }
 
-function record(level: RecordedMessage["level"], text: string, actions: readonly string[]): Promise<string | undefined> {
-  state.messages.push(Object.freeze({ level, text, actions: Object.freeze([...actions]) }));
+function record(level: RecordedMessage["level"], text: string, actions: readonly string[], modal?: boolean): Promise<string | undefined> {
+  state.messages.push(Object.freeze({ level, text, actions: Object.freeze([...actions]), ...(modal === undefined ? {} : { modal }) }));
   return Promise.resolve(state.messageAnswers.shift());
 }
 
@@ -183,8 +184,9 @@ export const window = {
   showErrorMessage(text: string, ...actions: string[]): Promise<string | undefined> {
     return record("error", text, actions);
   },
-  showWarningMessage(text: string, ...actions: string[]): Promise<string | undefined> {
-    return record("warning", text, actions);
+  showWarningMessage(text: string, ...actions: (string | { modal?: boolean })[]): Promise<string | undefined> {
+    return record("warning", text, actions.filter((action): action is string => typeof action === "string"),
+      actions.some((action) => typeof action === "object" && action.modal === true) ? true : undefined);
   },
   showInformationMessage(text: string, ...actions: string[]): Promise<string | undefined> {
     return record("info", text, actions);

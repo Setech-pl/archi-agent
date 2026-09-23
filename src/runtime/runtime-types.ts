@@ -1,6 +1,9 @@
 import type { CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import type { GenerationSummary } from "../core/pipeline/generation-outcome.js";
 import type { ProviderProfile } from "../core/llm/provider-profile.js";
+import type { DiagnosticSink } from "../core/pipeline/diagnostics.js";
+import type { ReviewProblemCode } from "../core/pipeline/generate-diagram.js";
+import type { SequenceReviewViolationCode } from "../core/pipeline/sequence-diagram-plan.js";
 import type { DiagramType } from "../core/model/diagram-type.js";
 
 /**
@@ -107,6 +110,7 @@ export interface GenerateSequenceDiagramRequest {
 
 export interface GenerateDiagramRequest extends GenerateSequenceDiagramRequest {
   readonly diagramType: DiagramType;
+  readonly diagnosticSink?: DiagnosticSink;
 }
 
 export type RuntimeIssueSeverity = "error" | "warning";
@@ -184,6 +188,13 @@ export interface GenerateSequenceDiagramFailure {
 }
 
 export type GenerateSequenceDiagramResult = GenerateSequenceDiagramSuccess | GenerateSequenceDiagramFailure;
+export interface GenerateDiagramUnverified {
+  readonly status: "unverified";
+  readonly plantUmlCandidate: string;
+  readonly review: { readonly status: "rejected"; readonly violationCodes: readonly SequenceReviewViolationCode[] }
+    | { readonly status: "failed"; readonly problemCode: ReviewProblemCode };
+}
+export type GenerateDiagramOutcome = GenerateSequenceDiagramResult | GenerateDiagramUnverified;
 
 export type ListLocalModelsResult =
   | { readonly ok: true; readonly models: readonly string[] }
@@ -200,7 +211,7 @@ export interface ListLocalModelsOptions {
  */
 export interface ArchiAgentRuntime {
   /** D1 entry point. Optional on legacy host doubles compiled against the sequence-only contract. */
-  generateDiagram?(request: GenerateDiagramRequest): Promise<GenerateSequenceDiagramResult>;
+  generateDiagram?(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome>;
   generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult>;
   /** Immutable profiles sorted by profileId; this method performs no I/O. */
   listProviderProfiles(): readonly ProviderProfile[];

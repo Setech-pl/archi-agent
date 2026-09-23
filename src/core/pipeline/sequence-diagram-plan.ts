@@ -1,142 +1,219 @@
 import { z } from "zod";
 import type { JsonSchemaObject } from "../llm/structured-chat-client.js";
 import { participantDeclarationKeywords, type ParticipantKind } from "../model/types.js";
-import { allocateAliases } from "../render/alias-allocator.js";
 import { displayTextProblem, messageLabelTextOptions, quotedName } from "../render/plantuml-escape.js";
 import { modelInterfaceTypeFromPack } from "../validation/relationship-validator.js";
 import type { InterfaceType as PackInterfaceType } from "../knowledge-pack/knowledge-pack.schema.js";
 import type { ArchitectureSnapshot } from "./reviewed-sequence.js";
 
 export const sequencePlanLimits = Object.freeze({ maxParticipants: 64, maxMessages: 512, maxIdChars: 128 });
-
 const id = z.string().min(1).max(sequencePlanLimits.maxIdChars).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
-const factId = z.string().min(1).max(32).regex(/^[A-Za-z][A-Za-z0-9_-]*$/);
-const proposed = z.strictObject({ interfaceType: z.enum(["REST API", "SOAP", "EVENT", "FILE", "DB", "INTERNAL"]), interfaceName: z.string().max(160).nullable(), mode: z.enum(["synchronous", "asynchronous"]) });
-const message = z.strictObject({ factId, fromId: id, toId: id, kind: z.enum(["request", "interaction", "response"]), requestFactId: factId.nullable(), label: z.string().min(1).max(320), evidenceClass: z.enum(["source-confirmed", "user-stated"]), evidenceId: id.nullable(), flowEvidenceId: id.nullable(), proposed: proposed.nullable() });
-export const sequenceDiagramPlanSchema = z.strictObject({ planVersion: z.literal(1), participantIds: z.array(id).min(1).max(sequencePlanLimits.maxParticipants), messages: z.array(message).min(1).max(sequencePlanLimits.maxMessages) });
+const order = z.number().int().min(1).max(sequencePlanLimits.maxMessages);
+const groundedStep = z.strictObject({ order, operationId: id, label: z.string().min(1).max(320) });
+const userStatedStep = z.strictObject({ order, fromId: id, toId: id,
+  interactionKind: z.enum(["request", "asynchronous"]),
+  interfaceType: z.enum(["REST API", "SOAP", "EVENT", "FILE", "DB", "INTERNAL"]),
+  interfaceName: z.string().max(160).nullable(), flowEvidenceId: id, label: z.string().min(1).max(320) });
+export const sequenceDiagramPlanSchema = z.strictObject({ version: z.literal(3),
+  groundedSteps: z.array(groundedStep).max(sequencePlanLimits.maxMessages),
+  userStatedSteps: z.array(userStatedStep).max(sequencePlanLimits.maxMessages) });
 export type SequenceDiagramPlan = z.infer<typeof sequenceDiagramPlanSchema>;
-
 const { $schema: _schema, ...wire } = z.toJSONSchema(sequenceDiagramPlanSchema, { target: "draft-2020-12", io: "input" });
 export const sequencePlanResponseSchema = Object.freeze(wire as JsonSchemaObject);
 
-export interface ValidatedSequenceFact {
-  readonly fact: SequenceDiagramPlan["messages"][number];
-  readonly evidenceId: string;
-  readonly evidenceClass: "source-confirmed" | "user-stated";
-  readonly interfaceType: string;
-  readonly interfaceName: string | null;
-  readonly mode: "synchronous" | "asynchronous";
-  readonly fromId: string;
-  readonly toId: string;
-  readonly source: { readonly file: string; readonly line: number };
+export interface AllowedOperation {
+  readonly operationId: string; readonly kind: "request" | "response" | "asynchronous";
+  readonly fromId: string; readonly toId: string; readonly relationshipEvidenceId: string;
+  readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: "synchronous" | "asynchronous";
+  readonly requestOperationId: string | null; readonly source: { readonly file: string; readonly line: number };
+  readonly purpose: string;
 }
-export interface ValidatedSequencePlan { readonly plan: SequenceDiagramPlan; readonly facts: readonly ValidatedSequenceFact[] }
-export type PlanValidation = { readonly ok: true; readonly value: ValidatedSequencePlan } | { readonly ok: false; readonly code: string };
+export function createOperationCatalog(snapshot: ArchitectureSnapshot): readonly AllowedOperation[] {
+  const result: AllowedOperation[] = [];
+  for (const relation of snapshot.relationships) {
+    const nextId = () => `op-${String(result.length + 1).padStart(4, "0")}`;
+    const common = { relationshipEvidenceId: relation.evidenceId,
+      interfaceType: modelInterfaceTypeFromPack(relation.interfaceType as PackInterfaceType),
+      interfaceName: relation.interfaceName, source: relation.source, purpose: relation.purpose };
+    if (relation.mode === "asynchronous") {
+      result.push({ ...common, operationId: nextId(), kind: "asynchronous", fromId: relation.fromId, toId: relation.toId,
+        mode: "asynchronous", requestOperationId: null });
+    } else {
+      const requestOperationId = nextId();
+      result.push({ ...common, operationId: requestOperationId, kind: "request", fromId: relation.fromId, toId: relation.toId,
+        mode: "synchronous", requestOperationId: null });
+      result.push({ ...common, operationId: nextId(), kind: "response", fromId: relation.toId, toId: relation.fromId,
+        mode: "synchronous", requestOperationId });
+    }
+  }
+  return result;
+}
 
+export interface ResolvedSequenceFact {
+  readonly factId: string; readonly label: string; readonly kind: "request" | "response" | "asynchronous";
+  readonly requestFactId: string | null; readonly operationId: string | null; readonly flowEvidenceId: string | null;
+  readonly evidenceId: string; readonly evidenceClass: "source-confirmed" | "user-stated";
+  readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: "synchronous" | "asynchronous";
+  readonly fromId: string; readonly toId: string; readonly source: { readonly file: string; readonly line: number };
+}
+export interface ResolvedSequencePlan {
+  readonly version: 3; readonly snapshotDigest: string; readonly participantIds: readonly string[];
+  readonly facts: readonly ResolvedSequenceFact[];
+}
+export type PlanValidation = { readonly ok: true; readonly value: ResolvedSequencePlan } |
+  { readonly ok: false; readonly code: string; readonly stepIndex?: number; readonly list?: "groundedSteps" | "userStatedSteps";
+    readonly order?: number; readonly operationId?: string; readonly flowEvidenceId?: string };
 function safeLabel(value: string): boolean {
-  return displayTextProblem(value.replace(/["\\]/g, "x"), messageLabelTextOptions) === undefined;
+  return displayTextProblem(value, messageLabelTextOptions) === undefined;
 }
-
-/** Validate every semantic choice before notation is built. */
 export function validateSequencePlan(raw: unknown, snapshot: ArchitectureSnapshot): PlanValidation {
   const parsed = sequenceDiagramPlanSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, code: "schema-violation" };
-  const plan = parsed.data;
-  const elements = new Map(snapshot.elements.map((entry) => [entry.id, entry]));
-  const relationships = new Map(snapshot.relationships.map((entry) => [entry.evidenceId, entry]));
-  const flow = new Map(snapshot.flowEvidence.map((entry) => [entry.flowEvidenceId, entry]));
-  const used = new Set(plan.participantIds);
-  if (used.size !== plan.participantIds.length || plan.participantIds.some((key) => !elements.has(key) || elements.get(key)?.kind === "new")) return { ok: false, code: "participant-reference" };
-  const seen = new Map<string, ValidatedSequenceFact>();
-  const facts: ValidatedSequenceFact[] = [];
-  const referenced = new Set<string>();
-  for (const fact of plan.messages) {
-    if (seen.has(fact.factId) || !used.has(fact.fromId) || !used.has(fact.toId) ||
-        !safeLabel(fact.label)) return { ok: false, code: "fact-reference" };
-    const response = fact.kind === "response";
-    const relationshipFrom = response ? fact.toId : fact.fromId;
-    const relationshipTo = response ? fact.fromId : fact.toId;
-    if (snapshot.rules.some((rule) => rule.rule === "forbid" && rule.fromId === relationshipFrom && rule.toId === relationshipTo)) return { ok: false, code: "forbidden-interaction" };
-    let selected: ValidatedSequenceFact;
-    if (fact.evidenceClass === "source-confirmed") {
-      const evidence = fact.evidenceId === null ? undefined : relationships.get(fact.evidenceId);
-      if (!evidence || fact.flowEvidenceId !== null || fact.proposed !== null || evidence.fromId !== relationshipFrom || evidence.toId !== relationshipTo) return { ok: false, code: "evidence-conflict" };
-      selected = { fact, evidenceId: evidence.evidenceId, evidenceClass: "source-confirmed", interfaceType: modelInterfaceTypeFromPack(evidence.interfaceType as PackInterfaceType), interfaceName: evidence.interfaceName,
-        mode: evidence.mode as "synchronous" | "asynchronous", fromId: fact.fromId, toId: fact.toId, source: evidence.source };
-    } else {
-      const evidence = fact.flowEvidenceId === null ? undefined : flow.get(fact.flowEvidenceId);
-      if (!evidence || fact.evidenceId !== null || fact.proposed === null || elements.get(fact.fromId)?.kind === "new" || elements.get(fact.toId)?.kind === "new" ||
-          snapshot.relationships.some((entry) => (entry.fromId === relationshipFrom && entry.toId === relationshipTo) || (entry.fromId === relationshipTo && entry.toId === relationshipFrom)) ||
-          (fact.proposed.interfaceName !== null && displayTextProblem(fact.proposed.interfaceName, { maxChars: 160 }) !== undefined)) return { ok: false, code: "evidence-conflict" };
-      selected = { fact, evidenceId: evidence.flowEvidenceId, evidenceClass: "user-stated", interfaceType: fact.proposed.interfaceType, interfaceName: fact.proposed.interfaceName,
-        mode: fact.proposed.mode, fromId: fact.fromId, toId: fact.toId, source: { file: snapshot.flowFile, line: evidence.line } };
-    }
-    if (response) {
-      const request = fact.requestFactId === null ? undefined : seen.get(fact.requestFactId);
-      if (!request || request.fact.kind !== "request" || request.mode !== "synchronous" || selected.mode !== "synchronous" ||
-          request.fromId !== fact.toId || request.toId !== fact.fromId || request.evidenceClass !== selected.evidenceClass ||
-          (selected.evidenceClass === "source-confirmed" && request.evidenceId !== selected.evidenceId) ||
-          request.interfaceType !== selected.interfaceType || request.interfaceName !== selected.interfaceName) return { ok: false, code: "response-without-request" };
-    } else if (fact.requestFactId !== null || (fact.kind === "request" && selected.mode !== "synchronous")) return { ok: false, code: "interaction-mode-mismatch" };
-    seen.set(fact.factId, selected);
-    referenced.add(fact.fromId);
-    referenced.add(fact.toId);
-    facts.push(selected);
+  if (!parsed.success) {
+    const path = parsed.error.issues[0]?.path;
+    const list = path?.[0];
+    return { ok: false, code: "schema-violation",
+      ...(list === "groundedSteps" || list === "userStatedSteps" ? { list } : {}),
+      ...(typeof path?.[1] === "number" ? { stepIndex: path[1] } : {}) };
   }
-  if (referenced.size !== used.size) return { ok: false, code: "participant-reference" };
-  return { ok: true, value: { plan, facts } };
+  const combined = [
+    ...parsed.data.groundedSteps.map((item, stepIndex) => ({ list: "groundedSteps" as const, stepIndex, item })),
+    ...parsed.data.userStatedSteps.map((item, stepIndex) => ({ list: "userStatedSteps" as const, stepIndex, item }))
+  ];
+  if (combined.length === 0) return { ok: false, code: "empty-plan" };
+  if (combined.length > sequencePlanLimits.maxMessages) return { ok: false, code: "step-limit" };
+  const seenOrders = new Set<number>();
+  for (const entry of combined) {
+    if (seenOrders.has(entry.item.order)) return { ok: false, code: "duplicate-order", list: entry.list,
+      stepIndex: entry.stepIndex, order: entry.item.order };
+    seenOrders.add(entry.item.order);
+  }
+  combined.sort((left, right) => left.item.order - right.item.order);
+  for (const [index, entry] of combined.entries()) {
+    if (entry.item.order !== index + 1) return { ok: false, code: "order-gap", list: entry.list,
+      stepIndex: entry.stepIndex, order: entry.item.order };
+  }
+  const elements = new Map(snapshot.elements.map((entry) => [entry.id, entry]));
+  const operations = new Map(createOperationCatalog(snapshot).map((entry) => [entry.operationId, entry]));
+  const flow = new Map(snapshot.flowEvidence.map((entry) => [entry.flowEvidenceId, entry]));
+  const selected = new Map<string, ResolvedSequenceFact>();
+  const facts: ResolvedSequenceFact[] = [];
+  const participants = new Set<string>();
+  for (const [mergedIndex, entry] of combined.entries()) {
+    const { item, list, stepIndex } = entry;
+    const reject = (code: string): PlanValidation => ({ ok: false, code, list, stepIndex, order: item.order,
+      ...(list === "groundedSteps" && operations.has(item.operationId) ? { operationId: item.operationId } : {}),
+      ...(list === "userStatedSteps" && flow.has(item.flowEvidenceId) ? { flowEvidenceId: item.flowEvidenceId } : {}) });
+    if (!safeLabel(item.label)) return reject("label-invalid");
+    const localId = `fact-${String(mergedIndex + 1).padStart(4, "0")}`;
+    let fact: ResolvedSequenceFact;
+    if (list === "groundedSteps") {
+      const operation = operations.get(item.operationId);
+      if (operation === undefined) return reject("unknown-operation-id");
+      if (selected.has(operation.operationId)) return reject("duplicate-operation-id");
+      const request = operation.requestOperationId === null ? undefined : selected.get(operation.requestOperationId);
+      if (operation.kind === "response" && request === undefined) return reject("response-before-request");
+      fact = { factId: localId, label: item.label, kind: operation.kind, requestFactId: request?.factId ?? null,
+        operationId: operation.operationId, flowEvidenceId: null, evidenceId: operation.relationshipEvidenceId,
+        evidenceClass: "source-confirmed", interfaceType: operation.interfaceType, interfaceName: operation.interfaceName,
+        mode: operation.mode, fromId: operation.fromId, toId: operation.toId, source: operation.source };
+      selected.set(operation.operationId, fact);
+    } else {
+      const evidence = flow.get(item.flowEvidenceId);
+      if (evidence === undefined) return reject("unknown-flow-evidence-id");
+      if (!elements.has(item.fromId) || !elements.has(item.toId) || elements.get(item.fromId)?.kind === "new" ||
+          elements.get(item.toId)?.kind === "new") return reject("unknown-endpoint");
+      if (item.interfaceName !== null && displayTextProblem(item.interfaceName, { maxChars: 160 }) !== undefined) return reject("interface-name-invalid");
+      if (snapshot.relationships.some((entry) => entry.fromId === item.fromId && entry.toId === item.toId)) return reject("source-confirmed-conflict");
+      if (snapshot.relationships.some((entry) => entry.fromId === item.toId && entry.toId === item.fromId &&
+          modelInterfaceTypeFromPack(entry.interfaceType as PackInterfaceType) === item.interfaceType &&
+          (item.interfaceName === null || (entry.interfaceName !== null &&
+            entry.interfaceName.toLowerCase() === item.interfaceName.toLowerCase())))) return reject("interaction-direction-mismatch");
+      const mode = item.interactionKind === "request" ? "synchronous" : "asynchronous";
+      fact = { factId: localId, label: item.label, kind: item.interactionKind, requestFactId: null, operationId: null,
+        flowEvidenceId: evidence.flowEvidenceId, evidenceId: evidence.flowEvidenceId, evidenceClass: "user-stated",
+        interfaceType: item.interfaceType, interfaceName: item.interfaceName, mode, fromId: item.fromId, toId: item.toId,
+        source: { file: snapshot.flowFile, line: evidence.line } };
+    }
+    const ruleFrom = fact.kind === "response" ? fact.toId : fact.fromId;
+    const ruleTo = fact.kind === "response" ? fact.fromId : fact.toId;
+    if (snapshot.rules.some((rule) => rule.rule === "forbid" && rule.fromId === ruleFrom && rule.toId === ruleTo)) return reject("forbidden-interaction");
+    participants.add(fact.fromId); participants.add(fact.toId);
+    if (participants.size > sequencePlanLimits.maxParticipants) return reject("participant-limit");
+    facts.push(fact);
+  }
+  return { ok: true, value: { version: 3, snapshotDigest: snapshot.digest, participantIds: [...participants], facts } };
 }
 
 export interface RenderedSequence { readonly plantUml: string; readonly lines: ReadonlyMap<string, number> }
-
-/** The renderer uses only validated IDs and snapshot-derived notation facts. */
-export function renderSequencePlan(validated: ValidatedSequencePlan, snapshot: ArchitectureSnapshot): RenderedSequence {
-  const aliases = allocateAliases(snapshot.elements.map((entry) => entry.kind === "new" ? { newName: entry.id.slice(4) } : { elementId: entry.id }));
+export function renderSequencePlan(plan: ResolvedSequencePlan, snapshot: ArchitectureSnapshot): RenderedSequence {
+  if (plan.version !== 3 || plan.snapshotDigest !== snapshot.digest || !Array.isArray(plan.facts)) throw new Error("resolved-plan-required");
   const elements = new Map(snapshot.elements.map((entry) => [entry.id, entry]));
-  const alias = (key: string): string => aliases.get(key.startsWith("new:") ? key : `kp:${key}`)!;
   const lines = ["@startuml"];
-  for (const key of validated.plan.participantIds) {
+  for (const key of plan.participantIds) {
     const element = elements.get(key)!;
-    const kind = element.kind === "new" ? "system" : element.kind as ParticipantKind;
-    lines.push(`${participantDeclarationKeywords[kind]} ${quotedName(element.canonicalName)} as ${alias(key)}`);
+    lines.push(`${participantDeclarationKeywords[element.kind as ParticipantKind]} ${quotedName(element.canonicalName)} as ${element.alias}`);
   }
   const positions = new Map<string, number>();
-  for (const entry of validated.facts) {
-    const arrow = entry.fact.kind === "response" ? "-->" : entry.mode === "asynchronous" ? "->>" : "->";
-    const suffix = entry.interfaceName === null ? entry.interfaceType : `${entry.interfaceType}: ${entry.interfaceName}`;
-    const label = entry.fact.label.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    lines.push(`${alias(entry.fromId)} ${arrow} ${alias(entry.toId)} : ${label} (${suffix})`);
-    positions.set(entry.fact.factId, lines.length);
+  for (const fact of plan.facts) {
+    const arrow = fact.kind === "response" ? "-->" : fact.mode === "asynchronous" ? "->>" : "->";
+    const suffix = fact.interfaceName === null ? fact.interfaceType : `${fact.interfaceType}: ${fact.interfaceName}`;
+    const label = fact.label.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    lines.push(`${elements.get(fact.fromId)!.alias} ${arrow} ${elements.get(fact.toId)!.alias} : ${label} (${suffix})`);
+    positions.set(fact.factId, lines.length);
   }
   lines.push("@enduml");
   return { plantUml: `${lines.join("\n")}\n`, lines: positions };
 }
 
-const reviewIssue = z.strictObject({ code: z.enum(["coverage-gap", "meaning-mismatch", "abstraction-level", "unsupported-inference", "diagram-type-fit"]), factId: factId.nullable(), diagramLine: z.number().int().min(1).max(2000).nullable(), evidenceIds: z.array(id).max(16), explanation: z.string().min(1).max(500) });
-const confirmation = z.strictObject({ factId, flowEvidenceId: id });
-const reviewSchema = z.strictObject({ verdict: z.enum(["accept", "reject"]), violations: z.array(reviewIssue).max(32), confirmations: z.array(confirmation).max(sequencePlanLimits.maxMessages) });
+export const sequenceReviewViolationCodes = ["unsupported-user-stated-evidence", "sequence-inconsistency", "participant-inconsistency", "candidate-semantics-invalid"] as const;
+export type SequenceReviewViolationCode = typeof sequenceReviewViolationCodes[number];
+export const sequenceReviewLimits = Object.freeze({ maxConfirmations: sequencePlanLimits.maxMessages, maxViolations: 32, maxFactIdChars: 9, maxTokens: 8192 });
+const reviewFactId = z.string().max(sequenceReviewLimits.maxFactIdChars).regex(/^fact-[0-9]{4}$/);
+const reviewIssue = z.strictObject({ code: z.enum(sequenceReviewViolationCodes), factId: reviewFactId.nullable() });
+const reviewSchema = z.strictObject({ accepted: z.boolean(),
+  confirmedUserStatedFactIds: z.array(reviewFactId).max(sequenceReviewLimits.maxConfirmations),
+  violations: z.array(reviewIssue).max(sequenceReviewLimits.maxViolations) });
 const { $schema: _reviewSchema, ...reviewWire } = z.toJSONSchema(reviewSchema, { target: "draft-2020-12", io: "input" });
 export const sequenceReviewResponseSchema = Object.freeze(reviewWire as JsonSchemaObject);
-
-export function validateSequenceReview(raw: unknown, validated: ValidatedSequencePlan, rendered: RenderedSequence, snapshot: ArchitectureSnapshot): { readonly ok: true; readonly verdict: "accept" | "reject"; readonly violations: number } | { readonly ok: false } {
+export type SequenceReviewFailureCode = "schema-invalid" | "unsupported-violation-code" | "accepted-with-violations" |
+  "accepted-confirmations-mismatch" | "rejected-with-confirmations" | "rejected-without-violations" |
+  "unknown-confirmed-fact" | "unknown-violation-fact" | "duplicate-fact-reference";
+export function validateSequenceReview(raw: unknown, plan: ResolvedSequencePlan):
+  { readonly ok: true; readonly accepted: boolean; readonly violationCodes: readonly SequenceReviewViolationCode[] } |
+  { readonly ok: false; readonly code: SequenceReviewFailureCode; readonly accepted?: boolean;
+    readonly confirmationCount?: number; readonly violationCount?: number } {
   const parsed = reviewSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false };
-  const { verdict, violations, confirmations } = parsed.data;
-  if ((verdict === "accept" && violations.length > 0) || (verdict === "reject" && (violations.length === 0 || confirmations.length > 0))) return { ok: false };
-  const facts = new Map(validated.facts.map((entry) => [entry.fact.factId, entry]));
-  const evidenceIds = new Set([...snapshot.elements.map((entry) => entry.id), ...snapshot.relationships.map((entry) => entry.evidenceId), ...snapshot.rules.map((entry) => entry.evidenceId), ...snapshot.flowEvidence.map((entry) => entry.flowEvidenceId)]);
+  if (!parsed.success) {
+    const rawViolations = raw !== null && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)["violations"] : undefined;
+    const unsupportedCode = parsed.error.issues.some((issue) => {
+      if (issue.path[0] !== "violations" || typeof issue.path[1] !== "number" || issue.path[2] !== "code" || !Array.isArray(rawViolations)) return false;
+      const item: unknown = rawViolations[issue.path[1]];
+      const code = item !== null && typeof item === "object" && !Array.isArray(item) ? (item as Record<string, unknown>)["code"] : undefined;
+      return typeof code === "string" && !sequenceReviewViolationCodes.includes(code as SequenceReviewViolationCode);
+    });
+    return { ok: false, code: unsupportedCode ? "unsupported-violation-code" : "schema-invalid" };
+  }
+  const { accepted, violations, confirmedUserStatedFactIds: confirmations } = parsed.data;
+  const fail = (code: SequenceReviewFailureCode) => ({ ok: false as const, code, accepted,
+    confirmationCount: confirmations.length, violationCount: violations.length });
+  if (accepted && violations.length > 0) return fail("accepted-with-violations");
+  if (!accepted && violations.length === 0) return fail("rejected-without-violations");
+  if (!accepted && confirmations.length > 0) return fail("rejected-with-confirmations");
+  const facts = new Map(plan.facts.map((entry) => [entry.factId, entry]));
   const violationKeys = new Set<string>();
   for (const issue of violations) {
-    if (issue.factId === null ? issue.diagramLine !== null : !facts.has(issue.factId) || rendered.lines.get(issue.factId) !== issue.diagramLine) return { ok: false };
-    if (issue.evidenceIds.length === 0 || issue.evidenceIds.some((key) => !evidenceIds.has(key)) || new Set(issue.evidenceIds).size !== issue.evidenceIds.length) return { ok: false };
+    if (issue.factId !== null && !facts.has(issue.factId)) return fail("unknown-violation-fact");
     const key = `${issue.code}:${issue.factId ?? "none"}`;
-    if (violationKeys.has(key)) return { ok: false };
+    if (violationKeys.has(key)) return fail("duplicate-fact-reference");
     violationKeys.add(key);
   }
-  if (verdict === "accept") {
-    const pending = validated.facts.filter((entry) => entry.evidenceClass === "user-stated");
-    if (confirmations.length !== pending.length || new Set(confirmations.map((entry) => entry.factId)).size !== confirmations.length) return { ok: false };
-    if (confirmations.some((entry) => facts.get(entry.factId)?.evidenceClass !== "user-stated" || facts.get(entry.factId)?.evidenceId !== entry.flowEvidenceId)) return { ok: false };
+  if (accepted) {
+    const pending = plan.facts.filter((entry) => entry.evidenceClass === "user-stated");
+    if (confirmations.some((entry) => !facts.has(entry))) return fail("unknown-confirmed-fact");
+    if (new Set(confirmations).size !== confirmations.length) return fail("duplicate-fact-reference");
+    if (confirmations.length !== pending.length || confirmations.some((entry) => facts.get(entry)?.evidenceClass !== "user-stated"))
+      return fail("accepted-confirmations-mismatch");
   }
-  return { ok: true, verdict, violations: violations.length };
+  return { ok: true, accepted, violationCodes: [...new Set(violations.map((entry) => entry.code))] };
 }

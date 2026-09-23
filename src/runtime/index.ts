@@ -8,6 +8,7 @@
 
 export { createArchiAgentRuntime, deriveDiagramName, runtimeLimits } from "./archi-agent-runtime.js";
 export type { ArchiAgentRuntimeOptions, GeneratorFactory } from "./archi-agent-runtime.js";
+export type { DiagnosticSink } from "../core/pipeline/diagnostics.js";
 export type {
   AmbiguityChoice,
   AmbiguityChoiceCandidate,
@@ -17,6 +18,8 @@ export type {
   FlowSource,
   DiagramType,
   GenerateDiagramRequest,
+  GenerateDiagramOutcome,
+  GenerateDiagramUnverified,
   GenerateSequenceDiagramFailure,
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult,
