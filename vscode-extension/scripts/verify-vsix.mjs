@@ -4,7 +4,7 @@
 //   node vscode-extension/scripts/verify-vsix.mjs [<file.vsix>]
 //
 // The package must contain exactly the bounded runtime files (manifest metadata, package.json, the
-// two bundles and the README) and nothing else. The bundles are checked for their module contract:
+// three bundles, README and third-party notices) and nothing else. The bundles are checked for their module contract:
 // the extension bundle links to the editor API and to the sibling runtime bundle, the runtime bundle
 // never links to the editor API, both require only Node built-ins, and neither carries the path of
 // the source repository, an npm invocation or a child process. Findings are printed as entry names
@@ -20,8 +20,10 @@ import { openVsix } from "./vsix-zip.mjs";
 const manifestEntry = "extension/package.json";
 const extensionBundleEntry = `extension/dist/${bundleFileNames.extension}`;
 const runtimeBundleEntry = `extension/dist/${bundleFileNames.runtime}`;
+const converterWorkerEntry = `extension/dist/${bundleFileNames.converterWorker}`;
+const noticesEntry = "extension/THIRD_PARTY_NOTICES.md";
 
-export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Content_Types].xml", manifestEntry, extensionBundleEntry, runtimeBundleEntry]);
+export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Content_Types].xml", manifestEntry, extensionBundleEntry, runtimeBundleEntry, converterWorkerEntry, noticesEntry]);
 
 /** Optional entries that vsce adds from the allow-listed files; their names may be lower-cased by vsce. */
 const optionalEntryPatterns = Object.freeze([/^extension\/readme\.md$/i, /^extension\/changelog\.md$/i, /^extension\/licen[cs]e(?:\.md|\.txt)?$/i]);
@@ -150,6 +152,8 @@ export function verifyVsix(filePath, options = {}) {
       const commands = Array.isArray(manifest.contributes?.commands) ? manifest.contributes.commands.map((entry) => entry.command) : [];
 
       const requiredCommands = [
+        "archiAgent.open",
+        "archiAgent.convertToMarkdown",
         "archiAgent.generateDiagram",
         "archiAgent.generateSequenceDiagram",
         "archiAgent.selectProviderProfile",
@@ -182,7 +186,8 @@ export function verifyVsix(filePath, options = {}) {
 
   const bundles = [
     { entry: extensionBundleEntry, expectVscode: true },
-    { entry: runtimeBundleEntry, expectVscode: false }
+    { entry: runtimeBundleEntry, expectVscode: false },
+    { entry: converterWorkerEntry, expectVscode: false }
   ];
 
   for (const { entry, expectVscode } of bundles) {

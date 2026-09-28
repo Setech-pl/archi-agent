@@ -10,10 +10,10 @@ ledger diagnosis is preserved on `checkpoint/d1-ledger-pipeline`; its owner smok
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
-| Core | `src/core` | Parsing, validation, indexing, grounding, digests, generation pipeline, rendering, report, output planning. Pure TypeScript. |
-| Node adapters | `src/node` | Bounded file reading, safe path resolution, the Node Knowledge Pack source and the Node artifact file system. |
+| Core | `src/core` | Parsing, validation, indexing, grounding, digests, generation pipeline, rendering, report, output planning and neutral document-conversion contracts. Pure TypeScript. |
+| Node adapters | `src/node` | Bounded file reading, safe path resolution, the Node Knowledge Pack source, the Node artifact file system and isolated local document conversion. |
 | Demo | `src/demo` | The offline Space Mission demo and its deterministic scripted generator. |
-| Application runtime | `src/runtime` | Host-neutral `ArchiAgentRuntime`: resolves flow, Knowledge Pack and generator sources through the Node adapters, runs the pipeline and maps outcomes to a result contract. Imports no editor API. |
+| Application runtime | `src/runtime` | Host-neutral `ArchiAgentRuntime` for diagram generation and a separate `convertDocument` function for local conversion. Imports no editor API. |
 | Editor layer | `vscode-extension/src` | The VS Code extension: settings, prompts, progress and editors. Reaches the repository only through `src/runtime/index.ts` and is bundled into a self-contained VSIX (see `docs/vscode-extension.md`). |
 | Later adapters | later | Further model providers, architecture sources and official renderer integrations. |
 
@@ -268,16 +268,31 @@ Output Channel when `archiAgent.diagnostics.verbose` is enabled. It is off by de
 records prompts, model responses, secrets, message labels, full PlantUML or absolute local paths.
 Its central identifier sanitizer redacts POSIX, Windows drive, UNC and all `file:` URI forms
 independently of the host platform.
-The latest S1 owner smoke with Ollama `qwen3:30b` used Wire Plan v3 and passed the local resolver,
-renderer, document validator and subset parser: four grounded and one user-stated step produced
-an 11-line candidate. The reviewer returned `truncated-output`. S1 remains FAIL; an unverified
-candidate does not count as acceptance. A new owner smoke must return a verified outcome.
+An earlier S1 attempt produced a locally valid candidate but the reviewer returned
+`truncated-output`; that unverified candidate did not count as acceptance. The subsequent
+owner smoke on 2026-09-23 returned a verified outcome, so S1 is PASS.
 
-S1 follows D1.2; then M1, D2, C1, D3, D4 and D5
+UX1 follows S1; then D2, M1 (MCP), C1, D3, D4 and D5
 follow the roadmap order. Each diagram type gets its own plan contract, validator and renderer,
 rather than a mega-schema. C4 and ArchiMate use no external includes or macro downloads.
 The old `generateSequenceDiagram` remains the separate compatibility path. See the
 [reviewed pipeline contract](reviewed-diagram-pipeline.md).
+
+## UX1 local document conversion
+
+`Archi Agent: Open` is a QuickPick navigation entry; the existing command IDs remain callable.
+`archiAgent.convertToMarkdown` is independent of the diagram pipeline. The editor selects a local
+PDF, DOCX or XLSX file and calls the exported `convertDocument`; it does not read settings,
+`SecretStorage`, a provider or Knowledge Pack. The runtime starts one bundled Node worker. The
+worker performs bounded read, checks ZIP containers for Office files, extracts content and returns
+a closed success/cancel/failure outcome. Only after success does VS Code open one untitled Markdown
+document. It never saves or modifies the source.
+
+PDF text extraction preserves page order but not layout; scanned PDFs without a text layer return
+`no-text-layer`. DOCX keeps basic headings, lists and tables, but images and external relationships
+are excluded. XLSX keeps cached values without evaluating formulas. DOC, XLS, OCR, MCP and
+knowledge-building are outside UX1. The worker is terminated on Cancel or after 30 seconds;
+all returned text is bounded to 2 MiB UTF-8 and parser warnings are never logged.
 
 The earlier `generateSequenceDiagram` pipeline remains the compatibility path:
 

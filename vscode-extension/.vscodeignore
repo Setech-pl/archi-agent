@@ -5,3 +5,5 @@
 !README.md
 !dist/extension.js
 !dist/archi-agent-runtime.js
+!dist/archi-agent-converter-worker.js
+!THIRD_PARTY_NOTICES.md

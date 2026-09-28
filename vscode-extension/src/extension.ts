@@ -3,6 +3,8 @@ import { generateDiagramCommand, generateSequenceDiagramCommand } from "./comman
 import { removeApiKey, setApiKey } from "./commands/api-key-management.js";
 import { selectModel, selectProviderProfile } from "./commands/local-provider-selection.js";
 import { commandIds, legacyCommandIds, outputChannelName } from "./contributions.js";
+import { openArchiAgentMenu } from "./commands/open-menu.js";
+import { convertToMarkdownCommand } from "./commands/convert-to-markdown.js";
 import { createPackagedRuntime } from "./runtime/packaged-runtime-adapter.js";
 
 /**
@@ -21,6 +23,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(output);
   context.subscriptions.push(
+    vscode.commands.registerCommand(commandIds.open, () => openArchiAgentMenu().catch(() => {
+      void vscode.window.showErrorMessage("Archi Agent: navigation could not be opened.");
+    })),
+    vscode.commands.registerCommand(commandIds.convertToMarkdown, () => convertToMarkdownCommand().catch(() => {
+      void vscode.window.showErrorMessage("Archi Agent: conversion could not be completed.");
+    })),
     vscode.commands.registerCommand(commandIds.generateDiagram, () =>
       generateDiagramCommand({ runtime, output, secrets: context.secrets }).catch((error: unknown) => {
         output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);

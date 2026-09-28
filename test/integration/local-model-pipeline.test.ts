@@ -320,7 +320,15 @@ describe("local model pipeline - artifacts and boundaries", () => {
   it("uses no URL literal other than the loopback forms in the sources", () => {
     const sourceDir = fileURLToPath(new URL("../../src/", import.meta.url));
     const files = readdirSync(sourceDir, { recursive: true }).map(String).filter((name) => name.endsWith(".ts"));
-    const offending = files.filter((name) => /https?:\/\/(?!127\.0\.0\.1[:/]|\[::1\][:/])[A-Za-z0-9[]/.test(readFileSync(path.join(sourceDir, name), "utf8")));
+    const xmlNamespaces = [
+      "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+      "http://purl.oclc.org/ooxml/spreadsheetml/main"
+    ];
+    const offending = files.filter((name) => {
+      let source = readFileSync(path.join(sourceDir, name), "utf8");
+      for (const namespace of xmlNamespaces) source = source.replaceAll(namespace, "");
+      return /https?:\/\/(?!127\.0\.0\.1[:/]|\[::1\][:/])[A-Za-z0-9[]/.test(source);
+    });
 
     expect(files.length).toBeGreaterThan(40);
     expect(offending).toEqual([]);

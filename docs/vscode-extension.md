@@ -15,20 +15,20 @@ marketplace.
 VS Code UI  (quick picks, input boxes, progress, editors, settings)
     |
     v
-vscode-extension/src            editor layer: extension.ts, the generate command, settings, messages
+vscode-extension/src            editor layer: QuickPick navigation, generation, conversion, settings
     |
     v  createPackagedRuntime()
-src/runtime                     application runtime: ArchiAgentRuntime (editor-independent, Node)
+src/runtime                     application runtime: ArchiAgentRuntime + convertDocument
     |
     v
-src/core + src/node             unchanged grounding core, pipeline and Node adapters
+src/core + src/node             grounding pipeline + isolated local document converters
 ```
 
 | Layer | Location | May import | Responsibility |
 | --- | --- | --- | --- |
-| Editor layer | `vscode-extension/src` | `vscode`, `node:path`, `src/runtime/index.ts` | Collect input, show progress, ask the user to resolve ambiguity and confirm new participants, open the artifacts, log safe diagnostics. |
-| Application runtime | `src/runtime` | `src/core`, `src/node` | Resolve request sources with the Node adapters, build the generator from the configuration, run the pipeline, map the outcome to a host-neutral result. Never imports `vscode`, never reads `process.cwd()` or `process.env`. |
-| Core and Node adapters | `src/core`, `src/node` | as before | Provider-neutral registry and pipeline core; concrete local/cloud profiles, loopback HTTP and fixed-allowlist HTTPS transports in Node. |
+| Editor layer | `vscode-extension/src` | `vscode`, `node:path`, `src/runtime/index.ts` | Collect input, show progress, open artifacts and one untitled Markdown result, log safe diagnostics. |
+| Application runtime | `src/runtime` | `src/core`, `src/node` | Keep generation on `ArchiAgentRuntime`; expose separate `convertDocument` with a disposable worker. Never imports `vscode`, never reads `process.cwd()` or `process.env`. |
+| Core and Node adapters | `src/core`, `src/node` | as before | Provider-neutral pipeline and local conversion contracts; concrete providers and bounded document readers in Node. |
 
 The editor layer reaches the repository only through `src/runtime/index.ts`; a test enforces this.
 The runtime contract (`src/runtime/runtime-types.ts`) speaks about sources, not implementations:
@@ -62,6 +62,19 @@ flow and the bare directory name of the pack.
 
 ## Commands
 
+`Archi Agent: Open` (`archiAgent.open`) displays four QuickPick sections: Generate Diagram,
+Configuration, Knowledge Management and Convert to Markdown. Generate Diagram calls the existing
+`archiAgent.generateDiagram`; Configuration routes to the existing provider, model and API-key
+commands or opens the relevant VS Code setting; Knowledge Management currently offers only
+Knowledge Pack Path. Back returns to the first picker, and Escape closes it. Existing public
+command IDs remain registered even when their direct Command Palette entries are hidden.
+
+`Archi Agent: Convert to Markdown` (`archiAgent.convertToMarkdown`) is also directly callable.
+It selects one local PDF, DOCX or XLSX file and opens a single unsaved Markdown editor after full
+success. It needs no configured provider, model, API key or Knowledge Pack, makes no LLM or network
+request, and never edits or automatically saves the source. Cancellation and errors open no result.
+
+
 `Archi Agent: Select Provider Profile` lists LM Studio, Ollama, Anthropic, OpenAI and OpenRouter
 without contacting any provider or reading `SecretStorage`. It shows the current profile but no
 saved/not-saved key status. Changing profile clears `selectedModel`, then clears its `selectedModelProfile` binding,
@@ -91,8 +104,8 @@ semantic review request. Verified success opens PlantUML and report v2. If revie
 fails after all local checks, one modal offers the unverified candidate. **Show unverified
 candidate** opens one untitled PlantUML document with a fixed warning header and no report;
 **Cancel** or dismissal opens nothing. User cancellation during review never offers a candidate.
-No retry, repair, fallback or third request occurs. The latest Wire Plan v3 owner smoke passed
-local validation but reviewer output was truncated; S1 remains FAIL until verified owner smoke.
+No retry, repair, fallback or third request occurs. The verified owner smoke on 2026-09-23 made
+S1 PASS; earlier failed attempts remain historical.
 The four
 reserved types remain unsupported through direct runtime calls before any credential read or
 provider I/O. `Archi Agent: Generate
@@ -189,17 +202,18 @@ starts an Extension Development Host with `vscode-extension` as the extension.
 
 ### Bundling
 
-Two CommonJS bundles are produced by `vscode-extension/scripts/build.mjs`:
+Three CommonJS bundles are produced by `vscode-extension/scripts/build.mjs`:
 
 | Bundle | Entry | Content |
 | --- | --- | --- |
 | `dist/archi-agent-runtime.js` | `src/runtime/index.ts` | Core, Node adapters, runtime API and `zod`; requires only `node:` built-ins. |
 | `dist/extension.js` | `vscode-extension/src/extension.ts` | Editor layer; requires `vscode`, `node:path` and `./archi-agent-runtime.js`. |
+| `dist/archi-agent-converter-worker.js` | `src/node/document-conversion/worker.ts` | Minified local PDF/DOCX/XLSX parsers; one request, one result, no editor API or external runtime files. |
 
 The build rewrites the import of `src/runtime/index.ts` in the editor layer to the sibling runtime
 bundle, so the extension links to the packaged runtime and never to the source tree. No source map is
-emitted, so the bundles carry no machine path. `node_modules` is never packaged: the single
-dependency is bundled.
+emitted, so the bundles carry no machine path. `node_modules` is never packaged: all runtime
+dependencies are bundled. Third-party license texts are shipped in `THIRD_PARTY_NOTICES.md`.
 
 ### Node and VS Code target
 
@@ -232,6 +246,8 @@ extension.vsixmanifest
 extension/package.json
 extension/dist/extension.js
 extension/dist/archi-agent-runtime.js
+extension/dist/archi-agent-converter-worker.js
+extension/THIRD_PARTY_NOTICES.md
 extension/readme.md            (optional; the extension README)
 ```
 
@@ -240,7 +256,7 @@ files, `node_modules`, TypeScript sources, test directories, coverage, nested ar
 Knowledge Packs, generated `.puml` or `.grounding.json` artifacts, source maps, logs and dumps,
 credential material and editor-local configuration. The packaged manifest must declare no
 dependencies and no scripts; the extension bundle must link to `vscode` and the runtime bundle and to
-nothing else; the runtime bundle must not link to `vscode`; both may require only Node built-ins and
+nothing else; the runtime and worker bundles must not link to `vscode`; all may require only Node built-ins and
 must not contain the repository path, an npm invocation or `child_process`.
 
 ## Installation
@@ -323,6 +339,7 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
 | Messages | `test/vscode-extension/user-messages.test.ts` | Safe issue lines, stage texts, endpoint hint, bounds. |
 | Command | `test/vscode-extension/extension-command.test.ts` | Activation and manifest consistency, the command through an in-memory `vscode` double: editors opened, quick picks, model listing, failures and actions. |
 | Packaging | `test/vscode-extension/packaging.test.ts` | Bundle build and link contract, runtime bundle executed by a child process from an empty directory with an empty PATH, VSIX packaging and verification, source boundaries. |
+| UX1 conversion | `test/core/document-conversion.test.ts`, `test/node/document-conversion.test.ts`, `test/runtime/convert-document.test.ts`, `test/vscode-extension/ux1-commands.test.ts` | Local PDF/DOCX/XLSX, ZIP and output limits, worker cancellation and timeout, QuickPick routing and untitled editor behavior. |
 
 ## Known limitations
 
@@ -331,7 +348,14 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
 - Artifacts are opened as untitled editors and not written to disk; versioned writing is deferred.
 - Only one Knowledge Pack directory can be configured; model profiles are limited to LM Studio,
   Ollama, Anthropic, OpenAI and OpenRouter.
-- The runtime bundle is about 1 MB unminified because it carries the complete `zod` library.
+- The minified diagram runtime bundle is about 1 MB because it carries `zod`; the separate
+  conversion worker adds about 2.4 MB before VSIX compression.
+- PDF extraction reads text only and does not reconstruct the original layout or tables; scanned
+  PDFs need OCR, which is outside UX1. DOCX merged cells and complex layout may lose fidelity.
+  XLSX formula results are the saved cache; formulas are never recalculated. DOC and XLS are deferred.
+- Conversion limits: 10 MiB input, 100 PDF pages, 1000 Office ZIP entries, 50 MiB inflated total,
+  10 MiB per entry, compression ratio 100:1, 20 sheets, 5000 rows, 100 columns, 100000 cells,
+  2 MiB Markdown and 30 seconds. No partial result is opened on failure or Cancel.
 - The PlantUML editor has no preview; a PlantUML extension, if installed, provides language support
   and preview independently.
 - Package names in the root project (`archground`, `ArchGround`) remain unchanged; only the

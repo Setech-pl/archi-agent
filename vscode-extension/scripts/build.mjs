@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds the two bundles of the Archi Agent extension with esbuild.
+// Builds the three bundles of the Archi Agent extension with esbuild.
 //
 //   node vscode-extension/scripts/build.mjs [--out <directory>]
 //
@@ -9,7 +9,7 @@
 //                              with "vscode" external and the runtime import rewritten to the
 //                              sibling runtime bundle.
 //
-// Both bundles are CommonJS for the Node 20 runtime of the VS Code 1.91 extension host. No source
+// All bundles are CommonJS for the Node 20 runtime of the VS Code 1.91 extension host. No source
 // map is emitted, so the bundles carry no machine path. The script derives every path from its own
 // location and performs no network access.
 
@@ -27,11 +27,13 @@ export const bundleFormat = "cjs";
 
 export const bundleFileNames = Object.freeze({
   extension: "extension.js",
-  runtime: "archi-agent-runtime.js"
+  runtime: "archi-agent-runtime.js",
+  converterWorker: "archi-agent-converter-worker.js"
 });
 
 const runtimeEntry = path.join(projectRoot, "src", "runtime", "index.ts");
 const extensionEntry = path.join(extensionRoot, "src", "extension.ts");
+const converterWorkerEntry = path.join(projectRoot, "src", "node", "document-conversion", "worker.ts");
 
 function samePath(left, right) {
   const normalize = (value) => (process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value));
@@ -73,11 +75,13 @@ export async function buildExtensionBundles(options = {}) {
 
   const runtimeFile = path.join(outDir, bundleFileNames.runtime);
   const extensionFile = path.join(outDir, bundleFileNames.extension);
+  const converterWorkerFile = path.join(outDir, bundleFileNames.converterWorker);
 
   await build({ ...commonOptions(), entryPoints: [runtimeEntry], outfile: runtimeFile });
+  await build({ ...commonOptions(), entryPoints: [converterWorkerEntry], outfile: converterWorkerFile, minify: true });
   await build({ ...commonOptions(), entryPoints: [extensionEntry], outfile: extensionFile, external: ["vscode"], plugins: [runtimeBundlePlugin] });
 
-  return Object.freeze({ outDir, runtimeFile, extensionFile });
+  return Object.freeze({ outDir, runtimeFile, extensionFile, converterWorkerFile });
 }
 
 function parseArguments(argv) {
@@ -103,7 +107,7 @@ function invokedDirectly() {
 if (invokedDirectly()) {
   try {
     const result = await buildExtensionBundles(parseArguments(process.argv.slice(2)));
-    process.stdout.write(`Built ${path.relative(projectRoot, result.runtimeFile)} and ${path.relative(projectRoot, result.extensionFile)} (${bundleFormat}, ${bundleTarget}).\n`);
+    process.stdout.write(`Built ${path.relative(projectRoot, result.runtimeFile)}, ${path.relative(projectRoot, result.extensionFile)} and ${path.relative(projectRoot, result.converterWorkerFile)} (${bundleFormat}, ${bundleTarget}).\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "The extension build failed."}\n`);
     process.exitCode = 1;

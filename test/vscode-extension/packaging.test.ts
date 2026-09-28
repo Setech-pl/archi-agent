@@ -16,8 +16,8 @@ import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-doub
  */
 
 interface BuildModule {
-  buildExtensionBundles(options?: { outDir?: string }): Promise<{ outDir: string; runtimeFile: string; extensionFile: string }>;
-  bundleFileNames: { extension: string; runtime: string };
+  buildExtensionBundles(options?: { outDir?: string }): Promise<{ outDir: string; runtimeFile: string; extensionFile: string; converterWorkerFile: string }>;
+  bundleFileNames: { extension: string; runtime: string; converterWorker: string };
   bundleTarget: string;
   bundleFormat: string;
   extensionRoot: string;
@@ -48,7 +48,7 @@ function temporaryDirectory(prefix: string): string {
 }
 
 let buildModule: BuildModule;
-let bundles: { outDir: string; runtimeFile: string; extensionFile: string };
+let bundles: { outDir: string; runtimeFile: string; extensionFile: string; converterWorkerFile: string };
 
 beforeAll(async () => {
   buildModule = (await import(scriptUrl("build.mjs"))) as BuildModule;
@@ -62,12 +62,14 @@ afterAll(() => {
 });
 
 describe("bundles", () => {
-  it("builds both bundles as CommonJS for the Node 20 extension host", () => {
+  it("builds three bundles as CommonJS for the Node 20 extension host", () => {
     expect(buildModule.bundleFormat).toBe("cjs");
     expect(buildModule.bundleTarget).toBe("node20");
     expect(statSync(bundles.runtimeFile).size).toBeGreaterThan(10_000);
     expect(statSync(bundles.extensionFile).size).toBeGreaterThan(1_000);
-    expect(readdirSync(bundles.outDir).sort()).toEqual([buildModule.bundleFileNames.runtime, buildModule.bundleFileNames.extension].sort());
+    expect(statSync(bundles.converterWorkerFile).size).toBeGreaterThan(100_000);
+    expect(statSync(bundles.converterWorkerFile).size).toBeLessThan(3 * 1024 * 1024);
+    expect(readdirSync(bundles.outDir).sort()).toEqual([buildModule.bundleFileNames.runtime, buildModule.bundleFileNames.extension, buildModule.bundleFileNames.converterWorker].sort());
   });
 
   it("links the extension bundle to the editor API and the sibling runtime bundle only", () => {
@@ -91,9 +93,10 @@ describe("bundles", () => {
     expect(text).toContain("createArchiAgentRuntime");
   });
 
-  it("keeps the synthetic sentinel out of both production bundles", () => {
+  it("keeps the synthetic sentinel out of all production bundles", () => {
     expect(readFileSync(bundles.runtimeFile, "utf8")).not.toContain(syntheticSecretSentinel);
     expect(readFileSync(bundles.extensionFile, "utf8")).not.toContain(syntheticSecretSentinel);
+    expect(readFileSync(bundles.converterWorkerFile, "utf8")).not.toContain(syntheticSecretSentinel);
   });
 });
 
@@ -261,7 +264,7 @@ describe("VSIX", () => {
     expect(result.violations).toEqual([]);
     expect(result.ok).toBe(true);
     expect([...result.entries].sort()).toEqual(
-      ["[Content_Types].xml", "extension.vsixmanifest", "extension/package.json", "extension/readme.md", "extension/dist/archi-agent-runtime.js", "extension/dist/extension.js"].sort()
+      ["[Content_Types].xml", "extension.vsixmanifest", "extension/package.json", "extension/readme.md", "extension/THIRD_PARTY_NOTICES.md", "extension/dist/archi-agent-runtime.js", "extension/dist/archi-agent-converter-worker.js", "extension/dist/extension.js"].sort()
     );
     expect(path.basename(vsixPath)).toBe("archi-agent-0.2.0-alpha.1.vsix");
   });

@@ -11,10 +11,10 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The current mandatory sequence is: **R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
+The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
-and Wire Plan v3. M1 and the gauntlet are unlocked but not implemented; M1 is next, followed
-by D2. The D1.1 code is
+and Wire Plan v3. UX1 passed owner smoke on 2026-09-23 and is completed; D2 follows,
+then M1 adds MCP and C1 adds VS Code Chat. The D1.1 code is
 preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
 [the target pipeline contract](reviewed-diagram-pipeline.md).
@@ -26,19 +26,35 @@ Agreed order of work:
 | 1 | R2 | Record the DiagramPlan decision and checkpoint D1.1; documentation only. |
 | 2 | D1.2 | Completed: `sequence` Wire Plan v3, local validator, deterministic renderer and independent reviewer. |
 | 3 | S1 | PASS: owner smoke of D1.2 with Ollama `qwen3:30b` on 2026-09-23. |
-| 4 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
+| 4 | UX1 | Completed: navigation and local PDF, DOCX, XLSX conversion to an untitled Markdown document; owner smoke PASS on 2026-09-23. |
 | 5 | D2 | `component` plan, validator and renderer. |
-| 6 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
-| 7 | D3 | `c4-context` plan, validator and renderer. |
-| 8 | D4 | `c4-container` plan, validator and renderer. |
-| 9 | D5 | `archimate-hld` plan, validator and renderer. |
-| 10 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
-| 11 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
-| 12 | REL | `v0.3.0-alpha.1`: AI SDLC demo, branding, provider comparison and accepted owner smoke. |
+| 6 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
+| 7 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
+| 8 | D3 | `c4-context` plan, validator and renderer. |
+| 9 | D4 | `c4-container` plan, validator and renderer. |
+| 10 | D5 | `archimate-hld` plan, validator and renderer. |
+| 11 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
+| 12 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
+| 13 | REL | `v0.3.0-alpha.1`: AI SDLC demo, branding, provider comparison and accepted owner smoke. |
+
+### UX1 — Navigation and local document conversion
+
+**Status: completed; owner smoke PASS on 2026-09-23.** `Archi Agent: Open` uses nested QuickPicks
+for Generate Diagram, Configuration, Knowledge Management and Convert to Markdown. The converter
+is a standalone local utility. It accepts text-layer PDFs, DOCX and XLSX and opens one unsaved
+Markdown editor only after complete success. It reads no Knowledge Pack, provider, model or secret
+and makes no LLM or network request. DOC, XLS, OCR and image extraction are deferred.
+
+PDF output preserves page order under `## Page N` headings, without promising layout fidelity.
+DOCX preserves basic headings, paragraphs, lists and tables; complex layout and merged cells may
+lose fidelity. XLSX preserves all sheets, blank cells inside used rows and cached formula values;
+formulas are never recalculated. Limits: 10 MiB input, 100 PDF pages, 1000 ZIP entries, 50 MiB
+aggregate and 10 MiB per-entry inflated ZIP data, 100:1 ratio, 20 sheets, 5000 rows, 100 columns,
+100000 cells, 2 MiB Markdown and 30 seconds. Cancel and failure open no partial document.
 
 ### C1 — VS Code Chat Participant
 
-**Status: planned after D2.** C1 adds `@archi-agent` and `/diagram` to VS Code Chat. A diagram
+**Status: planned after M1.** C1 adds `@archi-agent` and `/diagram` to VS Code Chat. A diagram
 request may come from the active file, a selection, a file explicitly named by the user, or text
 sent to `@archi-agent`. Conversation history may be used only when it belongs to interactions with
 `@archi-agent`; the participant does not automatically read other participants' history or separate
@@ -46,7 +62,7 @@ chat panels. C1 reuses the reviewed `generateDiagram()` path and configured Arch
 retaining grounding, deterministic rendering and semantic review under the R2 call policy.
 Deterministic MCP integration precedes C1 in M1. C1 adds no implementation scope to D1.2.
 
-Later, in no committed order: bounded repair, quality modes, document sources
+Later, in no committed order: bounded repair, quality modes, document sources for diagram grounding
 (PDF, DOCX; Confluence and Jira preferably through MCP), EA XML (still deferred — no safe fixture),
 EA API, Prolaborate, external artifact providers (HTTPS, Google Drive, OneDrive, SharePoint).
 
@@ -225,9 +241,10 @@ Ordered as agreed in [Product priority](#product-priority).
 | R2 | completed | ADR 0002 and documentation of DiagramPlan architecture. | D1.1 findings |
 | D1.2 | completed | `sequence` Wire Plan v3, validator, deterministic renderer and independent reviewer. | R2 |
 | S1 | PASS | Verified owner smoke with Ollama `qwen3:30b` on 2026-09-23. | D1.2 |
-| M1 | planned; unlocked | Deterministic MCP adapter into ArchitectureSnapshot. | S1 |
-| D2 | planned | `component` plan, validator and renderer. | M1 |
-| C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | D2 |
+| UX1 | completed; owner smoke PASS on 2026-09-23 | QuickPick navigation and local PDF/DOCX/XLSX to untitled Markdown; no LLM or network. | S1 |
+| D2 | planned | `component` plan, validator and renderer. | UX1 owner smoke |
+| M1 | planned | Deterministic MCP adapter into ArchitectureSnapshot. | D2 |
+| C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | M1 |
 | D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
 | D4 | planned | `c4-container` plan, validator and renderer; no external includes. | D3 |
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
@@ -449,8 +466,8 @@ See [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and the
 # Phase 5 — Multi-diagram profiles
 
 **Status: D1.2 completed; S1 PASS.** Each diagram type has its own plan contract, local validator
-and deterministic renderer. D1.2 adds `sequence`; M1 is next, then D2 adds
-`component`, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
+and deterministic renderer. D1.2 adds `sequence`; UX1 adds navigation and local conversion,
+then D2 adds `component`, M1 adds MCP, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
 `archimate-hld`. C4 and ArchiMate use no external includes or downloaded macros.
 
 The old sequence renderer remains a compatibility path, never an automatic fallback.
@@ -659,7 +676,7 @@ The two flows should not be conflated.
 
 ## MCP knowledge source
 
-**Status: planned (M1, after S1 and before D2).** No MCP code exists.
+**Status: planned (M1, after D2 and before C1).** No MCP code exists.
 
 MCP is not a third kind of source. An MCP server is a transport behind the existing concepts: an
 MCP-backed provider implements the `ArchitectureContextProvider` boundary when it returns canonical architecture,
@@ -785,9 +802,10 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | R2 — DiagramPlan architecture decision and checkpoint | completed |
 | D1.2 — Sequence DiagramPlan, validator and renderer | completed |
 | S1 — Ollama `qwen3:30b` owner smoke | PASS on 2026-09-23 |
-| M1 — ArchitectureSnapshot MCP adapter | planned; unlocked by S1 |
-| D2 — Component diagram | planned after M1 |
-| C1 — VS Code Chat Participant | planned after D2 |
+| UX1 — Navigation and local document conversion | completed; owner smoke PASS on 2026-09-23; PDF, DOCX, XLSX |
+| D2 — Component diagram | planned after UX1 owner smoke |
+| M1 — ArchitectureSnapshot MCP adapter | planned after D2 |
+| C1 — VS Code Chat Participant | planned after M1 |
 | D3 — C4 context | planned after C1 |
 | D4 — C4 container | planned after D3 |
 | D5 — ArchiMate HLD | planned after D4 |

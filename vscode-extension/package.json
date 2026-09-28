@@ -21,6 +21,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
+    "onCommand:archiAgent.open",
+    "onCommand:archiAgent.convertToMarkdown",
     "onCommand:archiAgent.generateDiagram",
     "onCommand:archiAgent.generateSequenceDiagram",
     "onCommand:archiAgent.selectProviderProfile",
@@ -55,6 +57,16 @@
   "contributes": {
     "commands": [
       {
+        "command": "archiAgent.open",
+        "title": "Open",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.convertToMarkdown",
+        "title": "Convert to Markdown",
+        "category": "Archi Agent"
+      },
+      {
         "command": "archiAgent.generateDiagram",
         "title": "Generate Diagram",
         "category": "Archi Agent"
@@ -85,6 +97,14 @@
         "category": "Archi Agent"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        { "command": "archiAgent.selectProviderProfile", "when": "false" },
+        { "command": "archiAgent.selectModel", "when": "false" },
+        { "command": "archiAgent.setApiKey", "when": "false" },
+        { "command": "archiAgent.deleteApiKey", "when": "false" }
+      ]
+    },
     "configuration": {
       "title": "Archi Agent",
       "properties": {

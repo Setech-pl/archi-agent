@@ -20,10 +20,41 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan D1.1 | Implemented and automatically verified, lecz S1 FAIL; historyczna ścieżka `{ plantUml }` zachowana na `checkpoint/d1-final-plantuml-reviewed`, superseded jako aktywny kierunek. |
 | Stan R2 | Completed — właściciel zatwierdził DiagramPlan, lokalną walidację i deterministyczne renderery per typ; ADR 0002 i checkpoint D1.1. |
 | Stan D1.2 | Ukończone: Wire Plan v3, deterministyczny renderer sequence, minimalny reviewer, safe diagnostics i unverified candidate UX. |
-| Następny etap | M1 według aktualnej roadmapy, następnie D2; gauntlet jest odblokowany, lecz niewdrożony. |
+| Stan UX1 | Completed — owner smoke PASS 2026-09-23 na samowystarczalnym VSIX w świeżym, izolowanym profilu VS Code. |
+| Następny etap | D2, potem M1 (MCP) i C1. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
-| Kolejność | R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
+| Kolejność | R2 → D1.2 → S1 → UX1 → D2 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
+
+## UX1 — completed, owner smoke PASS (2026-09-23)
+
+UX1 implementuje `Archi Agent: Open` z czterema sekcjami QuickPick i samodzielne
+`Convert to Markdown`. Konwersja PDF z warstwą tekstową, DOCX i XLSX działa lokalnie
+w jednorazowym workerze; otwiera jeden niezapisany dokument Markdown dopiero po sukcesie.
+DOC, XLS, OCR, obrazy, D2, M1/MCP i C1 pozostają poza UX1. Limity: wejście 10 MiB,
+wynik 2 MiB, PDF 100 stron, ZIP 1000 wpisów/50 MiB łącznie/10 MiB na wpis/100:1,
+XLSX 20 arkuszy/5000 wierszy/100 kolumn/100 000 komórek, timeout 30 s.
+
+Trzy rundy niezależnego review zakończyły się bez otwartych high/medium. Po korekcie
+testu rozróżniającego URI przestrzeni nazw OOXML od adresów sieciowych pełne bramki
+`npm ci`, `npm test` (1292/1292), `typecheck`, `extension:typecheck`,
+`extension:test` (189/189), `extension:build`, `extension:package`,
+`extension:verify` i `demo:dry-run` przeszły. `npm audit` zgłosił 0 podatności
+dla lockfile. Osobno oceniono advisory PDF.js dotyczące skryptów w viewerze:
+UX1 nie uruchamia viewera ani API skryptów, wyłącznie ekstrakcję tekstu.
+Rozpakowany runtime i worker z VSIX przeszły smoke PDF/DOCX/XLSX oraz
+Cancel na Node 20.9.0 poza repo i bez `node_modules`; źródła pozostały bajtowo
+niezmienione. Skan ośmiu wpisów VSIX i trzech bundle nie znalazł testowego sentinela,
+credentiali, ścieżek ani treści fixture'ów.
+
+Owner smoke: **PASS**. Instalacja samowystarczalnego VSIX w świeżym, izolowanym
+profilu VS Code: PASS. `Archi Agent: Open`: PASS; cztery sekcje to Generate Diagram,
+Configuration, Knowledge Management i Convert to Markdown. Lokalna konwersja PDF,
+DOCX i XLSX: PASS; wynik otwiera się jako niezapisany dokument Markdown, bez zmiany
+źródła. Konwersja nie wymaga providera, modelu, API key ani Knowledge Pack i nie używa
+LLM, sieci ani `SecretStorage`. PDF działa bez OCR; DOC i XLS pozostają odłożone.
+Generate Diagram → Sequence i compatibility command pozostały funkcjonalne.
+D1.2 i S1 pozostają PASS. Następny milestone: D2, potem M1 (MCP).
 
 ## Historia na `main`
 
@@ -32,7 +63,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 - Po merge priorytet zmieniono z EA XML na **Knowledge Pack Builder**. EA XML jest odłożone, bo nie
   ma bezpiecznego, publicznego fixture reprezentującego rzeczywiste dane EA.
 - 2026-09-19 — wcześniejsza decyzja o priorytetach (demonstracja vibe coding i AI SDLC),
-  następnie zastąpiona R1 z 2026-09-21 i R2 z 2026-09-22. Obowiązująca kolejność:
+  następnie zastąpiona R1 z 2026-09-21 i R2 z 2026-09-22. Ówczesna kolejność:
   R2 → D1.2 → S1 → M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL; zob.
   [`product-roadmap.md`](product-roadmap.md).
 
@@ -232,7 +263,8 @@ verified i owner smoke accepted.
 Właściciel zatwierdził R2: generator oddaje DiagramPlan, lokalny kod waliduje plan i renderuje
 PlantUML per typ, a niezależny reviewer zwraca wyłącznie werdykt i referencje. D1.2
 (`sequence`) jest ukończone; owner smoke S1 z Ollamą `qwen3:30b` przeszedł 2026-09-23.
-M1 i gauntlet są odblokowane, lecz niewdrożone. Obowiązuje M1 → D2 → C1 → D3 → D4 → D5 → K2 → K3 → REL.
+UX1 dodał nawigację i lokalną konwersję PDF/DOCX/XLSX do niezapisanego Markdown;
+owner smoke przeszedł 2026-09-23. Obowiązuje UX1 → D2 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL.
 Szczegóły: [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) i
 [roadmapa](product-roadmap.md). D1.1 jest zachowane historycznie i na
 `checkpoint/d1-final-plantuml-reviewed`.
@@ -240,8 +272,8 @@ Szczegóły: [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) i
 Później (bez zobowiązującej kolejności): bounded repair, quality modes, document
 sources (PDF, DOCX; Confluence/Jira preferencyjnie przez MCP), EA API, Prolaborate, zewnętrzni
 dostawcy artefaktów. **EA XML pozostaje odłożone (deferred), brak implementacji** — brak
-bezpiecznego, publicznego fixture; w repo nie ma kodu parsowania EA ani XML, fixture'ów EA ani
-testów (jedyne odwołania do `.xml` dotyczą manifestu VSIX).
+bezpiecznego, publicznego fixture; w repo nie ma parsera, fixture'ów ani testów EA XML.
+Parsery OOXML użyte przez niezależny konwerter UX1 nie obsługują EA.
 
 ## Weryfikacja
 
@@ -361,8 +393,8 @@ wykonywano.
 
 ## Następny krok
 
-**M1 — deterministyczny adapter MCP do ArchitectureSnapshot**, następnie D2 zgodnie z aktualną
-roadmapą. S1 PASS odblokował również gauntlet; nie został wdrożony.
+**D2** zgodnie z aktualną roadmapą, następnie M1 (MCP). D1.2 i S1 pozostają PASS;
+UX1 jest completed po owner smoke PASS z 2026-09-23.
 
 ## Implementacja D1
 
@@ -824,8 +856,8 @@ reviewer potwierdził fakt user-stated. Snapshot digest:
 Całkowity czas smoke: 167036 ms; generator: 110686 ms; reviewer: 56328 ms.
 Safe verbose diagnostics potwierdziły pełną politykę 0/1/2 wywołań.
 
-D1.2 jest ukończone, S1 PASS. M1 i gauntlet zostały odblokowane, lecz nie wdrożone;
-następnym milestone implementacyjnym według aktualnej roadmapy jest M1, po nim D2.
+D1.2 jest ukończone, S1 PASS. W chwili tego owner smoke kolejnym planowanym
+milestone był M1; późniejsza decyzja właściciela dodała UX1 przed D2 i M1.
 
 Końcowa weryfikacja w tej sesji: `npm test` 1257/1257, `npm run typecheck`,
 `npm run extension:typecheck`, `npm run extension:test` 174/174,

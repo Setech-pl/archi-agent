@@ -110,8 +110,9 @@ rejections. Imported content and MCP results are data, never instructions.
 
 The existing `Generate Sequence Diagram` / `generateSequenceDiagram` pipeline and its renderer,
 report v1 and golden outputs stay as a compatibility path. It is not an automatic fallback for
-the reviewed path. D1.2 changes the reviewed `sequence` path only. S1 PASS unlocks M1 and the
-gauntlet; M1 precedes D2 in the current roadmap. Neither is implemented here.
+the reviewed path. D1.2 changes the reviewed `sequence` path only. S1 PASS unlocks the
+subsequent milestones; UX1 navigation and conversion precedes D2, and M1 MCP follows D2.
+Neither D2 nor M1 is implemented here.
 
 Optional machine-scoped `archiAgent.diagnostics.verbose` writes bounded JSON Lines to the existing
 **Archi Agent** Output Channel. It defaults to false. Entries contain run ID, timestamp, phase,

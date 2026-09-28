@@ -63,6 +63,7 @@ export interface DoubleState {
   activeTextEditor: { document: DoubleDocument } | undefined;
   languages: string[];
   progressTitles: string[];
+  progressCancelOnStart: boolean;
   untitledCounter: number;
 }
 
@@ -94,6 +95,7 @@ function freshState(): DoubleState {
     activeTextEditor: undefined,
     languages: ["plaintext", "json", "markdown"],
     progressTitles: [],
+    progressCancelOnStart: false,
     untitledCounter: 0
   };
 }
@@ -193,7 +195,10 @@ export const window = {
   },
   withProgress<T>(options: { title?: string }, task: (progress: { report(): void }, token: unknown) => Thenable<T>): Thenable<T> {
     state.progressTitles.push(options.title ?? "");
-    const token = { isCancellationRequested: false, onCancellationRequested: () => new Disposable() };
+    const token = { isCancellationRequested: state.progressCancelOnStart, onCancellationRequested: (listener: () => void) => {
+      if (state.progressCancelOnStart) queueMicrotask(listener);
+      return new Disposable();
+    } };
     return task({ report: () => undefined }, token);
   },
   showTextDocument(document: DoubleDocument, options?: unknown): Promise<{ document: DoubleDocument }> {

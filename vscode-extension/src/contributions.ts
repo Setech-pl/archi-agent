@@ -4,6 +4,8 @@
  */
 
 export const commandIds = Object.freeze({
+  open: "archiAgent.open",
+  convertToMarkdown: "archiAgent.convertToMarkdown",
   generateDiagram: "archiAgent.generateDiagram",
   generateSequenceDiagram: "archiAgent.generateSequenceDiagram",
   selectProviderProfile: "archiAgent.selectProviderProfile",

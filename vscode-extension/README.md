@@ -7,9 +7,12 @@ before anything is shown.
 
 ## What you need
 
-- An Architecture Knowledge Pack: a directory with five Markdown tables (`systems.md`, `actors.md`,
+- For diagram generation, an Architecture Knowledge Pack: a directory with five Markdown tables (`systems.md`, `actors.md`,
   `relationships.md`, `aliases.md`, `rules.md`).
-- A structured-output capable model from LM Studio, Ollama, Anthropic, OpenAI or OpenRouter.
+- For diagram generation, a structured-output capable model from LM Studio, Ollama, Anthropic, OpenAI or OpenRouter.
+
+The standalone **Convert to Markdown** command needs neither of these. It runs locally without
+an LLM, network access or API key and never changes the source document.
 
 Only the compact grounded context of the current flow is sent to the selected provider, never the
 whole pack. Local profiles remain loopback-only. Cloud profiles use fixed HTTPS endpoints and keys
@@ -31,12 +34,28 @@ stored only in VS Code `SecretStorage`.
 
 ## Commands
 
+- `Archi Agent: Open` — QuickPick with Generate Diagram, Configuration, Knowledge Management and Convert to Markdown.
+- `Archi Agent: Convert to Markdown` — select one local PDF, DOCX or XLSX; the result opens as one unsaved Markdown document.
 - `Archi Agent: Select Provider Profile`
 - `Archi Agent: Set or Update API Key`
 - `Archi Agent: Delete Saved API Key`
 - `Archi Agent: Select Model`
 - `Archi Agent: Generate Diagram` — choose a type explicitly; Sequence uses Wire Plan v3, deterministic rendering and a minimal semantic verdict.
 - `Archi Agent: Generate Sequence Diagram`
+
+Configuration in **Open** contains the existing provider, model and API-key commands plus links to
+the Knowledge Pack path, verbose diagnostics and other extension settings. Knowledge Management
+currently contains only the Knowledge Pack path. Back and Escape perform no conversion or
+generation. The existing command IDs remain callable for automation.
+
+Conversion accepts text-layer PDFs (up to 100 pages) and preserves page order under neutral page
+headings; it does not reconstruct PDF layout or run OCR. DOCX keeps basic headings, paragraphs,
+lists and tables; images, complex layout and merged-cell fidelity are outside scope. XLSX exports
+all sheets, preserves blank cells in the used area and uses saved formula results without
+recalculating formulas. DOC and XLS are deferred. The converter caps input at 10 MiB and Markdown
+at 2 MiB; Office ZIP contents are limited to 1000 entries, 50 MiB total inflated, 10 MiB per entry
+and 100:1 compression. XLSX is limited to 20 sheets, 5000 rows, 100 columns and 100000 cells.
+Conversion times out after 30 seconds. Cancel and errors open no partial document and save nothing.
 
 The other named types (`component`, `c4-context`, `c4-container`, `archimate-hld`) are
 reserved for later stages and stop before provider access. The existing sequence command
