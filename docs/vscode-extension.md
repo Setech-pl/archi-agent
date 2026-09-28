@@ -264,7 +264,7 @@ must not contain the repository path, an npm invocation or `child_process`.
 
 1. Build the VSIX as above, or take one that was built for you.
 2. In VS Code: **Extensions** view, `...` menu, **Install from VSIX...**, choose the file.
-   Or from a shell: `code --install-extension vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`.
+   Or from a shell: `code --install-extension archi-agent-0.3.0-alpha.1.vsix` from the download directory.
 3. Open **Settings**, search for `Archi Agent`, set `archiAgent.knowledgePackPath`.
 
 The installed extension needs neither the repository nor npm.
@@ -313,7 +313,7 @@ The earlier LM Studio-only procedure remains useful for checking legacy migratio
 ```text
 1. npm ci
 2. npm run extension:package && npm run extension:verify
-3. Install vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix into VS Code
+3. Install archi-agent-0.3.0-alpha.1.vsix into VS Code
    (a clean profile is best: code --profile archi-agent-smoke)
 4. Set archiAgent.knowledgePackPath to the absolute path of samples/space-mission/architecture
 5. Start LM Studio with its local server on port 1234
@@ -361,8 +361,7 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
   and preview independently.
 - Package names in the root project (`archground`, `ArchGround`) remain unchanged; only the
   extension and its user-facing text use `Archi Agent`. Renaming the root package is deferred.
-- Deferred by design at this checkpoint: Enterprise Architect XML and API sources, Confluence,
-  Google Drive, OneDrive and SharePoint, component, C4 and ArchiMate profiles,
-  the repair loop and marketplace publishing. Semantic review is implemented for D1.2 Sequence;
-  the runtime contract leaves room for
-  each of them without changing the editor layer.
+- Deferred by design at this checkpoint: Enterprise Architect XML and API sources, MCP, Confluence,
+  Google Drive, OneDrive and SharePoint, C4 and ArchiMate profiles,
+  the repair loop and marketplace publishing. Semantic review is implemented for D1.2 Sequence
+  and D2 Component.

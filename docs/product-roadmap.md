@@ -12,6 +12,8 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
 The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
+Owner decision on 2026-09-28 also prepares **v0.3.0-alpha.1** as a prerelease candidate after D2;
+this version checkpoint does not mark the later M1, C1, D3–D5, K2, K3 or full REL scope complete.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
 and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
 2026-09-28; M1 adds MCP next, followed by C1 with VS Code Chat. The D1.1 code is
@@ -35,7 +37,7 @@ Agreed order of work:
 | 10 | D5 | `archimate-hld` plan, validator and renderer. |
 | 11 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
 | 12 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
-| 13 | REL | `v0.3.0-alpha.1`: AI SDLC demo, branding, provider comparison and accepted owner smoke. |
+| 13 | REL | Broader release work: AI SDLC demo, branding, provider comparison and accepted owner smoke; the v0.3.0-alpha.1 prerelease candidate is an earlier checkpoint after D2. |
 
 ### UX1 — Navigation and local document conversion
 
@@ -250,7 +252,7 @@ Ordered as agreed in [Product priority](#product-priority).
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
 | K2 | planned | Knowledge Pack Builder extraction and evidence verifier. | D5 |
 | K3 | planned | Knowledge Pack Builder UI and five-file write. | K2 |
-| REL | planned | `v0.3.0-alpha.1` demo and owner-accepted VSIX. | K3 |
+| REL | planned | Broader release work and owner-accepted VSIX after K3; the v0.3.0-alpha.1 prerelease candidate is prepared earlier, after D2. | K3 |
 
 ## Later
 
@@ -811,7 +813,8 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | D5 — ArchiMate HLD | planned after D4 |
 | K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
 | K3 — Knowledge Pack Builder UI and five-file write | planned |
-| REL — `v0.3.0-alpha.1` | planned |
+| v0.3.0-alpha.1 prerelease candidate | preparation after D2; owner smoke PASS reported on 2026-09-28; tag and publication pending |
+| REL — broader release work | planned |
 | Semantic reviewer in D1.1 | implemented; retained in R2 target |
 | Repair loop | deferred |
 | Quality modes | deferred |

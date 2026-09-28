@@ -1,87 +1,30 @@
-# Archi Agent
+# Archi Agent for VS Code
 
-Archi Agent turns a plain-language flow description into a PlantUML sequence or component diagram
-grounded in an Architecture Knowledge Pack. Elements, relationships and rules come from the pack;
-a configured model proposes a plan, and local validation checks it before an independent semantic review.
+Archi Agent **0.3.0-alpha.1** is a prerelease. It generates grounded PlantUML **Sequence** and **Component** diagrams from a flow and a local Architecture Knowledge Pack. A model proposes a plan, local code validates and renders it, and an independent model review checks the candidate. Verified diagrams and reports open in untitled editors.
 
-## What you need
+## Install and start
 
-- For diagram generation, an Architecture Knowledge Pack: a directory with five Markdown tables (`systems.md`, `actors.md`,
-  `relationships.md`, `aliases.md`, `rules.md`).
-- For diagram generation, a structured-output capable model from LM Studio, Ollama, Anthropic, OpenAI or OpenRouter.
+After the prerelease is published, download **archi-agent-0.3.0-alpha.1.vsix** and **archi-agent-0.3.0-alpha.1.sha256** from the [release page](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.1). Verify the checksum and choose **Extensions → … → Install from VSIX…** in VS Code. The VSIX is self-contained: no repository checkout, npm, separate Node.js installation, or Archi Agent backend is required.
 
-The standalone **Convert to Markdown** command needs neither of these. It runs locally without
-an LLM, network access or API key and never changes the source document.
+Run **Archi Agent: Open**. It has four sections: **Generate Diagram**, **Configuration**, **Knowledge Management**, and **Convert to Markdown**. Back returns to the first picker; Escape closes it.
 
-Only the compact grounded context of the current flow is sent to the selected provider, never the
-whole pack. Local profiles remain loopback-only. Cloud profiles use fixed HTTPS endpoints and keys
-stored only in VS Code `SecretStorage`.
+For diagram generation:
 
-## Settings
+1. Prepare a local Knowledge Pack directory containing systems.md, actors.md, relationships.md, aliases.md, and rules.md. Set its absolute path with **Knowledge Management → Configure Knowledge Pack Path** (**archiAgent.knowledgePackPath**). See the [format](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.1/docs/knowledge-pack-format.md) after publication.
+2. Under **Configuration**, select a provider profile and model. Profiles are LM Studio and Ollama on loopback, plus Anthropic, OpenAI, and OpenRouter over fixed HTTPS. Cloud providers also need an API key entered through **Set or Update API Key**; VS Code keeps it in SecretStorage. Use a structured-output capable model.
+3. Choose **Generate Diagram → Sequence** or **Component**. Use the active flow document, a flow file, or a typed description. Resolve ambiguous references and confirm **[NEW: Name]** elements if prompted.
+4. Review the unsaved PlantUML and grounding report. If independent review rejects or fails after local checks, a modal can show a marked unverified candidate without a report. Cancel opens nothing.
 
-| Setting | Meaning |
-| --- | --- |
-| `archiAgent.knowledgePackPath` | Absolute path of the Knowledge Pack directory. |
-| `archiAgent.localModel.profile` | Machine-scoped local or cloud provider profile. |
-| `archiAgent.localModel.selectedModel` | Machine-scoped model for the explicit profile. |
-| `archiAgent.localModel.selectedModelProfile` | Machine-scoped, extension-managed binding of the selected model to its profile. |
-| `archiAgent.localModel.baseUrl` | Legacy LM Studio loopback URL/override, default `http://127.0.0.1:1234/v1`. |
-| `archiAgent.localModel.model` | Legacy LM Studio model used until a profile is explicitly selected. |
-| `archiAgent.localModel.timeoutSeconds` | Time limit of one model request. |
-| `archiAgent.defaultAuthor` | Author used when a flow is entered as a plain description. |
-| `archiAgent.diagnostics.verbose` | Optional machine-scoped safe JSON Lines diagnostics in the **Archi Agent** Output Channel; off by default. No prompts, model responses, secrets, message labels or full PlantUML are logged. |
+**Archi Agent: Convert to Markdown** selects one local text-layer PDF, DOCX, or XLSX and opens one unsaved Markdown editor after success. It needs no provider, key, model, or Knowledge Pack; it makes no network or LLM request and does not change the source.
 
-## Commands
+## Commands and settings
 
-- `Archi Agent: Open` — QuickPick with Generate Diagram, Configuration, Knowledge Management and Convert to Markdown.
-- `Archi Agent: Convert to Markdown` — select one local PDF, DOCX or XLSX; the result opens as one unsaved Markdown document.
-- `Archi Agent: Select Provider Profile`
-- `Archi Agent: Set or Update API Key`
-- `Archi Agent: Delete Saved API Key`
-- `Archi Agent: Select Model`
-- `Archi Agent: Generate Diagram` — choose Sequence or Component; each uses a type-specific plan, deterministic rendering and an independent semantic verdict.
-- `Archi Agent: Generate Sequence Diagram`
+The public commands are **Open**, **Convert to Markdown**, **Generate Diagram**, **Generate Sequence Diagram** (the separate compatibility path), **Select Provider Profile**, **Select Model**, **Set or Update API Key**, and **Delete Saved API Key**, all under **Archi Agent**. Configuration in **Open** links to these commands and settings. The legacy local profile/model command IDs remain callable.
 
-Configuration in **Open** contains the existing provider, model and API-key commands plus links to
-the Knowledge Pack path, verbose diagnostics and other extension settings. Knowledge Management
-currently contains only the Knowledge Pack path. Back and Escape perform no conversion or
-generation. The existing command IDs remain callable for automation.
+**archiAgent.localModel.profile** and **archiAgent.localModel.selectedModel** are machine scoped. **archiAgent.localModel.selectedModelProfile** is an extension-managed binding; do not edit it. Legacy LM Studio **archiAgent.localModel.baseUrl** and **archiAgent.localModel.model** work until an explicit profile is selected. **archiAgent.localModel.timeoutSeconds** controls one model request, **archiAgent.defaultAuthor** applies to typed descriptions, and **archiAgent.diagnostics.verbose** enables safe structured diagnostics. Cloud keys are not settings.
 
-Conversion accepts text-layer PDFs (up to 100 pages) and preserves page order under neutral page
-headings; it does not reconstruct PDF layout or run OCR. DOCX keeps basic headings, paragraphs,
-lists and tables; images, complex layout and merged-cell fidelity are outside scope. XLSX exports
-all sheets, preserves blank cells in the used area and uses saved formula results without
-recalculating formulas. DOC and XLS are deferred. The converter caps input at 10 MiB and Markdown
-at 2 MiB; Office ZIP contents are limited to 1000 entries, 50 MiB total inflated, 10 MiB per entry
-and 100:1 compression. XLSX is limited to 20 sheets, 5000 rows, 100 columns and 100000 cells.
-Conversion times out after 30 seconds. Cancel and errors open no partial document and save nothing.
+## Limits and privacy
 
-The other named types (`component`, `c4-context`, `c4-container`, `archimate-hld`) are
-reserved for later stages and stop before provider access. The existing sequence command
-retains its compatible generation path.
+Only bounded, relevant grounded context is sent to the selected model, not the full pack. Local profiles accept loopback endpoints only; cloud profiles use fixed HTTPS hosts. Profile choice alone makes no provider request. Automated tests cover all adapters, but live owner smoke does not cover every provider. The release candidate awaits its own owner smoke.
 
-Profile, selected-model and binding settings have `machine` scope. They do not travel through
-Settings Sync and cannot be overridden by a workspace, so different computers can use independent
-providers and models. A selected model is used only when its binding matches the explicit profile;
-manually changing a profile therefore cannot carry over the previous profile's model. Existing LM
-Studio settings work only when no explicit global profile exists. An unknown explicit profile is a
-controlled error before network access and never falls back to those legacy settings.
-
-Cloud API keys are not settings and never appear in this list. Selecting a profile or setting or
-deleting a key performs no provider request. A missing cloud key blocks model listing and generation
-before provider I/O. The profile picker neither reads a key nor displays its storage status. Keys
-are limited to 1–1024 characters without edge whitespace or control characters and are read only
-directly before an explicit cloud operation. See the repository documentation `docs/cloud-models.md` for fixed endpoints,
-request contracts and optional cost-bearing owner smoke flows.
-
-To generate:
-
-1. Choose the flow source: the active editor document, a flow file, or a description typed in.
-2. Resolve ambiguous references and confirm `[NEW: Name]` participants when asked.
-3. Verified PlantUML opens in an editor; grounding report v2 opens beside it. If semantic review
-   rejects or fails after local checks, a modal asks whether to inspect an unverified candidate.
-   Show opens one untitled, clearly marked PlantUML document without a report; Cancel opens nothing.
-   User cancellation during review does not offer a candidate. There is no retry, repair, fallback
-   or third model request.
-
-Diagrams and reports are not written to disk by this version; save the editors where you want them.
+One Knowledge Pack directory is supported. Generated editors are not saved automatically, and PlantUML preview needs separate editor support. PDF extraction has no OCR or layout recovery. DOCX complex layout may lose fidelity; XLSX uses cached formula results. Conversion limits include 10 MiB input, 2 MiB Markdown output, 100 PDF pages, 20 sheets, 100,000 cells, and 30 seconds. DOC and XLS are unsupported. MCP, VS Code Chat, C4/ArchiMate types, Knowledge Pack Builder, retry, and repair are deferred. See the [full extension guide](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.1/docs/vscode-extension.md) and [root README](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.1/README.md) after publication.

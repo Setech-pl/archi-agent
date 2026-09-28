@@ -26,6 +26,38 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | R2 → D1.2 → S1 → UX1 → D2 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
+| Kandydat wydania | `v0.3.0-alpha.1` — automatyczne bramki PASS; właściciel zgłosił owner smoke PASS dokładnie zachowanego VSIX i autoryzował finalizację przygotowania wydania. |
+
+## v0.3.0-alpha.1 — owner smoke PASS, release preparation (2026-09-28)
+
+Decyzja właściciela: prerelease `v0.3.0-alpha.1` po D2, bez włączania M1, C1, D3–D5,
+K2 ani K3 do tego wydania. Zmieniono tylko dokumentację wydania, metadane wersji
+rozszerzenia i oczekiwaną nazwę pakietu w teście; root `archground` i lockfile pozostają
+na `0.1.0-private.0`, ponieważ nie opisują wersji rozszerzenia. Remote nie ma jeszcze tagów.
+Release notes: [`releases/v0.3.0-alpha.1.md`](releases/v0.3.0-alpha.1.md).
+
+Niezależny read-only review: 3 rundy, jedno trafne medium w pierwszej (nazwa pozycji
+Knowledge Pack), poprawione; po trzeciej brak high/medium. Pełny sekwencyjny gauntlet:
+`npm ci`, `npm test` 1309/1309, oba typechecki, `extension:test` 198/198,
+`extension:build`, `extension:package`, `extension:verify`, `demo:dry-run`, kontrole
+whitespace i `npm audit` (0 podatności) — PASS. Pierwszy przebieg sandboxowy
+zatrzymało `listen EPERM` na loopback; po korekcie przykładu komend w README cały
+runner przeszedł z dostępem do loopback.
+
+Zachowany artefakt: `vscode-extension/build/release/archi-agent-0.3.0-alpha.1.vsix`,
+966231 B, SHA-256 `ac818833faec4332e13e62d0b1518e57e8524007bae4a85906206ac87a814fa1`.
+Plik kontrolny obok: `archi-agent-0.3.0-alpha.1.sha256`. Osiem dozwolonych wpisów;
+manifest ma `setech-pl.archi-agent` w wersji `0.3.0-alpha.1`. Skan nie znalazł
+wzorców credentiali, ścieżki lokalnej, sentinela ani treści fixture. Runtime wyjęty
+z dokładnie tego VSIX uruchomił się poza repo bez `node_modules` i PATH; smoke potwierdził
+anulowanie konwersji i wczesne odrzucenie nieobsługiwanego typu. Test pakowania obejmuje
+również generowanie Sequence z rozpakowanego VSIX. Dokładny kandydat nie był ponownie budowany.
+
+Właściciel zgłosił **PASS** wszystkich dziewięciu żądanych kontroli owner smoke
+na dokładnie zachowanym VSIX i osobno autoryzował commit oraz zwykły push
+przygotowania wydania. Jest to raport właściciela, nie test UI wykonany przez agenta.
+Tag, merge do `main` i GitHub Release pozostają poza tą finalizacją. Bieżący
+stan commit/push należy sprawdzić w Git.
 
 ## D2 — Component completed, owner smoke PASS (2026-09-28)
 
