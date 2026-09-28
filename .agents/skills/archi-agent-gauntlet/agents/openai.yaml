@@ -1,0 +1,6 @@
+interface:
+  display_name: "Archi Agent Gauntlet"
+  short_description: "Run guarded implementation, review, testing, and finalization"
+  default_prompt: "Use $archi-agent-gauntlet to run the Archi Agent gauntlet for the requested milestone and stop at the owner-smoke boundary unless finalization is explicitly authorized."
+policy:
+  allow_implicit_invocation: false
