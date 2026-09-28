@@ -11,7 +11,6 @@ entries are understood, and everything else is rejected rather than interpreted.
 diagram_name: orbit-transfer
 flow_name: Orbit transfer request
 author: Flight Dynamics Team
-language: en
 ---
 The flight operator submits an orbit transfer request to the telemetry gateway.
 ```

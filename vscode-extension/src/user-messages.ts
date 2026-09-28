@@ -165,7 +165,7 @@ export function describeFailure(failure: GenerateSequenceDiagramFailure, context
   return Object.freeze({ level: "error", text, details, suggestSettings });
 }
 
-export function describeSuccess(result: GenerateSequenceDiagramSuccess): UserMessage {
+export function describeSuccess(result: GenerateSequenceDiagramSuccess, diagramType: "sequence" | "component" = "sequence"): UserMessage {
   const summary = result.summary;
   const warnings = boundedLines(result.warnings.map(describeIssue));
   const warningText = summary.warningCount === 0 ? "no warnings" : `${summary.warningCount} warning${summary.warningCount === 1 ? "" : "s"}`;
@@ -173,8 +173,8 @@ export function describeSuccess(result: GenerateSequenceDiagramSuccess): UserMes
   return Object.freeze({
     level: summary.warningCount === 0 ? "info" : "warning",
     text:
-      `Archi Agent generated "${result.diagramName}": ${summary.participantCount} participants ` +
-      `(${summary.knownParticipantCount} grounded, ${summary.newParticipantCount} new), ${summary.messageCount} messages, ${warningText}.`,
+      `Archi Agent generated "${result.diagramName}": ${summary.participantCount} ${diagramType === "component" ? "components" : "participants"} ` +
+      `(${summary.knownParticipantCount} grounded, ${summary.newParticipantCount} new), ${summary.messageCount} ${diagramType === "component" ? "dependencies" : "messages"}, ${warningText}.`,
     details: Object.freeze([`Grounding digest: sha256:${result.digest}`, `Generator: ${result.generatorType}`, ...warnings]),
     suggestSettings: false
   });

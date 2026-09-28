@@ -5,6 +5,6 @@ export function isDiagramType(value: unknown): value is DiagramType {
   return typeof value === "string" && diagramTypes.includes(value as DiagramType);
 }
 
-export function isSupportedDiagramType(value: unknown): value is "sequence" {
-  return value === "sequence";
+export function isSupportedDiagramType(value: unknown): value is "sequence" | "component" {
+  return value === "sequence" || value === "component";
 }

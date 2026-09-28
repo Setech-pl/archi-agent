@@ -293,7 +293,7 @@ describe("activation", () => {
     state.quickPickAnswers.push(() => undefined);
     activate(createExtensionContext() as never);
     await state.registeredCommands.get(commandIds.generateDiagram)?.();
-    expect((state.quickPicks[0]?.items as { description: string }[]).map((item) => item.description)).toEqual(["sequence"]);
+    expect((state.quickPicks[0]?.items as { description: string }[]).map((item) => item.description)).toEqual(["sequence", "component"]);
     expect(state.messages).toEqual([]);
     expect(state.secretReads).toEqual([]);
     expect(calls).toEqual({ generated: 0, listed: 0 });
@@ -320,6 +320,27 @@ describe("activation", () => {
     activate(createExtensionContext() as never);
     await state.registeredCommands.get(commandIds.generateDiagram)?.();
     expect(seen).toEqual(["sequence"]);
+    expect(state.secretReads).toEqual([]);
+  });
+
+  it("routes the selected component type through the reviewed command", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model" });
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    const inner = echoRuntime();
+    const seen: string[] = [];
+    packagedRuntime.current = { ...inner,
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      generateSequenceDiagram: (sequenceRequest) => inner.generateSequenceDiagram(sequenceRequest),
+      async generateDiagram(diagramRequest) {
+        seen.push(diagramRequest.diagramType);
+        return { status: "failed", stage: "invalid-generator-output", issues: [], ambiguities: [], unconfirmedNewParticipants: [] };
+      } };
+    state.quickPickAnswers.push(pickByLabel("Component"), pickByLabel("active editor"));
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect(seen).toEqual(["component"]);
     expect(state.secretReads).toEqual([]);
   });
 

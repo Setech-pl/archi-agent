@@ -1,9 +1,8 @@
 # Archi Agent
 
-Archi Agent turns a plain-language flow description into a PlantUML sequence diagram that is
-grounded in an Architecture Knowledge Pack. Participants, relationships and rules come from the
-pack; a local language model plans the interactions; deterministic validation checks the result
-before anything is shown.
+Archi Agent turns a plain-language flow description into a PlantUML sequence or component diagram
+grounded in an Architecture Knowledge Pack. Elements, relationships and rules come from the pack;
+a configured model proposes a plan, and local validation checks it before an independent semantic review.
 
 ## What you need
 
@@ -40,7 +39,7 @@ stored only in VS Code `SecretStorage`.
 - `Archi Agent: Set or Update API Key`
 - `Archi Agent: Delete Saved API Key`
 - `Archi Agent: Select Model`
-- `Archi Agent: Generate Diagram` — choose a type explicitly; Sequence uses Wire Plan v3, deterministic rendering and a minimal semantic verdict.
+- `Archi Agent: Generate Diagram` — choose Sequence or Component; each uses a type-specific plan, deterministic rendering and an independent semantic verdict.
 - `Archi Agent: Generate Sequence Diagram`
 
 Configuration in **Open** contains the existing provider, model and API-key commands plus links to

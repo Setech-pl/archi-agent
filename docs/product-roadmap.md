@@ -13,8 +13,8 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 
 The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
-and Wire Plan v3. UX1 passed owner smoke on 2026-09-23 and is completed; D2 follows,
-then M1 adds MCP and C1 adds VS Code Chat. The D1.1 code is
+and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
+2026-09-28; M1 adds MCP next, followed by C1 with VS Code Chat. The D1.1 code is
 preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
 [the target pipeline contract](reviewed-diagram-pipeline.md).
@@ -27,7 +27,7 @@ Agreed order of work:
 | 2 | D1.2 | Completed: `sequence` Wire Plan v3, local validator, deterministic renderer and independent reviewer. |
 | 3 | S1 | PASS: owner smoke of D1.2 with Ollama `qwen3:30b` on 2026-09-23. |
 | 4 | UX1 | Completed: navigation and local PDF, DOCX, XLSX conversion to an untitled Markdown document; owner smoke PASS on 2026-09-23. |
-| 5 | D2 | `component` plan, validator and renderer. |
+| 5 | D2 | Completed: `component` plan, validator and renderer; owner smoke PASS on 2026-09-28. |
 | 6 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
 | 7 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
 | 8 | D3 | `c4-context` plan, validator and renderer. |
@@ -242,7 +242,7 @@ Ordered as agreed in [Product priority](#product-priority).
 | D1.2 | completed | `sequence` Wire Plan v3, validator, deterministic renderer and independent reviewer. | R2 |
 | S1 | PASS | Verified owner smoke with Ollama `qwen3:30b` on 2026-09-23. | D1.2 |
 | UX1 | completed; owner smoke PASS on 2026-09-23 | QuickPick navigation and local PDF/DOCX/XLSX to untitled Markdown; no LLM or network. | S1 |
-| D2 | planned | `component` plan, validator and renderer. | UX1 owner smoke |
+| D2 | completed; owner smoke PASS on 2026-09-28 | `component` plan, validator and renderer. | UX1 owner smoke |
 | M1 | planned | Deterministic MCP adapter into ArchitectureSnapshot. | D2 |
 | C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | M1 |
 | D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
@@ -465,9 +465,9 @@ See [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and the
 
 # Phase 5 — Multi-diagram profiles
 
-**Status: D1.2 completed; S1 PASS.** Each diagram type has its own plan contract, local validator
+**Status: D1.2 and D2 completed; S1 and D2 owner smoke PASS.** Each diagram type has its own plan contract, local validator
 and deterministic renderer. D1.2 adds `sequence`; UX1 adds navigation and local conversion,
-then D2 adds `component`, M1 adds MCP, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
+D2 adds `component`, M1 adds MCP, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
 `archimate-hld`. C4 and ArchiMate use no external includes or downloaded macros.
 
 The old sequence renderer remains a compatibility path, never an automatic fallback.
@@ -803,7 +803,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | D1.2 — Sequence DiagramPlan, validator and renderer | completed |
 | S1 — Ollama `qwen3:30b` owner smoke | PASS on 2026-09-23 |
 | UX1 — Navigation and local document conversion | completed; owner smoke PASS on 2026-09-23; PDF, DOCX, XLSX |
-| D2 — Component diagram | planned after UX1 owner smoke |
+| D2 — Component diagram | completed; owner smoke PASS on 2026-09-28 |
 | M1 — ArchitectureSnapshot MCP adapter | planned after D2 |
 | C1 — VS Code Chat Participant | planned after M1 |
 | D3 — C4 context | planned after C1 |

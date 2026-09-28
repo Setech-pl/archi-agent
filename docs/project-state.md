@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-23 |
-| Stan Git | D1.2 wykonano na `feature/reviewed-diagram-pipeline`. Bieżący HEAD, upstream, publikację i czystość working tree zawsze sprawdzaj w Git. |
+| Data aktualizacji | 2026-09-28 |
+| Stan Git | D2 ukończone na `feature/reviewed-diagram-pipeline`. Bieżący HEAD, upstream, publikację i czystość working tree zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -21,10 +21,59 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan R2 | Completed — właściciel zatwierdził DiagramPlan, lokalną walidację i deterministyczne renderery per typ; ADR 0002 i checkpoint D1.1. |
 | Stan D1.2 | Ukończone: Wire Plan v3, deterministyczny renderer sequence, minimalny reviewer, safe diagnostics i unverified candidate UX. |
 | Stan UX1 | Completed — owner smoke PASS 2026-09-23 na samowystarczalnym VSIX w świeżym, izolowanym profilu VS Code. |
-| Następny etap | D2, potem M1 (MCP) i C1. |
+| Stan D2 | Completed — automatyczne bramki PASS, niezależny review 3/3 bez high/medium, owner smoke PASS 2026-09-28 na pakowanym VSIX. |
+| Następny etap | M1 (MCP), potem C1. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | R2 → D1.2 → S1 → UX1 → D2 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
+
+## D2 — Component completed, owner smoke PASS (2026-09-28)
+
+Implementacja na bazie `cfca4266511b59d05d70f495558ab8514170d606` dodaje Component do
+istniejącej komendy `Generate Diagram`. Osobny, ograniczony snapshot D2 ma digest obejmujący
+pełne zadanie, wybrane elementy, pozycje rozstrzygniętych aliasów, relacje, reguły i wiersze flow.
+Generator zwraca zamknięty plan zależności z odwołaniami do lokalnego katalogu, a renderer
+emituje wyłącznie deterministyczny podzbiór PlantUML component. Lokalna walidacja i jeden
+niezależny reviewer utrzymują limit 0/1/2 wywołań. Report v2 zawiera pochodzenie faktów,
+kind i ownership elementów oraz fizyczne linie. Sequence i osobna komenda compatibility
+pozostają osobnymi ścieżkami. M1, C1, D3–D5, K2 i K3 nie były implementowane.
+
+Test-first RED: nowy test nie znalazł modułu `component-snapshot`. Po implementacji testy
+celowane: 90/90. Niezależny review read-only: trzy rundy; poprawiono mapowanie aliasów,
+pełne zadanie i digest, diagnostykę review, raport external provenance oraz dowody testowe;
+końcowy werdykt: brak high/medium. Pełne bramki po review: `npm test` 1309/1309,
+`typecheck`, `extension:typecheck`, `extension:test` 198/198, `extension:build`,
+`extension:package`, `extension:verify`, `demo:dry-run`, kontrole whitespace i `npm audit`
+(0 podatności) — PASS. Pierwszy przebieg w sandboxie nie mógł otworzyć loopback (`listen EPERM`),
+więc cały runner powtórzono z dostępem do loopback; ten przebieg przeszedł.
+
+VSIX przed owner smoke: `vscode-extension/build/archi-agent-0.2.0-alpha.1.vsix`, 966881 B,
+SHA-256 `deb84d8ee2d49b265a38892bab2cb00b342a6a6c6b46489cb2116b79f95bb3e4`.
+Osiem wpisów zgodnych z allowlistą. Rozpakowany z ówczesnego VSIX runtime D2 przeszedł smoke
+poza repo i bez `node_modules`/PATH: sukces 2 call, lokalne odrzucenie 1 call,
+niepoprawny verdict 2 call z kandydatem unverified, Cancel 0/1 call bez częściowego wyniku;
+syntetyczne źródła pozostały bajtowo niezmienione. Skan trzech bundle nie znalazł
+testowego sentinela, wzorców credentiali, lokalnej ścieżki repo ani tekstu fixture'ów.
+Właściciel zgłosił owner smoke PASS na pakowanym VSIX: `Generate Diagram → Component`
+otworzył zweryfikowany PlantUML i report v2. Kierunki relacji, Command API oraz klasyfikacja
+Orbital Relay jako external były poprawne. Nie pojawił się modal unverified candidate;
+Cancel nie otworzył częściowego diagramu ani raportu. Poprawiony dokument smoke zawierał
+jedynie `diagram_name`, `flow_name` i `author`. Wcześniejsza instrukcja smoke zawierała
+`language: en`; przykład w `docs/front-matter.md` uproszczono do tych trzech pól.
+Parser repo nadal przyjmuje opcjonalne `language` (`en` albo `pl`), więc dokumentacja kluczy
+zachowuje ten kontrakt. Ręcznego smoke nie powtarzano w sesji finalizacji.
+
+Finalizacja po owner smoke: `npm ci`, `npm test` (1309/1309), oba typechecki,
+`extension:test` (198/198), `extension:build`, `extension:package`, `extension:verify`,
+`demo:dry-run`, `npm audit` (0 podatności) i `git diff --check` — PASS.
+Odbudowany VSIX ma 8 dozwolonych wpisów, 966881 B i SHA-256
+`3a83dc28606dbc35a66c28a205998e7915691df348c59789c63eb0f59ccc4f7d`.
+Archiwum tworzone jest ponownie z bieżącymi znacznikami czasu; jego hash różni się od
+artefaktu użytego w owner smoke. Test pakowania uruchomił runtime z wyjętego VSIX poza
+repo, bez `node_modules`, npm i PATH. Owner smoke dotyczył wcześniejszego pakowania
+tej samej implementacji.
+
+Następny krok produktowy: M1 (MCP), potem C1.
 
 ## UX1 — completed, owner smoke PASS (2026-09-23)
 
@@ -393,8 +442,8 @@ wykonywano.
 
 ## Następny krok
 
-**D2** zgodnie z aktualną roadmapą, następnie M1 (MCP). D1.2 i S1 pozostają PASS;
-UX1 jest completed po owner smoke PASS z 2026-09-23.
+**M1 (MCP)** zgodnie z aktualną roadmapą, następnie C1. D1.2, S1, UX1 i D2 mają
+owner smoke PASS.
 
 ## Implementacja D1
 

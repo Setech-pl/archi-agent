@@ -34,7 +34,8 @@ const cancelUnverifiedAction = "Cancel";
 const safeReviewProblems = new Set(["truncated-output", "timeout", "connection-failed", "response-truncated",
   "response-too-large", "provider-unavailable", "response-refused", "invalid-verdict", "request-failed"]);
 const safeReviewViolations = new Set(["unsupported-user-stated-evidence", "sequence-inconsistency",
-  "participant-inconsistency", "candidate-semantics-invalid"]);
+  "participant-inconsistency", "candidate-semantics-invalid", "missing-component", "ownership-mismatch",
+  "direction-mismatch", "interface-mismatch", "unsupported-inference", "abstraction-mismatch"]);
 const flowFileFilters = { "Flow documents": ["md", "txt"], "All files": ["*"] };
 const maxInlineFlowChars = 256;
 
@@ -248,7 +249,8 @@ async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, outpu
 }
 
 export async function generateDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
-  const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const }],
+  const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const },
+    { label: "Component", description: "component", id: "component" as const }],
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
   if (picked === undefined) return;
   await runGenerateCommand(dependencies, picked.id);
@@ -323,7 +325,7 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   const outcome = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: "Archi Agent: generating sequence diagram", cancellable: true },
+    { location: vscode.ProgressLocation.Notification, title: `Archi Agent: generating ${diagramType ?? "sequence"} diagram`, cancellable: true },
     (_progress, token) =>
       runSequenceGenerationSession({
         runtime,
@@ -351,5 +353,5 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   await openGeneratedDocuments(outcome.result);
-  await show(output, describeSuccess(outcome.result));
+  await show(output, describeSuccess(outcome.result, diagramType === "component" ? "component" : "sequence"));
 }

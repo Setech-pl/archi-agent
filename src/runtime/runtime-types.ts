@@ -4,6 +4,7 @@ import type { ProviderProfile } from "../core/llm/provider-profile.js";
 import type { DiagnosticSink } from "../core/pipeline/diagnostics.js";
 import type { ReviewProblemCode } from "../core/pipeline/generate-diagram.js";
 import type { SequenceReviewViolationCode } from "../core/pipeline/sequence-diagram-plan.js";
+import type { ComponentReviewViolationCode } from "../core/pipeline/component-diagram-plan.js";
 import type { DiagramType } from "../core/model/diagram-type.js";
 
 /**
@@ -191,7 +192,7 @@ export type GenerateSequenceDiagramResult = GenerateSequenceDiagramSuccess | Gen
 export interface GenerateDiagramUnverified {
   readonly status: "unverified";
   readonly plantUmlCandidate: string;
-  readonly review: { readonly status: "rejected"; readonly violationCodes: readonly SequenceReviewViolationCode[] }
+  readonly review: { readonly status: "rejected"; readonly violationCodes: readonly (SequenceReviewViolationCode | ComponentReviewViolationCode)[] }
     | { readonly status: "failed"; readonly problemCode: ReviewProblemCode };
 }
 export type GenerateDiagramOutcome = GenerateSequenceDiagramResult | GenerateDiagramUnverified;

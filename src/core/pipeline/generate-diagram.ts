@@ -12,6 +12,8 @@ import { validatePlantUmlSubset } from "../validation/plantuml-validator.js";
 import { knowledgePackArchitectureProvider } from "./reviewed-sequence.js";
 import { createOperationCatalog, renderSequencePlan, sequencePlanResponseSchema, sequenceReviewResponseSchema, sequenceReviewLimits, validateSequencePlan, validateSequenceReview, type SequenceReviewViolationCode } from "./sequence-diagram-plan.js";
 import { sequenceDiagramPlanSchema } from "./sequence-diagram-plan.js";
+import { generateComponentDiagram } from "./generate-component-diagram.js";
+import type { ComponentReviewViolationCode } from "./component-diagram-plan.js";
 import type { DiagnosticRun } from "./diagnostics.js";
 import type { PipelineOutcome, RenderValidationFailedOutcome } from "./generation-outcome.js";
 
@@ -35,7 +37,7 @@ export const diagramEnvelopeLimits = Object.freeze({ maxJsonChars: 512 * 1024, m
 export type ReviewedDiagramOutcome = PipelineOutcome | {
   readonly status: "unverified";
   readonly plantUmlCandidate: string;
-  readonly review: { readonly status: "rejected"; readonly violationCodes: readonly SequenceReviewViolationCode[] }
+  readonly review: { readonly status: "rejected"; readonly violationCodes: readonly (SequenceReviewViolationCode | ComponentReviewViolationCode)[] }
     | { readonly status: "failed"; readonly problemCode: ReviewProblemCode };
 };
 export type ReviewProblemCode = "truncated-output" | "timeout" | "connection-failed" | "response-truncated" |
@@ -112,6 +114,7 @@ export function renderedDocumentFailure(plantUml: string): RenderValidationFaile
 /** D1.2: one plan call, local validation and rendering, one independent verdict call. */
 export async function generateDiagram(request: GenerateDiagramRequest): Promise<ReviewedDiagramOutcome> {
   const diagnostics = request.diagnostics;
+  if (request.diagramType === "component") return generateComponentDiagram(request);
   if (request.diagramType !== "sequence") return invalid("schema-violation", "diagram-type-unsupported");
   if (!/^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/.test(request.artifactBaseName)) throw new Error("The artifact base name must come from the output planner.");
   if (!validateRelativePath(request.sources.flowFile).ok || !validateRelativePath(request.sources.knowledgePackDirectory).ok) return invalid("schema-violation", "snapshot-invalid");

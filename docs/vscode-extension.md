@@ -1,8 +1,8 @@
 # Archi Agent VS Code extension
 
 The extension is the first self-contained host of the Archi Agent runtime. It packages the existing
-sequence pipeline (Knowledge Pack loading, deterministic grounding, the local OpenAI-compatible
-generator, validation, PlantUML rendering, the grounding report) into a VSIX that runs without the
+sequence compatibility path and the reviewed Sequence and Component pipelines (Knowledge Pack loading,
+deterministic grounding, plan validation, PlantUML rendering and grounding reports) into a VSIX that runs without the
 source repository, npm, a TypeScript compiler, a root `node_modules` directory or a separately
 installed Node.js. P1 added local profile/model selection; P2 adds Anthropic, OpenAI and OpenRouter
 with credentials held by VS Code `SecretStorage`. This document describes
@@ -98,15 +98,16 @@ after one `SecretStorage.get` and one model-list GET. That cancellation writes n
 and does not start generation.
 
 `Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
-The picker offers only Sequence and runs the D1.2 Wire Plan v3 path: one strict operation-selection
-request, local plan resolution and deterministic PlantUML rendering, then one independent
-semantic review request. Verified success opens PlantUML and report v2. If review rejects or
+The picker offers Sequence and Component. Sequence runs the D1.2 Wire Plan v3 path;
+Component runs the D2 component plan and renderer. Each uses one strict plan request,
+local validation and deterministic PlantUML rendering, then one independent semantic
+review request. Verified success opens PlantUML and report v2. If review rejects or
 fails after all local checks, one modal offers the unverified candidate. **Show unverified
 candidate** opens one untitled PlantUML document with a fixed warning header and no report;
 **Cancel** or dismissal opens nothing. User cancellation during review never offers a candidate.
 No retry, repair, fallback or third request occurs. The verified owner smoke on 2026-09-23 made
 S1 PASS; earlier failed attempts remain historical.
-The four
+The three
 reserved types remain unsupported through direct runtime calls before any credential read or
 provider I/O. `Archi Agent: Generate
 Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and
