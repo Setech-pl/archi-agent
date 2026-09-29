@@ -56,6 +56,7 @@ function immutableProfile(value: unknown): ProviderProfile {
     typeof candidate.providerKind !== "string" ||
     !identifierPattern.test(candidate.profileId) ||
     !identifierPattern.test(candidate.providerKind) ||
+    (candidate.credentialRequirement !== "none" && candidate.credentialRequirement !== "api-key") ||
     !validDisplayName(candidate.displayName)
   ) {
     throw new ProviderRegistryError("invalid-provider-profile");
@@ -65,6 +66,7 @@ function immutableProfile(value: unknown): ProviderProfile {
     profileId: candidate.profileId,
     providerKind: candidate.providerKind,
     displayName: candidate.displayName,
+    credentialRequirement: candidate.credentialRequirement,
     capabilities: immutableCapabilities(candidate.capabilities)
   });
 }

@@ -17,7 +17,7 @@ export const allowedInterfaceTypes = [
 
 export type InterfaceType = (typeof allowedInterfaceTypes)[number];
 
-export type DiagramType = "sequence";
+export type { DiagramType } from "./diagram-type.js";
 
 export const diagramLanguages = ["en", "pl"] as const;
 

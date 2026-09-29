@@ -92,7 +92,7 @@ function modelOf(steps: readonly Step[]): GeneratedSequenceModel {
 
 const steps: readonly Step[] = [
   ["mission-control", "command-service", "REST API", { interfaceName: "Legacy Gateway" }],
-  ["command-service", "mission-control", "REST API", { isResponse: true }],
+  ["command-service", "mission-control", "REST API", { isResponse: true, interfaceName: "Legacy Gateway" }],
   ["command-service", "command-queue", "EVENT", { async: true, interfaceName: "Command Accepted Event" }],
   [{ newName: "ground station" }, "command-queue", "FILE", { async: true }]
 ];
@@ -209,6 +209,7 @@ describe("grounding report - content", () => {
 
     expect(warnings.map((warning) => [warning["origin"], warning["code"]])).toEqual([
       ["pipeline", "interface-name-removed"],
+      ["pipeline", "interface-name-removed"],
       ["pipeline", "unverified-new-participant-interaction"]
     ]);
     expect(report["validation"]).toEqual({
@@ -220,7 +221,7 @@ describe("grounding report - content", () => {
       plantUmlSubset: "passed",
       officialPlantUmlRendering: "not-executed",
       errorCount: 0,
-      warningCount: 2
+      warningCount: 3
     });
   });
 });

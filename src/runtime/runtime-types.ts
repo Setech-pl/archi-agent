@@ -1,6 +1,7 @@
 import type { CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import type { GenerationSummary } from "../core/pipeline/generation-outcome.js";
 import type { ProviderProfile } from "../core/llm/provider-profile.js";
+import type { DiagramType } from "../core/model/diagram-type.js";
 
 /**
  * Public contract of the Archi Agent application runtime.
@@ -14,6 +15,7 @@ import type { ProviderProfile } from "../core/llm/provider-profile.js";
  */
 
 export type { CancellationSignal, GenerationSummary };
+export type { DiagramType };
 
 export type FlowLanguage = "en" | "pl";
 
@@ -52,7 +54,7 @@ export interface LocalModelEndpointConfig {
   readonly timeoutMs?: number;
 }
 
-/** Which generator plans the diagram. Only the local OpenAI-compatible adapter exists today. */
+/** Legacy local generator configuration retained for backward compatibility. */
 export type LegacyLocalGeneratorConfig = LocalModelEndpointConfig & {
   readonly kind: "openai-compatible-local";
   /** Chosen explicitly by the caller; the runtime never selects a model. */
@@ -68,13 +70,28 @@ export type ProviderGeneratorConfig = {
   readonly baseUrl?: string;
 };
 
+export interface ProviderCredential {
+  readonly type: "api-key";
+  readonly value: string;
+}
+
+/** Profile-based remote generation. Hosts obtain the credential from secure storage per action. */
+export type RemoteProviderGeneratorConfig = {
+  readonly kind: "remote-provider";
+  readonly profileId: string;
+  readonly modelId: string;
+  readonly credential?: ProviderCredential;
+  readonly timeoutMs?: number;
+};
+
 /** The legacy endpoint variant remains public for backward compatibility. */
-export type GeneratorConfig = LegacyLocalGeneratorConfig | ProviderGeneratorConfig;
+export type GeneratorConfig = LegacyLocalGeneratorConfig | ProviderGeneratorConfig | RemoteProviderGeneratorConfig;
 
 export interface ProviderModelSelection {
   readonly profileId: string;
   readonly timeoutMs?: number;
   readonly baseUrl?: string;
+  readonly credential?: ProviderCredential;
 }
 
 export interface GenerateSequenceDiagramRequest {
@@ -86,6 +103,10 @@ export interface GenerateSequenceDiagramRequest {
   /** Names of [NEW: Name] participants the caller confirmed. */
   readonly confirmedNewParticipants?: readonly string[];
   readonly signal?: CancellationSignal;
+}
+
+export interface GenerateDiagramRequest extends GenerateSequenceDiagramRequest {
+  readonly diagramType: DiagramType;
 }
 
 export type RuntimeIssueSeverity = "error" | "warning";
@@ -178,6 +199,8 @@ export interface ListLocalModelsOptions {
  * interface do not change.
  */
 export interface ArchiAgentRuntime {
+  /** D1 entry point. Optional on legacy host doubles compiled against the sequence-only contract. */
+  generateDiagram?(request: GenerateDiagramRequest): Promise<GenerateSequenceDiagramResult>;
   generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult>;
   /** Immutable profiles sorted by profileId; this method performs no I/O. */
   listProviderProfiles(): readonly ProviderProfile[];

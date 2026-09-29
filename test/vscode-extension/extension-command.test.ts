@@ -4,12 +4,14 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createArchiAgentRuntime, type ArchiAgentRuntime, type GenerateSequenceDiagramRequest } from "../../src/runtime/index.js";
 import { generateSequenceDiagramCommand } from "../../vscode-extension/src/commands/generate-sequence-diagram.js";
+import { secretIdForProfile } from "../../vscode-extension/src/api-key-storage.js";
 import { selectLocalModel, selectLocalProviderProfile } from "../../vscode-extension/src/commands/local-provider-selection.js";
-import { commandIds, settingKeys, settingsSection } from "../../vscode-extension/src/contributions.js";
+import { commandIds, legacyCommandIds, settingKeys, settingsSection } from "../../vscode-extension/src/contributions.js";
 import { activate, deactivate } from "../../vscode-extension/src/extension.js";
 import { readLocalModelSettings } from "../../vscode-extension/src/settings.js";
 import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
 import { basePackRows, buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
+import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
 import * as vscodeDouble from "../doubles/vscode-module-double.js";
 
 const packagedRuntime = vi.hoisted(() => ({ current: undefined as ArchiAgentRuntime | undefined }));
@@ -105,16 +107,56 @@ describe("activation", () => {
 
     activate(context as never);
 
-    expect([...state.registeredCommands.keys()]).toEqual(Object.values(commandIds));
+    expect([...state.registeredCommands.keys()]).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)]);
     expect(manifest.contributes.commands.map((entry) => entry.command)).toEqual(Object.values(commandIds));
-    expect(manifest.activationEvents).toEqual(Object.values(commandIds).map((command) => `onCommand:${command}`));
+    expect(manifest.activationEvents).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`));
     expect(Object.keys(manifest.contributes.configuration.properties).sort()).toEqual(
       Object.values(settingKeys)
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
-    expect(context.subscriptions.length).toBe(4);
+    expect(context.subscriptions.length).toBe(9);
     deactivate();
+  });
+
+  it("offers only Sequence and cancellation performs no further I/O", async () => {
+    const inner = echoRuntime();
+    const calls = { generated: 0, listed: 0 };
+    packagedRuntime.current = {
+      ...inner,
+      listProviderProfiles: () => { calls.listed += 1; return inner.listProviderProfiles(); },
+      async generateDiagram(request) { calls.generated += 1; return inner.generateDiagram!(request); }
+    };
+    state.quickPickAnswers.push(() => undefined);
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect((state.quickPicks[0]?.items as { description: string }[]).map((item) => item.description)).toEqual(["sequence"]);
+    expect(state.messages).toEqual([]);
+    expect(state.secretReads).toEqual([]);
+    expect(calls).toEqual({ generated: 0, listed: 0 });
+  });
+
+  it("routes the selected sequence type through generateDiagram", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model" });
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    const inner = echoRuntime();
+    const seen: string[] = [];
+    packagedRuntime.current = {
+      ...inner,
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request),
+      async generateDiagram(request) {
+        seen.push(request.diagramType);
+        return { status: "failed", stage: "invalid-generator-output", issues: [], ambiguities: [], unconfirmedNewParticipants: [] };
+      }
+    };
+    state.quickPickAnswers.push(pickByLabel("Sequence"), pickByLabel("active editor"));
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateDiagram)?.();
+    expect(seen).toEqual(["sequence"]);
+    expect(state.secretReads).toEqual([]);
   });
 
   it("reports missing settings through the registered command without any runtime call", async () => {
@@ -129,6 +171,30 @@ describe("activation", () => {
     ]);
     expect(state.messages[0]?.actions).toContain("Open Settings");
     expect(state.openedDocuments).toEqual([]);
+  });
+
+  it("executes both P1 compatibility aliases through their current commands", async () => {
+    configureGlobal({ [settingKeys.localModelProfile]: "local-lm-studio" });
+    const calls = { listings: 0 };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models: ["model-a"] };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      generateSequenceDiagram: (request) => inner.generateSequenceDiagram(request)
+    };
+    state.quickPickAnswers.push(pickByLabel("LM Studio"));
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(legacyCommandIds.selectLocalProviderProfile)?.();
+    await state.registeredCommands.get(legacyCommandIds.selectLocalModel)?.();
+
+    expect(state.executedCommands.map((entry) => entry.command)).toEqual([commandIds.selectProviderProfile, commandIds.selectModel]);
+    expect(calls.listings).toBe(1);
+    expect(state.quickPicks).toHaveLength(2);
   });
 
   it("waits for the real Generate command before listing after a manual profile change and does not generate when model picking is cancelled", async () => {
@@ -187,6 +253,152 @@ describe("activation", () => {
 });
 
 describe("generate command", () => {
+  it("lists cloud models once and writes or generates nothing when its model picker is cancelled", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory });
+    configureGlobal({ [settingKeys.localModelProfile]: "cloud-openai" });
+    const secretId = secretIdForProfile("cloud-openai") ?? "";
+    state.secrets.set(secretId, "synthetic-cloud-key");
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    state.quickPickAnswers.push(pickByLabel("active editor"));
+    const transport = new RemoteJsonTransportDouble(JSON.stringify({ data: [{ id: "gpt-test" }] }));
+    const inner = createArchiAgentRuntime({ remoteTransport: transport });
+    const calls = { generations: 0 };
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        calls.generations += 1;
+        return inner.generateSequenceDiagram(request);
+      }
+    };
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+
+    expect(state.secretReads).toEqual([secretId]);
+    expect(transport.requests.map((request) => request.endpoint)).toEqual(["openai-models"]);
+    expect(transport.requests.filter((request) => request.endpoint === "openai-chat-completions")).toHaveLength(0);
+    expect(state.configurationUpdates).toEqual([]);
+    expect(calls.generations).toBe(0);
+    expect(state.openedDocuments).toEqual([]);
+    expect(state.quickPicks).toHaveLength(2);
+  });
+
+  it("runs cloud generation through the registered command and reads its secret only after the flow picker", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory });
+    configureGlobal({
+      [settingKeys.localModelProfile]: "cloud-openai",
+      [settingKeys.localModelSelectedModel]: "gpt-test",
+      [settingKeys.localModelSelectedModelProfile]: "cloud-openai"
+    });
+    const secretId = secretIdForProfile("cloud-openai") ?? "";
+    state.secrets.set(secretId, "synthetic-cloud-key");
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    state.quickPickAnswers.push(pickByLabel("active editor"));
+    const requests: GenerateSequenceDiagramRequest[] = [];
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        requests.push(request);
+        return inner.generateSequenceDiagram({
+          ...request,
+          generator: { kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "echo-model" }
+        });
+      }
+    };
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+
+    expect(state.secretReads).toEqual([secretId]);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.generator).toEqual({
+      kind: "remote-provider",
+      profileId: "cloud-openai",
+      modelId: "gpt-test",
+      timeoutMs: 120_000,
+      credential: { type: "api-key", value: "synthetic-cloud-key" }
+    });
+    expect(state.openedDocuments).toHaveLength(2);
+  });
+
+  it("cancels flow-source selection before SecretStorage.get, provider I/O, generation and writes", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory });
+    configureGlobal({
+      [settingKeys.localModelProfile]: "cloud-openrouter",
+      [settingKeys.localModelSelectedModel]: "vendor/model",
+      [settingKeys.localModelSelectedModelProfile]: "cloud-openrouter"
+    });
+    const calls = { listings: 0, generations: 0 };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      async listProviderModels() {
+        calls.listings += 1;
+        return { ok: true, models: [] };
+      },
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram() {
+        calls.generations += 1;
+        throw new Error("must not generate");
+      }
+    };
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+
+    expect(state.secretReads).toEqual([]);
+    expect(state.secretWrites).toEqual([]);
+    expect(state.configurationUpdates).toEqual([]);
+    expect(calls).toEqual({ listings: 0, generations: 0 });
+    expect(state.quickPicks).toHaveLength(1);
+    expect(state.quickPicks[0]?.options).toMatchObject({ title: "Archi Agent: flow source" });
+  });
+
+  it("restores a cloud selection and secret, then deletion after restart blocks generation before runtime I/O", async () => {
+    configure({ [settingKeys.knowledgePackPath]: packDirectory });
+    configureGlobal({
+      [settingKeys.localModelProfile]: "cloud-openai",
+      [settingKeys.localModelSelectedModel]: "gpt-restart",
+      [settingKeys.localModelSelectedModelProfile]: "cloud-openai"
+    });
+    const secretId = secretIdForProfile("cloud-openai") ?? "";
+    state.secrets.set(secretId, "restart-secret");
+    const calls = { generations: 0 };
+    const inner = echoRuntime();
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram() {
+        calls.generations += 1;
+        throw new Error("must be blocked after deletion");
+      }
+    };
+    const context = createExtensionContext();
+    activate(context as never);
+    activate(context as never);
+    expect(readAfterRestart()).toEqual({
+      ok: true,
+      settings: expect.objectContaining({ profileId: "cloud-openai", modelId: "gpt-restart" })
+    });
+    expect(state.secrets.get(secretId)).toBe("restart-secret");
+
+    state.messageAnswers.push("Delete API Key");
+    await state.registeredCommands.get(commandIds.deleteApiKey)?.();
+    expect(state.secrets.has(secretId)).toBe(false);
+
+    state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
+    state.quickPickAnswers.push(pickByLabel("active editor"));
+    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    expect(calls.generations).toBe(0);
+    expect(state.messages.at(-1)?.text).toContain("no valid API key");
+  });
+
   it("generates from the active editor document and opens the PlantUML and the grounding report", async () => {
     configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model" });
     state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines), { fileName: path.join("C:", "flows", "observation-run.md") }) };
@@ -202,6 +414,7 @@ describe("generate command", () => {
     expect(state.progressTitles).toEqual(["Archi Agent: generating sequence diagram"]);
     expect(state.outputLines.join(LF)).not.toContain("@startuml");
     expect(state.outputLines.join(LF)).not.toContain(packDirectory);
+    expect(state.secretReads).toEqual([]);
   });
 
   it("uses the plantuml language when an extension registered it", async () => {
@@ -315,7 +528,7 @@ describe("generate command", () => {
     state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
     state.quickPickAnswers.push(pickByLabel("active editor"));
     const runtime: ArchiAgentRuntime = {
-      listProviderProfiles: () => [],
+      listProviderProfiles: () => echoRuntime().listProviderProfiles(),
       async listProviderModels() {
         return { ok: false, code: "connection-failed" };
       },
@@ -397,9 +610,17 @@ describe("local provider and model selection", () => {
 
     await selectLocalProviderProfile(runtimeWithModels([], calls), output());
 
-    expect((state.quickPicks[0]?.items as { label: string }[]).map((item) => item.label)).toEqual(["LM Studio", "Ollama"]);
-    expect((state.quickPicks[0]?.items as { label: string; description: string }[])[1]?.description).toContain("Current profile");
+    expect((state.quickPicks[0]?.items as { label: string }[]).map((item) => item.label)).toEqual([
+      "Anthropic",
+      "OpenAI",
+      "OpenRouter",
+      "LM Studio",
+      "Ollama"
+    ]);
+    expect((state.quickPicks[0]?.items as { label: string; description: string }[])[4]?.description).toContain("Current profile");
+    expect((state.quickPicks[0]?.items as { detail: string }[]).map((item) => item.detail).join("\n")).not.toMatch(/saved|not saved/i);
     expect(calls.listings).toBe(0);
+    expect(state.secretReads).toEqual([]);
     expect(state.configurationUpdates).toEqual([
       { key: `${settingsSection}.${settingKeys.localModelSelectedModel}`, value: undefined, target: ConfigurationTarget.Global },
       { key: `${settingsSection}.${settingKeys.localModelSelectedModelProfile}`, value: undefined, target: ConfigurationTarget.Global },
@@ -453,6 +674,39 @@ describe("local provider and model selection", () => {
     expect(await selectLocalModel(runtime, output())).toEqual({ status: "cancelled" });
     expect(calls.listings).toBe(1);
     expect(state.configurationUpdates).toEqual([]);
+  });
+
+  it("reads one cloud secret and performs one model-list GET before a cancelled Select Model picker", async () => {
+    configureGlobal({
+      [settingKeys.localModelProfile]: "cloud-openai",
+      [settingKeys.localModelSelectedModel]: "previous-model",
+      [settingKeys.localModelSelectedModelProfile]: "cloud-openai"
+    });
+    const secretId = secretIdForProfile("cloud-openai") ?? "";
+    state.secrets.set(secretId, "synthetic-cloud-key");
+    const transport = new RemoteJsonTransportDouble(JSON.stringify({ data: [{ id: "gpt-test" }] }));
+    const inner = createArchiAgentRuntime({ remoteTransport: transport });
+    const calls = { generations: 0 };
+    packagedRuntime.current = {
+      listProviderProfiles: () => inner.listProviderProfiles(),
+      listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
+      listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
+      async generateSequenceDiagram(request) {
+        calls.generations += 1;
+        return inner.generateSequenceDiagram(request);
+      }
+    };
+    activate(createExtensionContext() as never);
+
+    await state.registeredCommands.get(commandIds.selectModel)?.();
+
+    expect(state.secretReads).toEqual([secretId]);
+    expect(transport.requests.map((request) => request.endpoint)).toEqual(["openai-models"]);
+    expect(transport.requests.filter((request) => request.endpoint === "openai-chat-completions")).toHaveLength(0);
+    expect(state.configurationUpdates).toEqual([]);
+    expect(calls.generations).toBe(0);
+    expect(state.openedDocuments).toEqual([]);
+    expect(state.quickPicks).toHaveLength(1);
   });
 
   it("stops a profile change when clearing selectedModel fails", async () => {
@@ -642,7 +896,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectLocalModel)?.();
+    await state.registeredCommands.get(commandIds.selectModel)?.();
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([
@@ -680,7 +934,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectLocalModel)?.();
+    await state.registeredCommands.get(commandIds.selectModel)?.();
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([
@@ -719,7 +973,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectLocalModel)?.();
+    await state.registeredCommands.get(commandIds.selectModel)?.();
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([

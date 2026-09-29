@@ -87,11 +87,24 @@ function generatorProblem(failure: GenerateSequenceDiagramFailure): string | und
   return typeof problem === "string" ? problem : generatorIssue === undefined ? undefined : "generator-failed";
 }
 
-const transportProblems = new Set(["connection-failed", "timeout", "http-status", "redirect-rejected", "unexpected-content-type", "cancelled"]);
+const transportProblems = new Set([
+  "connection-failed",
+  "timeout",
+  "http-status",
+  "redirect-rejected",
+  "unexpected-content-type",
+  "cancelled",
+  "authentication-failed",
+  "rate-limited",
+  "provider-unavailable",
+  "response-too-large",
+  "response-truncated"
+]);
 
 export interface FailureContext {
-  /** Loopback base URL of the configured local server; safe to show. */
-  readonly baseUrl: string;
+  /** Loopback base URL is safe for local profiles; remote profiles expose only their display name. */
+  readonly baseUrl?: string;
+  readonly providerName?: string;
 }
 
 export function describeFailure(failure: GenerateSequenceDiagramFailure, context: FailureContext): UserMessage {
@@ -108,7 +121,7 @@ export function describeFailure(failure: GenerateSequenceDiagramFailure, context
       suggestSettings = true;
       break;
     case "generator-configuration":
-      text = "The local model settings were rejected.";
+      text = "The provider or model settings were rejected.";
       suggestSettings = true;
       break;
     case "grounding-blocked":
@@ -124,18 +137,21 @@ export function describeFailure(failure: GenerateSequenceDiagramFailure, context
       const problem = generatorProblem(failure);
 
       if (problem !== undefined && transportProblems.has(problem)) {
-        text = `The local model server at ${context.baseUrl} did not answer (${problem}). Is the server running with the model loaded?`;
+        text =
+          context.baseUrl === undefined
+            ? `The selected provider${context.providerName === undefined ? "" : ` (${context.providerName})`} did not complete the request (${problem}).`
+            : `The local model server at ${context.baseUrl} did not answer (${problem}). Is the server running with the model loaded?`;
         suggestSettings = true;
       } else if (problem !== undefined) {
-        text = `The local model answer could not be used (${problem}). No diagram was produced.`;
+        text = `The model answer could not be used (${problem}). No diagram was produced.`;
       } else {
-        text = "The local model answer violates the strict model schema. No diagram was produced.";
+        text = "The model answer violates the strict model schema. No diagram was produced.";
       }
 
       break;
     }
     case "semantic-validation-failed":
-      text = "The local model answer violates the grounded architecture (participants, relationships or modes). No diagram was produced.";
+      text = "The model answer violates the grounded architecture (participants, relationships or modes). No diagram was produced.";
       break;
     case "render-validation-failed":
       text = "The rendered PlantUML failed the structural check. No diagram was produced.";
@@ -169,10 +185,10 @@ export function describeSettingsProblems(problems: readonly SettingsProblem[]): 
   });
 }
 
-export function describeModelListFailure(code: string, baseUrl: string): UserMessage {
+export function describeModelListFailure(code: string, provider: string): UserMessage {
   return Object.freeze({
     level: "error",
-    text: `The local server at ${baseUrl} did not report its models (${code}). Start the selected provider or run Archi Agent: Select Local Model again.`,
+    text: `The selected provider (${provider}) did not report its models (${code}). Check the provider and run Archi Agent: Select Model again.`,
     details: Object.freeze([`[${code}] model listing failed`]),
     suggestSettings: true
   });

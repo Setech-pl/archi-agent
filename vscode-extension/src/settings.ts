@@ -3,7 +3,11 @@ import {
   defaultBaseUrlForLocalProfile,
   defaultLocalModelBaseUrl,
   isSafeModelId,
+  anthropicRemoteProfileId,
   localLmStudioProfileId,
+  localOllamaProfileId,
+  openAiRemoteProfileId,
+  openRouterRemoteProfileId,
   parseLoopbackEndpoint,
   runtimeLimits
 } from "../../src/runtime/index.js";
@@ -31,7 +35,7 @@ export interface SettingsReader {
 export interface LocalModelSettings {
   readonly selectionMode: "legacy" | "profile";
   readonly profileId: string;
-  readonly baseUrl: string;
+  readonly baseUrl?: string;
   /** Undefined until the user configured or picked a model; the runtime never chooses one. */
   readonly modelId: string | undefined;
   readonly timeoutMs: number;
@@ -115,27 +119,37 @@ function selectedModel(reader: SettingsReader, profile: ReturnType<typeof explic
   return {
     key: settingKeys.localModelSelectedModel,
     value:
-      binding === profile.value && defaultBaseUrlForLocalProfile(binding) !== undefined
+      binding === profile.value && knownProfileIds.has(binding)
         ? reader.inspect(settingKeys.localModelSelectedModel)?.globalValue
         : undefined
   };
 }
+
+const knownProfileIds = new Set([
+  localLmStudioProfileId,
+  localOllamaProfileId,
+  anthropicRemoteProfileId,
+  openAiRemoteProfileId,
+  openRouterRemoteProfileId
+]);
 
 export function readLocalModelSettings(reader: SettingsReader): LocalModelSettingsResult {
   const problems: SettingsProblem[] = [];
   const profile = explicitProfile(reader);
   const selectedProfileId = profile.explicit ? profile.value : localLmStudioProfileId;
   const profileDefaultBaseUrl = typeof selectedProfileId === "string" ? defaultBaseUrlForLocalProfile(selectedProfileId) : undefined;
+  const knownProfile = typeof selectedProfileId === "string" && knownProfileIds.has(selectedProfileId);
 
-  if (profile.explicit && profileDefaultBaseUrl === undefined) {
+  if (profile.explicit && !knownProfile) {
     problems.push(problem("unknown-provider-profile", settingKeys.localModelProfile, "The explicitly configured provider profile is not registered."));
   }
 
   const effectiveProfileId = typeof selectedProfileId === "string" ? selectedProfileId : "";
+  const isLocal = profileDefaultBaseUrl !== undefined;
   const baseUrlDefault = profile.explicit ? profileDefaultBaseUrl : defaultLocalModelBaseUrl;
   const rawBaseUrl = effectiveProfileId === localLmStudioProfileId ? reader.get(settingKeys.localModelBaseUrl) : undefined;
   const baseUrlText = text(rawBaseUrl) === "" ? (baseUrlDefault ?? "") : text(rawBaseUrl);
-  const endpoint = baseUrlDefault === undefined ? undefined : parseLoopbackEndpoint(baseUrlText);
+  const endpoint = !knownProfile || !isLocal ? undefined : parseLoopbackEndpoint(baseUrlText);
 
   if (endpoint !== undefined && !endpoint.ok) {
     problems.push(
@@ -177,7 +191,7 @@ export function readLocalModelSettings(reader: SettingsReader): LocalModelSettin
     );
   }
 
-  if (problems.length > 0 || endpoint === undefined || !endpoint.ok || typeof timeoutSeconds !== "number") {
+  if (problems.length > 0 || !knownProfile || (isLocal && (endpoint === undefined || !endpoint.ok)) || typeof timeoutSeconds !== "number") {
     return Object.freeze({ ok: false, problems: Object.freeze(problems) });
   }
 
@@ -186,7 +200,7 @@ export function readLocalModelSettings(reader: SettingsReader): LocalModelSettin
     settings: Object.freeze({
       selectionMode: profile.explicit ? "profile" : "legacy",
       profileId: effectiveProfileId,
-      baseUrl: endpoint.endpoint.baseUrl,
+      ...(endpoint?.ok === true ? { baseUrl: endpoint.endpoint.baseUrl } : {}),
       modelId,
       timeoutMs: Math.round(timeoutSeconds * 1000)
     })

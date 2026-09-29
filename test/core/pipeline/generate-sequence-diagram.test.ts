@@ -8,6 +8,7 @@ import type { SequenceModelGenerationRequest, SequenceModelGenerator } from "../
 import { validatePlantUmlSubset } from "../../../src/core/validation/plantuml-validator.js";
 import { ScriptedSpaceMissionGenerator } from "../../../src/demo/scripted-space-mission-generator.js";
 import { KnowledgePackSourceDouble } from "../../doubles/knowledge-pack-source-double.js";
+import { basePackRows, buildPackFiles } from "../../doubles/knowledge-pack-fixture.js";
 
 type Raw = Record<string, unknown>;
 
@@ -96,6 +97,28 @@ function requestBetween(messages: Raw[], fromId: string, toId: string, interface
 const staleSummaryField = ["internal", "Count"].join("");
 
 describe("generateSequenceDiagram - success", () => {
+  it("matches a response only after the synchronous request in a pack with both modes", async () => {
+    const files = buildPackFiles({ relationships: [...basePackRows.relationships, ["telescope-scheduler", "image-archive", "DB", "Archive Writer", "asynchronous", "Queues frames"]] });
+    const mixedLoaded = await loadKnowledgePack(new KnowledgePackSourceDouble(files));
+    if (!mixedLoaded.ok) throw new Error("The mixed-mode pack must load");
+    const parsedFlow = parseFlowDocument("---\ndiagram_name: mixed-modes\nflow_name: Mixed modes\nauthor: Test\nlanguage: en\n---\nTelescope Scheduler registers frames in Image Archive.\n", { file: "mixed.md" });
+    if (!parsedFlow.ok) throw new Error("The flow must parse");
+    const from = { elementId: "telescope-scheduler" };
+    const to = { elementId: "image-archive" };
+    const base = { from, to, interfaceType: "DB", interfaceName: "Archive Writer", label: "Frames", async: false, isResponse: false };
+    const participants = [
+      { origin: "knowledge-pack", elementId: "telescope-scheduler", canonicalName: "Telescope Scheduler", kind: "system" },
+      { origin: "knowledge-pack", elementId: "image-archive", canonicalName: "Image Archive", kind: "database" }
+    ];
+    const event = { ...base, async: true, order: 1 };
+    const reply = { ...base, from: to, to: from, isResponse: true, order: 2 };
+    const overrides = { flow: parsedFlow.flow, knowledgePack: { pack: mixedLoaded.pack, indexes: mixedLoaded.indexes } };
+    const invalid = await run(new StubGenerator(() => ({ participants, messages: [event, reply] })), overrides);
+    expect(invalid).toMatchObject({ status: "semantic-validation-failed", issues: expect.arrayContaining([expect.objectContaining({ code: "response-without-request" })]) });
+    const valid = await run(new StubGenerator(() => ({ participants, messages: [event, { ...base, order: 2 }, { ...reply, order: 3 }] })), overrides);
+    expect(valid.status).toBe("success");
+  });
+
   it("runs the complete pipeline with the scripted generator and returns both artifacts in memory", async () => {
     const outcome = await run(new ScriptedSpaceMissionGenerator());
 
@@ -181,6 +204,9 @@ describe("generateSequenceDiagram - success", () => {
       const request = requestBetween(messages, "mission-control", "command-service", "REST API");
       expect(request["interfaceName"]).toBe("Command API");
       request["interfaceName"] = "Legacy Gateway";
+      const response = messages.find((message) => message["isResponse"] === true && (message["from"] as Raw)["elementId"] === "command-service" && (message["to"] as Raw)["elementId"] === "mission-control");
+      if (response === undefined) throw new Error("Missing matching response");
+      response["interfaceName"] = "Legacy Gateway";
       return messages;
     });
     const outcome = await run(new StubGenerator(() => output));
@@ -189,7 +215,7 @@ describe("generateSequenceDiagram - success", () => {
       throw new Error(`Expected success, got ${outcome.status}.`);
     }
 
-    expect(outcome.warnings.map((warning) => warning.code)).toEqual(["interface-name-removed"]);
+    expect(outcome.warnings.map((warning) => warning.code)).toEqual(["interface-name-removed", "interface-name-removed"]);
     expect(outcome.diagram.content).not.toContain("Legacy Gateway");
     expect(outcome.report.content).not.toContain("Legacy Gateway");
     expect(JSON.parse(outcome.report.content).validation.interfaceNamePolicy).toBe("names-removed");

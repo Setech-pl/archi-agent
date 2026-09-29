@@ -12,5 +12,7 @@ export interface ProviderProfile {
   readonly profileId: string;
   readonly providerKind: string;
   readonly displayName: string;
+  /** Whether a host must supply a credential before any provider I/O. */
+  readonly credentialRequirement: "none" | "api-key";
   readonly capabilities: ProviderCapabilities;
 }

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { ArchiAgentRuntime, CancellationSignal, ProviderProfile } from "../../../src/runtime/index.js";
 import { localLmStudioProfileId } from "../../../src/runtime/index.js";
+import { readApiKey } from "../api-key-storage.js";
 import { settingKeys, settingsSection } from "../contributions.js";
 import { readLocalModelSettings, type LocalModelSettings, type SettingsProblem } from "../settings.js";
 import { describeModelListFailure, describeSettingsProblems } from "../user-messages.js";
@@ -46,11 +47,15 @@ function currentSettings() {
   return readLocalModelSettings(vscode.workspace.getConfiguration(settingsSection));
 }
 
-function profileSelection(settings: LocalModelSettings): { readonly profileId: string; readonly timeoutMs: number; readonly baseUrl?: string } {
+function profileSelection(
+  settings: LocalModelSettings,
+  apiKey?: string
+): { readonly profileId: string; readonly timeoutMs: number; readonly baseUrl?: string; readonly credential?: { readonly type: "api-key"; readonly value: string } } {
   return Object.freeze({
     profileId: settings.profileId,
     timeoutMs: settings.timeoutMs,
-    ...(settings.profileId === localLmStudioProfileId ? { baseUrl: settings.baseUrl } : {})
+    ...(settings.profileId === localLmStudioProfileId && settings.baseUrl !== undefined ? { baseUrl: settings.baseUrl } : {}),
+    ...(apiKey === undefined ? {} : { credential: Object.freeze({ type: "api-key" as const, value: apiKey }) })
   });
 }
 
@@ -80,7 +85,10 @@ async function showModelListFailure(output: vscode.OutputChannel, code: string, 
 }
 
 /** Selects identity metadata only. It never asks a provider or performs any other network I/O. */
-export async function selectLocalProviderProfile(runtime: ArchiAgentRuntime, output: vscode.OutputChannel): Promise<LocalSelectionOutcome> {
+export async function selectProviderProfile(
+  runtime: ArchiAgentRuntime,
+  output: vscode.OutputChannel
+): Promise<LocalSelectionOutcome> {
   const currentResult = currentSettings();
 
   if (!currentResult.ok) {
@@ -93,12 +101,12 @@ export async function selectLocalProviderProfile(runtime: ArchiAgentRuntime, out
   const items: ProviderItem[] = runtime.listProviderProfiles().map((profile) => ({
     label: profile.displayName,
     description: profile.profileId === current.profileId ? "$(check) Current profile" : profile.profileId,
-    detail: profile.providerKind,
+    detail: `${profile.providerKind}${profile.credentialRequirement === "api-key" ? "; API key managed separately" : "; no API key"}`,
     profile
   }));
   const picked = await vscode.window.showQuickPick(items, {
-    title: "Archi Agent: select the local provider profile",
-    placeHolder: "Selecting a profile does not contact its server",
+    title: "Archi Agent: select the provider profile",
+    placeHolder: "Selecting a profile does not contact its provider",
     ignoreFocusOut: true
   });
 
@@ -138,7 +146,11 @@ export async function selectLocalProviderProfile(runtime: ArchiAgentRuntime, out
 }
 
 /** Performs one explicit model-list request, then stores a choice in machine-scoped global settings. */
-export async function selectLocalModel(runtime: ArchiAgentRuntime, output: vscode.OutputChannel): Promise<LocalSelectionOutcome> {
+export async function selectModel(
+  runtime: ArchiAgentRuntime,
+  output: vscode.OutputChannel,
+  secrets?: vscode.SecretStorage
+): Promise<LocalSelectionOutcome> {
   const currentResult = currentSettings();
 
   if (!currentResult.ok) {
@@ -147,19 +159,35 @@ export async function selectLocalModel(runtime: ArchiAgentRuntime, output: vscod
   }
 
   const current = currentResult.settings;
+  const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === current.profileId);
+  if (profile === undefined) {
+    await showModelListFailure(output, "unknown-provider-profile", current.baseUrl ?? "selected provider");
+    return Object.freeze({ status: "failed" });
+  }
+  let apiKey: string | undefined;
+  try {
+    apiKey = secrets === undefined ? undefined : await readApiKey(secrets, profile);
+  } catch {
+    await showModelListFailure(output, "secret-storage-read-failed", profile.displayName);
+    return Object.freeze({ status: "failed" });
+  }
+  if (profile.credentialRequirement === "api-key" && apiKey === undefined) {
+    await showModelListFailure(output, "credential-required", profile.displayName);
+    return Object.freeze({ status: "failed" });
+  }
 
   const listed = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: "Archi Agent: listing local models", cancellable: true },
-    (_progress, token) => runtime.listProviderModels(profileSelection(current), { signal: cancellationSignal(token) })
+    { location: vscode.ProgressLocation.Notification, title: `Archi Agent: listing ${profile.displayName} models`, cancellable: true },
+    (_progress, token) => runtime.listProviderModels(profileSelection(current, apiKey), { signal: cancellationSignal(token) })
   );
 
   if (!listed.ok) {
-    await showModelListFailure(output, listed.code, current.baseUrl);
+    await showModelListFailure(output, listed.code, current.baseUrl ?? profile.displayName);
     return Object.freeze({ status: "failed" });
   }
 
   if (listed.models.length === 0) {
-    await showModelListFailure(output, "no-models", current.baseUrl);
+    await showModelListFailure(output, "no-models", current.baseUrl ?? profile.displayName);
     return Object.freeze({ status: "failed" });
   }
 
@@ -169,8 +197,8 @@ export async function selectLocalModel(runtime: ArchiAgentRuntime, output: vscod
     modelId
   }));
   const picked = await vscode.window.showQuickPick(items, {
-    title: "Archi Agent: select the local model",
-    placeHolder: `Models reported by ${current.baseUrl}`,
+    title: "Archi Agent: select the model",
+    placeHolder: `Models reported by ${profile.displayName}`,
     ignoreFocusOut: true
   });
 
@@ -227,3 +255,7 @@ export async function selectLocalModel(runtime: ArchiAgentRuntime, output: vscod
   const updated = currentSettings();
   return updated.ok ? Object.freeze({ status: "selected", settings: updated.settings }) : Object.freeze({ status: "failed" });
 }
+
+/** Backward-compatible command helpers retained for existing callers and tests. */
+export const selectLocalProviderProfile = selectProviderProfile;
+export const selectLocalModel = selectModel;

@@ -1,0 +1,57 @@
+[
+  {
+    "profileId": "cloud-anthropic",
+    "generatorType": "anthropic-remote",
+    "modelGeneration": {
+      "modelId": "claude-test",
+      "temperature": null,
+      "seed": null,
+      "attemptCount": 1,
+      "structuredOutput": true
+    }
+  },
+  {
+    "profileId": "cloud-openai",
+    "generatorType": "openai-remote",
+    "modelGeneration": {
+      "modelId": "gpt-test",
+      "temperature": null,
+      "seed": null,
+      "attemptCount": 1,
+      "structuredOutput": true
+    }
+  },
+  {
+    "profileId": "cloud-openrouter",
+    "generatorType": "openrouter-remote",
+    "modelGeneration": {
+      "modelId": "vendor/model-test",
+      "temperature": null,
+      "seed": null,
+      "attemptCount": 1,
+      "structuredOutput": true
+    }
+  },
+  {
+    "profileId": "local-lm-studio",
+    "generatorType": "openai-compatible-local",
+    "modelGeneration": {
+      "modelId": "local-test",
+      "temperature": 0,
+      "seed": 42,
+      "attemptCount": 1,
+      "structuredOutput": true
+    }
+  },
+  {
+    "profileId": "local-ollama",
+    "generatorType": "openai-compatible-local",
+    "modelGeneration": {
+      "modelId": "local-test",
+      "temperature": 0,
+      "seed": 42,
+      "attemptCount": 1,
+      "structuredOutput": true
+    }
+  }
+]

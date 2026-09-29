@@ -7,6 +7,7 @@ import type {
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult
 } from "../../../src/runtime/index.js";
+import type { DiagramType } from "../../../src/runtime/index.js";
 import { localLmStudioProfileId } from "../../../src/runtime/index.js";
 import type { ArchiAgentSettings } from "../settings.js";
 
@@ -33,6 +34,7 @@ export interface SequenceGenerationSessionOptions {
   readonly prompts: ResolutionPrompts;
   /** Upper bound of resolution rounds; defaults to sessionLimits.maxResolutionRounds. */
   readonly maxRounds?: number;
+  readonly diagramType?: DiagramType;
 }
 
 export type SequenceGenerationSessionOutcome =
@@ -45,23 +47,34 @@ export function buildGenerationRequest(
   settings: ArchiAgentSettings,
   flow: FlowSource,
   modelId: string,
-  signal?: CancellationSignal
+  signal?: CancellationSignal,
+  apiKey?: string
 ): GenerateSequenceDiagramRequest {
   const generator =
     settings.localModel.selectionMode === "legacy"
       ? Object.freeze({
           kind: "openai-compatible-local" as const,
-          baseUrl: settings.localModel.baseUrl,
+          baseUrl: settings.localModel.baseUrl ?? "",
           modelId,
           timeoutMs: settings.localModel.timeoutMs
         })
-      : Object.freeze({
-          kind: "openai-compatible-local" as const,
-          profileId: settings.localModel.profileId,
-          modelId,
-          timeoutMs: settings.localModel.timeoutMs,
-          ...(settings.localModel.profileId === localLmStudioProfileId ? { baseUrl: settings.localModel.baseUrl } : {})
-        });
+      : settings.localModel.baseUrl !== undefined || settings.localModel.profileId === localLmStudioProfileId
+        ? Object.freeze({
+            kind: "openai-compatible-local" as const,
+            profileId: settings.localModel.profileId,
+            modelId,
+            timeoutMs: settings.localModel.timeoutMs,
+            ...(settings.localModel.profileId === localLmStudioProfileId && settings.localModel.baseUrl !== undefined
+              ? { baseUrl: settings.localModel.baseUrl }
+              : {})
+          })
+        : Object.freeze({
+            kind: "remote-provider" as const,
+            profileId: settings.localModel.profileId,
+            modelId,
+            timeoutMs: settings.localModel.timeoutMs,
+            ...(apiKey === undefined ? {} : { credential: Object.freeze({ type: "api-key" as const, value: apiKey }) })
+          });
 
   return Object.freeze({
     flow,
@@ -86,7 +99,9 @@ export async function runSequenceGenerationSession(options: SequenceGenerationSe
       return Object.freeze({ status: "cancelled" });
     }
 
-    const result = await options.runtime.generateSequenceDiagram(request);
+    const result = options.diagramType === undefined
+      ? await options.runtime.generateSequenceDiagram(request)
+      : await options.runtime.generateDiagram!({ ...request, diagramType: options.diagramType });
 
     if (result.status !== "failed" || !isResolvable(result) || rounds >= maxRounds) {
       return Object.freeze({ status: "completed", result, rounds });

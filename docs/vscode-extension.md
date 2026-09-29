@@ -4,7 +4,8 @@ The extension is the first self-contained host of the Archi Agent runtime. It pa
 sequence pipeline (Knowledge Pack loading, deterministic grounding, the local OpenAI-compatible
 generator, validation, PlantUML rendering, the grounding report) into a VSIX that runs without the
 source repository, npm, a TypeScript compiler, a root `node_modules` directory or a separately
-installed Node.js. P1 adds local profile/model selection to that foundation. This document describes
+installed Node.js. P1 added local profile/model selection; P2 adds Anthropic, OpenAI and OpenRouter
+with credentials held by VS Code `SecretStorage`. This document describes
 the current extension; it is not published to any
 marketplace.
 
@@ -27,14 +28,14 @@ src/core + src/node             unchanged grounding core, pipeline and Node adap
 | --- | --- | --- | --- |
 | Editor layer | `vscode-extension/src` | `vscode`, `node:path`, `src/runtime/index.ts` | Collect input, show progress, ask the user to resolve ambiguity and confirm new participants, open the artifacts, log safe diagnostics. |
 | Application runtime | `src/runtime` | `src/core`, `src/node` | Resolve request sources with the Node adapters, build the generator from the configuration, run the pipeline, map the outcome to a host-neutral result. Never imports `vscode`, never reads `process.cwd()` or `process.env`. |
-| Core and Node adapters | `src/core`, `src/node` | as before | Provider-neutral registry and pipeline core; concrete LM Studio/Ollama profiles and the shared loopback transport in Node. |
+| Core and Node adapters | `src/core`, `src/node` | as before | Provider-neutral registry and pipeline core; concrete local/cloud profiles, loopback HTTP and fixed-allowlist HTTPS transports in Node. |
 
 The editor layer reaches the repository only through `src/runtime/index.ts`; a test enforces this.
 The runtime contract (`src/runtime/runtime-types.ts`) speaks about sources, not implementations:
 a flow source (document text, an absolute file path or a plain description), a Knowledge Pack source
-(today: one local directory), a generator configuration (today: the local OpenAI-compatible
-adapter, either as the legacy endpoint form or a profile/model selection) and a result carrying the validated PlantUML, the grounding report and safe issues. Later
-diagram profiles add a generic `generateDiagram` next to `generateSequenceDiagram`; later knowledge
+(today: one local directory), a provider-neutral generator configuration (legacy local endpoint or
+profile/model/credential selection) and a result carrying the validated PlantUML, the grounding report and safe issues. D1
+adds `generateDiagram` next to `generateSequenceDiagram`; later knowledge
 sources and model providers add variants to the source and generator unions. Hosts written against
 the interface do not change.
 
@@ -60,18 +61,34 @@ flow and the bare directory name of the pack.
 
 ## Commands
 
-`Archi Agent: Select Local Provider Profile` lists LM Studio and Ollama without contacting either
-server. Changing profile clears `selectedModel`, then clears its `selectedModelProfile` binding,
+`Archi Agent: Select Provider Profile` lists LM Studio, Ollama, Anthropic, OpenAI and OpenRouter
+without contacting any provider or reading `SecretStorage`. It shows the current profile but no
+saved/not-saved key status. Changing profile clears `selectedModel`, then clears its `selectedModelProfile` binding,
 then stores the new profile; selecting the same explicit profile preserves both values. A failure
 stops that sequence, and the new profile is never activated with an old model. Cancellation writes
 nothing.
 
-`Archi Agent: Select Local Model` performs exactly one explicit `GET /v1/models`, preserves the
+`Archi Agent: Set or Update API Key` uses a password input and writes only to provider-specific VS
+Code `SecretStorage`. `Archi Agent: Delete Saved API Key` requires confirmation. Neither command
+contacts a provider; local profiles never request or read a key. Values are accepted only when they
+contain 1–1024 characters, have no edge whitespace and contain no control character.
+
+`Archi Agent: Select Model` performs exactly one explicit bounded model-list GET, preserves the
 runtime's deterministic identifier order and stores the chosen model with a binding to the current
 profile. If no profile was explicitly stored, the command lists legacy LM Studio models, stores the
 model and binding, and stores the profile last so only a complete choice activates profile mode.
+For a cloud profile, a missing key blocks the GET before network I/O. The key is read only after
+the profile has been resolved, directly before the explicit listing call. The returned model list
+is required to construct the picker, so dismissing an already displayed cloud model picker occurs
+after one `SecretStorage.get` and one model-list GET. That cancellation writes no model or binding
+and does not start generation.
 
-`Archi Agent: Generate Sequence Diagram` (`archiAgent.generateSequenceDiagram`)
+`Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
+The D1 picker offers only Sequence and runs the final PlantUML path for `sequence`. The four
+reserved types remain unsupported through direct runtime calls before any credential read or
+provider I/O. `Archi Agent: Generate
+Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and
+retains its existing output and report behavior.
 
 1. Settings are read and checked. Problems name the setting and offer **Open Settings**.
 2. The flow source is chosen: the active editor document, a flow file from the open dialog, or a
@@ -79,8 +96,13 @@ model and binding, and stores the profile last so only a complete choice activat
    configured default author and a diagram name derived from the flow name).
 3. When no model is configured, the models reported by the selected profile are listed only after
    this explicit generate command; the choice is stored in machine-scoped user settings.
-4. Generation runs under a cancellable progress notification.
-5. If grounding is blocked by ambiguity, one quick pick per ambiguous mention shows every candidate
+4. Dismissing the flow-source picker happens before any cloud secret read or provider I/O. When no
+   model is configured, continuing past the flow choice reads the cloud key and performs one
+   model-list GET before displaying the model picker; dismissing that picker writes no settings and
+   performs no generation POST. With an already selected model there is no listing GET, and the
+   cloud key is read directly before generation.
+5. Generation runs under a cancellable progress notification.
+6. If grounding is blocked by ambiguity, one quick pick per ambiguous mention shows every candidate
    (canonical name, identifier, kind, pack source line). Nothing is chosen automatically; dismissing
    the pick cancels the command. If the flow contains unconfirmed `[NEW: Name]` markers, a
    multi-select quick pick asks which to confirm; a marker left unselected keeps the flow blocked.
@@ -100,8 +122,8 @@ the existing artifact writer is a later checkpoint.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `archiAgent.knowledgePackPath` | (empty) | Absolute path of the Knowledge Pack directory holding the five pack files. Relative paths are rejected; nothing is resolved against a workspace or the working directory. |
-| `archiAgent.localModel.profile` | `local-lm-studio` | Explicit local profile. Scope `machine`: not synchronized and not overridable by workspace settings. The manifest default is not an explicit migration. |
-| `archiAgent.localModel.selectedModel` | (empty) | Model for the explicit profile. Scope `machine`; written through `ConfigurationTarget.Global`. |
+| `archiAgent.localModel.profile` | `local-lm-studio` | Explicit local or cloud profile. Scope `machine`: not synchronized and not overridable by workspace settings. The manifest default is not an explicit migration. |
+| `archiAgent.localModel.selectedModel` | (empty) | Model for the explicit profile. Scope `machine`; written through `ConfigurationTarget.Global`. Cloud IDs may contain a namespace slash. |
 | `archiAgent.localModel.selectedModelProfile` | (empty) | Extension-managed binding of `selectedModel` to its profile. Scope `machine`; written through `ConfigurationTarget.Global`. |
 | `archiAgent.localModel.baseUrl` | `http://127.0.0.1:1234/v1` | Legacy LM Studio loopback URL and compatible LM Studio override. Ollama ignores it and uses `http://127.0.0.1:11434/v1`. |
 | `archiAgent.localModel.model` | (empty) | Legacy LM Studio model only. New profile-aware choices are never stored here. |
@@ -110,7 +132,7 @@ the existing artifact writer is a later checkpoint.
 
 In an untrusted workspace the path and model settings are read from user settings only
 (`restrictedConfigurations`), so a workspace cannot point the extension at another directory or
-port. No credential is needed by LM Studio and none is handled or stored.
+port. Cloud API keys are not settings at all; they exist only in `SecretStorage`.
 
 Only `inspect("localModel.profile").globalValue === undefined` selects legacy LM Studio mode, where
 effective `baseUrl` and `model` values retain normal VS Code precedence. Every present global value
@@ -125,8 +147,10 @@ Ollama choice even when Settings Sync is enabled.
 
 ## Security and privacy
 
-- The runtime connects only to the configured literal loopback endpoint through the existing
-  adapter; the endpoint policy, request limits and one-attempt behavior are unchanged.
+- Local profiles connect only to literal loopback endpoints; cloud profiles connect only to the
+  fixed HTTPS hosts and paths in `docs/cloud-models.md`. Redirects are rejected.
+- API keys exist only in `SecretStorage` and are never logged, displayed or written to generated
+  artifacts. No request is made during activation, profile selection or key set/delete.
 - The model receives the compact grounded context of the current flow, never the whole pack.
 - Prompts, model answers, flow text and pack content are never logged. The output channel holds
   issue codes, messages, positions, identifiers, counts and the loopback URL.
@@ -218,11 +242,18 @@ The installed extension needs neither the repository nor npm.
 1. Start LM Studio on port 1234 or Ollama's OpenAI-compatible endpoint on port 11434, and prepare an
    instruction model that supports structured JSON output. Very small models
    often fail the structured-output contract or the grounding rules.
-2. Run **Archi Agent: Select Local Provider Profile**.
-3. Run **Archi Agent: Select Local Model**. The choice stays local to this computer.
+2. Run **Archi Agent: Select Provider Profile**.
+3. Run **Archi Agent: Select Model**. The choice stays local to this computer.
 
 Legacy LM Studio users need no manual migration: existing effective `baseUrl` and `model` values
 continue to work until either selection command establishes the profile path.
+
+## Cloud model configuration
+
+Select Anthropic, OpenAI or OpenRouter, run **Set or Update API Key**, then **Select Model**. The
+profile/model binding and key survive restart in their separate stores; deleting one provider's key
+does not affect another provider or the selected profile/model. Full endpoints, request contracts,
+failure policy and cost-warning smoke flows are in [`cloud-models.md`](cloud-models.md).
 
 ## Knowledge Pack configuration
 
@@ -270,6 +301,8 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
 | Area | File | Covers |
 | --- | --- | --- |
 | Runtime | `test/runtime/archi-agent-runtime.test.ts` | Success with a fake generator, cwd independence, external and invalid packs, absolute-path flow files, typed descriptions, controlled failures for every stage, ambiguity and `[NEW]` handling, model listing against a loopback double. |
+| Cloud runtime | `test/runtime/cloud-provider-runtime.test.ts`, `test/node/llm/*remote*` | Fixed endpoints, exact bodies/headers, model listing, structured responses, no retry/fallback, limits, cancellation and safe errors through controlled transport doubles only. |
+| Secrets | `test/vscode-extension/api-key-management.test.ts` | Provider-specific set/get/delete, password input, cancellation, empty input, write failures and pre-I/O missing-key behavior. |
 | Settings | `test/vscode-extension/settings.test.ts` | Parsing, defaults, missing or relative pack path, unsafe model id, non-loopback URLs, timeout range. |
 | Session | `test/vscode-extension/sequence-generation-session.test.ts` | Request building, ambiguity prompts, candidate validation, new-participant confirmation, bounded rounds, cancellation. |
 | Messages | `test/vscode-extension/user-messages.test.ts` | Safe issue lines, stage texts, endpoint hint, bounds. |
@@ -281,13 +314,14 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
 - The description input is a single line; multi-line flows need a flow document in an editor or a
   file.
 - Artifacts are opened as untitled editors and not written to disk; versioned writing is deferred.
-- Only one Knowledge Pack directory can be configured; local profiles are limited to LM Studio and Ollama.
+- Only one Knowledge Pack directory can be configured; model profiles are limited to LM Studio,
+  Ollama, Anthropic, OpenAI and OpenRouter.
 - The runtime bundle is about 1 MB unminified because it carries the complete `zod` library.
 - The PlantUML editor has no preview; a PlantUML extension, if installed, provides language support
   and preview independently.
 - Package names in the root project (`archground`, `ArchGround`) remain unchanged; only the
   extension and its user-facing text use `Archi Agent`. Renaming the root package is deferred.
-- Deferred by design at this checkpoint: Enterprise Architect XML and API sources, remote model
-  providers, Confluence, Google Drive, OneDrive and SharePoint, component, C4 and ArchiMate profiles,
+- Deferred by design at this checkpoint: Enterprise Architect XML and API sources, Confluence,
+  Google Drive, OneDrive and SharePoint, component, C4 and ArchiMate profiles,
   semantic review, the repair loop and marketplace publishing. The runtime contract leaves room for
   each of them without changing the editor layer.

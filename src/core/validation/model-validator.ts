@@ -106,6 +106,7 @@ const definitions = {
     severity: "warning",
     message: "An interface name that is not grounded for the interaction was removed."
   },
+  "interface-name-unverified": { severity: "error", message: "The final PlantUML contains an interface name without matching grounded evidence." },
   "render-failed": { severity: "error", message: "The validated model could not be rendered safely." },
   "plantuml-structure": { severity: "error", message: "The emitted PlantUML failed structural validation." },
   "report-failed": { severity: "error", message: "The grounding report could not be produced." },

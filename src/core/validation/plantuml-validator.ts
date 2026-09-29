@@ -5,6 +5,7 @@ import { displayTextProblem } from "../render/plantuml-escape.js";
 import { sequenceModelLimits } from "../model/sequence-diagram-model.schema.js";
 import { newParticipantPrefix } from "../model/types.js";
 import { stableCompare } from "../util/ordering.js";
+import { validatePlantUmlDocument } from "./plantuml-document-validator.js";
 
 /**
  * Bounded structural validator for the exact PlantUML subset emitted by the ArchGround renderer.
@@ -104,6 +105,10 @@ function finish(issues: PlantUmlStructureIssue[]): PlantUmlValidationResult {
 
 export function validatePlantUmlSubset(text: string): PlantUmlValidationResult {
   const issues: PlantUmlStructureIssue[] = [];
+
+  // The document boundary is shared with the LLM-first path; the remaining checks are sequence-specific.
+  const documentIssues = validatePlantUmlDocument(text);
+  if (documentIssues.length > 0) return finish([...documentIssues]);
 
   if (typeof text !== "string" || text.length > plantUmlSubsetLimits.maxChars) {
     return finish([{ rule: "too-large" }]);

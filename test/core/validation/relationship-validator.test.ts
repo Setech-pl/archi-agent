@@ -258,7 +258,7 @@ describe("validateRelationships - INTERNAL, responses and new participants", () 
         ["command-queue", "orbital-relay", "EVENT", async],
         ["orbital-relay", "command-queue", "EVENT", response]
       ])
-    ).toEqual(["interaction-mode-mismatch@messages.1"]);
+    ).toEqual(["interaction-mode-mismatch@messages.1", "response-without-request@messages.1"]);
   });
 
   it("never describes an interaction with a confirmed new participant as grounded", () => {
@@ -324,6 +324,18 @@ describe("validateRelationships - explicit interaction semantics", () => {
   const asyncEvent = { async: true, isResponse: false } as const;
   const syncResponse = { async: false, isResponse: true } as const;
   const structureCodes = (steps: readonly Step[]): string[] => validateModelStructure(modelOf(steps)).map((issue) => `${issue.code}@${issue.path ?? "-"}`);
+
+  it("binds a response only to an earlier synchronous request with the same interface name", () => {
+    const sync = context.relationships.find((relation) => relation.fromId === "mission-control" && relation.toId === "command-service" && relation.interfaceType === "REST_API");
+    if (!sync) throw new Error("Missing synthetic synchronous relationship");
+    const mixed = { ...context, relationships: [...context.relationships, { ...sync, mode: "asynchronous" as const }] };
+    const request = ["mission-control", "command-service", "REST API", { async: false, isResponse: false, interfaceName: "Command API" }] as const;
+    const event = ["mission-control", "command-service", "REST API", { async: true, isResponse: false, interfaceName: "Command API" }] as const;
+    const reply = ["command-service", "mission-control", "REST API", { async: false, isResponse: true, interfaceName: "Command API" }] as const;
+    expect(codes([event, reply], mixed)).toContain("response-without-request@messages.1");
+    expect(codes([event, request, reply], mixed)).toEqual([]);
+    expect(codes([request, ["command-service", "mission-control", "REST API", { ...reply[3], interfaceName: "Other" }]], mixed)).toContain("response-without-request@messages.1");
+  });
 
   it("accepts a synchronous request, an asynchronous event and a synchronous response with explicit flags", () => {
     const steps: Step[] = [

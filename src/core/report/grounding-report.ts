@@ -56,6 +56,8 @@ export interface GroundingReportInput {
   readonly pipelineWarnings: readonly ModelIssue[];
   readonly sources: GroundingReportSources;
   readonly outputs: GroundingReportOutputs;
+  /** D1 uses final validated PlantUML and has no intermediate model normalization step. */
+  readonly validationMode?: "final-plantuml";
 }
 
 type Json = string | number | boolean | null | readonly Json[] | { readonly [key: string]: Json };
@@ -231,7 +233,7 @@ export function buildGroundingReport(input: GroundingReportInput): Json {
     ],
     validation: {
       schema: "passed",
-      normalization: "passed",
+      normalization: input.validationMode === "final-plantuml" ? "not-applicable" : "passed",
       participantGrounding: "passed",
       relationships: "passed",
       interfaceNamePolicy: pipelineIssues.some((issue) => issue.code === "interface-name-removed") ? "names-removed" : "passed",

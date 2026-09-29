@@ -8,27 +8,40 @@ import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits }
 import { isFilenameSafeDiagramId } from "../core/output/naming.js";
 import { baseNameFor } from "../core/output/output-planner.js";
 import { generateSequenceDiagram } from "../core/pipeline/generate-sequence-diagram.js";
+import { generateDiagram } from "../core/pipeline/generate-diagram.js";
+import { isSupportedDiagramType } from "../core/model/diagram-type.js";
 import type { PipelineOutcome } from "../core/pipeline/generation-outcome.js";
-import { isSafeModelId, type SequenceModelGenerator } from "../core/pipeline/sequence-model-generator.js";
+import { StructuredChatSequenceModelGenerator, isSafeModelId, type SequenceModelGenerator } from "../core/pipeline/sequence-model-generator.js";
+import { structuredChatLimits } from "../core/llm/structured-chat-client.js";
+import type { StructuredChatClient } from "../core/llm/structured-chat-client.js";
 import { ProviderRegistry, ProviderRegistryError } from "../core/llm/provider-registry.js";
 import type { ModelIssue } from "../core/validation/model-validator.js";
 import type { ValidationIssue } from "../core/validation/validation-issue.js";
 import { BoundedReadError, maxFlowFileBytes, readBoundedTextFile } from "../node/bounded-file-reader.js";
 import { canonicalDirectory, LocalPathError } from "../node/local-file-path.js";
 import { parseLoopbackEndpoint, type LoopbackEndpoint } from "../node/llm/loopback-endpoint.js";
-import { defaultBaseUrlForLocalProfile, localProviderRegistry } from "../node/llm/local-provider-profiles.js";
+import { defaultBaseUrlForLocalProfile, localProviderProfiles } from "../node/llm/local-provider-profiles.js";
+import { OpenAiCompatibleLocalChatClient } from "../node/llm/openai-compatible-local-chat-client.js";
 import {
   listLocalModels,
   LocalModelError,
   localTransportLimits,
   OpenAiCompatibleLocalGenerator
 } from "../node/llm/openai-compatible-local-generator.js";
+import { AnthropicRemoteChatClient, listAnthropicRemoteModels } from "../node/llm/anthropic-remote-chat-client.js";
+import {
+  listOpenAiCompatibleRemoteModels,
+  OpenAiCompatibleRemoteChatClient
+} from "../node/llm/openai-compatible-remote-chat-client.js";
+import { RemoteProviderError, type RemoteJsonTransport } from "../node/llm/remote-json-transport.js";
+import { remoteProviderProfiles } from "../node/llm/remote-provider-profiles.js";
 import { NodeKnowledgePackSource } from "../node/node-knowledge-pack-source.js";
 import type {
   AmbiguityChoice,
   ArchiAgentRuntime,
   CancellationSignal,
   FlowSource,
+  GenerateDiagramRequest,
   GenerateSequenceDiagramFailure,
   GenerateSequenceDiagramRequest,
   GenerateSequenceDiagramResult,
@@ -66,15 +79,60 @@ export const runtimeLimits = Object.freeze({
   maxTimeoutMs: localTransportLimits.maxTimeoutMs
 });
 
-/** Test seam: builds the generator for a configuration. The default builds the local OpenAI-compatible adapter. */
+/** Test seam for local generation. Remote adapters are selected from the fixed provider registry. */
 export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpoint) => SequenceModelGenerator;
 
 export interface ArchiAgentRuntimeOptions {
   readonly generatorFactory?: GeneratorFactory;
-  /** Test/application-composition seam; production uses the fixed local registry. */
+  /** Structured-chat seam for the D1 local path; remote adapters use remoteTransport. */
+  readonly diagramClientFactory?: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
+  /** Test/application-composition seam; production uses the fixed local and cloud registry. */
   readonly providerRegistry?: ProviderRegistry;
   /** Resolves adapter-owned defaults for an injected registry; production uses local profile defaults. */
   readonly defaultBaseUrlForProfile?: (profileId: string) => string | undefined;
+  /** Controlled transport seam for remote-provider tests; production uses Node HTTPS. */
+  readonly remoteTransport?: RemoteJsonTransport;
+}
+
+type ChatClientResolution =
+  | { readonly ok: true; readonly client: StructuredChatClient }
+  | { readonly ok: false; readonly issues: readonly RuntimeIssue[] };
+
+function resolveDiagramClient(
+  config: GeneratorConfig,
+  registry: ProviderRegistry,
+  defaultBaseUrl: (profileId: string) => string | undefined,
+  remoteTransport: RemoteJsonTransport | undefined,
+  localFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient
+): ChatClientResolution {
+  let profile;
+  if ("profileId" in config) {
+    try { profile = registry.resolve(config.profileId); }
+    catch { return { ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] }; }
+    if (!profile.capabilities.structuredChat) return { ok: false, issues: [issue("provider-capability-unavailable", "The provider profile does not support structured chat.")] };
+  }
+  if (!isSafeModelId(config.modelId)) return { ok: false, issues: [issue("unsafe-model-id", "The model identifier is empty or unsafe.")] };
+  try {
+    if (config.kind === "remote-provider") {
+      if (profile?.credentialRequirement !== "api-key" || config.credential?.type !== "api-key")
+        return { ok: false, issues: [issue("credential-required", "An API key is required for the selected provider profile.")] };
+      const common = { modelId: config.modelId, apiKey: config.credential.value,
+        ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }),
+        ...(remoteTransport === undefined ? {} : { transport: remoteTransport }) };
+      const client = profile.providerKind === "anthropic-remote" ? new AnthropicRemoteChatClient(common)
+        : profile.providerKind === "openai-remote" ? new OpenAiCompatibleRemoteChatClient({ ...common, provider: "openai" })
+        : profile.providerKind === "openrouter-remote" ? new OpenAiCompatibleRemoteChatClient({ ...common, provider: "openrouter" }) : undefined;
+      return client ? { ok: true, client } : { ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] };
+    }
+    const baseUrl = "profileId" in config ? config.baseUrl ?? defaultBaseUrl(config.profileId) : config.baseUrl;
+    if (baseUrl === undefined) return { ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] };
+    const endpoint = parseLoopbackEndpoint(baseUrl);
+    if (!endpoint.ok) return { ok: false, issues: [issue(endpoint.code, endpointMessage)] };
+    return { ok: true, client: localFactory(config, endpoint.endpoint) };
+  } catch (error) {
+    const code = error instanceof LocalModelError || error instanceof RemoteProviderError ? error.code : "generator-unavailable";
+    return { ok: false, issues: [issue(code, "The generator could not be created from the configuration.")] };
+  }
 }
 
 type FlowResolution =
@@ -312,8 +370,54 @@ function resolveGenerator(
   config: GeneratorConfig,
   factory: GeneratorFactory,
   registry: ProviderRegistry,
-  defaultBaseUrl: (profileId: string) => string | undefined
+  defaultBaseUrl: (profileId: string) => string | undefined,
+  remoteTransport: RemoteJsonTransport | undefined
 ): GeneratorResolution {
+  if (config.kind === "remote-provider") {
+    let profile;
+    try {
+      profile = registry.resolve(config.profileId);
+    } catch (error) {
+      const code = error instanceof ProviderRegistryError ? error.code : "unknown-provider-profile";
+      return Object.freeze({ ok: false, issues: [issue(code, "The provider profile is not registered.")] });
+    }
+    if (!profile.capabilities.structuredChat) {
+      return Object.freeze({ ok: false, issues: [issue("provider-capability-unavailable", "The provider profile does not support structured chat.")] });
+    }
+    if (profile.credentialRequirement !== "api-key" || config.credential?.type !== "api-key") {
+      return Object.freeze({ ok: false, issues: [issue("credential-required", "An API key is required for the selected provider profile.")] });
+    }
+    if (!isSafeModelId(config.modelId)) {
+      return Object.freeze({ ok: false, issues: [issue("unsafe-model-id", "The model identifier is empty or not a safe model identifier.")] });
+    }
+    try {
+      const common = {
+        modelId: config.modelId,
+        apiKey: config.credential.value,
+        ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }),
+        ...(remoteTransport === undefined ? {} : { transport: remoteTransport })
+      };
+      const client =
+        profile.providerKind === "anthropic-remote"
+          ? new AnthropicRemoteChatClient(common)
+          : profile.providerKind === "openai-remote"
+            ? new OpenAiCompatibleRemoteChatClient({ ...common, provider: "openai" })
+            : profile.providerKind === "openrouter-remote"
+              ? new OpenAiCompatibleRemoteChatClient({ ...common, provider: "openrouter" })
+              : undefined;
+      if (client === undefined) {
+        return Object.freeze({ ok: false, issues: [issue("unknown-provider-profile", "The provider profile is not registered.")] });
+      }
+      return Object.freeze({
+        ok: true,
+        generator: new StructuredChatSequenceModelGenerator(client, structuredChatLimits.maxMaxTokens)
+      });
+    } catch (error) {
+      const code = error instanceof RemoteProviderError ? error.code : "generator-unavailable";
+      return Object.freeze({ ok: false, issues: [issue(code, "The generator could not be created from the configuration.")] });
+    }
+  }
+
   if (config.kind !== "openai-compatible-local") {
     return Object.freeze({ ok: false, issues: [issue("unsupported-generator", "The generator kind is not supported.")] });
   }
@@ -434,11 +538,32 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #generatorFactory: GeneratorFactory;
   readonly #providerRegistry: ProviderRegistry;
   readonly #defaultBaseUrlForProfile: (profileId: string) => string | undefined;
+  readonly #remoteTransport: RemoteJsonTransport | undefined;
+  readonly #diagramClientFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
 
   public constructor(options: ArchiAgentRuntimeOptions) {
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
-    this.#providerRegistry = options.providerRegistry ?? localProviderRegistry;
+    this.#providerRegistry = options.providerRegistry ?? new ProviderRegistry([...localProviderProfiles, ...remoteProviderProfiles]);
     this.#defaultBaseUrlForProfile = options.defaultBaseUrlForProfile ?? defaultBaseUrlForLocalProfile;
+    this.#remoteTransport = options.remoteTransport;
+    this.#diagramClientFactory = options.diagramClientFactory ?? ((config, endpoint) => new OpenAiCompatibleLocalChatClient({ endpoint, modelId: config.modelId, ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }) }));
+  }
+
+  public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateSequenceDiagramResult> {
+    // This must precede flow-file, Knowledge Pack, credential and provider access.
+    if (!isSupportedDiagramType(request.diagramType)) return failure("generator-configuration", [issue("diagram-type-unsupported", "The selected diagram type is not supported in this version.")]);
+    const flow = await resolveFlow(request.flow);
+    if (!flow.ok) return failure("flow", flow.issues);
+    const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
+    if (!pack.ok) return failure("knowledge-pack", pack.issues);
+    const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
+    if (!resolved.ok) return failure("generator-configuration", resolved.issues);
+    return mapOutcome(await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
+      client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
+      sources: { flowFile: flow.flowFile, knowledgePackDirectory: pack.directoryName },
+      ...(request.selections === undefined ? {} : { selections: request.selections }),
+      ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
+      ...(request.signal === undefined ? {} : { signal: request.signal }) }));
   }
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {
@@ -454,7 +579,13 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       return failure("knowledge-pack", pack.issues);
     }
 
-    const generator = resolveGenerator(request.generator, this.#generatorFactory, this.#providerRegistry, this.#defaultBaseUrlForProfile);
+    const generator = resolveGenerator(
+      request.generator,
+      this.#generatorFactory,
+      this.#providerRegistry,
+      this.#defaultBaseUrlForProfile,
+      this.#remoteTransport
+    );
 
     if (!generator.ok) {
       return failure("generator-configuration", generator.issues);
@@ -489,6 +620,31 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
 
     if (!profile.capabilities.modelListing) {
       return Object.freeze({ ok: false, code: "provider-capability-unavailable" });
+    }
+
+    if (profile.credentialRequirement === "api-key") {
+      if (selection.credential?.type !== "api-key") return Object.freeze({ ok: false, code: "credential-required" });
+      try {
+        const common = {
+          apiKey: selection.credential.value,
+          ...(selection.timeoutMs === undefined ? {} : { timeoutMs: selection.timeoutMs }),
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+          ...(this.#remoteTransport === undefined ? {} : { transport: this.#remoteTransport })
+        };
+        const models =
+          profile.providerKind === "anthropic-remote"
+            ? await listAnthropicRemoteModels(common)
+            : profile.providerKind === "openai-remote"
+              ? await listOpenAiCompatibleRemoteModels({ ...common, provider: "openai" })
+              : profile.providerKind === "openrouter-remote"
+                ? await listOpenAiCompatibleRemoteModels({ ...common, provider: "openrouter" })
+                : undefined;
+        return models === undefined
+          ? Object.freeze({ ok: false, code: "unknown-provider-profile" })
+          : Object.freeze({ ok: true, models });
+      } catch (error) {
+        return Object.freeze({ ok: false, code: error instanceof RemoteProviderError ? error.code : "connection-failed" });
+      }
     }
 
     const baseUrl = selection.baseUrl ?? this.#defaultBaseUrlForProfile(profile.profileId);

@@ -265,6 +265,22 @@ describe("settings parsing", () => {
     expect(restarted.ok && restarted.settings.localModel).toMatchObject({ profileId: "local-ollama", modelId: "gpt-oss:20b" });
   });
 
+  it("restores a cloud profile and slash model binding after restart without any credential setting", () => {
+    const persisted = {
+      [settingKeys.localModelProfile]: { globalValue: "cloud-openrouter" },
+      [settingKeys.localModelSelectedModel]: { globalValue: "anthropic/claude-sonnet-4.5" },
+      [settingKeys.localModelSelectedModelProfile]: { globalValue: "cloud-openrouter" }
+    };
+    const restarted = readArchiAgentSettings(reader({ [settingKeys.knowledgePackPath]: absolutePack }, persisted));
+    expect(restarted.ok && restarted.settings.localModel).toEqual({
+      selectionMode: "profile",
+      profileId: "cloud-openrouter",
+      modelId: "anthropic/claude-sonnet-4.5",
+      timeoutMs: settingsLimits.defaultTimeoutSeconds * 1000
+    });
+    expect(Object.values(settingKeys).some((key) => key.toLowerCase().includes("key"))).toBe(false);
+  });
+
   it("fails closed for an unknown explicit profile after a simulated restart", () => {
     const values = {
       [settingKeys.knowledgePackPath]: absolutePack,

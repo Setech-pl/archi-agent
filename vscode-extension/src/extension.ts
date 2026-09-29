@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { generateSequenceDiagramCommand } from "./commands/generate-sequence-diagram.js";
-import { selectLocalModel, selectLocalProviderProfile } from "./commands/local-provider-selection.js";
-import { commandIds, outputChannelName } from "./contributions.js";
+import { generateDiagramCommand, generateSequenceDiagramCommand } from "./commands/generate-sequence-diagram.js";
+import { removeApiKey, setApiKey } from "./commands/api-key-management.js";
+import { selectModel, selectProviderProfile } from "./commands/local-provider-selection.js";
+import { commandIds, legacyCommandIds, outputChannelName } from "./contributions.js";
 import { createPackagedRuntime } from "./runtime/packaged-runtime-adapter.js";
 
 /**
@@ -20,24 +21,46 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(output);
   context.subscriptions.push(
-    vscode.commands.registerCommand(commandIds.generateSequenceDiagram, () =>
-      generateSequenceDiagramCommand({ runtime, output }).catch((error: unknown) => {
+    vscode.commands.registerCommand(commandIds.generateDiagram, () =>
+      generateDiagramCommand({ runtime, output, secrets: context.secrets }).catch((error: unknown) => {
         output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.selectLocalProviderProfile, () =>
-      selectLocalProviderProfile(runtime, output).catch((error: unknown) => {
+    vscode.commands.registerCommand(commandIds.generateSequenceDiagram, () =>
+      generateSequenceDiagramCommand({ runtime, output, secrets: context.secrets }).catch((error: unknown) => {
+        output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);
+        void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
+      })
+    ),
+    vscode.commands.registerCommand(commandIds.selectProviderProfile, () =>
+      selectProviderProfile(runtime, output).catch((error: unknown) => {
         output.appendLine(`The provider profile command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.selectLocalModel, () =>
-      selectLocalModel(runtime, output).catch((error: unknown) => {
+    vscode.commands.registerCommand(commandIds.selectModel, () =>
+      selectModel(runtime, output, context.secrets).catch((error: unknown) => {
         output.appendLine(`The model selection command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
-    )
+    ),
+    vscode.commands.registerCommand(commandIds.setApiKey, () =>
+      setApiKey(runtime, context.secrets, output).catch(() => {
+        output.appendLine("The API key command failed unexpectedly (secret-storage-failed).");
+        void vscode.window.showErrorMessage("Archi Agent: secure key storage is unavailable.");
+      })
+    ),
+    vscode.commands.registerCommand(commandIds.deleteApiKey, () =>
+      removeApiKey(runtime, context.secrets, output).catch(() => {
+        output.appendLine("The API key deletion command failed unexpectedly (secret-storage-failed).");
+        void vscode.window.showErrorMessage("Archi Agent: secure key storage is unavailable.");
+      })
+    ),
+    vscode.commands.registerCommand(legacyCommandIds.selectLocalProviderProfile, () =>
+      vscode.commands.executeCommand(commandIds.selectProviderProfile)
+    ),
+    vscode.commands.registerCommand(legacyCommandIds.selectLocalModel, () => vscode.commands.executeCommand(commandIds.selectModel))
   );
 }
 
