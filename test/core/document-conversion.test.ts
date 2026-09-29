@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundedMarkdown, cleanText, escapeMarkdown, escapeTableCell } from "../../src/core/document-conversion/markdown.js";
+import { MarkdownBuilder, boundedMarkdown, cleanText, escapeMarkdown, escapeTableCell } from "../../src/core/document-conversion/markdown.js";
 import { conversionLimits, formatFromPath } from "../../src/core/document-conversion/contract.js";
 
 describe("document conversion core", () => {
@@ -17,5 +17,9 @@ describe("document conversion core", () => {
   it("bounds the result by UTF-8 bytes, including multibyte text", () => {
     expect(boundedMarkdown("a".repeat(conversionLimits.outputBytes))).toHaveLength(conversionLimits.outputBytes);
     expect(() => boundedMarkdown("🚀".repeat(conversionLimits.outputBytes / 4 + 1))).toThrowError("output-too-large");
+    const builder = new MarkdownBuilder();
+    builder.append("x".repeat(conversionLimits.outputBytes));
+    expect(builder.finish()).toHaveLength(conversionLimits.outputBytes);
+    expect(() => builder.append("x")).toThrowError("output-too-large");
   });
 });

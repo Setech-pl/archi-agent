@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-09-29 |
-| Stan Git | D2 ukończone na `feature/reviewed-diagram-pipeline`. Bieżący HEAD, upstream, publikację i czystość working tree zawsze sprawdzaj w Git. |
+| Stan Git | Implementacja CL1 na `feature/cl1-conversion-limits` od `110737205e898815307e2d648991e91500347d5d`; bieżący branch, HEAD, staging i czystość drzewa zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -22,11 +22,75 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan D1.2 | Ukończone: Wire Plan v3, deterministyczny renderer sequence, minimalny reviewer, safe diagnostics i unverified candidate UX. |
 | Stan UX1 | Completed — owner smoke PASS 2026-09-23 na samowystarczalnym VSIX w świeżym, izolowanym profilu VS Code. |
 | Stan D2 | Completed — automatyczne bramki PASS, niezależny review 3/3 bez high/medium, owner smoke PASS 2026-09-28 na pakowanym VSIX. |
-| Następny etap | M1 (MCP), potem C1. |
+| Następny etap | CL1 zaimplementowane i automatycznie zweryfikowane; owner smoke `alpha.2` PASS. Kandydat `alpha.3` z poprawionym README oczekuje na własny owner smoke przed publikacją. Potem M1 (MCP) i C1. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
-| Kolejność | R2 → D1.2 → S1 → UX1 → D2 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
+| Kolejność | R2 → D1.2 → S1 → UX1 → D2 → CL1 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
-| Kandydat wydania | `v0.3.0-alpha.1` — VSIX po integracji `github/main` z `12af6b0`: automatyczne bramki PASS i owner smoke PASS 2026-09-29; tag i publikacja oczekują. |
+| Wydanie | `v0.3.0-alpha.1` opublikowane według decyzji właściciela; lokalny tag, `main` i `github/main` wskazywały `110737205e898815307e2d648991e91500347d5d` podczas preflight CL1. |
+
+## CL1 — decyzja backlogowa i faza planowania (2026-09-29)
+
+Właściciel wyznaczył CL1 jako następne zadanie po opublikowanym `v0.3.0-alpha.1`, przed
+M1. Cel: zwiększenie limitów lokalnej konwersji PDF, DOCX i XLSX do Markdown. Zatwierdzony
+maksymalny rozmiar pliku wejściowego to 50 MiB. Limity wyniku Markdown, czasu, stron PDF,
+archiwum Office, arkuszy, wierszy i komórek wymagają propozycji opartej na kodzie, bezpieczeństwie
+zasobów i testach oraz przeglądu planu. Walidacja PUML utworzonych lub poprawionych przez
+użytkownika i wizualizacja wiedzy są osobnymi przyszłymi zadaniami.
+
+Faza A: aktualizacja backlogu i planowanie, bez implementacji kodu lub testów. Lokalny preflight:
+`main`, HEAD `110737205e898815307e2d648991e91500347d5d`, lokalny `github/main` i tag
+`v0.3.0-alpha.1` wskazywały ten sam commit; working tree i staging były czyste. Utworzono
+`feature/cl1-conversion-limits`. Historyczne raporty UX1 i przygotowania wydania poniżej zachowują
+limity i stan z czasu ich powstania. Plan CL1 znajduje się w raporcie fazy A i wymaga osobnego
+zatwierdzenia przed promptem IMPLEMENTACJA.
+
+## CL1 — implementacja i automatyczna weryfikacja (2026-09-29)
+
+Na `feature/cl1-conversion-limits` od HEAD `1107372` wdrożono plan CL1. Limity wejścia
+PDF/DOCX/XLSX wynoszą 50 MiB; wyniku Markdown 8 MiB, czasu 120 s, PDF 300 stron,
+Office ZIP 1000 wpisów / 100 MiB łącznie / 25 MiB na wpis / 100:1, XLSX 40 arkuszy /
+20000 wierszy / 150 kolumn / 250000 komórek. Przed `read-excel-file` parser strumieniowy
+`saxen` sprawdza relacje arkuszy, adresy komórek, indeksy wierszy, rozmiar siatek i limity
+XML (24 MiB na arkusz, 64 MiB łącznie, 16 MiB shared strings, 8 MiB styles). Formuły bez
+cache są normalizowane wyłącznie w zidentyfikowanych arkuszach. Worker ma limity sterty
+512/64 MiB. Test odrzucenia rzadkiej siatki potwierdza brak wywołania `read-excel-file`.
+
+Automatyczne bramki wykonane sekwencyjnie w tej sesji: `npm test` 1313/1313,
+`npm run typecheck`, `npm run extension:typecheck`, `npm run extension:test` 198/198,
+`npm run extension:build`, pakowanie do `vscode-extension/build/cl1-candidate/`,
+`npm run extension:verify` z jawną ścieżką VSIX i `git diff --check` — PASS.
+Izolowany smoke granicznego syntetycznego XLSX zwrócił `archive-limit`, zachował bajty
+wejściowe, nie uległ awarii i zanotował peak RSS 185 MiB (próg 768 MiB).
+Runtime wyjęty z dokładnego kandydata VSIX, poza repo i bez `node_modules`, przekonwertował
+syntetyczne wejścia PDF/DOCX/XLSX powyżej dawnych 10 MiB; odrzucił PDF 50 MiB + 1 bajt,
+obsłużył Cancel i zachował bajty wszystkich źródeł.
+Kandydat: `vscode-extension/build/cl1-candidate/archi-agent-0.3.0-alpha.2.vsix`,
+SHA-256 `0120f2c0d3e69f3852af6e330573c1d0566c9ed74121ee46cad92e3144fdf1c9`;
+manifest `setech-pl.archi-agent` / `0.3.0-alpha.2`, osiem wpisów. Zachowany
+owner-smoked `alpha.1` przed i po bramkach zachował SHA-256
+`e3b3fef6f2ec86265c7a74676361dad32fca8da9634e2b2202165c74635345fa`.
+Dokładny VSIX `alpha.2` zainstalowano przez CLI w świeżym katalogu profilu i rozszerzeń;
+`code --list-extensions --show-versions` pokazał `setech-pl.archi-agent@0.3.0-alpha.2`.
+Właściciel zgłosił **PASS** owner smoke dokładnego VSIX `alpha.2` o powyższym SHA-256.
+Jest to raport właściciela; agent nie wykonywał testów UI. Szczegółowe przypadki UI
+zostaną dopisane po potwierdzeniu przez właściciela. Po PASS wykonano `npm ci`
+(0 podatności), ponownie 1316/1316 testów, oba typechecki, 198/198 testów rozszerzenia,
+build, weryfikację dokładnego VSIX, izolowane smoke oraz `git diff --check` — PASS.
+Trzy bundlowane pliki w zachowanym VSIX są bajtowo identyczne z bieżącym build.
+
+Końcowy przegląd diffu wykazał rozbieżność publikacyjną: dołączony do
+zaakceptowanego VSIX `alpha.2` README nadal opisywał `0.3.0-alpha.1` i stare limity.
+Właściciel polecił podbić wersję alpha, poprawić dokumentację i wykonać commit.
+Wersja robocza to teraz `0.3.0-alpha.3`; nowy kandydat powstał w osobnym katalogu
+`vscode-extension/build/cl1-candidate-alpha.3/archi-agent-0.3.0-alpha.3.vsix`,
+SHA-256 `f679bd823224cca1cf08e6374de7b2cd0f2191f9192fc1c962dc2f5578dd74d5`.
+Manifest i dołączony README mają wersję `alpha.3` oraz limity CL1. Trzy executable
+bundles są bajtowo identyczne z owner-smoked `alpha.2`. `npm test` 1316/1316,
+oba typechecki, `extension:test` 198/198, build, package, jawna weryfikacja VSIX,
+smoke runtime z dokładnego VSIX i RSS 185 MiB — PASS. `alpha.2` i zachowany
+`alpha.1` pozostały nietknięte. Owner smoke `alpha.3` jest wymagany przed publikacją;
+raport PASS właściciela dotyczył `alpha.2`, a doprecyzowanie rodzaju trzeciego pliku
+testowanego w UI jest w toku. Bez push, merge, tagu i publikacji.
 
 ## Integracja `github/main` i nowy kandydat (2026-09-29)
 

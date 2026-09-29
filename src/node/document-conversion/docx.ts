@@ -13,7 +13,7 @@ export async function convertDocx(bytes: Buffer): Promise<Extract<ConvertOutcome
         convertImage: mammoth.images.imgElement(() => Promise.resolve({ src: "" }))
       }
     );
-    if (result.value.length > 8 * 1024 * 1024) throw new ConversionFailure("output-too-large");
+    if (result.value.length > 32 * 1024 * 1024) throw new ConversionFailure("output-too-large");
     const service = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
     service.use(tables);
     service.addRule("archi-no-links", { filter: "a", replacement: (content) => content });

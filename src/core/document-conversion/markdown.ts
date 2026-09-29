@@ -24,3 +24,20 @@ export function boundedMarkdown(value: string): string {
   }
   return cleaned;
 }
+
+/** Bound output as chunks arrive, without repeatedly copying the complete document. */
+export class MarkdownBuilder {
+  private readonly chunks: string[] = [];
+  private bytes = 0;
+
+  append(value: string): void {
+    const cleaned = cleanText(value);
+    this.bytes += new TextEncoder().encode(cleaned).length;
+    if (this.bytes > conversionLimits.outputBytes) throw new ConversionFailure("output-too-large");
+    this.chunks.push(cleaned);
+  }
+
+  finish(): string {
+    return this.chunks.join("").trimEnd();
+  }
+}

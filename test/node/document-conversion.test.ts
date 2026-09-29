@@ -6,11 +6,11 @@ import JSZip from "jszip";
 import { afterAll, describe, expect, it } from "vitest";
 import { convertLocalDocument } from "../../src/node/document-conversion/convert.js";
 import { convertPdf } from "../../src/node/document-conversion/pdf.js";
-import { convertXlsx } from "../../src/node/document-conversion/xlsx.js";
 import { normalizeMissingFormulaCaches } from "../../src/node/document-conversion/xlsx-normalize.js";
 import { canonicalOfficeZip, guardOfficeZip } from "../../src/node/document-conversion/zip-guard.js";
 import { readDocument } from "../../src/node/document-conversion/read-document.js";
 import { conversionLimits } from "../../src/core/document-conversion/contract.js";
+import { guardXlsx } from "../../src/node/document-conversion/xlsx-guard.js";
 
 const fixtures = path.resolve("test/fixtures/document-conversion");
 const temporary = mkdtempSync(path.join(tmpdir(), "archi-ux1-tests-"));
@@ -94,9 +94,13 @@ describe("local document conversion", () => {
   });
 
   it("enforces input and page limits before large output", async () => {
+    const exact = path.join(temporary, "exact-limit.pdf");
+    writeFileSync(exact, Buffer.alloc(conversionLimits.inputBytes));
+    expect((await readDocument(exact)).length).toBe(conversionLimits.inputBytes);
     const oversized = path.join(temporary, "large.pdf");
     writeFileSync(oversized, Buffer.alloc(conversionLimits.inputBytes + 1));
     await expect(readDocument(oversized)).rejects.toMatchObject({ code: "input-too-large" });
+    await expect(convertPdf(pdf(conversionLimits.pages))).rejects.toMatchObject({ code: "no-text-layer" });
     await expect(convertPdf(pdf(conversionLimits.pages + 1))).rejects.toMatchObject({ code: "too-many-pages" });
   });
 });
@@ -119,6 +123,9 @@ describe("Office ZIP guard", () => {
   });
 
   it("rejects too many entries, oversized entries, excessive ratio and unsafe names", async () => {
+    const exactEntries: Record<string, string> = {};
+    for (let i = 0; i < conversionLimits.archiveEntries; i += 1) exactEntries[`exact-${i}.xml`] = "x";
+    expect((await guardOfficeZip(await zip(exactEntries, "STORE"))).size).toBe(conversionLimits.archiveEntries);
     const entries: Record<string, string> = {};
     for (let i = 0; i <= conversionLimits.archiveEntries; i += 1) entries[`part-${i}.xml`] = "x";
     await expect(guardOfficeZip(await zip(entries))).rejects.toMatchObject({ code: "archive-limit" });
@@ -145,14 +152,86 @@ describe("Office ZIP guard", () => {
     await expect(guardOfficeZip(falseSize)).rejects.toMatchObject({ code: "archive-limit" });
   });
 
-  it("rejects total inflated size over 50 MiB", async () => {
+  it("rejects total inflated size over 100 MiB", async () => {
+    const exactEntry = await guardOfficeZip(await zip({ "exact.bin": Buffer.alloc(conversionLimits.archiveEntryBytes) }, "STORE"));
+    expect(exactEntry.get("exact.bin")?.length).toBe(conversionLimits.archiveEntryBytes);
+    const exactTotal: Record<string, Buffer> = {};
+    for (let i = 0; i < 4; i += 1) exactTotal[`exact-${i}.bin`] = Buffer.alloc(conversionLimits.archiveEntryBytes, i);
+    expect((await guardOfficeZip(await zip(exactTotal, "STORE"))).size).toBe(4);
     const entries: Record<string, Buffer> = {};
-    for (let i = 0; i < 6; i += 1) entries[`part-${i}.bin`] = Buffer.alloc(9 * 1024 * 1024, i);
+    for (let i = 0; i < 5; i += 1) entries[`part-${i}.bin`] = Buffer.alloc(21 * 1024 * 1024, i);
     await expect(guardOfficeZip(await zip(entries, "STORE"))).rejects.toMatchObject({ code: "archive-limit" });
   }, 30_000);
 });
 
 describe("spreadsheet limits", () => {
+  async function changedSheet(xmlText: string): Promise<Map<string, Buffer>> {
+    const entries = await guardOfficeZip(readFileSync(fixture("two-sheets.xlsx")));
+    entries.set("xl/worksheets/sheet1.xml", Buffer.from(xmlText));
+    return entries;
+  }
+
+  it("guards sparse grids and distant empty rows without trusting dimension", async () => {
+    const start = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1"/><sheetData>';
+    const end = "</sheetData></worksheet>";
+    const sparse = await changedSheet(start + '<row r="20000"><c r="Z20000"><v>1</v></c></row>' + end);
+    const distantRow = await changedSheet(start + '<row r="20001"/>' + end);
+    const distantColumn = await changedSheet(start + '<row r="1"><c r="OT1"/></row>' + end);
+    expect(() => guardXlsx(sparse)).toThrowError(expect.objectContaining({ code: "too-many-cells" }));
+    expect(() => guardXlsx(distantRow)).toThrowError(expect.objectContaining({ code: "too-many-rows" }));
+    expect(() => guardXlsx(distantColumn)).toThrowError(expect.objectContaining({ code: "too-many-cells" }));
+  });
+
+  it("rejects bad addresses and relationships as corrupt documents", async () => {
+    const entries = await changedSheet('<worksheet><sheetData><row r="1"><c r="A0"/></row></sheetData></worksheet>');
+    expect(() => guardXlsx(entries)).toThrowError(expect.objectContaining({ code: "corrupt-document" }));
+    const rels = entries.get("xl/_rels/workbook.xml.rels")!.toString().replace("worksheets/sheet1.xml", "../other/sheet1.xml");
+    entries.set("xl/_rels/workbook.xml.rels", Buffer.from(rels));
+    expect(() => guardXlsx(entries)).toThrowError(expect.objectContaining({ code: "corrupt-document" }));
+  });
+
+  it("bounds worksheet, shared string and style XML before the spreadsheet parser", async () => {
+    const entries = await guardOfficeZip(readFileSync(fixture("two-sheets.xlsx")));
+    const worksheet = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>';
+    const atLimit = worksheet + `<!--${"x".repeat(conversionLimits.worksheetXmlBytes - Buffer.byteLength(worksheet) - 7)}-->`;
+    const valid = new Map(entries);
+    valid.set("xl/worksheets/sheet1.xml", Buffer.from(atLimit));
+    expect(guardXlsx(valid)).toHaveLength(2);
+    for (const [name, limit] of [
+      ["xl/worksheets/sheet1.xml", conversionLimits.worksheetXmlBytes],
+      ["xl/sharedStrings.xml", conversionLimits.sharedStringsXmlBytes],
+      ["xl/styles.xml", conversionLimits.stylesXmlBytes]
+    ] as const) {
+      const changed = new Map(entries);
+      changed.set(name, Buffer.alloc(limit + 1));
+      expect(() => guardXlsx(changed)).toThrowError(expect.objectContaining({ code: "archive-limit" }));
+    }
+    for (const [name, limit] of [["xl/sharedStrings.xml", conversionLimits.sharedStringsXmlBytes], ["xl/styles.xml", conversionLimits.stylesXmlBytes]] as const) {
+      const atBoundary = new Map(entries);
+      atBoundary.set(name, Buffer.alloc(limit));
+      expect(guardXlsx(atBoundary)).toHaveLength(2);
+    }
+  });
+
+  it("accepts 64 MiB of worksheet XML and rejects one byte more", async () => {
+    const entries = await guardOfficeZip(readFileSync(fixture("two-sheets.xlsx")));
+    const workbookXml = '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+      [1, 2, 3].map((number) => `<sheet name="S${number}" sheetId="${number}" r:id="rId${number}"/>`).join("") + '</sheets></workbook>';
+    const relationsXml = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      [1, 2, 3].map((number) => `<Relationship Id="rId${number}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${number}.xml"/>`).join("") + '</Relationships>';
+    entries.set("xl/workbook.xml", Buffer.from(workbookXml));
+    entries.set("xl/_rels/workbook.xml.rels", Buffer.from(relationsXml));
+    const minimal = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>';
+    for (const [number, mib] of [[1, 22], [2, 21], [3, 21]] as const) {
+      const size = mib * 1024 * 1024;
+      entries.set(`xl/worksheets/sheet${number}.xml`, Buffer.from(minimal + `<!--${"x".repeat(size - Buffer.byteLength(minimal) - 7)}-->`));
+    }
+    expect(guardXlsx(entries)).toHaveLength(3);
+    const over = new Map(entries);
+    over.set("xl/worksheets/sheet3.xml", Buffer.concat([entries.get("xl/worksheets/sheet3.xml")!, Buffer.from(" ")]));
+    expect(() => guardXlsx(over)).toThrowError(expect.objectContaining({ code: "archive-limit" }));
+  }, 30_000);
+
   async function workbook(sheetCount: number, rows: number, columns: number): Promise<Buffer> {
     const archive = await JSZip.loadAsync(readFileSync(fixture("two-sheets.xlsx")));
     const sheets = Array.from({ length: sheetCount }, (_, i) => `<sheet name="S${i + 1}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("");
@@ -172,18 +251,36 @@ describe("spreadsheet limits", () => {
     const cells = Array.from({ length: columns }, (_, index) => `<c r="${columnName(index)}1"><v>${index}</v></c>`).join("");
     const data = Array.from({ length: rows }, (_, index) => `<row r="${index + 1}">${cells.replaceAll("1\"", `${index + 1}\"`)}</row>`).join("");
     for (let i = 0; i < sheetCount; i += 1) archive.file(`xl/worksheets/sheet${i + 1}.xml`, `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${data}</sheetData></worksheet>`);
-    return await archive.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    return await archive.generateAsync({ type: "nodebuffer", compression: "STORE" });
   }
 
-  it("rejects more than 20 sheets", async () => {
-    await expect(convertXlsx(await workbook(21, 1, 1))).rejects.toMatchObject({ code: "too-many-sheets" });
+  it("rejects more than 40 sheets", async () => {
+    await expect(convertLocalDocument(writeWorkbook("sheets", await workbook(41, 1, 1)))).resolves.toMatchObject({ status: "failed", code: "too-many-sheets" });
   });
-  it("rejects more than 5000 rows", async () => {
-    await expect(convertXlsx(await workbook(1, 5001, 1))).rejects.toMatchObject({ code: "too-many-rows" });
+  function writeWorkbook(name: string, bytes: Buffer): string {
+    const file = path.join(temporary, `${name}.xlsx`);
+    writeFileSync(file, bytes);
+    return file;
+  }
+  it("accepts the sheet, row, column and cell-grid boundaries in preflight", async () => {
+    expect(guardXlsx(await guardOfficeZip(await workbook(40, 1, 1)))).toHaveLength(40);
+    expect(guardXlsx(await guardOfficeZip(await workbook(1, 20000, 1)))).toHaveLength(1);
+    expect(guardXlsx(await guardOfficeZip(await workbook(1, 1, 150)))).toHaveLength(1);
+    expect(guardXlsx(await guardOfficeZip(await workbook(1, 2000, 125)))).toHaveLength(1);
+  }, 30_000);
+  it("rejects a second sheet that raises the total grid from 250000 to 250001 cells", async () => {
+    const entries = await guardOfficeZip(await workbook(1, 2000, 125));
+    entries.set("xl/workbook.xml", Buffer.from('<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="S1" sheetId="1" r:id="rId1"/><sheet name="S2" sheetId="2" r:id="rId2"/></sheets></workbook>'));
+    entries.set("xl/_rels/workbook.xml.rels", Buffer.from('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/></Relationships>'));
+    entries.set("xl/worksheets/sheet2.xml", Buffer.from('<worksheet><sheetData><row r="1"><c r="A1"/></row></sheetData></worksheet>'));
+    expect(() => guardXlsx(entries)).toThrowError(expect.objectContaining({ code: "too-many-cells" }));
+  }, 30_000);
+  it("rejects more than 20000 rows", async () => {
+    await expect(convertLocalDocument(writeWorkbook("rows", await workbook(1, 20001, 1)))).resolves.toMatchObject({ status: "failed", code: "too-many-rows" });
   }, 30_000);
   it("rejects too many columns or cells", async () => {
-    await expect(convertXlsx(await workbook(1, 1, 101))).rejects.toMatchObject({ code: "too-many-cells" });
-    await expect(convertXlsx(await workbook(1, 1001, 100))).rejects.toMatchObject({ code: "too-many-cells" });
+    await expect(convertLocalDocument(writeWorkbook("columns", await workbook(1, 1, 151)))).resolves.toMatchObject({ status: "failed", code: "too-many-cells" });
+    await expect(convertLocalDocument(writeWorkbook("cells", await workbook(1, 1700, 150)))).resolves.toMatchObject({ status: "failed", code: "too-many-cells" });
   }, 30_000);
 
   it("renders a text formula with no cached value as an empty cell", async () => {
@@ -200,7 +297,7 @@ describe("spreadsheet limits", () => {
   it("normalizes formulas in relocated and Strict OOXML worksheet parts", async () => {
     const namespace = "http://purl.oclc.org/ooxml/spreadsheetml/main";
     const source = new Map([["xl/custom/nested/data.xml", Buffer.from(`<worksheet xmlns="${namespace}"><sheetData><row r="1"><c r="A1" t="str"><f>1+1</f></c></row></sheetData></worksheet>`)]]);
-    const result = normalizeMissingFormulaCaches(source);
+    const result = normalizeMissingFormulaCaches(source, ["xl/custom/nested/data.xml"]);
     expect(result.get("xl/custom/nested/data.xml")?.toString()).not.toContain("<f>");
     expect(result.get("xl/custom/nested/data.xml")?.toString()).not.toContain('t="str"');
     expect(source.get("xl/custom/nested/data.xml")?.toString()).toContain("<f>");

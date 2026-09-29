@@ -266,7 +266,7 @@ describe("VSIX", () => {
     expect([...result.entries].sort()).toEqual(
       ["[Content_Types].xml", "extension.vsixmanifest", "extension/package.json", "extension/readme.md", "extension/THIRD_PARTY_NOTICES.md", "extension/dist/archi-agent-runtime.js", "extension/dist/archi-agent-converter-worker.js", "extension/dist/extension.js"].sort()
     );
-    expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.1.vsix");
+    expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.3.vsix");
   });
 
   it("packages the corrected D1.2 plan-validation mapping in the runtime bundle", async () => {

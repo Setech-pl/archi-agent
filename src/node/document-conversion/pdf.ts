@@ -1,5 +1,5 @@
 import { getDocumentProxy } from "unpdf";
-import { boundedMarkdown, escapeMarkdown } from "../../core/document-conversion/markdown.js";
+import { MarkdownBuilder, escapeMarkdown } from "../../core/document-conversion/markdown.js";
 import { ConversionFailure, conversionLimits, type ConvertOutcome } from "../../core/document-conversion/contract.js";
 
 export async function convertPdf(bytes: Buffer): Promise<Extract<ConvertOutcome, { status: "success" }>> {
@@ -16,7 +16,7 @@ export async function convertPdf(bytes: Buffer): Promise<Extract<ConvertOutcome,
     });
     if (document.numPages > conversionLimits.pages) throw new ConversionFailure("too-many-pages");
     let foundText = false;
-    let markdown = "";
+    const markdown = new MarkdownBuilder();
     for (let number = 1; number <= document.numPages; number += 1) {
       const page = await document.getPage(number);
       try {
@@ -37,13 +37,13 @@ export async function convertPdf(bytes: Buffer): Promise<Extract<ConvertOutcome,
         }
         if (line.trim()) lines.push(line);
         const pageText = lines.map((value) => escapeMarkdown(value.trim())).join("\n");
-        markdown = boundedMarkdown(`${markdown}${number === 1 ? "" : "\n\n"}## Page ${number}\n\n${pageText}`);
+        markdown.append(`${number === 1 ? "" : "\n\n"}## Page ${number}\n\n${pageText}`);
       } finally {
         page.cleanup();
       }
     }
     if (!foundText) throw new ConversionFailure("no-text-layer");
-    return { status: "success", format: "pdf", markdown, counts: { pages: document.numPages } };
+    return { status: "success", format: "pdf", markdown: markdown.finish(), counts: { pages: document.numPages } };
   } catch (error) {
     if (error instanceof ConversionFailure) throw error;
     if (error instanceof Error && error.name === "PasswordException") throw new ConversionFailure("encrypted-document");

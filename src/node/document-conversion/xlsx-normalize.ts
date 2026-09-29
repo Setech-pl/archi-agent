@@ -7,10 +7,11 @@ const spreadsheetNamespaces = new Set([
 ]);
 
 /** Missing cached formula results become empty cells in a copy held only in memory. */
-export function normalizeMissingFormulaCaches(entries: ReadonlyMap<string, Buffer>): Map<string, Buffer> {
+export function normalizeMissingFormulaCaches(entries: ReadonlyMap<string, Buffer>, sheetPaths: readonly string[]): Map<string, Buffer> {
   const normalized = new Map(entries);
-  for (const [name, bytes] of entries) {
-    if (!name.toLowerCase().endsWith(".xml")) continue;
+  for (const name of sheetPaths) {
+    const bytes = entries.get(name);
+    if (!bytes) throw new ConversionFailure("corrupt-document");
     const xml = bytes.toString("utf8");
     if (!/<(?:[A-Za-z_][\w.-]*:)?f(?:\s|>)/.test(xml)) continue;
     if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw new ConversionFailure("corrupt-document");

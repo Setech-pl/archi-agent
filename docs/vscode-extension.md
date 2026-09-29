@@ -328,6 +328,31 @@ The earlier LM Studio-only procedure remains useful for checking legacy migratio
 Steps 1 and 2 are for building the VSIX; the installed extension itself needs neither. Automated
 tests never contact LM Studio: they use a fake generator and a loopback server double.
 
+### CL1 `alpha.2` owner smoke
+
+Install the exact `vscode-extension/build/cl1-candidate/archi-agent-0.3.0-alpha.2.vsix` in a
+fresh VS Code profile and separate extensions directory. Its SHA-256 is
+`0120f2c0d3e69f3852af6e330573c1d0566c9ed74121ee46cad92e3144fdf1c9`.
+The candidate is already installed in the disposable local profile at
+`/private/tmp/archi-cl1-vscode-user` with extensions under
+`/private/tmp/archi-cl1-vscode-extensions`; launch VS Code with both `code --user-data-dir`
+and `--extensions-dir` pointing to those directories to use that installation.
+Generate synthetic inputs outside the repository with
+`node scripts/cl1-owner-smoke-fixtures.mjs /private/tmp/archi-cl1-owner-smoke`.
+Use **Archi Agent: Convert to Markdown** on `large.pdf`, `large.docx`, and `large.xlsx`;
+each exceeds the old 10 MiB input limit and should open exactly one untitled Markdown editor.
+Record source checksums before and after. `over-limit.pdf` must report the 50 MiB limit and
+open no editor. Cancel a conversion in progress and confirm that it opens no editor. This is a
+manual VS Code check; the script `node scripts/cl1-candidate-smoke.mjs <candidate.vsix>
+<fixture-directory>` separately checks the exact packaged runtime outside the repository.
+
+The owner reported PASS for that exact `alpha.2` VSIX. The `alpha.3` candidate corrects the
+packaged README and has the same three executable bundles. Its path is
+`vscode-extension/build/cl1-candidate-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
+`f679bd823224cca1cf08e6374de7b2cd0f2191f9192fc1c962dc2f5578dd74d5`.
+Before publishing `alpha.3`, install this exact file in a fresh profile and confirm its version,
+packaged README and conversion UI. Its owner smoke is pending.
+
 ## Tests
 
 | Area | File | Covers |
@@ -354,9 +379,10 @@ tests never contact LM Studio: they use a fake generator and a loopback server d
 - PDF extraction reads text only and does not reconstruct the original layout or tables; scanned
   PDFs need OCR, which is outside UX1. DOCX merged cells and complex layout may lose fidelity.
   XLSX formula results are the saved cache; formulas are never recalculated. DOC and XLS are deferred.
-- Conversion limits: 10 MiB input, 100 PDF pages, 1000 Office ZIP entries, 50 MiB inflated total,
-  10 MiB per entry, compression ratio 100:1, 20 sheets, 5000 rows, 100 columns, 100000 cells,
-  2 MiB Markdown and 30 seconds. No partial result is opened on failure or Cancel.
+- Conversion limits in the CL1 development build: 50 MiB input, 300 PDF pages, 1000 Office ZIP
+  entries, 100 MiB inflated total, 25 MiB per entry, compression ratio 100:1, 40 sheets,
+  20000 rows, 150 columns, 250000 cells, 8 MiB Markdown and 120 seconds. XLSX XML is also
+  bounded before parsing. No partial result is opened on failure or Cancel.
 - The PlantUML editor has no preview; a PlantUML extension, if installed, provides language support
   and preview independently.
 - Package names in the root project (`archground`, `ArchGround`) remain unchanged; only the

@@ -9,7 +9,7 @@ export interface ConvertDocumentOptions {
   readonly timeoutMs?: number;
 }
 
-/** One disposable worker makes Cancel and the 30-second timeout enforceable for synchronous parsers. */
+/** One disposable worker makes Cancel and timeout enforceable for synchronous parsers. */
 export async function convertDocument(filePath: string, options: ConvertDocumentOptions = {}): Promise<ConvertOutcome> {
   if (options.signal?.aborted) return { status: "cancelled" };
   const workerFile = options.workerFile ?? path.join(__dirname, "archi-agent-converter-worker.js");
@@ -19,7 +19,7 @@ export async function convertDocument(filePath: string, options: ConvertDocument
     try {
       worker = new Worker(workerFile, {
         workerData: { filePath },
-        resourceLimits: { maxOldGenerationSizeMb: 256, maxYoungGenerationSizeMb: 32 }
+        resourceLimits: { maxOldGenerationSizeMb: 512, maxYoungGenerationSizeMb: 64 }
       });
     } catch {
       resolve({ status: "failed", code: "conversion-failed" });

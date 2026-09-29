@@ -34,18 +34,22 @@ export type ConvertOutcome =
   | { readonly status: "failed"; readonly code: ConvertErrorCode };
 
 export const conversionLimits = Object.freeze({
-  inputBytes: 10 * 1024 * 1024,
-  outputBytes: 2 * 1024 * 1024,
-  timeoutMs: 30_000,
-  pages: 100,
+  inputBytes: 50 * 1024 * 1024,
+  outputBytes: 8 * 1024 * 1024,
+  timeoutMs: 120_000,
+  pages: 300,
   archiveEntries: 1000,
-  archiveTotalBytes: 50 * 1024 * 1024,
-  archiveEntryBytes: 10 * 1024 * 1024,
+  archiveTotalBytes: 100 * 1024 * 1024,
+  archiveEntryBytes: 25 * 1024 * 1024,
   archiveRatio: 100,
-  sheets: 20,
-  rows: 5000,
-  columns: 100,
-  cells: 100_000
+  sheets: 40,
+  rows: 20_000,
+  columns: 150,
+  cells: 250_000,
+  worksheetXmlBytes: 24 * 1024 * 1024,
+  worksheetXmlTotalBytes: 64 * 1024 * 1024,
+  sharedStringsXmlBytes: 16 * 1024 * 1024,
+  stylesXmlBytes: 8 * 1024 * 1024
 });
 
 export class ConversionFailure extends Error {

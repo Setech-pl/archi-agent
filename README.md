@@ -1,12 +1,12 @@
 # Archi Agent
 
-Archi Agent is a VS Code extension for generating grounded PlantUML architecture diagrams from a flow description and a local Architecture Knowledge Pack. Version **0.3.0-alpha.1** is a prerelease candidate for evaluation.
+Archi Agent is a VS Code extension for generating grounded PlantUML architecture diagrams from a flow description and a local Architecture Knowledge Pack. Version **0.3.0-alpha.1** is the published prerelease; **0.3.0-alpha.3** is the CL1 development candidate.
 
 The extension generates **Sequence** and **Component** diagrams. A model proposes a bounded plan; local code validates the plan and renders PlantUML; a separate model call reviews the candidate. Verified results open as unsaved PlantUML and grounding-report editors. **Generate Sequence Diagram** remains a separate compatibility command with its earlier report format.
 
 ## Install the prerelease
 
-When the release is published, download [archi-agent-0.3.0-alpha.1.vsix](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.1/archi-agent-0.3.0-alpha.1.vsix) and its [SHA-256 file](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.1/archi-agent-0.3.0-alpha.1.sha256) from the [v0.3.0-alpha.1 prerelease page](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.1). Verify the downloaded VSIX against the checksum. In VS Code, open **Extensions → … → Install from VSIX…** and select the file. These links become usable only after publication.
+For the published prerelease, download [archi-agent-0.3.0-alpha.1.vsix](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.1/archi-agent-0.3.0-alpha.1.vsix) and its [SHA-256 file](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.1/archi-agent-0.3.0-alpha.1.sha256) from the [v0.3.0-alpha.1 prerelease page](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.1). Verify the downloaded VSIX against the checksum. In VS Code, open **Extensions → … → Install from VSIX…** and select the file. The `alpha.3` candidate is not yet published.
 
 The VSIX contains its runtime and conversion worker. End users do not need to clone this repository, install npm or Node.js separately, or run an Archi Agent backend. Diagram generation still needs a configured model provider and Knowledge Pack; document conversion needs neither.
 
@@ -36,7 +36,7 @@ Automated tests cover the provider adapters and reviewed pipelines with controll
 
 ## Documentation and development
 
-- [Release notes](docs/releases/v0.3.0-alpha.1.md) and [extension guide](docs/vscode-extension.md)
+- [Published release notes](docs/releases/v0.3.0-alpha.1.md), [draft CL1 release notes](docs/releases/v0.3.0-alpha.3.md), and [extension guide](docs/vscode-extension.md)
 - [Knowledge Pack format](docs/knowledge-pack-format.md), [flow front matter](docs/front-matter.md), and [reviewed pipeline](docs/reviewed-diagram-pipeline.md)
 - [Architecture](docs/architecture.md), [product roadmap](docs/product-roadmap.md), and [project state](docs/project-state.md)
 - [Development workflow](docs/development-workflow.md), [contributor instructions](AGENTS.md), and [offline demo](docs/demo.md)
