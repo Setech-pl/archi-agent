@@ -72,8 +72,10 @@ owner-smoked `alpha.1` przed i po bramkach zachował SHA-256
 Dokładny VSIX `alpha.2` zainstalowano przez CLI w świeżym katalogu profilu i rozszerzeń;
 `code --list-extensions --show-versions` pokazał `setech-pl.archi-agent@0.3.0-alpha.2`.
 Właściciel zgłosił **PASS** owner smoke dokładnego VSIX `alpha.2` o powyższym SHA-256.
-Jest to raport właściciela; agent nie wykonywał testów UI. Szczegółowe przypadki UI
-zostaną dopisane po potwierdzeniu przez właściciela. Po PASS wykonano `npm ci`
+W UI sprawdził konwersję dużego PDF, XLSX i dokumentu Word; wszystkie trzy działały.
+Jest to raport właściciela; agent nie wykonywał testów UI. Właściciel nie podał tu
+osobnych wyników UI dla przekroczenia limitu, Cancel, liczby otwartych edytorów ani
+checksumów źródeł. Po PASS wykonano `npm ci`
 (0 podatności), ponownie 1316/1316 testów, oba typechecki, 198/198 testów rozszerzenia,
 build, weryfikację dokładnego VSIX, izolowane smoke oraz `git diff --check` — PASS.
 Trzy bundlowane pliki w zachowanym VSIX są bajtowo identyczne z bieżącym build.
@@ -89,8 +91,9 @@ bundles są bajtowo identyczne z owner-smoked `alpha.2`. `npm test` 1316/1316,
 oba typechecki, `extension:test` 198/198, build, package, jawna weryfikacja VSIX,
 smoke runtime z dokładnego VSIX i RSS 185 MiB — PASS. `alpha.2` i zachowany
 `alpha.1` pozostały nietknięte. Owner smoke `alpha.3` jest wymagany przed publikacją;
-raport PASS właściciela dotyczył `alpha.2`, a doprecyzowanie rodzaju trzeciego pliku
-testowanego w UI jest w toku. Bez push, merge, tagu i publikacji.
+raport PASS właściciela dotyczył `alpha.2`. Implementację i dokumentację CL1 zapisano
+w commicie `9d7db56062527d989e646c89bc505992d9964846` na feature. Bez push,
+merge, tagu i publikacji.
 
 ## Integracja `github/main` i nowy kandydat (2026-09-29)
 
