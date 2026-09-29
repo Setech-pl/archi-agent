@@ -95,6 +95,22 @@ raport PASS właściciela dotyczył `alpha.2`. Implementację i dokumentację CL
 w commicie `9d7db56062527d989e646c89bc505992d9964846` na feature. Bez push,
 merge, tagu i publikacji.
 
+Po korekcie kolejności przez właściciela wykonano świeży `git ls-remote` i `git fetch`
+zdalnego `github/main`: `110737205e898815307e2d648991e91500347d5d` jest przodkiem
+feature, więc integracja nie wymagała merge. Pełny diff względem `github/main`
+przejrzano, a bramki uruchomiono sekwencyjnie: `npm test` 1316/1316,
+`npm run typecheck`, `npm run extension:typecheck`, `npm run extension:test` 198/198,
+`npm run extension:build`, pakowanie do nowego katalogu, jawne `extension:verify`
+i `git diff --check` — PASS. Smoke runtime z dokładnego finalnego VSIX potwierdził
+konwersję syntetycznych PDF/DOCX/XLSX powyżej 10 MiB, odrzucenie PDF 50 MiB + 1 bajt,
+Cancel i niezmienność źródeł. Izolowany XLSX: `archive-limit`, peak RSS 186 MiB
+(próg 768 MiB), źródło niezmienione. Finalny plik do owner smoke:
+`vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix`,
+SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`;
+obok zachowano plik `.sha256`. Manifest ma `0.3.0-alpha.3`, 8 wpisów i poprawiony
+README. Owner smoke tego dokładnego finalnego pliku jest oczekiwany. Raport UI dla
+`alpha.2` obejmuje wyłącznie duże PDF, XLSX i Word; nie obejmuje Cancel ani limitu.
+
 ## Integracja `github/main` i nowy kandydat (2026-09-29)
 
 Właściciel wskazał `12af6b09af9c5114b10fa105202d4e7e154c4004` jako dokładny

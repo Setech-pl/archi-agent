@@ -346,10 +346,11 @@ open no editor. Cancel a conversion in progress and confirm that it opens no edi
 manual VS Code check; the script `node scripts/cl1-candidate-smoke.mjs <candidate.vsix>
 <fixture-directory>` separately checks the exact packaged runtime outside the repository.
 
-The owner reported PASS for that exact `alpha.2` VSIX. The `alpha.3` candidate corrects the
-packaged README and has the same three executable bundles. Its path is
-`vscode-extension/build/cl1-candidate-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
-`f679bd823224cca1cf08e6374de7b2cd0f2191f9192fc1c962dc2f5578dd74d5`.
+The owner reported PASS for large PDF, XLSX and Word conversion in that exact `alpha.2` VSIX;
+no separate manual result was reported for Cancel or the input limit. The final `alpha.3` VSIX
+corrects the packaged README and has the same three executable bundles. Its path is
+`vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
+`7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.
 Before publishing `alpha.3`, install this exact file in a fresh profile and confirm its version,
 packaged README and conversion UI. Its owner smoke is pending.
 
