@@ -10,7 +10,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-28 |
+| Data aktualizacji | 2026-09-29 |
 | Stan Git | D2 ukończone na `feature/reviewed-diagram-pipeline`. Bieżący HEAD, upstream, publikację i czystość working tree zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
@@ -26,7 +26,47 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | R2 → D1.2 → S1 → UX1 → D2 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
-| Kandydat wydania | `v0.3.0-alpha.1` — automatyczne bramki PASS; właściciel zgłosił owner smoke PASS dokładnie zachowanego VSIX i autoryzował finalizację przygotowania wydania. |
+| Kandydat wydania | `v0.3.0-alpha.1` — VSIX po integracji `github/main` z `12af6b0`: automatyczne bramki PASS i owner smoke PASS 2026-09-29; tag i publikacja oczekują. |
+
+## Integracja `github/main` i nowy kandydat (2026-09-29)
+
+Właściciel wskazał `12af6b09af9c5114b10fa105202d4e7e154c4004` jako dokładny
+commit `github/main` do integracji z `feature/reviewed-diagram-pipeline`.
+Poprzedni niedokończony merge z `1a9c6d8` wycofano; jego patch diagnostyczny
+pozostał poza repo. Po potwierdzeniu
+czystego drzewa pobrano i sprawdzono zdalny `github/main`; merge `12af6b0`
+uruchomiono bez automatycznego commita. Git nie zgłosił konfliktów i nie zmienił
+drzewa feature, ponieważ merge commit na `main` ma tę samą treść co wspólny
+przodek `4dbc65a`; feature zawiera już pracę D1/P2 oraz D2, konwerter i wydanie.
+
+Poprzedni VSIX (SHA-256 `ac818833faec4332e13e62d0b1518e57e8524007bae4a85906206ac87a814fa1`)
+ma owner smoke PASS, ale nie stanowi dowodu dla nowego kandydata. Wyniki gauntlet
+i VSIX z niedokończonej integracji `1a9c6d8` również są historyczne.
+
+Nowy pełny gauntlet po merge: `npm ci`, `npm test` 1309/1309, oba typechecki,
+`extension:test` 198/198, build, package, verify, demo dry run, kontrole diff
+i `npm audit` (0 podatności) — PASS. Pierwszy przebieg sandboxowy zatrzymał
+`listen EPERM` na loopback; pełny przebieg z dostępem do loopback przeszedł.
+Niezależny read-only review przed bramkami: runda 1/3, bez high/medium.
+
+Nowy zachowany VSIX:
+`vscode-extension/build/release/integration-12af6b0/archi-agent-0.3.0-alpha.1.vsix`,
+966290 B, SHA-256 `e3b3fef6f2ec86265c7a74676361dad32fca8da9634e2b2202165c74635345fa`.
+Obok znajduje się `archi-agent-0.3.0-alpha.1.sha256`. Dokładny zachowany plik
+przeszedł weryfikację ośmiu dozwolonych wpisów, manifestu
+`setech-pl.archi-agent` / `0.3.0-alpha.1` i wybrany skan sekretów, lokalnych
+ścieżek, sentineli oraz treści fixture. Jego runtime i worker uruchomiono poza
+repo bez `node_modules` i PATH: konwersja syntetycznych PDF/DOCX/XLSX, niezmienność
+źródeł, anulowanie bez częściowego wyniku i odrzucenie nieobsługiwanego typu — PASS.
+Właściciel zgłosił **PASS** owner smoke tego dokładnego VSIX: instalacja w świeżym
+profilu, wersja, cztery sekcje Open, konwersja PDF/DOCX/XLSX bez zmian źródeł,
+Sequence i compatibility command, Component z grounding report, anulowanie bez
+częściowych rezultatów, wybór providera i modelu, obsługa klucza chmurowego w UI
+bez płatnego wywołania oraz instalacja według README bez repo i npm. Jest to
+raport właściciela, nie test UI wykonany przez agenta. Właściciel autoryzował
+commit integracyjny i zwykły push wyłącznie feature. VSIX i checksum pozostają
+poza historią Git. Tag i publikacja prerelease oczekują na późniejszą decyzję
+oraz potwierdzenie, że `main` wskazuje zweryfikowany commit.
 
 ## v0.3.0-alpha.1 — owner smoke PASS, release preparation (2026-09-28)
 

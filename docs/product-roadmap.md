@@ -813,7 +813,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | D5 — ArchiMate HLD | planned after D4 |
 | K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
 | K3 — Knowledge Pack Builder UI and five-file write | planned |
-| v0.3.0-alpha.1 prerelease candidate | preparation after D2; owner smoke PASS reported on 2026-09-28; tag and publication pending |
+| v0.3.0-alpha.1 prerelease candidate | preparation after D2; owner smoke PASS on the integration VSIX reported on 2026-09-29; tag and publication pending |
 | REL — broader release work | planned |
 | Semantic reviewer in D1.1 | implemented; retained in R2 target |
 | Repair loop | deferred |
