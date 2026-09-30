@@ -22,7 +22,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan D1.2 | Ukończone: Wire Plan v3, deterministyczny renderer sequence, minimalny reviewer, safe diagnostics i unverified candidate UX. |
 | Stan UX1 | Completed — owner smoke PASS 2026-09-23 na samowystarczalnym VSIX w świeżym, izolowanym profilu VS Code. |
 | Stan D2 | Completed — automatyczne bramki PASS, niezależny review 3/3 bez high/medium, owner smoke PASS 2026-09-28 na pakowanym VSIX. |
-| Następny etap | CL1 zaimplementowane i automatycznie zweryfikowane; owner smoke `alpha.2` PASS. Kandydat `alpha.3` z poprawionym README oczekuje na własny owner smoke przed publikacją. Potem M1 (MCP) i C1. |
+| Następny etap | CL1 zaimplementowane i automatycznie zweryfikowane; owner smoke dokładnego finalnego VSIX `alpha.3` PASS według właściciela. Publikacja oczekuje; potem M1 (MCP) i C1. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | R2 → D1.2 → S1 → UX1 → D2 → CL1 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
@@ -108,8 +108,11 @@ Cancel i niezmienność źródeł. Izolowany XLSX: `archive-limit`, peak RSS 186
 `vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix`,
 SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`;
 obok zachowano plik `.sha256`. Manifest ma `0.3.0-alpha.3`, 8 wpisów i poprawiony
-README. Owner smoke tego dokładnego finalnego pliku jest oczekiwany. Raport UI dla
-`alpha.2` obejmuje wyłącznie duże PDF, XLSX i Word; nie obejmuje Cancel ani limitu.
+README. Właściciel potwierdził **PASS** owner smoke tego dokładnego finalnego VSIX
+`alpha.3` o powyższym SHA-256. Nie wyszczególnił przypadków UI sprawdzonych w tym
+przebiegu. Raport UI dla `alpha.2` obejmuje wyłącznie duże PDF, XLSX i Word; nie
+obejmuje Cancel ani limitu. Wyniki Cancel i limitu opisane wyżej są automatycznym
+smoke runtime, nie ręcznym testem właściciela.
 
 ## Integracja `github/main` i nowy kandydat (2026-09-29)
 
