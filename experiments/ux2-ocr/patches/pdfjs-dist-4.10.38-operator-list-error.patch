@@ -1,0 +1,67 @@
+--- a/pdf.mjs
++++ b/pdf.mjs
+@@ -12689,4 +12689,15 @@
+     }
+     return fallback;
+   }
++  getImageObject(objId) {
++    const objs = objId.startsWith("g_") ? this.commonObjs : this.objs;
++    if (!objs.has(objId)) {
++      return undefined;
++    }
++    const image = objs.get(objId);
++    if (image === null) {
++      throw new Error("image-decode-failed");
++    }
++    return image;
++  }
+   beginDrawing({
+@@ -14004,7 +14015,7 @@
+     if (!this.contentVisible) {
+       return;
+     }
+-    const imgData = this.getObject(objId);
++    const imgData = this.getImageObject(objId);
+     if (!imgData) {
+       warn("Dependent image isn't ready yet");
+       return;
+@@ -14015,7 +14026,7 @@
+     if (!this.contentVisible) {
+       return;
+     }
+-    const imgData = this.getObject(objId);
++    const imgData = this.getImageObject(objId);
+     if (!imgData) {
+       warn("Dependent image isn't ready yet");
+       return;
+@@ -17192,18 +17203,22 @@
+         if (this._transport.destroyed) {
+           return;
+         }
+         if (intentState.operatorList) {
++          // A failed stream is never a completed operator list. Reject both
++          // public API states before a render task can observe lastChunk.
++          intentState.opListReadCapability?.reject(reason);
++          intentState.displayReadyCapability?.reject(reason);
++          for (const task of [...intentState.renderTasks]) {
++            if (typeof task.cancel === "function") {
++              task.cancel(reason);
++            } else {
++              intentState.renderTasks.delete(task);
++            }
++          }
+           intentState.operatorList.lastChunk = true;
+-          for (const internalRenderTask of intentState.renderTasks) {
+-            internalRenderTask.operatorListChanged();
+-          }
+           this.#tryCleanup(true);
+         }
+-        if (intentState.displayReadyCapability) {
+-          intentState.displayReadyCapability.reject(reason);
+-        } else if (intentState.opListReadCapability) {
+-          intentState.opListReadCapability.reject(reason);
+-        } else {
++        if (!intentState.displayReadyCapability && !intentState.opListReadCapability) {
+           throw reason;
+         }
+       });

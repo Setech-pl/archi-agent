@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-09-29 |
-| Stan Git | Implementacja CL1 na `feature/cl1-conversion-limits` od `110737205e898815307e2d648991e91500347d5d`; bieżący branch, HEAD, staging i czystość drzewa zawsze sprawdzaj w Git. |
+| Data aktualizacji | 2026-10-02 |
+| Stan Git | Preflight finalizacji UX2: `feature/ux2-ocr-feasibility`, HEAD `0192e8afd8fa850cfbc0679ce19c08df980e71fb`, pusty staging. Zdalny `github/main` i rozwiązany tag `v0.3.0-alpha.3` wskazywały ten sam commit. Bieżący stan po finalizacji zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -22,11 +22,319 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan D1.2 | Ukończone: Wire Plan v3, deterministyczny renderer sequence, minimalny reviewer, safe diagnostics i unverified candidate UX. |
 | Stan UX1 | Completed — owner smoke PASS 2026-09-23 na samowystarczalnym VSIX w świeżym, izolowanym profilu VS Code. |
 | Stan D2 | Completed — automatyczne bramki PASS, niezależny review 3/3 bez high/medium, owner smoke PASS 2026-09-28 na pakowanym VSIX. |
-| Następny etap | CL1 zaimplementowane i automatycznie zweryfikowane; owner smoke dokładnego finalnego VSIX `alpha.3` PASS według właściciela. Publikacja oczekuje; potem M1 (MCP) i C1. |
+| Stan CL1 | Opublikowany w `v0.3.0-alpha.3`: lokalna konwersja PDF/DOCX/XLSX z limitem wejścia 50 MiB i pozostałymi limitami podanymi niżej. Owner smoke PASS dotyczył dokładnego VSIX o SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`; właściciel nie wyszczególnił przypadków UI dla Cancel ani przekroczenia limitu. |
+| Stan UX2 | Zaimplementowany; automatyczne bramki PASS, niezależny review bez pozostałych high/medium, owner smoke dokładnego VSIX na Mac ARM PASS 2026-10-02. Szczegóły niżej. |
+| Następny etap | OBS1 — osobny etap diagnostyki providerów; nie został rozpoczęty. Przygotowanie nowego wydania UX2 pozostaje osobną czynnością. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
-| Kolejność | R2 → D1.2 → S1 → UX1 → D2 → CL1 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
+| Kolejność | R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
-| Wydanie | `v0.3.0-alpha.1` opublikowane według decyzji właściciela; lokalny tag, `main` i `github/main` wskazywały `110737205e898815307e2d648991e91500347d5d` podczas preflight CL1. |
+| Wydanie | `v0.3.0-alpha.3` opublikowane po CL1; istniejący tag wskazuje `0192e8afd8fa850cfbc0679ce19c08df980e71fb`. Nowe wydanie zawierające UX2 nie zostało opublikowane. |
+
+## Bieżący stan po publikacji `v0.3.0-alpha.3` (2026-09-30)
+
+CL1 i `v0.3.0-alpha.3` są opublikowane. Owner smoke PASS zgłoszony przez właściciela
+dotyczył dokładnego finalnego VSIX o SHA-256
+`7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.
+Właściciel nie podał osobnych wyników UI dla Cancel ani przekroczenia limitu;
+te przypadki sprawdzono w automatycznym smoke runtime opisanym niżej.
+Bieżące limity CL1: wejście 50 MiB, wynik Markdown 8 MiB, czas 120 s,
+PDF 300 stron, Office ZIP 1000 wpisów / 100 MiB łącznie / 25 MiB na wpis / 100:1,
+XLSX 40 arkuszy / 20000 wierszy / 150 kolumn / 250000 komórek.
+
+Decyzja właściciela wyznaczyła UX2 — lokalny OCR skanowanych PDF, a po nim
+OBS1 — diagnostykę providerów. UX2 jest zaimplementowany i przeszedł owner smoke;
+OBS1 i dalsze etapy pozostają osobnymi zadaniami.
+Walidacja PUML utworzonych lub poprawionych przez użytkownika, wizualizacja wiedzy
+i ST1 pozostają osobnymi przyszłymi zadaniami.
+
+## UX2 — faza 1, próba lokalnego OCR PDF (2026-10-01)
+
+Na `feature/ux2-ocr-feasibility` przygotowano osobny prototyp, syntetyczne fixture'y,
+harness i próbny VSIX bez UI oraz bez zmian produkcyjnych kontraktów UX2 lub limitów CL1.
+Pełne wyniki, wersje, hashe zasobów, licencje i instrukcje odtworzenia są w
+[`experiments/ux2-ocr/README.md`](../experiments/ux2-ocr/README.md). Próba zachowała
+wydany `alpha.3` (970287 B, SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`)
+bajtowo przed i po pracy. Próbny `build/ux2-ocr/archi-agent-0.3.0-alpha.3-ux2-trial.vsix`
+ma 95181539 B i SHA-256 `acdb4a4af6aefd88ae623d1d4e72bf68258e90732826f16a953383a02391c0dc`.
+
+- **Runtime:** oficjalny VS Code 1.91.0 Extension Host na Mac ARM podał Node 20.9.0 i
+  Electron 29.4.0. OCR z dokładnego rozpakowanego próbnego VSIX przeszedł także w tym
+  hoście. Tekstowa ścieżka `unpdf` zachowuje `maxImageSize: 1`; render używa osobnego,
+  leniwego dokumentu oficjalnego PDF.js 4.10.38 `legacy`, lokalnego canvas oraz
+  lokalnych fontów, CMap, WASM i modeli PL/EN. PDF wyłącznie tekstowy działał bez
+  natywnego bindingu canvas.
+- **Obrazy — blocker:** uszkodzony skan oraz strona z poprawnym i uszkodzonym obrazem
+  zostały odrzucone. Obraz osadzony 25 MP przekraczający próbny limit 16 MP został jednak
+  usunięty przez PDF.js z listy operacji, a prototyp zwrócił pozorną pustą stronę.
+  `stopAtErrors: true` tego nie naprawił. Nie wolno uznać bramki błędów obrazów ani
+  egzekwowania limitu 16 MP za PASS.
+- **Zamykanie — niepełna bramka:** zaobserwowano `exit` Tesseract po sukcesie i błędzie na późniejszej
+  stronie. Cancel podczas renderowania, inicjalizacji i rozpoznawania, trzy powtórzone
+  żądania Cancel oraz wyścig z sukcesem sprawdzono na zewnętrznym workerze próby.
+  Mimo zakończenia 100 kolejnych zewnętrznych workerów RSS procesu nadrzędnego po GC
+  wzrosło z 364 MiB przy 25. do 452 MiB przy 100. próbie. Wcześniejsza próba 300
+  konwersji w jednym procesie doszła do 604 MiB. Brak trwałego narastania zasobów
+  nie został dowiedziony.
+- **Czas:** dokładny spakowany runtime bez OCR zakończył zawieszony worker po 120002 ms.
+  Harness OCR zakończył próbę po 300008 ms od początku mimo zdarzeń stron w 150. i
+  260. sekundzie; była to próba syntetycznego, etapowego procesu, nie rzeczywisty
+  300-sekundowy dokument OCR.
+- **Pomiary:** 16 krótkich skanów PL/EN, 200/300 DPI, clean/JPEG compressed/noise/skew
+  dało CER 0 i 0 błędów polskich znaków. 200 DPI: 621–838 ms i do 393 MiB RSS;
+  300 DPI: 946–1270 ms i do 578 MiB RSS. Kilka skanów
+  200 DPI miało ponad 1,5 średniego rdzenia. Dokument 20-stronicowy przeszedł
+  w 5286 ms przy 577 MiB RSS; 21 stron odrzucono. Maski i puste strony sprawdzono.
+- **Pakowanie:** pojedynczy VSIX ma sześć deklarowanych bindingów Mac/Windows/Linux;
+  Windows i Linux zweryfikowano po manifeście i hashach, bez runtime smoke. Izolowany
+  smoke poza repo, bez root `node_modules`, cache języków i sieci przeszedł na Macu.
+  W tej sesji `npm ci`, `npm test` (1316), oba typechecki, `extension:test` (198),
+  build, package i `extension:verify -- --ux2-trial <VSIX>` przeszły.
+
+Faza 2 czeka na review. Wstępna hipoteza o potrzebie niezależnej inwentaryzacji
+obrazów została zastąpiona dokładniejszą diagnozą z rechecku poniżej; nie dodano
+parsera PDF. Wzrost RSS wymaga dalszej oceny. Zmiana renderera, izolacja procesowa
+lub inna zmiana architektury wymaga decyzji właściciela. OBS1 pozostaje osobnym
+etapem.
+
+### UX2 — recheck fazy 1 (2026-10-01)
+
+Preflight potwierdził `feature/ux2-ocr-feasibility`, ten sam HEAD
+`0192e8afd8fa850cfbc0679ce19c08df980e71fb`, pusty staging oraz zachowane
+zmiany fazy 1 i zastane dokumenty. Alpha.3 i pierwszy trial pozostały bajtowo
+niezmienione. Osobny kandydat to
+`build/ux2-ocr/recheck/archi-agent-0.3.0-alpha.3-ux2-recheck.vsix`,
+119802465 B, SHA-256 `b4c4b0c83aa7f81efda24182f4edf1d27e1232ce335ae99847f1f24f246e995d`.
+Pełny zapis diagnozy, macierz bindingów i dane serii są w
+[`experiments/ux2-ocr/README.md`](../experiments/ux2-ocr/README.md).
+
+- **B — przyczyna potwierdzona:** dokładny pierwszy trial zawiera zgodne moduł i worker
+  PDF.js 4.10.38 o hashach z manifestu. Prototyp tworzy render document bezpośrednio
+  z `stopAtErrors: true` i limitem 16 MP; `unpdf` tworzy tylko osobny dokument tekstowy.
+  Worker odrzuca strumień `GetOperatorList` po przekroczeniu rozmiaru, lecz display
+  API rozwiązuje publiczne `getOperatorList()` pustą listą przed próbą odrzucenia.
+  `render()` także rozwiązuje się. Regresje dokładnego nowego pakietu: 5/8 PASS,
+  3/8 FAIL — obrazy ponad 16 MP oraz tekst przed takim obrazem nadal zwracają
+  pozorny sukces. 16 MP równo przechodzi; prawdziwa pusta strona, uszkodzone obrazy
+  i maska zachowują oczekiwane wyniki. Nie dodano prywatnego hooka, parsera ani
+  patcha PDF.js. Bramka B pozostaje BLOCKED.
+- **C — pomiary według kryterium zapisanego przed próbą:** dwa świeże procesy po
+  300 identycznych OCR zakończyły z RSS 624.1 i 654.3 MiB, a od próby 200 do 300
+  wzrosły o 39.4 i 44.3 MiB wobec sufitu stabilizacji 32 MiB. `heapUsed` pozostał
+  około 21 MiB, liczba żywych workerów po każdej próbce wyniosła zero. Świeży
+  proces tekstowy po 300 konwersjach miał 88.6 MiB RSS, wzrost końcowej setki
+  4.7 MiB. Osobna seria 50 Cancel/timeout zakończyła wszystkie zewnętrzne workery,
+  lecz RSS procesu nadrzędnego wzrosło z 35.6 do 335.9 MiB. Natywnej retencji
+  nie wyjaśniono; C pozostaje INCOMPLETE. GC był tylko narzędziem diagnozy.
+- **Pakiet i runtime:** nowy VSIX dodaje dwie wersje Linux musl do wcześniejszych
+  sześciu bindingów; wszystkich osiem ma manifest i hash. Smoke macOS ARM z
+  dokładnego pakietu, poza repo, bez root `node_modules`, sieci i cache języków
+  przeszedł z Node 20.9.0. Świeży, izolowany VS Code 1.91.0 Extension Host zgłosił
+  Node 20.9.0/Electron 29.4.0 i przeszedł OCR dokumentu mieszanego. Pozostałe
+  siedem wariantów nie ma smoke. Brak bindingu daje kontrolowane
+  `canvas-binding-unavailable`, brak modelu `ocr-model-unavailable`, bez stron wyniku.
+- **Weryfikacja bieżącej sesji:** sekwencyjnie PASS: root `npm ci`, `npm test`
+  (1316), `npm run typecheck`, `npm run extension:typecheck`,
+  `npm run extension:test` (198), `npm run extension:build`,
+  `npm run extension:package`, `npm run extension:verify` z jawną ścieżką
+  próbnego VSIX i osobno z jawną ścieżką zwykłego pakietu. Regresja B celowo
+  pozostaje FAIL 3/8; nie jest liczona jako PASS. `git diff --check` przeszedł.
+
+Faza 2 i OBS1 nie zostały rozpoczęte. Czas 120/300 s i niezmieniona macierz jakości
+nie były ponawiane, ponieważ recheck nie zmienił ich mechanizmu.
+
+### UX2 — patch PDF.js i izolacja procesu, dalsza faza 1 (2026-10-01)
+
+Na tym samym branchu i HEAD, przy pustym stagingu, zatwierdzony wariant wdrożono
+wyłącznie w `experiments/ux2-ocr/` oraz w weryfikatorze próbnego VSIX. Zastany diff
+roadmapy pozostawiono bez dalszych zmian. Nowy artefakt:
+`build/ux2-ocr/patch-process-gated/archi-agent-0.3.0-alpha.3-ux2-patch-process.vsix`,
+119970748 B, SHA-256
+`c03ecb658b56099dff5d8b09c446afbc115c2b4b9848b5e9ba35478943a252b5`.
+Wydany alpha.3, pierwszy trial i recheck zachowały odpowiednio hashe
+`7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`,
+`acdb4a4af6aefd88ae623d1d4e72bf68258e90732826f16a953383a02391c0dc` i
+`b4c4b0c83aa7f81efda24182f4edf1d27e1232ce335ae99847f1f24f246e995d`.
+
+Patch jednego fragmentu PDF.js 4.10.38 odrzuca osobne stany publicznych
+`getOperatorList()` i `render().promise` przy błędzie strumienia. Build sprawdza
+wersję i hashe oryginalnego modułu oraz workera, stosuje patch do kopii i
+zapisuje hashe zasobów w zewnętrznym manifeście. Publiczne API
+`definePDFJSModule()` kieruje helpery unpdf 1.7.0 do tego modułu. Rodzic
+konwersji uruchamia jeden proces z `process.execPath` Extension Hosta;
+zasoby PDF.js/canvas/Tesseract są tylko w dziecku. Deadline 120 s bez OCR i
+300 s z OCR liczą się od początku zadania. Granice wejścia, wyniku, stron,
+obrazu, płótna i DPI pozostały bez podniesienia.
+
+B: 8/8 regresji, 6/6 bezpośrednich prób obu API PDF.js i 24/24 prób procesu
+na Node 20.9 PASS; rzeczywisty obraz 4000×4001, 16 MP równo, uszkodzenia,
+pusta strona, maska, tekst przed błędem i 20/21 stron OCR zostały sprawdzone.
+Markdown tekstowego PL/EN PDF z czterema stronami jest bajtowo zgodny z
+niezmienionym alpha.3, SHA-256 obu wyników
+`1f0c26cb96bc825bb174b3100a2332f9e02f44baf5c33cacbc6cdab70d72469b`.
+Osobny smoke tekstowego PDF przez wydany alpha.3 na obecnym Extension Hoście
+przeszedł; w tym przypadku nie potwierdzono regresji CL1. Końcowy smoke
+dokładnych rozpakowanych zasobów przeszedł na rzeczywistym VS Code 1.91.0
+(Node 20.9.0/Electron 29.4.0) i 1.140.0 (Node 24.21.0/Electron 43.7.3),
+Mac ARM. Windows, Linux i macOS x64 nie mają runtime PASS.
+
+C: na każdym Hoście wykonano dwie świeże serie po 300 OCR i serię 50
+Cancel/timeout. Wzrost RSS 200→300 to odpowiednio 0.656/0.656 MiB dla 1.91
+oraz 0.719/0.625 MiB dla 1.140; `external` i `arrayBuffers` także pozostały
+poniżej 32 MiB. Różnica końcowego RSS dwóch serii wyniosła 12.17 MiB i 1.64 MiB
+(próg 64 MiB). Każda próbka potwierdziła zero żywych dzieci OCR. Maksimum
+jednoczesnej sumy RSS rodzica i dziecka wyniosło 439.98/415.14 MiB na 1.91 i
+517.63/513.33 MiB na 1.140. Średnie CPU to 1.22–1.23 rdzenia; 768 MiB i
+1.5 rdzenia pozostają progami oceny, nie twardą ochroną pamięci natywnej.
+Surowe dane i dokładna metoda są w
+[`experiments/ux2-ocr/results/`](../experiments/ux2-ocr/results/), opis w
+[`README.md`](../experiments/ux2-ocr/README.md). GC nie był wymuszany.
+Nie powtarzano niezmienionej macierzy jakości 200/300 DPI.
+
+Sekwencyjny gauntlet bieżącej sesji PASS: `npm ci`, `npm test` (1316), oba
+typechecki, `extension:test` (198), build, package i weryfikacja z jawnymi
+ścieżkami nowego trial oraz zwykłego VSIX. Dodatkowo wydany, niezmieniony alpha.3
+przeszedł zwykłe `extension:verify`. Niezależny review read-only wykrył wyścig
+startów i deadline pustej strony; oba naprawiono przed końcowym artefaktem.
+Końcowy przegląd pozostawił jednak dwa ustalenia medium:
+
+- `auto` rozpoznaje obraz dopiero po `getOperatorList()`. Gdy ten etap trwa ponad
+  120 s, skan może wygasnąć przed przejściem na budżet OCR 300 s. Wydłużenie
+  terminu przed rozpoznaniem obrazu wydłużyłoby go także dla prawdziwie pustej
+  strony. Zatwierdzony kontrakt obu terminów nie jest dowiedziony w tej granicy.
+- Wykrywanie uszkodzonego obrazu nadal czyta wewnętrzne `page.objs` PDF.js,
+  przejęte z rechecku. Nie dodano nowego hooka, ale niezależny review uznał tę
+  zależność za ryzyko utrzymania i możliwą kolizję z zakazem prywatnych hooków.
+
+**Status całej fazy: BLOCKED** mimo automatycznych B/C PASS. Potrzebna jest
+poprawka i ponowna weryfikacja albo jawna decyzja właściciela o interpretacji
+tych granic. Owner smoke dokładnego nowego VSIX **nie ma PASS**. Faza 2 i OBS1
+nie zostały rozpoczęte.
+
+### UX2 — domknięcie dwóch ustaleń medium, dalsza faza 1 (2026-10-01)
+
+Właściciel doprecyzował kontrakt: w `auto` pierwsza strona bez niepustego
+tekstu staje się kandydatem OCR **przed** `getOperatorList()` i przełącza
+absolutny termin z T0+120 s na T0+300 s. Termin obejmuje także stronę, która
+później okaże się naprawdę pusta; nie liczy się 300 s od zdarzenia. Dokument
+cały tekstowy zachowuje T0+120 s, `all` od początku ma T0+300 s. Potwierdzony
+timeout i Cancel nie są odwracane. Kandydat nie zwiększa licznika stron OCR;
+prawdziwa pusta strona nadal nie uruchamia Tesseract.
+
+W PDF.js 4.10.38 worker po błędzie dekodowania wysyła `null`; moduł display
+wcześniej pomijał taki obraz jako oczekujący. Rozszerzono tylko istniejący
+patch display: dostarczony `null` dla zwykłego, powtarzanego lub współdzielonego
+obrazu odrzuca `render().promise` z `image-decode-failed`. Niedostarczony
+zasób pozostaje stanem oczekiwania. Poprzednia naprawa błędu strumienia
+operatorów pozostaje, worker jest bajtowo niezmieniony. Konwerter nie odczytuje
+`page.objs`, `commonObjs` ani innych wewnętrznych magazynów; używa
+publicznych `getOperatorList()` i `render()`. Błąd odrzuca całą konwersję bez
+stron lub Markdown.
+
+Nowy osobny artefakt:
+`build/ux2-ocr/review-findings/archi-agent-0.3.0-alpha.3-ux2-review-findings.vsix`,
+119970751 B, SHA-256
+`79b941bdae8da2cc9962db195808dad78866d7bc13e57b3ca5d1cf69e69fa541`.
+Oryginalny moduł PDF.js: `081d3b6f426d38a8029766f8839f505e9cbf2c81a71d62c26eada142e6c21ae4`,
+worker: `5e9f76bd5e65fbd1602b29fc50e50490aeeacd34a715b2282b73f7e8029242e0`,
+patch: `6a9c947bd44f8d9fa049271fef3a0e3f81f3c175fa8a860221b4651cf4e6907f`,
+moduł po patchu: `e68d6587c64fde70d1a9e324b8c4823e2be11a756b0771841807758797e163b7`.
+Build wymaga wersji, hashy oryginałów i patcha bez fuzz; zewnętrzny manifest
+potwierdza 521 zasobów, w tym wszystkie osiem wariantów bindingów canvas.
+Wydany alpha.3 i trzy wcześniejsze triale zachowały hashe podane powyżej.
+
+Krótkie bramki przed pakowaniem oraz pełne testy zasobów rozpakowanych z
+dokładnego nowego VSIX, poza repo i bez root `node_modules`, przeszły oddzielnie
+na Node 20.9.0 i Node 24.21.0: 14/14 regresji deadline, 13/13 B
+(dotychczasowe 8/8 oraz pięć nowych), 11 bezpośrednich prób publicznych API
+oraz 30/30 prób procesu na **każdym** runtime. Node 20 używał blokady sieci
+w preloadzie, a pełny zestaw Node 24
+powtórzono pod systemowym `sandbox-exec` z `deny network*`.
+Tekstowy Markdown jest bajtowo
+zgodny z alpha.3 (SHA-256
+`1f0c26cb96bc825bb174b3100a2332f9e02f44baf5c33cacbc6cdab70d72469b`).
+Rzeczywiste Extension Hosty VS Code 1.91.0/Node 20.9.0/Electron 29.4.0 oraz
+1.140.0/Node 24.21.0/Electron 43.7.3, oba arm64, przeszły smoke tekstu,
+skanu, PDF mieszanego, uszkodzeń i przekroczenia 16 MP.
+
+C na finalnym artefakcie: po dwie świeże serie 300/300 na każdym Hoście.
+RSS 200→300 wzrosło o 0.672/0.703 MiB na 1.91 i 0.578/0.656 MiB na 1.140;
+`external` i `arrayBuffers` także pozostały poniżej 32 MiB. Różnica
+końcowego RSS serii to 12.57 i 0.72 MiB (próg 64 MiB).
+Jednoczesne maksima sumy RSS rodzica i dziecka wyniosły
+446.16/426.67 MiB i 506.95/507.23 MiB. Średnie CPU 1.21–1.23 rdzenia.
+Po każdej próbce zero żywych dzieci OCR. Osobne serie 50 Cancel/timeout na
+obu Hostach zakończyły wszystkie dzieci. GC nie wymuszano. Średnia
+`processingMs` obejmuje średni `startupMs`; `cleanupMs` zaczyna się po
+końcowym wyniku. Jedna niepełna próba Hosta 1.91 po 1/300 została odrzucona,
+ponieważ zamknęło się okno; nie jest wynikiem C. Surowe dane i metodologia są
+w [`README.md`](../experiments/ux2-ocr/README.md) oraz
+[`results/`](../experiments/ux2-ocr/results/).
+
+Sekwencyjny gauntlet tej sesji PASS po uruchomieniu poza sandboxem:
+`npm ci`, `npm test` (1316), oba typechecki, `extension:test` (198),
+build, package, verify, `demo:dry-run`, kontrola whitespace i `npm audit`
+(0 podatności). Pierwsza próba w sandboxie nie przeszła: 72 testy lokalnego
+HTTP nie mogły nasłuchiwać na `127.0.0.1` (`EPERM`); nie jest liczona jako
+PASS. Osobna `extension:verify` ze ścieżką dokładnego nowego VSIX i
+zewnętrznym manifestem potwierdziła 530 wpisów oraz hashe; wydany alpha.3
+również przeszedł zwykły verifier. Niezależny końcowy review read-only
+sprawdził obie wcześniejsze uwagi medium, kod, manifest, hash VSIX, zachowane
+artefakty, logi bramek i surowe C; werdykt **READY, bez high/medium**.
+Reviewer wskazał dwie niespójności dokumentacji (ścieżka komendy odtworzenia
+i nieaktualny następny etap); poprawiono je przed tym werdyktem. Reviewer nie
+uruchamiał ponownie B/C.
+
+Macierz jakości 200/300 DPI nie była ponawiana. Owner smoke dokładnego nowego
+VSIX **nie ma PASS**. Windows, Linux i macOS x64 mają inwentaryzację i hashe,
+lecz nie mają runtime smoke. Faza 2 i OBS1 pozostają nierozpoczęte.
+
+### UX2 — faza 2, integracja produktowa (2026-10-02)
+
+Na `feature/ux2-ocr-feasibility`, HEAD `0192e8afd8fa850cfbc0679ce19c08df980e71fb`,
+zintegrowano backend fazy 1 z publiczną komendą `Archi Agent: Convert to Markdown`
+(`archiAgent.convertToMarkdown`). PDF daje wybór Auto OCR / No OCR / OCR all pages;
+DOCX i XLSX nie pytają o OCR. Runtime używa dotychczasowego workera dla trybu
+bez OCR i formatów Office, a dla OCR uruchamia istniejącego rodzica/dziecko z
+zasobami spakowanymi obok bundla. Postęp i Cancel są w standardowym anulowalnym
+powiadomieniu. Wynik pojawia się dopiero po zamknięciu procesu OCR; strony OCR
+i puste są oznaczone w Markdown. Błędy mają zamknięte, bezpieczne komunikaty.
+Nie dodano chmury ani LLM.
+
+Kandydat: `build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix`,
+**119805748 B**, SHA-256
+`b80c861deaf233343ceaa105969ba5c3e7a625f0b5be040c94d6e21a57c9ef4b`.
+To **165003 B mniej** niż poprzedni kandydat fazy 1 `review-findings`
+(119970751 B, SHA-256
+`79b941bdae8da2cc9962db195808dad78866d7bc13e57b3ca5d1cf69e69fa541`).
+Poprzedni artefakt zachowano. Jego owner smoke 5/5 PASS na Mac ARM,
+VS Code 1.140.0/Node 24.21.0/Electron 43.7.3 oraz późniejsze potwierdzenie
+ręcznego Cancel dotyczą tylko tamtego SHA. Poniższe potwierdzenie dotyczy nowego VSIX.
+
+Sekwencyjny gauntlet poza sandboxem PASS: `npm ci`, `npm test` (1319), oba
+typechecki, `extension:test` (201), build, package, verify, `demo:dry-run`,
+whitespace i `npm audit` (0 podatności). Pierwsza próba w sandboxie nie przeszła
+z powodu EPERM nasłuchu lokalnego HTTP oraz starej asercji pakowania; nie jest
+liczona jako PASS. Po poprawce testu negatywnego weryfikatora 32/32 testy celowane
+PASS. Dokładny nowy VSIX przeszedł osobny verify 529 wpisów z hashami patcha
+PDF.js, modeli, WASM i ośmiu bindingów canvas. Smoke automatyczny z tego
+rozpakowanego VSIX poza repo przeszedł: tekst PDF, PL/EN OCR, mieszany z
+oznaczeniami OCR/blank, all, blank, limit 16 MP, Cancel, ponowna konwersja
+oraz DOCX/XLSX. Trzy rundy niezależnego review read-only zakończyły się bez
+pozostałych high/medium. Zasoby
+Windows, Linux i macOS x64 mają manifest/hash, lecz nie mają runtime smoke.
+
+**Owner smoke 2026-10-02 — PASS, potwierdzenie właściciela.** Właściciel zgłosił
+„wszystko na zielono” po ręcznym użyciu zwykłej komendy **Archi Agent: Convert to
+Markdown** w czystym profilu VS Code na Mac ARM. Potwierdzenie obejmuje przekazane
+scenariusze PDF: tekst bez OCR, polski i angielski skan z Auto OCR, dokument mieszany
+z Auto OCR i OCR all pages, pustą stronę, przekroczenie limitu obrazu oraz kolejność
+i oznaczenia stron; obejmuje też Cancel, brak częściowego dokumentu, konwersję po
+Cancel i regresję DOCX/XLSX bez pytania o OCR. Dotyczy wyłącznie kandydata o ścieżce,
+rozmiarze i SHA-256 podanych wyżej. To ręczne potwierdzenie właściciela, odrębne od
+automatycznego smoke rozpakowanego VSIX. Nie zgłoszono wersji VS Code, Node ani
+Electron użytych w tym owner smoke. Windows, Linux i macOS x64 nadal nie mają runtime
+smoke. Nowe wydanie nie zostało opublikowane; istniejący tag i release assets
+`v0.3.0-alpha.3` pozostają bez zmian.
 
 ## CL1 — decyzja backlogowa i faza planowania (2026-09-29)
 

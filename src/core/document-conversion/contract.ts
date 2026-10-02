@@ -12,6 +12,14 @@ export type ConvertErrorCode =
   | "too-many-cells"
   | "output-too-large"
   | "no-text-layer"
+  | "too-many-ocr-pages"
+  | "canvas-limit"
+  | "embedded-image-limit"
+  | "image-decode-failed"
+  | "canvas-binding-unavailable"
+  | "ocr-model-unavailable"
+  | "ocr-model-corrupt"
+  | "ocr-busy"
   | "corrupt-document"
   | "encrypted-document"
   | "timeout"
@@ -38,6 +46,10 @@ export const conversionLimits = Object.freeze({
   outputBytes: 8 * 1024 * 1024,
   timeoutMs: 120_000,
   pages: 300,
+  ocrPages: 20,
+  canvasPixels: 10_000_000,
+  embeddedImagePixels: 16_000_000,
+  ocrTimeoutMs: 300_000,
   archiveEntries: 1000,
   archiveTotalBytes: 100 * 1024 * 1024,
   archiveEntryBytes: 25 * 1024 * 1024,

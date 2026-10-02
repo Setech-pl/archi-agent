@@ -11,13 +11,17 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → CL1 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
-The **v0.3.0-alpha.1** prerelease was published after D2; this version checkpoint does not mark
-CL1, M1, C1, D3–D5, K2, K3 or full REL scope complete.
+The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
+The **v0.3.0-alpha.1** prerelease was published after D2. CL1 and **v0.3.0-alpha.3**
+were published afterward. UX2 is implemented and passed Mac ARM owner smoke on
+2026-10-02, but no new UX2 release has been published. OBS1, M1, C1, D3–D5,
+K2, K3 and full REL scope remain open.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
 and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
-2026-09-28. After the published v0.3.0-alpha.1, CL1 increases local PDF, DOCX and XLSX
-conversion limits; M1 adds MCP afterward, followed by C1 with VS Code Chat. The D1.1 code is
+2026-09-28. CL1 increased local PDF, DOCX and XLSX conversion limits and shipped in
+v0.3.0-alpha.3. UX2 adds local OCR for scanned PDFs; OBS1 provider diagnostics is
+the next separate stage.
+M1 adds MCP after those stages, followed by C1 with VS Code Chat. The D1.1 code is
 preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
 [the target pipeline contract](reviewed-diagram-pipeline.md).
@@ -31,15 +35,17 @@ Agreed order of work:
 | 3 | S1 | PASS: owner smoke of D1.2 with Ollama `qwen3:30b` on 2026-09-23. |
 | 4 | UX1 | Completed: navigation and local PDF, DOCX, XLSX conversion to an untitled Markdown document; owner smoke PASS on 2026-09-23. |
 | 5 | D2 | Completed: `component` plan, validator and renderer; owner smoke PASS on 2026-09-28. |
-| 6 | CL1 | Implemented and automatically verified; owner smoke PASS on `0.3.0-alpha.2`; documentation-corrected `alpha.3` candidate pending owner smoke. |
-| 7 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
-| 8 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
-| 9 | D3 | `c4-context` plan, validator and renderer. |
-| 10 | D4 | `c4-container` plan, validator and renderer. |
-| 11 | D5 | `archimate-hld` plan, validator and renderer. |
-| 12 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
-| 13 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
-| 14 | REL | Broader release work: AI SDLC demo, branding, provider comparison and accepted owner smoke; the v0.3.0-alpha.1 prerelease is an earlier checkpoint after D2. |
+| 6 | CL1 | Published in `v0.3.0-alpha.3`; owner smoke PASS on the exact final VSIX. |
+| 7 | UX2 | Implemented: local OCR for scanned PDFs; review and Mac ARM owner smoke PASS on 2026-10-02. No new release yet. |
+| 8 | OBS1 | Next separate stage: provider diagnostics. |
+| 9 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
+| 10 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
+| 11 | D3 | `c4-context` plan, validator and renderer. |
+| 12 | D4 | `c4-container` plan, validator and renderer. |
+| 13 | D5 | `archimate-hld` plan, validator and renderer. |
+| 14 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
+| 15 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
+| 16 | REL | Broader release work: AI SDLC demo, branding, provider comparison and accepted owner smoke; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` are earlier checkpoints. |
 
 ### UX1 — Navigation and local document conversion
 
@@ -58,11 +64,30 @@ aggregate and 10 MiB per-entry inflated ZIP data, 100:1 ratio, 20 sheets, 5000 r
 
 ### CL1 — Larger local document conversion limits
 
-**Status: implemented and automatically verified; owner smoke PASS for `alpha.2`, pending for `alpha.3`.** Local PDF, DOCX and XLSX
-conversion accepts input up to 50 MiB. The development candidate has bounded Markdown output,
-duration, PDF pages, Office archives and XLSX grids, with a pre-parser XML and grid guard. This
-does not change the released UX1 limits above. Validation of user-created or user-edited PUML and
-knowledge visualization are separate future tasks.
+**Status: published in `v0.3.0-alpha.3`; owner smoke PASS for the exact final VSIX with SHA-256
+`7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.**
+Local PDF, DOCX and XLSX conversion accepts input up to 50 MiB. Limits are 8 MiB Markdown,
+120 seconds, 300 PDF pages, 1000 Office ZIP entries / 100 MiB inflated total / 25 MiB per entry /
+100:1 compression ratio, and 40 XLSX sheets / 20000 rows / 150 columns / 250000 cells. XML and
+sparse-grid guards run before the spreadsheet parser. The owner did not report individual UI
+results for Cancel or exceeding a limit in the `alpha.3` smoke; those are automated runtime
+checks. The UX1 limits above describe the historical UX1 checkpoint. Validation of user-created
+or user-edited PUML, knowledge visualization and ST1 are separate future tasks.
+
+### UX2 — Local OCR for scanned PDFs
+
+**Status: implemented; independent review without remaining high/medium findings and
+owner smoke PASS on Mac ARM, 2026-10-02.** The owner used the normal
+**Archi Agent: Convert to Markdown** command in a clean VS Code profile. The smoke
+covered text, scanned, mixed, blank and oversized-image PDFs; PDF OCR modes and page
+markers; Cancel without a partial document, conversion after Cancel, and DOCX/XLSX
+regression. The accepted candidate is
+`build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix`, 119805748 B,
+SHA-256 `b80c861deaf233343ceaa105969ba5c3e7a625f0b5be040c94d6e21a57c9ef4b`.
+This is an owner report, separate from automated extracted-VSIX smoke. Windows,
+Linux and macOS x64 have no runtime smoke. A new UX2 release has not been published;
+the existing `v0.3.0-alpha.3` tag and release assets are unchanged. See
+[project state](project-state.md) for verification details.
 
 ### C1 — VS Code Chat Participant
 
@@ -255,15 +280,17 @@ Ordered as agreed in [Product priority](#product-priority).
 | S1 | PASS | Verified owner smoke with Ollama `qwen3:30b` on 2026-09-23. | D1.2 |
 | UX1 | completed; owner smoke PASS on 2026-09-23 | QuickPick navigation and local PDF/DOCX/XLSX to untitled Markdown; no LLM or network. | S1 |
 | D2 | completed; owner smoke PASS on 2026-09-28 | `component` plan, validator and renderer. | UX1 owner smoke |
-| CL1 | implemented; automatic gates PASS; `alpha.2` owner smoke PASS; `alpha.3` pending | Increase local PDF/DOCX/XLSX conversion limits to a 50 MiB input maximum with bounded resources. | D2 |
-| M1 | planned | Deterministic MCP adapter into ArchitectureSnapshot. | CL1 |
+| CL1 | published in `v0.3.0-alpha.3`; owner smoke PASS on exact final VSIX | PDF/DOCX/XLSX input up to 50 MiB with bounded output, time, pages, archives and XLSX grids. | D2 |
+| UX2 | implemented; review and Mac ARM owner smoke PASS on 2026-10-02; not yet released | Local OCR for scanned PDFs. | CL1 |
+| OBS1 | planned; next separate stage | Provider diagnostics. | UX2 |
+| M1 | planned; backlog after OBS1 | Deterministic MCP adapter into ArchitectureSnapshot. | OBS1 |
 | C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | M1 |
 | D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
 | D4 | planned | `c4-container` plan, validator and renderer; no external includes. | D3 |
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
 | K2 | planned | Knowledge Pack Builder extraction and evidence verifier. | D5 |
 | K3 | planned | Knowledge Pack Builder UI and five-file write. | K2 |
-| REL | planned | Broader release work and owner-accepted VSIX after K3; the v0.3.0-alpha.1 prerelease was published earlier, after D2. | K3 |
+| REL | planned | Broader release work and owner-accepted VSIX after K3; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` were earlier prereleases. | K3 |
 
 ## Later
 
@@ -277,6 +304,7 @@ The order of the items below is not a commitment.
 | Document sources (Markdown, plain text, PDF, DOCX; Confluence and Jira preferably through MCP) as a separate path | planned | Evidence classes kept distinct from architecture sources; M1 for MCP-backed sources |
 | Validation of PUML created or edited by the user | future task | Separate from CL1 |
 | Knowledge visualization | future task | Separate from CL1 |
+| ST1 | future task | Separate from UX2, OBS1 and CL1 |
 | EA XML export as an architecture source, from a local file | deferred | No safe, public fixture that represents real EA data; no EA or XML parsing code exists. M1 source boundary and a safe synthetic EA fixture would be prerequisites. |
 | Further architecture sources: reduced JSON catalog, EA API, Prolaborate | planned | M1 source boundary |
 | External artifact providers: HTTPS, then Google Drive, OneDrive, SharePoint | planned | Local-file architecture source |
@@ -482,7 +510,8 @@ See [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and the
 
 **Status: D1.2 and D2 completed; S1 and D2 owner smoke PASS.** Each diagram type has its own plan contract, local validator
 and deterministic renderer. D1.2 adds `sequence`; UX1 adds navigation and local conversion,
-D2 adds `component`, CL1 increases conversion limits, M1 adds MCP, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
+D2 adds `component`, CL1 increased conversion limits, UX2 adds local scanned-PDF OCR, OBS1 adds
+provider diagnostics, M1 adds MCP, C1 follows, D3 adds `c4-context`, D4 adds `c4-container`, and D5 adds
 `archimate-hld`. C4 and ArchiMate use no external includes or downloaded macros.
 
 The old sequence renderer remains a compatibility path, never an automatic fallback.
@@ -691,7 +720,7 @@ The two flows should not be conflated.
 
 ## MCP knowledge source
 
-**Status: planned (M1, after CL1 and before C1).** No MCP code exists.
+**Status: planned (M1, after UX2 and OBS1 and before C1).** No MCP code exists.
 
 MCP is not a third kind of source. An MCP server is a transport behind the existing concepts: an
 MCP-backed provider implements the `ArchitectureContextProvider` boundary when it returns canonical architecture,
@@ -819,8 +848,10 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | S1 — Ollama `qwen3:30b` owner smoke | PASS on 2026-09-23 |
 | UX1 — Navigation and local document conversion | completed; owner smoke PASS on 2026-09-23; PDF, DOCX, XLSX |
 | D2 — Component diagram | completed; owner smoke PASS on 2026-09-28 |
-| CL1 — Larger local PDF/DOCX/XLSX conversion limits | implemented; automatic gates PASS, `alpha.2` owner smoke PASS, `alpha.3` pending |
-| M1 — ArchitectureSnapshot MCP adapter | planned after CL1 |
+| CL1 — Larger local PDF/DOCX/XLSX conversion limits | published in `v0.3.0-alpha.3`; exact VSIX owner smoke PASS |
+| UX2 — Local OCR for scanned PDFs | implemented; review and Mac ARM owner smoke PASS on 2026-10-02; not yet released |
+| OBS1 — Provider diagnostics | planned as next separate stage |
+| M1 — ArchitectureSnapshot MCP adapter | planned after OBS1 |
 | C1 — VS Code Chat Participant | planned after M1 |
 | D3 — C4 context | planned after C1 |
 | D4 — C4 container | planned after D3 |
@@ -828,6 +859,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
 | K3 — Knowledge Pack Builder UI and five-file write | planned |
 | v0.3.0-alpha.1 prerelease | published after D2; owner smoke PASS on the integration VSIX reported on 2026-09-29 |
+| v0.3.0-alpha.3 prerelease | published after CL1; owner smoke PASS on exact final VSIX SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056` |
 | REL — broader release work | planned |
 | Semantic reviewer in D1.1 | implemented; retained in R2 target |
 | Repair loop | deferred |

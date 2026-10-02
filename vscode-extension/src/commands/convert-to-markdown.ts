@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { convertDocument, type ConvertErrorCode } from "../../../src/runtime/index.js";
+import { convertDocument, type ConvertErrorCode, type PdfOcrMode } from "../../../src/runtime/index.js";
 
 const messages: Record<ConvertErrorCode, string> = {
   "unsupported-format": "Choose a PDF, DOCX or XLSX document.",
@@ -12,10 +12,18 @@ const messages: Record<ConvertErrorCode, string> = {
   "too-many-rows": "The spreadsheet exceeds the 20000-row limit.",
   "too-many-cells": "The spreadsheet exceeds a column or cell limit.",
   "output-too-large": "The Markdown result exceeds the 8 MiB limit.",
-  "no-text-layer": "No text layer was found in this PDF. Scanned PDFs need OCR, which is not available here.",
+  "no-text-layer": "No text layer was found in this PDF. Choose an OCR mode to read scanned pages.",
+  "too-many-ocr-pages": "The PDF exceeds the 20-page OCR limit.",
+  "canvas-limit": "A PDF page exceeds the 10-megapixel OCR canvas limit.",
+  "embedded-image-limit": "An embedded PDF image exceeds the 16-megapixel limit.",
+  "image-decode-failed": "An embedded PDF image could not be decoded.",
+  "canvas-binding-unavailable": "Local OCR is unavailable on this platform.",
+  "ocr-model-unavailable": "The bundled OCR language data is unavailable.",
+  "ocr-model-corrupt": "The bundled OCR language data failed verification.",
+  "ocr-busy": "Another OCR conversion is in progress. Try again when it finishes.",
   "corrupt-document": "The document could not be read. It may be damaged or unsupported.",
   "encrypted-document": "Encrypted documents are not supported.",
-  "timeout": "Conversion exceeded the 120-second limit.",
+  "timeout": "Conversion exceeded its time limit.",
   "read-failed": "The local file could not be read.",
   "conversion-failed": "The document could not be converted."
 };
@@ -37,13 +45,25 @@ export async function convertToMarkdownCommand(): Promise<void> {
     return;
   }
 
+  let pdfOcrMode: PdfOcrMode = "none";
+  if (/\.pdf$/i.test(uri.fsPath)) {
+    const choice = await vscode.window.showQuickPick([
+      { label: "Auto OCR", description: "Use text where available; read scanned pages locally", mode: "auto" as const },
+      { label: "No OCR", description: "Use the PDF text layer only", mode: "none" as const },
+      { label: "OCR all pages", description: "Read every page locally, including pages with text", mode: "all" as const }
+    ], { title: "Archi Agent: PDF conversion", placeHolder: "Choose how to read this PDF" });
+    if (!choice) return;
+    pdfOcrMode = choice.mode;
+  }
+
   const controller = new AbortController();
   const outcome = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: "Archi Agent: converting document", cancellable: true },
-    async (_progress, token) => {
+    async (progress, token) => {
       const subscription = token.onCancellationRequested(() => controller.abort());
       try {
-        return await convertDocument(uri.fsPath, { signal: controller.signal });
+        return await convertDocument(uri.fsPath, { signal: controller.signal, pdfOcrMode,
+          onProgress: (stage) => progress.report({ message: stage === "recognize" ? "Reading scanned page…" : "Processing PDF…" }) });
       } finally {
         subscription.dispose();
       }

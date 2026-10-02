@@ -288,11 +288,16 @@ worker performs bounded read, checks ZIP containers for Office files, extracts c
 a closed success/cancel/failure outcome. Only after success does VS Code open one untitled Markdown
 document. It never saves or modifies the source.
 
-PDF text extraction preserves page order but not layout; scanned PDFs without a text layer return
-`no-text-layer`. DOCX keeps basic headings, lists and tables, but images and external relationships
-are excluded. XLSX keeps cached values without evaluating formulas. DOC, XLS, OCR, MCP and
-knowledge-building are outside UX1. The worker is terminated on Cancel or after 30 seconds;
-all returned text is bounded to 2 MiB UTF-8 and parser warnings are never logged.
+PDF text extraction preserves page order but not layout. The UX2 PDF choice adds local OCR:
+`none` uses the original bundled worker and returns `no-text-layer` for a scan; `auto` keeps
+readable text per page and renders pages without text; `all` renders every page. The OCR path
+uses a separate child process and bundled PDF.js, canvas, Tesseract WASM and PL/EN language data.
+The parent confirms child closure before returning a result or Cancel. OCR and blank pages are
+marked in Markdown. DOCX keeps basic headings, lists and tables, but images and external
+relationships are excluded. XLSX keeps cached values without evaluating formulas. DOC, XLS,
+MCP and knowledge-building remain outside this conversion path. Current CL1 limits are 50 MiB
+input, 8 MiB Markdown, 300 PDF pages and 120 seconds without OCR; UX2 allows at most 20 OCR
+pages and an absolute 300-second OCR deadline, with 10 MP canvas and 16 MP embedded-image limits.
 
 The earlier `generateSequenceDiagram` pipeline remains the compatibility path:
 

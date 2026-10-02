@@ -351,8 +351,27 @@ no separate manual result was reported for Cancel or the input limit. The final 
 corrects the packaged README and has the same three executable bundles. Its path is
 `vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.
-Before publishing `alpha.3`, install this exact file in a fresh profile and confirm its version,
-packaged README and conversion UI. Its owner smoke is pending.
+Before publishing `alpha.3`, the owner installed this exact file in a fresh profile and
+confirmed its version, packaged README and conversion UI. Its owner smoke passed; see
+[`project-state.md`](project-state.md) for the released CL1 checkpoint.
+
+## UX2 phase 2 owner smoke (PASS, 2026-10-02)
+
+Install `build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix` in a fresh
+VS Code user profile and extensions directory. Its SHA-256 is
+`b80c861deaf233343ceaa105969ba5c3e7a625f0b5be040c94d6e21a57c9ef4b`.
+Generate safe local PDFs with `node experiments/ux2-ocr/make-fixtures.mjs <directory>`.
+Use **Archi Agent: Convert to Markdown** for `text-only.pdf` with No OCR; `pl-clean-200.pdf`
+and `en-clean-200.pdf` with Auto OCR; `mixed.pdf` with Auto OCR and OCR all pages;
+`blank-only.pdf`; and `image-over-16mp.pdf`, which must show a safe limit message
+without opening Markdown. Check page order and `(OCR)`/`(blank)` headings. Cancel a
+longer OCR conversion while the notification is visible, confirm no Markdown opens,
+then convert a scan again. Convert synthetic DOCX/XLSX without an OCR prompt. This
+was confirmed by the owner as PASS on 2026-10-02 in a clean VS Code profile on Mac
+ARM, including Cancel with no partial document, a conversion after Cancel and the
+DOCX/XLSX regression. No host version details were supplied for this manual run.
+The automated extracted-VSIX smoke is
+`node experiments/ux2-ocr/product-smoke.mjs <extracted-extension> <pdf-fixtures> test/fixtures/document-conversion`.
 
 ## Tests
 
@@ -377,13 +396,21 @@ packaged README and conversion UI. Its owner smoke is pending.
   Ollama, Anthropic, OpenAI and OpenRouter.
 - The minified diagram runtime bundle is about 1 MB because it carries `zod`; the separate
   conversion worker adds about 2.4 MB before VSIX compression.
-- PDF extraction reads text only and does not reconstruct the original layout or tables; scanned
-  PDFs need OCR, which is outside UX1. DOCX merged cells and complex layout may lose fidelity.
+- PDF conversion offers **Auto OCR**, **No OCR** and **OCR all pages** after selecting a PDF.
+  Auto keeps readable text per page and uses the bundled offline PL/EN OCR for pages without
+  text. The Markdown headings mark OCR and blank pages. No OCR retains the CL1 text path.
+  DOCX and XLSX do not ask for an OCR mode. PDF layout and tables, and DOCX merged cells or
+  complex layout, may lose fidelity.
   XLSX formula results are the saved cache; formulas are never recalculated. DOC and XLS are deferred.
 - Conversion limits in the CL1 development build: 50 MiB input, 300 PDF pages, 1000 Office ZIP
   entries, 100 MiB inflated total, 25 MiB per entry, compression ratio 100:1, 40 sheets,
   20000 rows, 150 columns, 250000 cells, 8 MiB Markdown and 120 seconds. XLSX XML is also
   bounded before parsing. No partial result is opened on failure or Cancel.
+- The UX2 OCR path allows 20 recognized pages, a 10 MP rendered canvas and a 16 MP embedded
+  image. Its deadline is 300 seconds from conversion start once a page without text becomes an
+  OCR candidate; an all-text PDF keeps the 120-second deadline. Cancel closes the OCR child
+  before the command completes. The VSIX includes the OCR engine, WASM, PL/EN data and canvas
+  bindings; no runtime download, npm, separate Node.js or repository checkout is needed.
 - The PlantUML editor has no preview; a PlantUML extension, if installed, provides language support
   and preview independently.
 - Package names in the root project (`archground`, `ArchGround`) remain unchanged; only the

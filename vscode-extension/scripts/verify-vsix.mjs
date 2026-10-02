@@ -10,10 +10,11 @@
 // the source repository, an npm invocation or a child process. Findings are printed as entry names
 // and rule identifiers only; the script prints no bundle content.
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { builtinModules } from "node:module";
+import { createHash } from "node:crypto";
 import { bundleFileNames, extensionRoot, projectRoot } from "./build.mjs";
 import { openVsix } from "./vsix-zip.mjs";
 
@@ -22,6 +23,8 @@ const extensionBundleEntry = `extension/dist/${bundleFileNames.extension}`;
 const runtimeBundleEntry = `extension/dist/${bundleFileNames.runtime}`;
 const converterWorkerEntry = `extension/dist/${bundleFileNames.converterWorker}`;
 const noticesEntry = "extension/THIRD_PARTY_NOTICES.md";
+const trialManifestEntry = "extension/ux2-trial/resource-manifest.json";
+const productManifestEntry = "extension/ux2-ocr/resource-manifest.json";
 
 export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Content_Types].xml", manifestEntry, extensionBundleEntry, runtimeBundleEntry, converterWorkerEntry, noticesEntry]);
 
@@ -86,6 +89,73 @@ export function verifyVsix(filePath, options = {}) {
   }
 
   const names = archive.entries.map((entry) => entry.name);
+  let trialEntries = new Set();
+  const productOcr = names.includes(productManifestEntry);
+  if (!productOcr && !options.ux2Trial && !options.legacy) violations.push("ocr-resources-missing: product VSIX must include local OCR");
+  const ocrPrefix = productOcr ? "extension/ux2-ocr/" : "extension/ux2-trial/";
+  const ocrManifestEntry = productOcr ? productManifestEntry : trialManifestEntry;
+  if (options.ux2Trial || productOcr) {
+    try {
+      const archiveManifestBytes = archive.read(ocrManifestEntry);
+      const manifest = options.externalTrialManifest
+        ? JSON.parse(readFileSync(options.externalTrialManifest, "utf8"))
+        : JSON.parse(archiveManifestBytes.toString("utf8"));
+      if (options.externalTrialManifest && !archiveManifestBytes.equals(readFileSync(options.externalTrialManifest)))
+        violations.push("trial-external-manifest-mismatch");
+      const originalPlatforms = ["darwin-arm64", "darwin-x64", "linux-x64-gnu", "linux-arm64-gnu", "win32-x64-msvc", "win32-arm64-msvc"];
+      const recheckPlatforms = ["darwin-arm64", "darwin-x64", "linux-x64-gnu", "linux-arm64-gnu", "linux-x64-musl", "linux-arm64-musl", "win32-x64-msvc", "win32-arm64-msvc"];
+      const platformList = JSON.stringify(manifest.platforms);
+      if (![1, 2].includes(manifest.schema) || (!productOcr && (manifest.schema === 2) !== !!options.externalTrialManifest) ||
+        manifest.baselineSha256 !== "7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056" ||
+        (platformList !== JSON.stringify(originalPlatforms) && platformList !== JSON.stringify(recheckPlatforms)) ||
+        !Array.isArray(manifest.files) || !Array.isArray(manifest.baselineEntries)) throw new Error("invalid trial manifest");
+      if (manifest.schema === 2) {
+        const pinned = manifest.pdfjsPatch;
+        const patchFile = path.join(projectRoot, "experiments/ux2-ocr/patches/pdfjs-dist-4.10.38-operator-list-error.patch");
+        const pdfEntry = manifest.files.find((file) => file.path === "node_modules/pdfjs-dist/legacy/build/pdf.mjs");
+        const workerEntry = manifest.files.find((file) => file.path === "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs");
+        if (pinned?.version !== "4.10.38" ||
+          pinned.originalSha256 !== "081d3b6f426d38a8029766f8839f505e9cbf2c81a71d62c26eada142e6c21ae4" ||
+          pinned.workerSha256 !== "5e9f76bd5e65fbd1602b29fc50e50490aeeacd34a715b2282b73f7e8029242e0" ||
+          pinned.patchSha256 !== createHash("sha256").update(readFileSync(patchFile)).digest("hex") ||
+          pinned.patchedSha256 !== pdfEntry?.sha256 || pinned.workerSha256 !== workerEntry?.sha256 ||
+          manifest.versions?.["pdfjs-dist"] !== "4.10.38" || platformList !== JSON.stringify(recheckPlatforms))
+          throw new Error("invalid pinned PDF.js patch manifest");
+      }
+      for (const entry of productOcr ? [] : manifest.baselineEntries) {
+        if (typeof entry.path !== "string" || typeof entry.bytes !== "number" || !/^[a-f0-9]{64}$/.test(entry.sha256) || entry.path.startsWith("extension/ux2-trial/"))
+          throw new Error("invalid baseline entry");
+        const bytes = archive.read(entry.path);
+        if (bytes.length !== entry.bytes || createHash("sha256").update(bytes).digest("hex") !== entry.sha256)
+          violations.push(`baseline-hash: ${entry.path}`);
+      }
+      trialEntries = new Set([ocrManifestEntry]);
+      for (const file of manifest.files) {
+        if (typeof file.path !== "string" || !/^[A-Za-z0-9@._/-]+$/.test(file.path) || file.path.includes("..") ||
+          typeof file.bytes !== "number" || !/^[a-f0-9]{64}$/.test(file.sha256)) throw new Error("invalid trial file entry");
+        const entry = `${ocrPrefix}${file.path}`;
+        if (trialEntries.has(entry)) throw new Error("duplicate trial file entry");
+        trialEntries.add(entry);
+        const bytes = archive.read(entry);
+        if (bytes.length !== file.bytes || createHash("sha256").update(bytes).digest("hex") !== file.sha256)
+          violations.push(`trial-hash: ${entry}`);
+      }
+      for (const platform of manifest.platforms) {
+        if (!manifest.files.some((file) => file.path.startsWith(`node_modules/@napi-rs/canvas-${platform}/`) && file.path.endsWith(".node")))
+          violations.push(`trial-platform-missing: ${platform}`);
+      }
+      for (const resource of ["convert.mjs", "TRIAL_NOTICES.md", "licenses/SKIA-LICENSE", "assets/lang/LICENSE-tessdata-fast",
+        "assets/lang/pol.traineddata", "assets/lang/eng.traineddata",
+        "node_modules/pdfjs-dist/legacy/build/pdf.mjs", "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+        "node_modules/tesseract.js/src/worker-script/node/index.js", "node_modules/tesseract.js-core/tesseract-core-simd.wasm"]) {
+        if (!manifest.files.some((file) => file.path === resource)) violations.push(`trial-resource-missing: ${resource}`);
+      }
+      if (manifest.schema === 2) for (const resource of ["ocr-parent.mjs", "ocr-child.mjs"])
+        if (!manifest.files.some((file) => file.path === resource)) violations.push(`trial-resource-missing: ${resource}`);
+    } catch (error) {
+      violations.push(`trial-manifest: ${error instanceof Error ? error.message : "invalid"}`);
+    }
+  }
 
   for (const required of requiredEntries) {
     if (!names.includes(required)) {
@@ -94,6 +164,7 @@ export function verifyVsix(filePath, options = {}) {
   }
 
   for (const name of names) {
+    if (trialEntries.has(name)) continue;
     for (const { rule, pattern } of prohibitedEntryRules) {
       if (pattern.test(name)) {
         violations.push(`${rule}: ${name}`);
@@ -113,6 +184,9 @@ export function verifyVsix(filePath, options = {}) {
         violations.push(`entry-unreadable: ${name}`);
       }
     }
+  }
+  if (options.ux2Trial || productOcr) {
+    for (const entry of trialEntries) if (!names.includes(entry)) violations.push(`trial-missing: ${entry}`);
   }
 
   if (new Set(names).size !== names.length) {
@@ -274,19 +348,22 @@ function invokedDirectly() {
 }
 
 if (invokedDirectly()) {
-  const argument = process.argv[2];
+  const trial = process.argv[2] === "--ux2-trial";
+  const legacy = process.argv[2] === "--legacy";
+  const argument = process.argv[trial || legacy ? 3 : 2];
+  const externalTrialManifest = trial && process.argv[4] === "--manifest" ? process.argv[5] : undefined;
   const filePath = argument === undefined ? defaultVsixPath() : path.resolve(argument);
 
-  if (filePath === undefined || process.argv.length > 3) {
-    process.stderr.write("usage: node vscode-extension/scripts/verify-vsix.mjs [<file.vsix>]\n");
+  if (filePath === undefined || process.argv.length > (trial ? (externalTrialManifest ? 6 : 4) : legacy ? 4 : 3)) {
+    process.stderr.write("usage: node vscode-extension/scripts/verify-vsix.mjs [--ux2-trial|--legacy] [<file.vsix>] [--manifest <external.json>]\n");
     process.exitCode = 2;
   } else {
-    const result = verifyVsix(filePath);
+    const result = verifyVsix(filePath, { ux2Trial: trial, legacy, externalTrialManifest });
     process.stdout.write(`Package: ${path.relative(projectRoot, filePath)}\n`);
-    process.stdout.write(`Entries (${result.entries.length}):\n${result.entries.map((name) => `  ${name}`).join("\n")}\n`);
+    process.stdout.write(`Entries (${result.entries.length})${trial || result.entries.includes(productManifestEntry) ? " (OCR resources checked by SHA-256)" : ":\n" + result.entries.map((name) => `  ${name}`).join("\n")}\n`);
 
     if (result.ok) {
-      process.stdout.write("Verification: OK (only the bounded runtime files are packaged).\n");
+      process.stdout.write(trial ? "Verification: OK (base files and trial resources checked).\n" : "Verification: OK (only the bounded runtime files are packaged).\n");
     } else {
       process.stdout.write(`Verification: FAILED\n${result.violations.map((line) => `  ${line}`).join("\n")}\n`);
       process.exitCode = 1;

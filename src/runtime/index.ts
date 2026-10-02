@@ -9,7 +9,7 @@
 export { createArchiAgentRuntime, deriveDiagramName, runtimeLimits } from "./archi-agent-runtime.js";
 export { convertDocument } from "./convert-document.js";
 export { conversionLimits } from "../core/document-conversion/contract.js";
-export type { ConvertDocumentOptions } from "./convert-document.js";
+export type { ConvertDocumentOptions, PdfOcrMode } from "./convert-document.js";
 export type { ConvertFormat, ConvertErrorCode, ConvertOutcome } from "../core/document-conversion/contract.js";
 export type { ArchiAgentRuntimeOptions, GeneratorFactory } from "./archi-agent-runtime.js";
 export type { DiagnosticSink } from "../core/pipeline/diagnostics.js";

@@ -69,9 +69,11 @@ describe("UX1 QuickPick navigation", () => {
 describe("standalone local converter command", () => {
   it("opens one untitled Markdown without any provider, key or Knowledge Pack configuration", async () => {
     state.openDialogAnswers.push([Uri.file("/synthetic/source.pdf")]);
+    state.quickPickAnswers.push((items: readonly unknown[]) => items[0]);
     converter.run.mockResolvedValue({ status: "success", format: "pdf", markdown: "## Page 1\n\nSafe", counts: { pages: 1 } });
     await convertToMarkdownCommand();
     expect(converter.run).toHaveBeenCalledOnce();
+    expect(converter.run.mock.calls[0]?.[1]).toMatchObject({ pdfOcrMode: "auto" });
     expect(state.openedDocuments).toHaveLength(1);
     expect(state.openedDocuments[0]).toMatchObject({ isUntitled: true, languageId: "markdown" });
     expect(state.openedDocuments[0]?.getText()).toBe("## Page 1\n\nSafe");
@@ -84,12 +86,14 @@ describe("standalone local converter command", () => {
     await convertToMarkdownCommand();
     expect(converter.run).not.toHaveBeenCalled();
     state.openDialogAnswers.push([Uri.file("/synthetic/source.pdf")]);
+    state.quickPickAnswers.push((items: readonly unknown[]) => items[0]);
     state.progressCancelOnStart = true;
     converter.run.mockResolvedValue({ status: "success", format: "pdf", markdown: "text", counts: {} });
     await convertToMarkdownCommand();
     expect(state.openedDocuments).toEqual([]);
     resetDouble();
     state.openDialogAnswers.push([Uri.file("/synthetic/SECRET-NAME.pdf")]);
+    state.quickPickAnswers.push((items: readonly unknown[]) => items[1]);
     converter.run.mockResolvedValue({ status: "failed", code: "corrupt-document" });
     await convertToMarkdownCommand();
     expect(state.openedDocuments).toEqual([]);
@@ -99,5 +103,24 @@ describe("standalone local converter command", () => {
     await convertToMarkdownCommand();
     expect(state.openedDocuments).toEqual([]);
     expect(state.secretReads).toEqual([]);
+  });
+
+  it("offers three PDF modes and does not ask for DOCX or XLSX", async () => {
+    for (const [index, mode] of ["auto", "none", "all"].entries()) {
+      resetDouble();
+      state.openDialogAnswers.push([Uri.file("/synthetic/source.pdf")]);
+      state.quickPickAnswers.push((items: readonly unknown[]) => items[index]);
+      converter.run.mockResolvedValue({ status: "success", format: "pdf", markdown: "ok", counts: { pages: 1 } });
+      await convertToMarkdownCommand();
+      expect(converter.run.mock.lastCall?.[1]).toMatchObject({ pdfOcrMode: mode });
+    }
+    for (const ext of ["docx", "xlsx"]) {
+      resetDouble();
+      state.openDialogAnswers.push([Uri.file(`/synthetic/source.${ext}`)]);
+      converter.run.mockResolvedValue({ status: "success", format: ext, markdown: "ok", counts: {} });
+      await convertToMarkdownCommand();
+      expect(state.quickPicks).toHaveLength(0);
+      expect(converter.run.mock.lastCall?.[1]).toMatchObject({ pdfOcrMode: "none" });
+    }
   });
 });

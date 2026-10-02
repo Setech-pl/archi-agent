@@ -29,7 +29,7 @@ interface PackageModule {
 }
 
 interface VerifyModule {
-  verifyVsix(filePath: string, options?: { forbiddenText?: string }): { ok: boolean; entries: readonly string[]; violations: readonly string[] };
+  verifyVsix(filePath: string, options?: { forbiddenText?: string; legacy?: boolean }): { ok: boolean; entries: readonly string[]; violations: readonly string[] };
   requiredEntries: readonly string[];
   prohibitedEntryRules: readonly { rule: string; pattern: RegExp }[];
 }
@@ -258,14 +258,20 @@ describe("VSIX", () => {
     vsixPath = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-vsix-") });
   }, 180_000);
 
-  it("packages and contains exactly the bounded runtime files", () => {
+  it("packages the runtime and verified local OCR resources", () => {
     const result = verifyModule.verifyVsix(vsixPath, { forbiddenText: syntheticSecretSentinel });
 
     expect(result.violations).toEqual([]);
     expect(result.ok).toBe(true);
-    expect([...result.entries].sort()).toEqual(
-      ["[Content_Types].xml", "extension.vsixmanifest", "extension/package.json", "extension/readme.md", "extension/THIRD_PARTY_NOTICES.md", "extension/dist/archi-agent-runtime.js", "extension/dist/archi-agent-converter-worker.js", "extension/dist/extension.js"].sort()
-    );
+    for (const entry of ["[Content_Types].xml", "extension.vsixmanifest", "extension/package.json",
+      "extension/dist/archi-agent-runtime.js", "extension/dist/archi-agent-converter-worker.js",
+      "extension/dist/extension.js", "extension/ux2-ocr/resource-manifest.json",
+      "extension/ux2-ocr/ocr-parent.mjs", "extension/ux2-ocr/ocr-child.mjs",
+      "extension/ux2-ocr/assets/lang/pol.traineddata", "extension/ux2-ocr/assets/lang/eng.traineddata",
+      "extension/ux2-ocr/node_modules/tesseract.js-core/tesseract-core-simd.wasm",
+      "extension/ux2-ocr/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node"]) {
+      expect(result.entries).toContain(entry);
+    }
     expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.3.vsix");
   });
 
@@ -275,6 +281,15 @@ describe("VSIX", () => {
     expect(runtime).toContain("diagram-plan-invalid");
     expect(runtime).toContain("interaction-mode-mismatch");
     expect(runtime).toContain("reviewed_sequence_plan");
+  });
+
+  it("rejects a product VSIX when the OCR resource manifest is missing", () => {
+    const directory = temporaryDirectory("archi-agent-missing-ocr-");
+    writeFileSync(path.join(directory, "placeholder"), "synthetic");
+    const archive = path.join(directory, "missing-ocr.vsix");
+    expect(spawnSync("zip", ["-q", archive, "placeholder"], { cwd: directory }).status).toBe(0);
+    expect(verifyModule.verifyVsix(archive).violations).toContain("ocr-resources-missing: product VSIX must include local OCR");
+    expect(verifyModule.verifyVsix(archive, { legacy: true }).violations).not.toContain("ocr-resources-missing: product VSIX must include local OCR");
   });
 
   it("rejects prohibited content by rule", () => {

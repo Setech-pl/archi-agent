@@ -12,6 +12,7 @@ import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createVSIX } from "@vscode/vsce";
+import { execFileSync } from "node:child_process";
 import { buildExtensionBundles, extensionRoot, projectRoot } from "./build.mjs";
 
 export async function packageExtension(options = {}) {
@@ -30,6 +31,13 @@ export async function packageExtension(options = {}) {
     skipLicense: true,
     allowMissingRepository: true,
     updatePackageJson: false
+  });
+
+  // Rebuild and pin the reviewed, offline OCR resources, then place them beside dist/.
+  // Runtime lookup is relative to the installed extension, never to this repository.
+  execFileSync(process.execPath, [path.join(projectRoot, "experiments/ux2-ocr/build-trial.mjs"), "--product-assets"], { stdio: "pipe" });
+  execFileSync("zip", ["-q", "-r", "-D", "-X", packagePath, "extension/ux2-ocr"], {
+    cwd: path.join(projectRoot, "build/ux2-ocr/phase2/stage")
   });
 
   return packagePath;

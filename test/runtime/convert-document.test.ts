@@ -7,6 +7,15 @@ import { convertDocument } from "../../src/runtime/convert-document.js";
 const directory = mkdtempSync(path.join(tmpdir(), "archi-ux1-worker-test-"));
 const slowWorker = path.join(directory, "slow.cjs");
 writeFileSync(slowWorker, "while (true) {}\n");
+const ocrParent = path.join(directory, "ocr-parent.mjs");
+writeFileSync(ocrParent, `export async function convertPdfIsolated(_file, { fullPage, signal, onStage }) {
+  onStage?.('recognize');
+  if (signal?.aborted) throw new Error('cancelled');
+  if (fullPage) return { markdown: 'all', pages: [{ page: 1 }] };
+  return { markdown: 'auto', pages: [{ page: 1 }] };
+}\n`);
+const failedOcrParent = path.join(directory, "failed-ocr-parent.mjs");
+writeFileSync(failedOcrParent, "export async function convertPdfIsolated() { throw new Error('embedded-image-limit'); }\n");
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
 
 describe("one-request converter worker", () => {
@@ -31,5 +40,24 @@ describe("one-request converter worker", () => {
 
   it("maps worker startup and crash to a closed code", async () => {
     expect(await convertDocument("/unused.pdf", { workerFile: "/missing.cjs" })).toEqual({ status: "failed", code: "conversion-failed" });
+  });
+
+  it("passes OCR mode and progress through the runtime and returns one complete result", async () => {
+    const stages: string[] = [];
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: ocrParent,
+      onProgress: (stage) => stages.push(stage) })).toMatchObject({ status: "success", markdown: "auto", counts: { pages: 1 } });
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "all", ocrParentFile: ocrParent })).toMatchObject({ status: "success", markdown: "all" });
+    expect(stages).toEqual(["recognize"]);
+  });
+
+  it("maps OCR failure safely and allows the next conversion", async () => {
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: failedOcrParent }))
+      .toEqual({ status: "failed", code: "embedded-image-limit" });
+    const controller = new AbortController();
+    controller.abort();
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: ocrParent,
+      signal: controller.signal })).toEqual({ status: "cancelled" });
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: ocrParent }))
+      .toMatchObject({ status: "success", markdown: "auto" });
   });
 });
