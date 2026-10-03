@@ -272,7 +272,7 @@ describe("VSIX", () => {
       "extension/ux2-ocr/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node"]) {
       expect(result.entries).toContain(entry);
     }
-    expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.3.vsix");
+    expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.4.vsix");
   });
 
   it("packages the corrected D1.2 plan-validation mapping in the runtime bundle", async () => {

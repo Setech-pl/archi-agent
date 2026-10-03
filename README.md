@@ -1,12 +1,12 @@
 # Archi Agent
 
-Archi Agent is a VS Code extension for generating grounded PlantUML architecture diagrams from a flow description and a local Architecture Knowledge Pack. Version **0.3.0-alpha.1** is the published prerelease; **0.3.0-alpha.3** is the CL1 development candidate.
+Archi Agent is a VS Code extension for generating grounded PlantUML architecture diagrams from a flow description and a local Architecture Knowledge Pack. Version **0.3.0-alpha.3** is published; **0.3.0-alpha.4** is the UX2 release candidate.
 
 The extension generates **Sequence** and **Component** diagrams. A model proposes a bounded plan; local code validates the plan and renders PlantUML; a separate model call reviews the candidate. Verified results open as unsaved PlantUML and grounding-report editors. **Generate Sequence Diagram** remains a separate compatibility command with its earlier report format.
 
 ## Install the prerelease
 
-For the published prerelease, download [archi-agent-0.3.0-alpha.1.vsix](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.1/archi-agent-0.3.0-alpha.1.vsix) and its [SHA-256 file](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.1/archi-agent-0.3.0-alpha.1.sha256) from the [v0.3.0-alpha.1 prerelease page](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.1). Verify the downloaded VSIX against the checksum. In VS Code, open **Extensions → … → Install from VSIX…** and select the file. The `alpha.3` candidate is not yet published.
+For the published prerelease, download [archi-agent-0.3.0-alpha.3.vsix](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.3/archi-agent-0.3.0-alpha.3.vsix) and its [SHA-256 file](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.3/archi-agent-0.3.0-alpha.3.sha256) from the [v0.3.0-alpha.3 prerelease page](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.3). Verify the downloaded VSIX against the checksum. In VS Code, open **Extensions → … → Install from VSIX…** and select the file. The `alpha.4` candidate is local and has not been published.
 
 The VSIX contains its runtime and conversion worker. End users do not need to clone this repository, install npm or Node.js separately, or run an Archi Agent backend. Diagram generation still needs a configured model provider and Knowledge Pack; document conversion needs neither.
 
@@ -18,7 +18,7 @@ The VSIX contains its runtime and conversion worker. End users do not need to cl
 4. Choose **Generate Diagram → Sequence** or **Component**. Supply the active flow document, a local flow file, or a typed description. A flow document needs the required [front matter](docs/front-matter.md). Resolve ambiguous names and confirm explicit **[NEW: Name]** elements when prompted.
 5. Inspect the PlantUML and grounding report. Save the untitled editors yourself if you want files. If semantic review rejects or fails after local validation, the extension may offer a clearly marked **unverified candidate** without a report; cancelling opens no result.
 
-**Archi Agent: Convert to Markdown** can also be run directly. Select one local text-layer PDF, DOCX, or XLSX; the conversion opens as one unsaved Markdown editor. It does not edit the source, use a model, read a Knowledge Pack, or make a network request. Cancel or failure opens no partial document.
+**Archi Agent: Convert to Markdown** can also be run directly. Select one local PDF, DOCX, or XLSX; for PDF choose Auto OCR, No OCR, or OCR all pages. Offline Polish and English OCR handles scanned pages and marks OCR and blank pages in the Markdown result. Conversion opens one unsaved editor after success. It does not edit the source, use a model, read a Knowledge Pack, or make a network request. Progress and Cancel are shown during conversion; Cancel or failure opens no partial document.
 
 ## Grounding, providers, and privacy
 
@@ -31,12 +31,12 @@ Automated tests cover the provider adapters and reviewed pipelines with controll
 ## Current limits and deferred work
 
 - One local Knowledge Pack directory is supported. Diagram output is untitled; the extension does not persist or version artifacts. A PlantUML preview requires separate editor support.
-- PDF conversion extracts text without OCR or layout reconstruction. DOCX complex layout and merged cells may lose fidelity. XLSX uses saved formula results and does not recalculate formulas. Input, output, archive, page, sheet, cell, and time limits apply; see [known limitations](docs/vscode-extension.md#known-limitations).
-- DOC, XLS, scanned-PDF OCR, Enterprise Architect integration, MCP (M1), VS Code Chat (C1), C4 and ArchiMate diagram types (D3–D5), Knowledge Pack Builder extraction and evidence verification (K2), and its UI and write flow (K3) are planned or deferred, **not implemented in this candidate**. An internal deterministic Builder Stage A core exists, but the VSIX does not expose it. Conversion does not automatically build a Knowledge Pack or feed documents into diagram grounding.
+- PDF conversion has no layout reconstruction. DOCX complex layout and merged cells may lose fidelity. XLSX uses saved formula results and does not recalculate formulas. Input, output, archive, page, sheet, cell, OCR image, and time limits apply; see [known limitations](docs/vscode-extension.md#known-limitations).
+- DOC, XLS, Enterprise Architect integration, MCP (M1), VS Code Chat (C1), C4 and ArchiMate diagram types (D3–D5), Knowledge Pack Builder extraction and evidence verification (K2), and its UI and write flow (K3) are planned or deferred, **not implemented in this candidate**. An internal deterministic Builder Stage A core exists, but the VSIX does not expose it. Conversion does not automatically build a Knowledge Pack or feed documents into diagram grounding.
 
 ## Documentation and development
 
-- [Published release notes](docs/releases/v0.3.0-alpha.1.md), [draft CL1 release notes](docs/releases/v0.3.0-alpha.3.md), and [extension guide](docs/vscode-extension.md)
+- [Published CL1 release notes](docs/releases/v0.3.0-alpha.3.md), [UX2 release candidate notes](docs/releases/v0.3.0-alpha.4.md), and [extension guide](docs/vscode-extension.md)
 - [Knowledge Pack format](docs/knowledge-pack-format.md), [flow front matter](docs/front-matter.md), and [reviewed pipeline](docs/reviewed-diagram-pipeline.md)
 - [Architecture](docs/architecture.md), [product roadmap](docs/product-roadmap.md), and [project state](docs/project-state.md)
 - [Development workflow](docs/development-workflow.md), [contributor instructions](AGENTS.md), and [offline demo](docs/demo.md)

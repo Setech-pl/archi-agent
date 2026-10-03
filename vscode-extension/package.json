@@ -2,7 +2,7 @@
   "name": "archi-agent",
   "displayName": "Archi Agent",
   "description": "Grounded architecture diagram generation with local or cloud models: validated PlantUML sequence and component diagrams from flow descriptions and an Architecture Knowledge Pack.",
-  "version": "0.3.0-alpha.3",
+  "version": "0.3.0-alpha.4",
   "publisher": "setech-pl",
   "private": true,
   "license": "UNLICENSED",
