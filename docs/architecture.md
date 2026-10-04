@@ -268,6 +268,16 @@ Output Channel when `archiAgent.diagnostics.verbose` is enabled. It is off by de
 records prompts, model responses, secrets, message labels, full PlantUML or absolute local paths.
 Its central identifier sanitizer redacts POSIX, Windows drive, UNC and all `file:` URI forms
 independently of the host platform.
+
+OBS1 adds a separate, safe `ProviderDiagnostic` for the five registered provider profiles.
+It records a closed code, whether the operation was attempted or cancelled, and limited
+findings for configuration, credential, connection, listing, selected model, generation,
+review, billing and quota. The explicit Check command reuses one existing bounded model-list
+request at most, with zero provider requests when local validation blocks it. A list result
+does not establish credential validity, generation readiness, billing or quota; a missing model on a filtered or
+incomplete list does not establish lack of access. Basic messages and next steps appear without
+verbose logging. This does not change generator or reviewer call decisions.
+
 An earlier S1 attempt produced a locally valid candidate but the reviewer returned
 `truncated-output`; that unverified candidate did not count as acceptance. The subsequent
 owner smoke on 2026-09-23 returned a verified outcome, so S1 is PASS.

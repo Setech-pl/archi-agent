@@ -13,14 +13,15 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 
 The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
 The **v0.3.0-alpha.1** prerelease was published after D2. CL1 and **v0.3.0-alpha.3**
-were published afterward. UX2 is implemented and passed Mac ARM owner smoke on
-2026-10-02, but no new UX2 release has been published. OBS1, M1, C1, D3–D5,
+were published afterward. UX2 passed Mac ARM owner smoke on
+2026-10-02 and shipped in the published `v0.3.0-alpha.4` prerelease on 2026-10-03. OBS1 is
+implemented for review and owner smoke; M1, C1, D3–D5,
 K2, K3 and full REL scope remain open.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
 and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
 2026-09-28. CL1 increased local PDF, DOCX and XLSX conversion limits and shipped in
 v0.3.0-alpha.3. UX2 adds local OCR for scanned PDFs; OBS1 provider diagnostics is
-the next separate stage.
+the current review and owner-smoke stage.
 M1 adds MCP after those stages, followed by C1 with VS Code Chat. The D1.1 code is
 preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
@@ -36,8 +37,8 @@ Agreed order of work:
 | 4 | UX1 | Completed: navigation and local PDF, DOCX, XLSX conversion to an untitled Markdown document; owner smoke PASS on 2026-09-23. |
 | 5 | D2 | Completed: `component` plan, validator and renderer; owner smoke PASS on 2026-09-28. |
 | 6 | CL1 | Published in `v0.3.0-alpha.3`; owner smoke PASS on the exact final VSIX. |
-| 7 | UX2 | Implemented: local OCR for scanned PDFs; review and Mac ARM owner smoke PASS on 2026-10-02. No new release yet. |
-| 8 | OBS1 | Next separate stage: provider diagnostics. |
+| 7 | UX2 | Published in `v0.3.0-alpha.4`; local OCR for scanned PDFs, review and Mac ARM owner smoke PASS on 2026-10-02. |
+| 8 | OBS1 | Implemented for review and owner smoke: safe provider diagnostics and configuration check. |
 | 9 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
 | 10 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
 | 11 | D3 | `c4-context` plan, validator and renderer. |
@@ -85,8 +86,8 @@ regression. The accepted candidate is
 `build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix`, 119805748 B,
 SHA-256 `b80c861deaf233343ceaa105969ba5c3e7a625f0b5be040c94d6e21a57c9ef4b`.
 This is an owner report, separate from automated extracted-VSIX smoke. Windows,
-Linux and macOS x64 have no runtime smoke. A new UX2 release has not been published;
-the existing `v0.3.0-alpha.3` tag and release assets are unchanged. See
+Linux and macOS x64 have no runtime smoke. UX2 shipped in the published
+`v0.3.0-alpha.4` prerelease; the existing `v0.3.0-alpha.3` tag and release assets are unchanged. See
 [project state](project-state.md) for verification details.
 
 ### C1 — VS Code Chat Participant
@@ -281,8 +282,8 @@ Ordered as agreed in [Product priority](#product-priority).
 | UX1 | completed; owner smoke PASS on 2026-09-23 | QuickPick navigation and local PDF/DOCX/XLSX to untitled Markdown; no LLM or network. | S1 |
 | D2 | completed; owner smoke PASS on 2026-09-28 | `component` plan, validator and renderer. | UX1 owner smoke |
 | CL1 | published in `v0.3.0-alpha.3`; owner smoke PASS on exact final VSIX | PDF/DOCX/XLSX input up to 50 MiB with bounded output, time, pages, archives and XLSX grids. | D2 |
-| UX2 | implemented; review and Mac ARM owner smoke PASS on 2026-10-02; not yet released | Local OCR for scanned PDFs. | CL1 |
-| OBS1 | planned; next separate stage | Provider diagnostics. | UX2 |
+| UX2 | published in `v0.3.0-alpha.4`; review and Mac ARM owner smoke PASS on 2026-10-02 | Local OCR for scanned PDFs. | CL1 |
+| OBS1 | implemented for review and owner smoke | Provider diagnostics. | UX2 |
 | M1 | planned; backlog after OBS1 | Deterministic MCP adapter into ArchitectureSnapshot. | OBS1 |
 | C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | M1 |
 | D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
@@ -849,8 +850,8 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | UX1 — Navigation and local document conversion | completed; owner smoke PASS on 2026-09-23; PDF, DOCX, XLSX |
 | D2 — Component diagram | completed; owner smoke PASS on 2026-09-28 |
 | CL1 — Larger local PDF/DOCX/XLSX conversion limits | published in `v0.3.0-alpha.3`; exact VSIX owner smoke PASS |
-| UX2 — Local OCR for scanned PDFs | implemented; review and Mac ARM owner smoke PASS on 2026-10-02; not yet released |
-| OBS1 — Provider diagnostics | planned as next separate stage |
+| UX2 — Local OCR for scanned PDFs | published in `v0.3.0-alpha.4`; review and Mac ARM owner smoke PASS on 2026-10-02 |
+| OBS1 — Provider diagnostics | implemented for review and owner smoke |
 | M1 — ArchitectureSnapshot MCP adapter | planned after OBS1 |
 | C1 — VS Code Chat Participant | planned after M1 |
 | D3 — C4 context | planned after C1 |

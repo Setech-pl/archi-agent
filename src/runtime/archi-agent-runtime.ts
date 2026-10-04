@@ -564,7 +564,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
       if (!resolved.ok) return failure("generator-configuration", resolved.issues);
       diagnostics.emit("provider.resolved", { profileId: "profileId" in request.generator ? request.generator.profileId : "local-lm-studio",
-        modelId: request.generator.modelId, generatorType: resolved.client.clientType });
+        generatorType: resolved.client.clientType });
       const outcome = await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
         client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
         diagnostics,

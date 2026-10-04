@@ -14,6 +14,7 @@ import { readLocalModelSettings } from "../../vscode-extension/src/settings.js";
 import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
 import { basePackRows, buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
 import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
+import { OpenAiCompatibleServerDouble } from "../doubles/openai-compatible-server-double.js";
 import * as vscodeDouble from "../doubles/vscode-module-double.js";
 
 const packagedRuntime = vi.hoisted(() => ({ current: undefined as ArchiAgentRuntime | undefined }));
@@ -76,9 +77,9 @@ function readAfterRestart() {
   return readLocalModelSettings(vscodeDouble.workspace.getConfiguration(settingsSection));
 }
 
-async function invokeReviewed(outcome: GenerateDiagramOutcome): Promise<void> {
+async function invokeReviewed(outcome: GenerateDiagramOutcome, verbose = true): Promise<void> {
   configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model",
-    [settingKeys.diagnosticsVerbose]: true });
+    [settingKeys.diagnosticsVerbose]: verbose });
   state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
   const inner = echoRuntime();
   packagedRuntime.current = {
@@ -210,6 +211,15 @@ describe("Generate Diagram unverified candidate UX", () => {
     expect(state.openedDocuments[0]?.getText()).not.toContain("reportSchemaVersion");
   });
 
+  it("shows safe review diagnosis with verbose disabled", async () => {
+    await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
+      review: { status: "failed", problemCode: "timeout" } }, false);
+    expect(state.messages).toHaveLength(1);
+    expect(state.outputLines.join("\n")).toContain("Semantic review for LM Studio could not be confirmed (timeout)");
+    expect(state.outputLines.join("\n")).toContain("Generation: positive; review: indeterminate");
+    expect(state.outputLines.join("\n")).not.toContain("@startuml");
+  });
+
   it.each(["Cancel", undefined])("dismisses the modal with %s without opening or writing anything", async (answer) => {
     state.messageAnswers.push(answer);
     await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
@@ -230,6 +240,7 @@ describe("Generate Diagram unverified candidate UX", () => {
       await invokeReviewed({ status: "failed", stage, issues: [{ severity: "error", code, message: "Safe failure." }],
         ambiguities: [], unconfirmedNewParticipants: [] });
       expect(state.messages.every((message) => !message.text.includes("unverified"))).toBe(true);
+      if (code === "generation-cancelled") expect(state.messages[0]?.text).toContain("generation cancelled");
       expect(state.openedDocuments).toEqual([]);
       resetDouble();
     }
@@ -278,7 +289,7 @@ describe("activation", () => {
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(11);
+    expect(context.subscriptions.length).toBe(12);
     deactivate();
   });
 
@@ -342,6 +353,26 @@ describe("activation", () => {
     await state.registeredCommands.get(commandIds.generateDiagram)?.();
     expect(seen).toEqual(["component"]);
     expect(state.secretReads).toEqual([]);
+  });
+
+  it.each(["Sequence", "Component"])("sends exactly one actual generation POST for a rejected %s answer", async (diagramType) => {
+    const server = await OpenAiCompatibleServerDouble.start({ scenario: "invalid-envelope" });
+    try {
+      configureGlobal({ [settingKeys.localModelProfile]: "local-lm-studio",
+        [settingKeys.localModelSelectedModel]: "synthetic-model",
+        [settingKeys.localModelSelectedModelProfile]: "local-lm-studio" });
+      configure({ [settingKeys.knowledgePackPath]: packDirectory,
+        [settingKeys.localModelBaseUrl]: server.baseUrl });
+      state.activeTextEditor = { document: makeDocument(flowDocument(["Telescope Scheduler registers frames in Image Archive."])) };
+      packagedRuntime.current = createArchiAgentRuntime();
+      state.quickPickAnswers.push(pickByLabel(diagramType), pickByLabel("active editor"));
+      activate(createExtensionContext() as never);
+      await state.registeredCommands.get(commandIds.generateDiagram)?.();
+      expect(server.requests.map(({ method, path }) => [method, path])).toEqual([["POST", "/v1/chat/completions"]]);
+      expect(state.outputLines.join("\n")).toContain("invalid-envelope");
+    } finally {
+      await server.close();
+    }
   });
 
   it("connects machine-scoped verbose to the existing Archi Agent output channel", async () => {

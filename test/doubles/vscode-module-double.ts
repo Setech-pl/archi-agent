@@ -64,6 +64,7 @@ export interface DoubleState {
   languages: string[];
   progressTitles: string[];
   progressCancelOnStart: boolean;
+  cancelProgress?: () => void;
   untitledCounter: number;
 }
 
@@ -195,11 +196,14 @@ export const window = {
   },
   withProgress<T>(options: { title?: string }, task: (progress: { report(): void }, token: unknown) => Thenable<T>): Thenable<T> {
     state.progressTitles.push(options.title ?? "");
+    const listeners = new Set<() => void>();
     const token = { isCancellationRequested: state.progressCancelOnStart, onCancellationRequested: (listener: () => void) => {
+      listeners.add(listener);
       if (state.progressCancelOnStart) queueMicrotask(listener);
-      return new Disposable();
+      return { dispose: () => { listeners.delete(listener); } };
     } };
-    return task({ report: () => undefined }, token);
+    state.cancelProgress = () => { token.isCancellationRequested = true; for (const listener of listeners) listener(); };
+    return Promise.resolve(task({ report: () => undefined }, token)).finally(() => { state.cancelProgress = undefined; });
   },
   showTextDocument(document: DoubleDocument, options?: unknown): Promise<{ document: DoubleDocument }> {
     state.shownDocuments.push({ document, options });

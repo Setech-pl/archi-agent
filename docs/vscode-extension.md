@@ -97,6 +97,22 @@ is required to construct the picker, so dismissing an already displayed cloud mo
 after one `SecretStorage.get` and one model-list GET. That cancellation writes no model or binding
 and does not start generation.
 
+`Archi Agent: Check Provider Configuration` checks the selected profile without changing any
+setting or producing a diagram. Local settings or a missing cloud key block the check before
+network I/O. Otherwise it makes at most one bounded model-list request through the existing
+transport, with no retry or pagination. It does not send a generation or review request. The
+notification and Archi Agent output show a safe `ProviderDiagnostic` even when
+`archiAgent.diagnostics.verbose` is false. The result separates execution (`not-attempted`,
+`attempted`, `cancelled`) from findings (`positive`, `negative`, `unchecked`, `indeterminate`,
+`not-applicable`) for configuration, credentials, connection, listing, selected model, generation,
+review, billing and quota. A saved key by itself does not prove validity. A successful list leaves
+credential validation unchecked because the response does not prove the server verified the key.
+It proves only that listing worked; it does not establish billing, quota or generation readiness. A selected
+model missing from the returned list remains indeterminate because provider lists may be filtered
+or incomplete. Cancellation stays cancellation. Diagnostics contain closed codes and fixed text,
+never keys, model IDs, response bodies, prompts or local paths. Existing Select Model and Generate
+Diagram request counts and pipeline decisions are unchanged.
+
 `Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
 The picker offers Sequence and Component. Sequence runs the D1.2 Wire Plan v3 path;
 Component runs the D2 component plan and renderer. Each uses one strict plan request,

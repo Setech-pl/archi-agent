@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { commandIds, settingKeys, settingsSection } from "../contributions.js";
 
 type MainChoice = "generate" | "configuration" | "knowledge" | "convert";
-type ConfigChoice = "provider" | "model" | "set-key" | "delete-key" | "pack" | "verbose" | "other" | "back";
+type ConfigChoice = "provider" | "model" | "check" | "set-key" | "delete-key" | "pack" | "verbose" | "other" | "back";
 
 interface Choice<T extends string> extends vscode.QuickPickItem { readonly id: T }
 
@@ -16,6 +16,7 @@ export const mainChoices: readonly Choice<MainChoice>[] = Object.freeze([
 export const configurationChoices: readonly Choice<ConfigChoice>[] = Object.freeze([
   { id: "provider", label: "Select Provider Profile" },
   { id: "model", label: "Select Model" },
+  { id: "check", label: "Check Provider Configuration" },
   { id: "set-key", label: "Set/Update API Key" },
   { id: "delete-key", label: "Delete API Key" },
   { id: "pack", label: "Configure Knowledge Pack Path" },
@@ -54,6 +55,7 @@ export async function openArchiAgentMenu(): Promise<void> {
     const command = {
       provider: commandIds.selectProviderProfile,
       model: commandIds.selectModel,
+      check: commandIds.checkProviderConfiguration,
       "set-key": commandIds.setApiKey,
       "delete-key": commandIds.deleteApiKey
     } as const;

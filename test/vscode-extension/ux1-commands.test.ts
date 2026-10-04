@@ -19,7 +19,7 @@ describe("UX1 QuickPick navigation", () => {
     expect(mainChoices.map((item) => item.label)).toEqual(["Generate Diagram", "Configuration", "Knowledge Management", "Convert to Markdown"]);
     expect(knowledgeChoices.map((item) => item.label)).toEqual(["Configure Knowledge Pack Path", "$(arrow-left) Back"]);
     expect(configurationChoices.map((item) => item.label)).toEqual([
-      "Select Provider Profile", "Select Model", "Set/Update API Key", "Delete API Key",
+      "Select Provider Profile", "Select Model", "Check Provider Configuration", "Set/Update API Key", "Delete API Key",
       "Configure Knowledge Pack Path", "Verbose Diagnostics", "Other Archi Agent Settings", "$(arrow-left) Back"
     ]);
   });

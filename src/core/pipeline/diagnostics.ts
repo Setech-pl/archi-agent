@@ -2,7 +2,7 @@
 export type DiagnosticSink = (line: string) => void;
 type Field = string | number | boolean | readonly string[] | null;
 export const diagnosticLineLimit = 1024;
-const safeFieldKeys = new Set(["diagramType", "flowSourceKind", "profileId", "modelId", "generatorType",
+const safeFieldKeys = new Set(["diagramType", "flowSourceKind", "profileId", "generatorType",
   "digest", "participantCount", "relationshipCount", "ruleCount", "flowEvidenceCount", "requestCount",
   "responseCount", "asynchronousCount", "callNumber", "schemaVersion", "durationMs", "version",
   "groundedStepCount", "userStatedStepCount", "totalStepCount", "rule", "list", "order", "stepIndex", "operationId", "flowEvidenceId", "groundedCount",

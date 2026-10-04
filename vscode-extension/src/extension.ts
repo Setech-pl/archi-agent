@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { generateDiagramCommand, generateSequenceDiagramCommand } from "./commands/generate-sequence-diagram.js";
 import { removeApiKey, setApiKey } from "./commands/api-key-management.js";
 import { selectModel, selectProviderProfile } from "./commands/local-provider-selection.js";
+import { checkProviderConfiguration } from "./commands/check-provider-configuration.js";
 import { commandIds, legacyCommandIds, outputChannelName } from "./contributions.js";
 import { openArchiAgentMenu } from "./commands/open-menu.js";
 import { convertToMarkdownCommand } from "./commands/convert-to-markdown.js";
@@ -51,6 +52,12 @@ export function activate(context: vscode.ExtensionContext): void {
       selectModel(runtime, output, context.secrets).catch((error: unknown) => {
         output.appendLine(`The model selection command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
+      })
+    ),
+    vscode.commands.registerCommand(commandIds.checkProviderConfiguration, () =>
+      checkProviderConfiguration(runtime, output, context.secrets).catch(() => {
+        output.appendLine("The provider configuration check failed unexpectedly.");
+        void vscode.window.showErrorMessage("Archi Agent: the provider configuration check could not be completed.");
       })
     ),
     vscode.commands.registerCommand(commandIds.setApiKey, () =>

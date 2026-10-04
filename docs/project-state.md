@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-10-03 |
-| Stan Git | UX2 zintegrowano do `main` na `456ad46cddc95c726e4554c0eba94b9c9b8c1119`. Kandydat alpha.4 powstał na osobnej gałęzi `release/v0.3.0-alpha.4`; bieżący commit, remote i drzewo zawsze sprawdzaj w Git. |
+| Data aktualizacji | 2026-10-04 |
+| Stan Git | OBS1 rozwijany na `feature/obs1-provider-diagnostics` od `main` `31a6609cd0e8b083dbc09f3007a761e93a174b18`; bieżący commit, remote i drzewo zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -23,12 +23,64 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan UX1 | Completed — owner smoke PASS 2026-09-23 na samowystarczalnym VSIX w świeżym, izolowanym profilu VS Code. |
 | Stan D2 | Completed — automatyczne bramki PASS, niezależny review 3/3 bez high/medium, owner smoke PASS 2026-09-28 na pakowanym VSIX. |
 | Stan CL1 | Opublikowany w `v0.3.0-alpha.3`: lokalna konwersja PDF/DOCX/XLSX z limitem wejścia 50 MiB i pozostałymi limitami podanymi niżej. Owner smoke PASS dotyczył dokładnego VSIX o SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`; właściciel nie wyszczególnił przypadków UI dla Cancel ani przekroczenia limitu. |
-| Stan UX2 | Zaimplementowany; automatyczne bramki PASS, niezależny review bez pozostałych high/medium, owner smoke dokładnego VSIX na Mac ARM PASS 2026-10-02. Szczegóły niżej. |
-| Następny etap | OBS1 — osobny etap diagnostyki providerów; nie został rozpoczęty. |
+| Stan UX2 | Opublikowany w `v0.3.0-alpha.4` 2026-10-03; wcześniejszy owner smoke dokładnego kandydata na Mac ARM PASS 2026-10-02. Szczegóły niżej. |
+| Stan OBS1 | Zaimplementowany; niezależny re-review zamknął cztery ustalenia, a właściciel zgłosił ręczny smoke zachowanego kandydata. Bez publikacji. |
+| Następny etap | UX3 — onboarding Knowledge Pack; M1 pozostaje osobnym późniejszym etapem. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
-| Wydanie | `v0.3.0-alpha.3` opublikowane po CL1; istniejący tag wskazuje `0192e8afd8fa850cfbc0679ce19c08df980e71fb`. Dla `v0.3.0-alpha.4` właściciel zaakceptował próbę smoke i polecił publikację; szczegóły dowodów niżej. |
+| Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## OBS1 — diagnostyka providerów (2026-10-03)
+
+Na `feature/obs1-provider-diagnostics` dodano bezpieczny `ProviderDiagnostic` dla LM Studio,
+Ollama, Anthropic, OpenAI i OpenRouter oraz komendę **Archi Agent: Check Provider Configuration**.
+Komenda sprawdza lokalne ustawienia i obecność poprawnie ukształtowanego klucza, po czym wykonuje
+najwyżej jedno listowanie modeli. Przy blokadzie lokalnej wykonuje zero żądań. Nie generuje,
+nie uruchamia review, retry ani paginacji. Select Model i Generate Diagram zachowują dotychczasowe
+liczby żądań i decyzje pipeline'u. Wynik odróżnia wykonanie od wniosku: pozytywny, negatywny,
+niesprawdzone, nie można ustalić i nie dotyczy. Sukces listowania nie potwierdza billing, quota
+ani gotowości generacji; brak modelu na liście nie dowodzi braku uprawnień. Podstawowy komunikat
+i następne działanie są widoczne także przy `diagnostics.verbose=false`; wyniki i logi nie
+zawierają sekretów, identyfikatorów modeli ani surowych odpowiedzi. Udane listowanie pozostawia
+walidację credential jako `unchecked`, bo nie dowodzi sprawdzenia klucza. Cancel pozostaje cancelled.
+Review OBS1 wykrył 2026-10-04 cztery luki: `modelId` w verbose diagnostics, częściową klasyfikację
+awarii generatora, zbyt silny wniosek o credential i brak testu komendy liczącego rzeczywiste
+żądania transportu. Poprawiono diagnostykę i dodano test komendy z serwerem loopback dla
+jednego GET, timeoutu, anulowania w trakcie żądania i ponownego uruchomienia. Testy komendy
+Generate Diagram liczą też rzeczywisty POST przez HTTP dla Sequence i Component przy odrzuconej
+odpowiedzi. Bieżące bramki: `npm test` 1345/1345 PASS, `extension:test` 213/213 PASS, oba typechecki PASS,
+`extension:build`, `extension:package`, `extension:verify` PASS (529 wpisów).
+Kandydat po review: `build/obs1/reviewed-candidate/archi-agent-0.3.0-alpha.4.vsix`,
+**119808786 B**, SHA-256 `3dea5732645668a747e428a37c7bdc3bbfe8b6021e6897457ac352738c8c2390`.
+Niezależny re-review read-only bieżącego diffu od `31a6609` i czterech nowych plików
+potwierdził zamknięcie wszystkich czterech ustaleń; nie wykazał otwartych high ani medium.
+Reviewer sprawdził kod i `git diff --check`, nie uruchamiał testów; jego wniosek nie jest
+wynikiem bramek automatycznych. Uwaga low: porada dla `secret-storage-read-failed` może
+zbyt ogólnie sugerować zmianę klucza przy awarii odczytu SecretStorage. Właściciel zgłosił
+„smoke ok” 2026-10-04 dla zachowanego kandydata o powyższym SHA-256. Raport nie podaje
+scenariuszy, liczników ani wersji hosta. OBS1 jest zamknięty lokalnym checkpointem,
+bez publikacji.
+Wcześniejszy gauntlet po rozdzieleniu testów współdzielących katalog pakowania OCR: `npm test`
+1338/1338 PASS, `npm run extension:test` 206/206 PASS, oba typechecki PASS,
+`extension:build`, `extension:package`, `extension:verify` PASS (529 wpisów, hashe OCR),
+`demo:dry-run` PASS. Pierwsza równoległa próba root i extension testów kolidowała na tym samym
+katalogu stage OCR; oba zestawy uruchomione kolejno przeszły. Poprzedni kandydat roboczy:
+`build/obs1/candidate/archi-agent-0.3.0-alpha.4.vsix`, **119808672 B**, SHA-256
+`cb9fa0c6638a5718a0df1892c1e1ffb913118445e8e60ce8a7028d9db6c84ce3` (artefakt sprzed korekt review). Nazwa
+wersji VSIX pozostaje `0.3.0-alpha.4`, lecz to nowy, niewydany kandydat OBS1 o innym SHA niż
+opublikowany artefakt alpha.4.
+
+## Publikacja UX2 i późniejszy raport Cancel alpha.4 (2026-10-03)
+
+Zdalny `github/main` oraz rozwiązany tag `v0.3.0-alpha.4` wskazują
+`31a6609cd0e8b083dbc09f3007a761e93a174b18`. GitHub Release jest opublikowany jako
+prerelease od 2026-10-03 11:48:28 UTC; zawiera pierwotny VSIX o rozmiarze 119805952 B
+i SHA-256 `4d30bb3b3b2108c8ecbba2748e7da537f5668460b717e2b3f2740060559e12b1`.
+Właściciel zgłosił późniejsze ręczne potwierdzenie Cancel na alpha.4 z 2026-10-03.
+Jest to osobny raport właściciela po wcześniejszym opisie próby „poszło”; nie dopisano
+niepodanych parametrów hosta, liczby prób ani dodatkowych scenariuszy. Wcześniejszy
+owner smoke UX2 z 2026-10-02 dotyczy innego SHA i pozostaje osobnym dowodem.
 
 ## v0.3.0-alpha.4 — dowody wydania po UX2 (2026-10-03)
 
@@ -39,7 +91,7 @@ Zatwierdzony UX2 został wypchnięty zwykłym fast-forward do właściwego remot
 Osobna gałąź wydania `release/v0.3.0-alpha.4` zmienia wersję rozszerzenia,
 asercję pakowania i dokumentację. Root `package.json` i `package-lock.json`
 zachowują wersję prywatnego pakietu narzędziowego `0.1.0-private.0`; nie jest to
-wersja VSIX. Kod funkcjonalny i OBS1 pozostają bez zmian.
+wersja VSIX. Kod funkcjonalny tamtego wydania pozostaje bez zmian; OBS1 powstaje osobno.
 
 Kandydat: `build/release/alpha.4/archi-agent-0.3.0-alpha.4.vsix`,
 **119805952 B**, SHA-256
@@ -54,11 +106,12 @@ i zasoby OCR, są bajtowo identyczne. Nowe archiwum jest większe o 204 B.
 
 Właściciel wykonał ręczną próbę alpha.4 i zgłosił „poszło”. Konwersję `twenty.pdf`
 zatrzymał limit stron; właściciel następnie polecił „idziemy dalej” i zaakceptował
-publikację. Raport nie podaje osobnych wyników pozostałych scenariuszy, parametrów
-hosta ani potwierdzenia Cancel na alpha.4. Historyczny owner smoke Mac ARM PASS,
+publikację. Ten początkowy raport nie podawał osobnych wyników pozostałych scenariuszy,
+parametrów hosta ani potwierdzenia Cancel na alpha.4. Późniejszy raport Cancel opisano wyżej.
+Historyczny owner smoke Mac ARM PASS,
 w tym Cancel bez częściowego dokumentu i konwersja po Cancel, dotyczy tylko
 poprzedniego SHA `b80c861deaf233343ceaa105969ba5c3e7a625f0b5be040c94d6e21a57c9ef4b`.
-Identyczność 526 wpisów payloadu wspiera przeniesienie dowodu runtime, ale nie jest
+Identyczność 526 wpisów payloadu wspiera przeniesienie dowodu runtime, ale sama nie jest
 osobnym ręcznym PASS Cancel na alpha.4. Release notes:
 [`releases/v0.3.0-alpha.4.md`](releases/v0.3.0-alpha.4.md). Windows, Linux i
 macOS x64 mają wyłącznie spakowane, zweryfikowane zasoby, bez runtime smoke.

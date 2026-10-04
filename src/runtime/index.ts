@@ -45,6 +45,8 @@ export type {
   RuntimeIssueSeverity
 } from "./runtime-types.js";
 export type { ProviderCapabilities, ProviderProfile } from "../core/llm/provider-profile.js";
+export { classifyProviderDiagnostic, providerDiagnosticCode } from "../core/llm/provider-diagnostic.js";
+export type { ProviderDiagnostic, DiagnosticExecution, DiagnosticFinding, DiagnosticOperation } from "../core/llm/provider-diagnostic.js";
 export { apiKeyLimits, validateApiKey } from "../core/llm/api-key.js";
 export type { ApiKeyValidationCode, ApiKeyValidationResult } from "../core/llm/api-key.js";
 export { ProviderRegistry, ProviderRegistryError, providerRegistryErrorCodes } from "../core/llm/provider-registry.js";

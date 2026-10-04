@@ -27,6 +27,7 @@
     "onCommand:archiAgent.generateSequenceDiagram",
     "onCommand:archiAgent.selectProviderProfile",
     "onCommand:archiAgent.selectModel",
+    "onCommand:archiAgent.checkProviderConfiguration",
     "onCommand:archiAgent.setApiKey",
     "onCommand:archiAgent.deleteApiKey",
     "onCommand:archiAgent.selectLocalProviderProfile",
@@ -84,6 +85,11 @@
       {
         "command": "archiAgent.selectModel",
         "title": "Select Model",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.checkProviderConfiguration",
+        "title": "Check Provider Configuration",
         "category": "Archi Agent"
       },
       {

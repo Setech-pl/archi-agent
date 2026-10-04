@@ -3,10 +3,12 @@ import * as vscode from "vscode";
 import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, DiagramType, FlowSource, GenerateDiagramUnverified, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
 import { readApiKey } from "../api-key-storage.js";
+import { classifyProviderDiagnostic } from "../../../src/runtime/index.js";
 import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
 import {
   describeCancellation,
   describeFailure,
+  describeProviderDiagnostic,
   describeSettingsProblems,
   describeSuccess,
   type UserMessage
@@ -231,8 +233,13 @@ function unverifiedDocument(result: GenerateDiagramUnverified, reason: string): 
   return result.plantUmlCandidate.replace(/^@startuml\r?\n/u, `@startuml\n${header.join("\n")}\n`);
 }
 
-async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, output: vscode.OutputChannel, verbose: boolean): Promise<void> {
+async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, output: vscode.OutputChannel, verbose: boolean, profileId: string): Promise<void> {
   const reason = safeUnverifiedReason(result);
+  const diagnostic = describeProviderDiagnostic(classifyProviderDiagnostic({ profileId, operation: "review",
+    credentialRequired: profileId.startsWith("cloud-"), outcome: "failure",
+    code: result.review.status === "failed" ? reason : "review-rejected" }));
+  output.appendLine(diagnostic.text);
+  for (const detail of diagnostic.details) output.appendLine(`  ${detail}`);
   const lead = result.review.status === "failed" ? "Semantic review did not complete" : "Semantic review rejected the candidate";
   const message = `${lead} (${reason}). The diagram passed local structural and grounding checks but remains unverified. Do you want to inspect the candidate?`;
   if (verbose) output.appendLine(JSON.stringify({ event: "unverified-candidate.offered", code: reason }));
@@ -343,12 +350,16 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   if (outcome.result.status === "failed") {
-    await show(output, describeFailure(outcome.result, { providerName: profile.displayName, baseUrl: settings.localModel.baseUrl }));
+    if (outcome.result.issues.some((entry) => entry.code === "generation-cancelled")) {
+      await show(output, describeCancellation());
+      return;
+    }
+    await show(output, describeFailure(outcome.result, { profileId: profile.profileId, providerName: profile.displayName, baseUrl: settings.localModel.baseUrl }));
     return;
   }
 
   if (outcome.result.status === "unverified") {
-    await offerUnverifiedCandidate(outcome.result, output, vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") === true);
+    await offerUnverifiedCandidate(outcome.result, output, vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") === true, profile.profileId);
     return;
   }
 

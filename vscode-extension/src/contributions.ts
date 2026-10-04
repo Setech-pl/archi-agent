@@ -10,6 +10,7 @@ export const commandIds = Object.freeze({
   generateSequenceDiagram: "archiAgent.generateSequenceDiagram",
   selectProviderProfile: "archiAgent.selectProviderProfile",
   selectModel: "archiAgent.selectModel",
+  checkProviderConfiguration: "archiAgent.checkProviderConfiguration",
   setApiKey: "archiAgent.setApiKey",
   deleteApiKey: "archiAgent.deleteApiKey"
 });
