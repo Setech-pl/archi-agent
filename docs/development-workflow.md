@@ -122,6 +122,17 @@ usuwa zależność sprintf-js, zachowując stare API CLI. Nie zmieniaj go automa
 który usunął to API. Ostrzeżenia deprecation i inne formatowanie pomocy w argparse 2 są jawne;
 kody błędów, wyniki poprawnej konwersji i zapisywane bajty podlegają porównaniu.
 
+## Automatyczny gauntlet K1
+
+Gauntlet wewnętrznego kontraktu K1: `npm run k1:gauntlet`. Zapisuje nowy katalog
+`build/k1/gauntlet-…/`, pełne sekwencyjne bramki, audit JSON, celowane scenariusze wiedzy,
+zgodność trzech bundle ze świeżym buildem oraz testy runtime K1/UX3/DOCX z dokładnego VSIX
+poza repo. Zachowuje wcześniejsze kandydaty i fingerprinty źródeł. Rzeczywisty Extension Host
+sprawdza integrację pakowania. Dla K1 UI ma zastosowanie N/A: brak zmian komend, ustawień
+i kontrolek; wyniki UI UX3 należą do jego checkpointu. Nie przenoś tego wyjątku na późniejsze
+zmiany zachowania rozszerzenia. Wymagany FAIL, NOT_RUN albo niezerowy kod komendy blokuje
+PASS; niezależny review finalnego kandydata i OWNER_SMOKE: DEFERRED pozostają osobnymi wynikami.
+
 ## Szablon raportu planowania
 
 ```markdown

@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-10-06 |
-| Stan Git | Lokalny checkpoint OBS1 `775d8e2454e276d46f82cd9125828df48b05bbe7`; UX3 na `feature/ux3-knowledge-pack-onboarding` od tego commita, zmiany UX3 niezacommitowane. Bieżący commit i drzewo zawsze sprawdzaj w Git. |
+| Stan Git | Lokalny checkpoint UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`; niniejszy lokalny checkpoint K1 na `feature/k1-common-knowledge-contract` od niego. Dokładny commit K1 i drzewo sprawdzaj w Git; dokument nie może zawierać SHA swojego własnego commita. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -25,13 +25,90 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan CL1 | Opublikowany w `v0.3.0-alpha.3`: lokalna konwersja PDF/DOCX/XLSX z limitem wejścia 50 MiB i pozostałymi limitami podanymi niżej. Owner smoke PASS dotyczył dokładnego VSIX o SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`; właściciel nie wyszczególnił przypadków UI dla Cancel ani przekroczenia limitu. |
 | Stan UX2 | Opublikowany w `v0.3.0-alpha.4` 2026-10-03; wcześniejszy owner smoke dokładnego kandydata na Mac ARM PASS 2026-10-02. Szczegóły niżej. |
 | Stan OBS1 | Lokalny checkpoint `775d8e2`; niezależny re-review zamknął cztery ustalenia, a właściciel zgłosił ręczny smoke zachowanego kandydata. Bez publikacji. |
-| Stan UX3 | Override tylko Mammoth → argparse 2.0.1 usunął rzeczywisty sprintf-js. Czyste npm ci, audit 0 i końcowe bramki UX3 PASS (1412 root, 279 extension, DOCX sources/package 5/5, runtime27, Host12, UI12). Zamknięte HIGH zachowane. Niezależny finalny review PASS bez otwartych high/medium; lokalny checkpoint autoryzowany. OWNER_SMOKE: DEFERRED. |
-| Stan K1 | Autoryzowany projekt i implementacja wspólnego kontraktu wiedzy po lokalnym checkpoincie UX3. Jeszcze NOT_STARTED; przygotowanie osobnej gałęzi i planu po review UX3. K2/K3 poza bieżącym zadaniem. |
-| Następny etap | Lokalny checkpoint UX3, następnie osobny branch i implementacja K1. Owner smoke DEFERRED nie blokuje rozwoju. M1 pozostaje odrębny. |
+| Stan UX3 | Lokalny checkpoint `f7b548c`; override Mammoth → argparse 2.0.1 usunął rzeczywisty sprintf-js. Czyste npm ci, audit 0 i końcowe bramki UX3 PASS (1412 root, 279 extension, DOCX sources/package 5/5, runtime27, Host12, UI12). Zamknięte HIGH zachowane. Niezależny finalny review PASS bez otwartych high/medium. OWNER_SMOKE: DEFERRED. |
+| Stan K1 | Wspólny kontrakt i adapter Markdown zaimplementowane. Celowane77, root1445, extension289, audit0, poza repo K1 16/16, UX3runtime27/27, DOCX5/5, Host12/12 i wszystkie bramki PASS. Niezależny review źródeł i dokładnego VSIX PASS, trzy medium zamknięte; brak otwartych high/medium. Lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
+| Następny etap | STOP po K1. Zbiorczy owner smoke DEFERRED; K2/K3 wymagają kolejnej autoryzowanej pętli, nie rozpoczęto ich automatycznie. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## K1 — implementacja i weryfikacja (2026-10-06)
+
+Lokalny checkpoint UX3: `f7b548c728360e25c2a8bae59c967d947d9b7e1a`.
+K1 rozpoczęto od niego na `feature/k1-common-knowledge-contract`, z czystym drzewem i stagingiem.
+
+### Zatwierdzony plan techniczny i kryteria odbioru
+
+1. Reużyć semantykę rekordów i walidatory obecnego packa. Wspólny kontrakt przechowuje
+   deklaracje źródeł i ich zakres, fakty, dostarczone provenance, jawne braki, niejednoznaczności
+   i konflikty; pozycja w pliku jest opcjonalna, bez fikcyjnych numerów linii.
+2. Utworzyć niezmienny, uporządkowany snapshot z SHA-256 obejmującym również provenance
+   i zakres. Identyczne fakty agregować wraz ze wszystkimi źródłami; sprzecznych nie scalać.
+3. Adaptować wynik istniejącego loadera pięciu Markdownów. Runtime ładuje raz, a istniejące
+   indeksy i grounding pozostają fundamentem. Sequence i Component używają tego samego
+   snapshotu wiedzy, projektując tylko wybrane provenance do obu żądań.
+4. Zweryfikować pełny pack, częściowe systemy, aliasy, konflikty, niezmienność, permutacje,
+   digest i provenance, zgodność packów i wyników diagramów oraz niezmienione 0/1/2 calls.
+   Wykonać pełne bramki, nowy VSIX, runtime poza repo i niezależny review przed checkpointem.
+
+Kontrakt częściowych danych nie oznacza nowego mechanizmu pozyskania: jedynym adapterem
+runtime w K1 pozostaje obecny Markdown. Harvesting, MCP, K2/K3 i nowe UI są poza zakresem.
+OWNER_SMOKE: DEFERRED.
+
+### Wynik implementacji i bramek
+
+Nowy knowledge-snapshot.ts reużywa semantykę i walidatory istniejących rekordów.
+Źródło deklaruje id, kind i scope per kategoria; niepodana kategoria, partial,
+nieznany endpoint, brak lokalizacji i require bez zadeklarowanej relacji mają jawne gaps.
+Lineless systems-only jest poprawnym wkładem, bez dopisywania plików, linii i relacji.
+Równoważne fakty zachowują wszystkie provenance. Sprzeczne rekordy, kolizje system/actor,
+forbid/require oraz forbidden relationship mają jawne conflicts z identyfikatorami faktów.
+Alias wieloznaczny zachowuje wszystkie cele. Snapshot jest kopiowany, frozen i sortowany;
+digest SHA-256 i pełny ID obejmują semantykę, źródła/zakres, provenance, gaps i konflikty.
+
+Adapter owija obecny wynik loadera pięciu Markdownów bez ponownego odczytu i zmian formatu.
+Runtime buduje wiedzę raz, zachowując indeksy i grounding. Sequence i Component projektują
+ten sam id/digest/scope oraz minimalne provenance z kluczem rekordu do obu żądań; opisów
+semantycznych i niepowiązanych fragmentów nie powielają. Renderery, zachowanie packów,
+walidacja, limity żądań i polityka 0/1/2 calls pozostają zgodne. Pełny snapshot jest lokalny.
+Publiczna fabryka i typy są eksportowane przez runtime; nie ma nowego adaptera pozyskania,
+persistence, MCP, UI, retry ani fallbacku.
+
+Finalny gauntlet: `build/k1/gauntlet-2026-10-06T10-39-10-379Z-63549/`.
+VSIX `archi-agent-0.3.0-alpha.4.vsix`, **119816815 B**, SHA-256
+**d85f59a63ffcfa6f79920444200e4f1524b1d746f2c2cd0f8a9d06922f331d0c**.
+Fingerprint: **b61d75927fead2b9bca3bfc10358b6e21f4acc4e4a7d5444ae921d8e863d02e7**.
+Raporty `report.json`, `report.txt`, `audit.json`, `focused-tests.json`, `k1-runtime.json`,
+`ux3-runtime-regression.json`, `docx-source.json`, `docx-packaged.json`, `host-*.json` i logi.
+Celowane **77/77**, root **1445/1445**, extension **289/289**, oba typechecki,
+build/package/verify **529 wpisów**, demo, diff i audit **0 podatności PASS**.
+Runtime K1 poza repo **16/16**, regresje UX3 **27/27** (własność **9/9**), DOCX
+źródła/package **5/5**, rzeczywisty Host **12/12**. **83 wymagane PASS, 0 FAIL/NOT_RUN**,
+wszystkie komendy kod0; trzy bundle bajtowo zgodne ze świeżym buildem; wcześniejsze VSIX zachowane.
+UI K1 **N/A**, bo kontrakt wewnętrzny nie zmienia komend, ustawień ani kontrolek;
+nie przypisano wyników UI UX3 nowemu VSIX. Zależności i lockfile z checkpointu UX3 nie zmieniły się.
+
+Niezależny reviewer `/root/k1_readonly_review` wskazał i samodzielnie potwierdził zamknięcie
+trzech medium: powielanie wartości w minimalnym kontekście (16 relacji × 2000 znaków),
+kolejność scope wpływającą na JSON oraz coercion liczbowego id/kind źródła.
+Statyczny import type przywrócił też istniejącą bramkę granicy core.
+Pierwszy technicznie PASS gauntlet `gauntlet-2026-10-06T10-36-16-431Z-60989` zachowano;
+nie stanowi checkpointu, ponieważ jego fabryka miała otwarte medium typów.
+Końcowy niezależny review aktualnego VSIX **PASS**. Reviewer samodzielnie sprawdził SHA,
+rozmiar i verify529, zbudował trzy bundle w pamięci i potwierdził bajtową zgodność,
+brak argparse/sprintf-js/source-map-js w grafie bundle oraz hashmanifest źródeł.
+Własna ekstrakcja poza repo przy pustym PATH/NODE_PATH: **K1 16/16, UX3 27/27
+(własność9), DOCX5/5 PASS**. Własne aktualne testy K1 **33/33**, regresje istniejącego
+core/Sequence/Component **71/71** oraz własny audit0 PASS. Dodatkowo niezależnie sprawdził
+SHA kanonicznego payloadu, scope order, odrzucanie JS typów/null, kopię provenance oraz
+niejednoznaczny alias blokujący oba profile przed jakimkolwiek żądaniem.
+Pełne zestawy i Host czyta jako dowody wykonawcy, bez przypisywania sobie ich uruchomienia.
+Raport: `independent-review.txt` w finalnym katalogu. **Brak otwartych high/medium**.
+
+Wymagane bramki i niezależny review zaliczone; osobny lokalny checkpoint K1 zamyka tę pętlę.
+Zmiany opisów po gauntlecie podlegają kontroli dokumentacji/diffu, bez ponownego pakowania.
+OWNER_SMOKE: DEFERRED. Bez push, integracji main, tagowania ani publikacji.
 
 ## UX3 — usunięcie podatnego łańcucha i końcowe bramki (2026-10-06)
 

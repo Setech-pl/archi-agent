@@ -2,6 +2,7 @@ import path from "node:path";
 import { parseFlowDocument, type FlowDocument } from "../core/grounding/grounded-context-builder.js";
 import type { AmbiguityReport } from "../core/grounding/grounded-context.js";
 import { loadKnowledgePack, type KnowledgePackLoadIssue } from "../core/knowledge-pack/knowledge-pack-loader.js";
+import { knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
 import { validateRelativePath } from "../core/knowledge-pack/knowledge-pack-source.js";
 import { KnowledgePackError, safeMessageFor } from "../core/knowledge-pack/source-errors.js";
 import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits } from "../core/knowledge-pack/source-limits.js";
@@ -357,7 +358,7 @@ async function resolveKnowledgePack(config: KnowledgePackSourceConfig, signal: C
 
   return Object.freeze({
     ok: true,
-    knowledgePack: { pack: loaded.pack, indexes: loaded.indexes },
+    knowledgePack: { pack: loaded.pack, indexes: loaded.indexes, knowledge: knowledgeSnapshotFromPack(loaded.pack) },
     directoryName: logicalName(directoryName, defaultPackDirectoryName)
   });
 }

@@ -6,6 +6,35 @@ in an Architecture Knowledge Pack. This document distinguishes the historical co
 and later extensions. All examples use the synthetic Space Mission sample. The experimental D1
 ledger diagnosis is preserved on `checkpoint/d1-ledger-pipeline`; its owner smoke did not pass.
 
+## K1 common knowledge contract
+
+`src/core/knowledge-pack/knowledge-snapshot.ts` assembles a provider-neutral, immutable
+knowledge snapshot using the existing pack record semantics and validators. Contributions
+declare a logical source identity, kind and per-table scope (`partial` or `complete`;
+omission means not provided). Complete describes the source's declared scope, never a
+closed-world claim about architecture. A contribution may contain only systems and no
+file positions. Source identity is retained for each claim; file/line provenance appears
+only when supplied. Missing positions, categories and references remain explicit gaps.
+
+Equivalent claims retain all their provenance. Incompatible entity/relationship/rule
+claims, actor/system ID collisions, conflicting rules and forbidden relationships remain
+explicit conflicts with references to every claim. There is no source precedence or
+implicit winner. Multi-target aliases remain ambiguous. The sorted snapshot has a SHA-256
+digest over semantic facts, source scopes, provenance, gaps, ambiguities and conflicts;
+its ID contains that full digest. Source and record order do not change serialized bytes.
+
+The five-Markdown adapter wraps the existing validated loader output, without rereading
+files or changing the pack format. Runtime creates this snapshot once and retains the
+existing indexes and grounding. Sequence and Component each add the same selected
+knowledge identity/scopes/provenance to their own bounded diagram snapshot, without
+copying unrelated content or repeating semantic descriptions. Their generator and
+reviewer receive identical snapshots. Unresolved conflicts block selection. Existing
+renderers, validators and the 0/1/2 provider-call policy remain in place.
+
+K1 exports the pure snapshot factory and types through the runtime boundary. It adds no
+acquisition port: local Markdown remains the runtime's only source adapter. Document
+harvesting, MCP adapters, persistence and conflict-resolution UI are later milestones.
+
 ## Layers and the core boundary
 
 | Layer | Location | Responsibility |

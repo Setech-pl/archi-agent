@@ -7,6 +7,9 @@
  */
 
 export { createArchiAgentRuntime, deriveDiagramName, runtimeLimits } from "./archi-agent-runtime.js";
+export { createKnowledgeSnapshot, knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
+export type { KnowledgeSnapshot, KnowledgeSource, KnowledgeContribution, KnowledgeRecord, KnowledgeFact,
+  KnowledgeProvenance, KnowledgeGap, KnowledgeConflict } from "../core/knowledge-pack/knowledge-snapshot.js";
 export { convertDocument } from "./convert-document.js";
 export { createStarterKnowledgePack, cleanupStarterKnowledgePack, validateKnowledgePackDirectory, defaultKnowledgePackPath } from "./knowledge-pack-onboarding.js";
 export { StarterPackCreateError } from "./knowledge-pack-onboarding.js";
