@@ -6,6 +6,7 @@
 export const commandIds = Object.freeze({
   open: "archiAgent.open",
   convertToMarkdown: "archiAgent.convertToMarkdown",
+  configureKnowledgePack: "archiAgent.configureKnowledgePack",
   generateDiagram: "archiAgent.generateDiagram",
   generateSequenceDiagram: "archiAgent.generateSequenceDiagram",
   selectProviderProfile: "archiAgent.selectProviderProfile",

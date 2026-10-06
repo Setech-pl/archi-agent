@@ -1,6 +1,6 @@
 # Archi Agent for VS Code
 
-Archi Agent **0.3.0-alpha.4** is a local release candidate. It generates grounded PlantUML **Sequence** and **Component** diagrams from a flow and a local Architecture Knowledge Pack. A model proposes a plan, local code validates and renders it, and an independent model review checks the candidate. Verified diagrams and reports open in untitled editors.
+This local UX3 candidate retains the **0.3.0-alpha.4** package version and has a different SHA-256 from the published release. It generates grounded PlantUML **Sequence** and **Component** diagrams from a flow and a local Architecture Knowledge Pack. A model proposes a plan, local code validates and renders it, and an independent model review checks the candidate. Verified diagrams and reports open in untitled editors.
 
 ## Install and start
 
@@ -10,7 +10,7 @@ Run **Archi Agent: Open**. It has four sections: **Generate Diagram**, **Configu
 
 For diagram generation:
 
-1. Prepare a local Knowledge Pack directory containing systems.md, actors.md, relationships.md, aliases.md, and rules.md. Set its absolute path with **Knowledge Management → Configure Knowledge Pack Path** (**archiAgent.knowledgePackPath**). See the [format](https://github.com/Setech-pl/archi-agent/blob/main/docs/knowledge-pack-format.md).
+1. Generate Diagram validates the configured Knowledge Pack before provider setup. A missing or invalid pack offers **Create Knowledge Pack**, **Choose Existing**, or **Cancel**, with Settings available for repair. **Configure Knowledge Pack** is also available from Configuration, Knowledge Management and the Command Palette, even when a valid pack is configured. Create shows an editable absolute destination before asking for one real system; its default is the selected project's `.archi-agent/knowledge`, or `Documents/ArchiAgent/knowledge` without a project. Create accepts a new or existing empty destination; nonempty destinations are rejected without changing their files. See the [format](https://github.com/Setech-pl/archi-agent/blob/main/docs/knowledge-pack-format.md).
 2. Under **Configuration**, select a provider profile and model. Profiles are LM Studio and Ollama on loopback, plus Anthropic, OpenAI, and OpenRouter over fixed HTTPS. Cloud providers also need an API key entered through **Set or Update API Key**; VS Code keeps it in SecretStorage. Use a structured-output capable model.
 3. Choose **Generate Diagram → Sequence** or **Component**. Use the active flow document, a flow file, or a typed description. Resolve ambiguous references and confirm **[NEW: Name]** elements if prompted.
 4. Review the unsaved PlantUML and grounding report. If independent review rejects or fails after local checks, a modal can show a marked unverified candidate without a report. Cancel opens nothing.

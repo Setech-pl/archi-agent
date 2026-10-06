@@ -11,23 +11,33 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The current mandatory sequence is: **R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → M1 → C1 → D3 → D4 → D5 → K2 → K3 → REL**.
+The completed and active sequence through this candidate is **R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3**.
+The owner-approved next knowledge sequence is **UX3 → K1 → K2 → K3**. K1 is future work:
+a provider-independent architecture-catalog contract for entities, aliases, relationships,
+sources, evidence and partial coverage. The current five Markdown files are one adapter to
+that contract; UX3 does not implement K1.
 The **v0.3.0-alpha.1** prerelease was published after D2. CL1 and **v0.3.0-alpha.3**
 were published afterward. UX2 passed Mac ARM owner smoke on
-2026-10-02 and shipped in the published `v0.3.0-alpha.4` prerelease on 2026-10-03. OBS1 is
-implemented for review and owner smoke; M1, C1, D3–D5,
-K2, K3 and full REL scope remain open.
+2026-10-02 and shipped in the published `v0.3.0-alpha.4` prerelease on 2026-10-03. OBS1 has
+an independently reviewed local checkpoint and reported owner smoke. UX3 owner smoke found
+onboarding issues; the corrected UX3 candidate has passed automatic gates and independent review,
+including audit with zero vulnerabilities after a scoped Mammoth → argparse 2.0.1 override.
+The 2026-10-06 owner policy uses milestone loops with independent review and authorized local
+checkpoints; owner smoke is collected later as `OWNER_SMOKE: DEFERRED`. Required FAIL/NOT_RUN
+and open high/medium still block checkpoints. K1 is authorized after technical UX3 closure; K2,
+K3, M1, C1, D3–D5 and full REL scope remain open.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
 and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
 2026-09-28. CL1 increased local PDF, DOCX and XLSX conversion limits and shipped in
-v0.3.0-alpha.3. UX2 adds local OCR for scanned PDFs; OBS1 provider diagnostics is
-the current review and owner-smoke stage.
-M1 adds MCP after those stages, followed by C1 with VS Code Chat. The D1.1 code is
-preserved on `checkpoint/d1-final-plantuml-reviewed`. See
+v0.3.0-alpha.3. UX2 adds local OCR for scanned PDFs; OBS1 adds provider diagnostics;
+UX3 adds first-run Knowledge Pack onboarding. M1 remains a separate MCP adapter into
+`ArchitectureSnapshot`: it consumes an architecture source and does not define the K1 catalog
+contract. Its scheduling relative to K1–K3 needs a separate owner decision. C1 adds VS Code Chat.
+The D1.1 code is preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) and
 [the target pipeline contract](reviewed-diagram-pipeline.md).
 
-Agreed order of work:
+Completed sequence and planned work (unranked rows have no approved position relative to K1–K3):
 
 | Order | Step | Scope |
 | --- | --- | --- |
@@ -38,15 +48,17 @@ Agreed order of work:
 | 5 | D2 | Completed: `component` plan, validator and renderer; owner smoke PASS on 2026-09-28. |
 | 6 | CL1 | Published in `v0.3.0-alpha.3`; owner smoke PASS on the exact final VSIX. |
 | 7 | UX2 | Published in `v0.3.0-alpha.4`; local OCR for scanned PDFs, review and Mac ARM owner smoke PASS on 2026-10-02. |
-| 8 | OBS1 | Implemented for review and owner smoke: safe provider diagnostics and configuration check. |
-| 9 | M1 | Deterministic MCP adapter into the existing ArchitectureSnapshot boundary. |
-| 10 | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
-| 11 | D3 | `c4-context` plan, validator and renderer. |
-| 12 | D4 | `c4-container` plan, validator and renderer. |
-| 13 | D5 | `archimate-hld` plan, validator and renderer. |
-| 14 | K2 | Knowledge Pack Builder extraction and evidence verifier. |
-| 15 | K3 | Knowledge Pack Builder UI, runtime integration and atomic write of the five pack files. |
-| 16 | REL | Broader release work: AI SDLC demo, branding, provider comparison and accepted owner smoke; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` are earlier checkpoints. |
+| 8 | OBS1 | Reviewed local checkpoint and reported owner smoke: safe provider diagnostics and configuration check. |
+| 9 | UX3 | Technically completed: full gates, zero-vulnerability audit and independent review PASS; local checkpoint authorized. OWNER_SMOKE: DEFERRED. |
+| 10 | K1 | Planned: provider-independent catalog contract for entities, aliases, relationships, sources, evidence and partial coverage; five Markdown files are an adapter. |
+| 11 | K2 | Planned after K1: Knowledge Pack Builder extraction and evidence verifier. |
+| 12 | K3 | Planned after K2: Knowledge Pack Builder UI, runtime integration and atomic write. |
+| — | M1 | Separate planned MCP adapter into `ArchitectureSnapshot`; scheduling relative to K1–K3 is open. |
+| — | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
+| — | D3 | `c4-context` plan, validator and renderer. |
+| — | D4 | `c4-container` plan, validator and renderer. |
+| — | D5 | `archimate-hld` plan, validator and renderer. |
+| — | REL | Broader release work: AI SDLC demo, branding, provider comparison and accepted owner smoke; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` are earlier checkpoints. |
 
 ### UX1 — Navigation and local document conversion
 
@@ -268,7 +280,8 @@ The four concern areas stay separate: **architecture sources** (canonical archit
 
 ## Next
 
-Ordered as agreed in [Product priority](#product-priority).
+The K1 → K2 → K3 dependency is approved; the other planned rows retain their own scope and
+do not imply a newly approved cross-stage order.
 
 | Item | Status | Notes | Depends on |
 | --- | --- | --- | --- |
@@ -283,13 +296,15 @@ Ordered as agreed in [Product priority](#product-priority).
 | D2 | completed; owner smoke PASS on 2026-09-28 | `component` plan, validator and renderer. | UX1 owner smoke |
 | CL1 | published in `v0.3.0-alpha.3`; owner smoke PASS on exact final VSIX | PDF/DOCX/XLSX input up to 50 MiB with bounded output, time, pages, archives and XLSX grids. | D2 |
 | UX2 | published in `v0.3.0-alpha.4`; review and Mac ARM owner smoke PASS on 2026-10-02 | Local OCR for scanned PDFs. | CL1 |
-| OBS1 | implemented for review and owner smoke | Provider diagnostics. | UX2 |
-| M1 | planned; backlog after OBS1 | Deterministic MCP adapter into ArchitectureSnapshot. | OBS1 |
+| OBS1 | reviewed local checkpoint; owner smoke reported 2026-10-04 | Provider diagnostics. | UX2 |
+| UX3 | technically completed; gates/audit/review PASS; local checkpoint authorized; OWNER_SMOKE: DEFERRED | Create or choose a valid first Knowledge Pack before provider setup; no inferred relationships or LLM call. | OBS1 |
+| K1 | planned after UX3 | Provider-independent catalog contract; Markdown is an adapter. | UX3 |
+| M1 | planned separately; scheduling relative to K1–K3 open | Deterministic MCP adapter into ArchitectureSnapshot; distinct from K1. | UX3 |
 | C1 | planned | VS Code Chat Participant `@archi-agent` and `/diagram`. | M1 |
 | D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
 | D4 | planned | `c4-container` plan, validator and renderer; no external includes. | D3 |
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
-| K2 | planned | Knowledge Pack Builder extraction and evidence verifier. | D5 |
+| K2 | planned | Knowledge Pack Builder extraction and evidence verifier. | K1 |
 | K3 | planned | Knowledge Pack Builder UI and five-file write. | K2 |
 | REL | planned | Broader release work and owner-accepted VSIX after K3; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` were earlier prereleases. | K3 |
 
@@ -851,8 +866,10 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | D2 — Component diagram | completed; owner smoke PASS on 2026-09-28 |
 | CL1 — Larger local PDF/DOCX/XLSX conversion limits | published in `v0.3.0-alpha.3`; exact VSIX owner smoke PASS |
 | UX2 — Local OCR for scanned PDFs | published in `v0.3.0-alpha.4`; review and Mac ARM owner smoke PASS on 2026-10-02 |
-| OBS1 — Provider diagnostics | implemented for review and owner smoke |
-| M1 — ArchitectureSnapshot MCP adapter | planned after OBS1 |
+| OBS1 — Provider diagnostics | reviewed local checkpoint; owner smoke reported 2026-10-04 |
+| UX3 — Knowledge Pack onboarding | technically completed; gates/audit/review PASS; local checkpoint authorized; OWNER_SMOKE: DEFERRED |
+| K1 — Provider-independent architecture catalog contract | planned after UX3 |
+| M1 — ArchitectureSnapshot MCP adapter | planned separately; scheduling relative to K1–K3 open |
 | C1 — VS Code Chat Participant | planned after M1 |
 | D3 — C4 context | planned after C1 |
 | D4 — C4 container | planned after D3 |

@@ -278,6 +278,15 @@ does not establish credential validity, generation readiness, billing or quota; 
 incomplete list does not establish lack of access. Basic messages and next steps appear without
 verbose logging. This does not change generator or reviewer call decisions.
 
+UX3 adds a local first-run Knowledge Pack transaction at the editor/runtime boundary. The editor
+collects one real system and the selected project scope; the runtime creates five strict tables
+without inferred relationships and validates them through the production loader. An explicit
+absolute path is used only after the production loader validates it. Explicit configuration uses
+the same wizard even when the current pack is valid; cancellation keeps the setting. The onboarding
+operation makes no provider request. A failed
+transaction removes only unchanged files it created and empty directories. Once configuration is
+saved, later model selection or generation does not roll back the pack.
+
 An earlier S1 attempt produced a locally valid candidate but the reviewer returned
 `truncated-output`; that unverified candidate did not count as acceptance. The subsequent
 owner smoke on 2026-09-23 returned a verified outcome, so S1 is PASS.

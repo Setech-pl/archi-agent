@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-10-04 |
-| Stan Git | OBS1 rozwijany na `feature/obs1-provider-diagnostics` od `main` `31a6609cd0e8b083dbc09f3007a761e93a174b18`; bieżący commit, remote i drzewo zawsze sprawdzaj w Git. |
+| Data aktualizacji | 2026-10-06 |
+| Stan Git | Lokalny checkpoint OBS1 `775d8e2454e276d46f82cd9125828df48b05bbe7`; UX3 na `feature/ux3-knowledge-pack-onboarding` od tego commita, zmiany UX3 niezacommitowane. Bieżący commit i drzewo zawsze sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -24,12 +24,150 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan D2 | Completed — automatyczne bramki PASS, niezależny review 3/3 bez high/medium, owner smoke PASS 2026-09-28 na pakowanym VSIX. |
 | Stan CL1 | Opublikowany w `v0.3.0-alpha.3`: lokalna konwersja PDF/DOCX/XLSX z limitem wejścia 50 MiB i pozostałymi limitami podanymi niżej. Owner smoke PASS dotyczył dokładnego VSIX o SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`; właściciel nie wyszczególnił przypadków UI dla Cancel ani przekroczenia limitu. |
 | Stan UX2 | Opublikowany w `v0.3.0-alpha.4` 2026-10-03; wcześniejszy owner smoke dokładnego kandydata na Mac ARM PASS 2026-10-02. Szczegóły niżej. |
-| Stan OBS1 | Zaimplementowany; niezależny re-review zamknął cztery ustalenia, a właściciel zgłosił ręczny smoke zachowanego kandydata. Bez publikacji. |
-| Następny etap | UX3 — onboarding Knowledge Pack; M1 pozostaje osobnym późniejszym etapem. |
+| Stan OBS1 | Lokalny checkpoint `775d8e2`; niezależny re-review zamknął cztery ustalenia, a właściciel zgłosił ręczny smoke zachowanego kandydata. Bez publikacji. |
+| Stan UX3 | Override tylko Mammoth → argparse 2.0.1 usunął rzeczywisty sprintf-js. Czyste npm ci, audit 0 i końcowe bramki UX3 PASS (1412 root, 279 extension, DOCX sources/package 5/5, runtime27, Host12, UI12). Zamknięte HIGH zachowane. Niezależny finalny review PASS bez otwartych high/medium; lokalny checkpoint autoryzowany. OWNER_SMOKE: DEFERRED. |
+| Stan K1 | Autoryzowany projekt i implementacja wspólnego kontraktu wiedzy po lokalnym checkpoincie UX3. Jeszcze NOT_STARTED; przygotowanie osobnej gałęzi i planu po review UX3. K2/K3 poza bieżącym zadaniem. |
+| Następny etap | Lokalny checkpoint UX3, następnie osobny branch i implementacja K1. Owner smoke DEFERRED nie blokuje rozwoju. M1 pozostaje odrębny. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
-| Kolejność | R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → M1 (MCP) → C1 → D3 → D4 → D5 → K2 → K3 → REL. |
+| Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## UX3 — usunięcie podatnego łańcucha i końcowe bramki (2026-10-06)
+
+Właściciel rozszerzył pętlę o sprawdzony override Mammoth → argparse 2.0.1, bez forka,
+wymiany konwertera, ręcznej edycji node_modules ani osłabienia audit. Preflight potwierdził
+branch/bazę OBS1 i pusty staging. Package.json zawiera override ograniczony do Mammoth;
+lockfile wskazuje opublikowany dependency-free argparse 2.0.1 z integrity npm. Czyste
+npm ci odtworzyło instalację bez sprintf-js. Pierwsza próba w sandboxie miała ENOTFOUND;
+powtórzona poza sandboxem PASS. Pełny audit ma **0 podatności**, kod 0.
+Źródło onboarding/receipt nie zmieniło się wobec poprzedniego niezależnego review,
+a source-map-js pozostaje 1.2.2. Nie odtwarzano historycznych exploitów HIGH.
+
+Dowody przed/po: build/ux3/mammoth-compatibility-2026-10-06/ zawiera tree-before/after,
+audit-before, audit-after-ci, cli-before/after, metadane argparse-2.0.1 i log npm-ci-escalated.
+CLI jako osobny proces **11/11 przed i po**: --help, HTML/Markdown na stdout i do pliku,
+--output-dir, --style-map, brak wejścia, nieznana opcja, błędny format i konflikt wyjść.
+Kody wyjścia i bajty poprawnej konwersji są identyczne. Argparse 2 inaczej formatuje help,
+wypisuje usage błędnych argumentów na stderr i ostrzega o starym API. Produkt nie używa CLI.
+Nie zastosowano argparse 3, który usunął API zgodności z v1. Pierwotne źródła:
+[manifest 2.0.1](https://raw.githubusercontent.com/nodeca/argparse/2.0.1/package.json),
+[kod API zgodności](https://raw.githubusercontent.com/nodeca/argparse/2.0.1/argparse.js),
+[changelog](https://raw.githubusercontent.com/nodeca/argparse/master/CHANGELOG.md).
+
+Celowane testy konwersji/CLI/runtime **30/30 PASS**. Nowe scenariusze produkcyjnego API DOCX
+**5/5 w źródłach i 5/5 na runtime+workerze z VSIX poza repo**: nagłówki, listy, tabela,
+polskie znaki, uszkodzony dokument, limity 50 MiB wejścia/8 MiB wyjścia i zewnętrzny obraz.
+Każdy scenariusz sprawdza też niezmienność wejścia. Zestawy i pakowanie wykonano sekwencyjnie.
+
+Nowy katalog: build/ux3/gauntlet-2026-10-06T09-47-14-675Z-55703/.
+VSIX archi-agent-0.3.0-alpha.4.vsix, **119814263 B**, SHA-256
+**a4b9e72b1d92ad017bbd169a978fc8540d30f42d3d585ae816b3b47688cb1f39**.
+Fingerprint pełnego przebiegu: 9fcd49eb33531aef17f801bd2e9d6fdab7082ace4c82f48725b5cced151c3c15.
+Root **1412/1412**, extension **279/279**, oba typechecki, build/package/verify (529 wpisów),
+demo, audit i diff **PASS**. Runtime **27/27**, regresje własności źródła/bundle **9/9**,
+Extension Host **12/12 PASS**. Trzy bundle identyczne ze świeżym buildem; wcześniejsze VSIX zachowano.
+
+Oryginalny report.json ma **INCOMPLETE_OR_FAILED**: UI 8/12, pozostałe NOT_RUN z powodu
+utraty fokusu testowego VS Code przy natywnym pickerze. Zachowano go i pierwszy failedretry
+(diagnostic-ui-1791280204247). Naprawiono tylko helper scripts/ux3-native-picker.swift:
+przed klawiszem odzyskuje fokus wyłącznie synthetic PID, czeka i nadal wymaga frontmost.
+Drugi rerun UI (diagnostic-ui-1791280321302) **12/12 PASS** na dokładnie tym samym VSIX.
+Jawny **final-report.json / final-report.txt PASS** wskazuje zachowane NOT_RUN, korektę helpera
+oraz wynik zastępujący tylko warstwę UI. Końcowo sources **77 PASS**, packaged-runtime **35 PASS**,
+Host **12 PASS**, UI **12 PASS**, wszystkie wymagane **0 FAIL / 0 NOT_RUN**.
+Zmiana helpera nie jest pakowana; źródła produktu i VSIX pozostały niezmienione.
+
+Niezależny reviewer /root/ux3_dependencies_review potwierdził rozwiązanie zależności,
+izolowane npm ci i brak sprintf-js, CLI 11/11, DOCX 5/5 i własność bundle 9/9 poza repo,
+verify, SHA i bajtową zgodność trzech bundle. Pełne zestawy i Host/UI czyta jako dowody
+wykonawcy, bez przypisywania sobie ich uruchomienia. Finalny review korekty helpera/raportu
+**PASS, bez otwartych high/medium i nowych low**. Raport independent-review.txt w katalogu kandydata.
+Gauntlet i review pozwalają na autoryzowany lokalny checkpoint UX3. OWNER_SMOKE: DEFERRED. Bez push, main, tagów i publikacji.
+
+## UX3 — historyczna blokada audit (2026-10-06, przed autoryzowanym override)
+
+Preflight potwierdził `feature/ux3-knowledge-pack-onboarding`, HEAD/bazę OBS1
+`775d8e2454e276d46f82cd9125828df48b05bbe7`, zastane niezacommitowane zmiany UX3 i pusty staging.
+Nie nadpisano ani nie odrzucono zastanych zmian. Właściciel autoryzował oddzielne lokalne
+checkpointy UX3 i K1 dopiero po wymaganych bramkach. Nowa pętla: zakres → implementacja
+→ gauntlet → niezależny review → lokalny checkpoint → następny milestone. Proces i lokalne
+instrukcje gauntletu zaktualizowano; **OWNER_SMOKE: DEFERRED**. Dawne opisy wymogu smoke
+przed checkpointem poniżej są historyczne, zastąpione tą decyzją. Nie wykonano push, integracji
+main, tagowania ani publikacji; opublikowany alpha.4 i wcześniejsze artefakty zachowano.
+
+### Audit i najmniejsza zgodna poprawka
+
+Raporty JSON i metadane pakietów: `build/ux3/audit-2026-10-06/` (`before.json`, `after.json`,
+`analysis.json`, `source-map-js.json`, `sprintf-js.json`, `mammoth.json`, `argparse.json`).
+Przed: **1 high, 3 moderate**; po aktualizacji i `npm ci`: **0 high, 3 moderate**.
+Polecenia audit mają kod 1; nie pominięto devDependencies ani nie zmieniono progu kontroli.
+
+| Pakiet | Wersja i łańcuch | Poprawka / obecność w kodzie |
+| --- | --- | --- |
+| source-map-js (HIGH) | 1.2.1 → **1.2.2**; vitest 5.0.0 → vite 8.3.0 → postcss 8.5.28 | Zgodne z `^1.2.1` PostCSS. Jedyny zmieniony wpis lockfile: wersja, URL i integrity. Zależność narzędzi testowych; nie ma jej w trzech bundle'ach. |
+| sprintf-js (MODERATE) | 1.0.3; mammoth 1.12.3 → argparse 1.0.10 | Brak opublikowanej poprawki; latest 1.1.3 też podatny. Używany przez CLI Mammoth; Archi Agent nie uruchamia CLI. Nie ma go w bundle'ach. |
+| argparse (MODERATE, pochodny) | 1.0.10; mammoth 1.12.3 → argparse | Latest 3.0.2 nie spełnia `~1.0.3` Mammoth; major upgrade zmienia API CLI. Nie jest zgodną poprawką. Nie ma go w bundle'ach. |
+| mammoth (MODERATE, pochodny) | 1.12.3; zależność bezpośrednia | Latest 1.13.0 nadal wymaga argparse `~1.0.3`. Audit proponuje niezgodny downgrade do 0.3.29, którego nie zastosowano. Biblioteka `convertToHtml` jest wykonywana i pakowana w workerze DOCX; podatny łańcuch CLI nie jest pakowany. |
+
+Weryfikacja pierwotnych źródeł:
+[advisory HIGH](https://github.com/advisories/GHSA-68fv-2mgg-jv7q),
+[release 1.2.2](https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2),
+[advisory sprintf-js — patched versions: None](https://github.com/advisories/GHSA-hp3w-g68c-fv3c),
+[zgłoszenie pakietu](https://github.com/alexei/sprintf.js/issues/237),
+[manifest najnowszego Mammoth](https://raw.githubusercontent.com/mwilliamson/mammoth.js/master/package.json).
+Metadane npm potwierdzają dostępne wersje i integrity. Analiza wejść esbuild jest w `analysis.json`.
+Nie usunięto żadnego wpisu lockfile, w tym opcjonalnych bindingów rolldown/lightningcss.
+
+**Blokada:** brak zgodnej opublikowanej poprawki trzech MODERATE. Brak podatnego CLI w VSIX
+nie zwalnia z wymaganej bramki pełnego audit. Nie użyto `audit fix --force`, override major,
+forka, wyłączenia kontroli ani wyjątku do PASS. Checkpoint UX3 i zależna implementacja K1
+pozostają zablokowane zgodnie z zadaniem właściciela.
+
+### Nowy kandydat i bieżące bramki
+
+Gauntlet `npm run ux3:gauntlet` wykonany sekwencyjnie poza sandboxem:
+`build/ux3/gauntlet-2026-10-06T08-30-19-971Z-49962/`.
+`report.txt`, `report.json`, `full-gates.log`, focused-tests, packaged-runtime, host i UI
+wiążą scenariusze z dokładnym SHA kandydata i manifestem źródeł.
+
+VSIX: `archi-agent-0.3.0-alpha.4.vsix`, **119814263 B**, SHA-256
+`f2b37813dc9b3e5cedf15dd83c0354399438644fcbc9118fadc592cc4a48cb74`.
+Fingerprint testowanego stanu:
+`a32fda4ee27ede70cfc2aad9506a8c09e0403e19549c0760bddcb189e6fc48f9`.
+Źródła pozostały niezmienione w trakcie przebiegu; trzy bundle zgodne bajtowo ze świeżym
+buildem, 23 wcześniejsze VSIX zachowane (liczbę potwierdza raport gauntletu).
+
+- `npm test` **1411/1411 PASS**, `extension:test` **279/279 PASS**, celowane **65/65 PASS**.
+- Regresje własności **9/9 PASS w źródłach i 9/9 PASS w pakiecie**, w tym zmiana systems.md
+  po zapisie przed stat/odczytem i zmiana tej samej długości. Nie zmieniano receipt:
+  tożsamość wyłącznego utworzenia i expectedBytes/digest nadal są ustalane przed zapisem;
+  cleanup zachowuje cudze/niepewne dane i przekazuje recovery.
+- Oba typechecki, build, package, verify (529 wpisów i hashe OCR), demo dry run i whitespace PASS.
+- Runtime rozpakowanego VSIX poza repo **27/27 PASS**; warstwa packaged-runtime **30 PASS**
+  obejmuje też verify, zgodność bundle i zachowanie starszych artefaktów.
+- Rzeczywisty Extension Host **12/12 PASS**, rzeczywisty UI **12/12 PASS** na macOS ARM64;
+  nie stanowią owner smoke ani weryfikacji innych platform.
+- Gauntlet **INCOMPLETE_OR_FAILED**, kod 1: sources **69 PASS / 1 FAIL**, pozostałe warstwy
+  bez FAIL; wszystkie warstwy **0 NOT_RUN**. Jedyny FAIL: pełny runner przez audit **3 moderate**.
+
+Niezależny review: **wykonany**, osobny agent `/root/ux3_readonly_review`, tylko do odczytu,
+jedna runda. Potwierdził zamknięcie obu HIGH, zgodność kodu i nowego VSIX oraz brak dodatkowych
+high/medium; **utrzymana blokada trzech MODERATE**. Raport:
+`build/ux3/gauntlet-2026-10-06T08-30-19-971Z-49962/independent-review.txt`.
+Reviewer samodzielnie wykonał testy źródeł transakcji/własności **25/25 PASS**, onboarding
+rozszerzenia **40/40 PASS**, regresje na niezmienionym runtime odczytanym z VSIX **9/9 PASS**,
+verify VSIX, obliczenie SHA i rozmiaru, rebuild trzech bundle w pamięci (identyczne bajty),
+analizę metafile oraz kontrole diff/staging. Potwierdził jeden zmieniony i zero usuniętych
+wpisów lockfile; poprawiony source-map-js odrzucił indexed map z offset.line=10000001,
+a sprintf-js nadal odtworzył RangeError dla nadmiernej precyzji. Samodzielnie sprawdził
+metadane npm i pierwotne advisory. Pełne zestawy oraz Host/UI odczytał jako dowody wykonawcy,
+nie przypisał sobie ich uruchomienia.
+
+Brak commita checkpointu, staging pusty. K1 **NOT_STARTED**: nie utworzono gałęzi
+ani równoległego modelu wiedzy. Następny krok: decyzja o odrębnym zakresie usunięcia
+podatnego łańcucha CLI lub oczekiwanie na zgodną poprawkę upstream, następnie zaliczenie audit.
+Po gauntlecie zmieniono tylko opisową dokumentację stanu i roadmapy; finalny VSIX zachowano.
 
 ## OBS1 — diagnostyka providerów (2026-10-03)
 
@@ -70,6 +208,252 @@ katalogu stage OCR; oba zestawy uruchomione kolejno przeszły. Poprzedni kandyda
 `cb9fa0c6638a5718a0df1892c1e1ffb913118445e8e60ce8a7028d9db6c84ce3` (artefakt sprzed korekt review). Nazwa
 wersji VSIX pozostaje `0.3.0-alpha.4`, lecz to nowy, niewydany kandydat OBS1 o innym SHA niż
 opublikowany artefakt alpha.4.
+
+## UX3 — pierwsza konfiguracja Knowledge Pack (2026-10-04)
+
+Na `feature/ux3-knowledge-pack-onboarding` od lokalnego checkpointu OBS1 `775d8e2`
+Generate Diagram i kompatybilne Generate Sequence Diagram sprawdzają wybrany projekt oraz
+`archiAgent.knowledgePackPath` przed wyborem modelu i odczytem sekretu. Jawna ścieżka ma
+pierwszeństwo. Gdy jej brak, użytkownik wybiera **Create Knowledge Pack**, **Choose Existing**
+albo **Cancel**; w multi-root świadomie wskazuje folder. Create zbiera identyfikator, nazwę,
+rodzaj i opis pierwszego rzeczywistego systemu. Tworzy pięć plików w
+`.archi-agent/knowledge` wybranego projektu albo `Documents/ArchiAgent/knowledge` bez projektu.
+Relacje, aliasy, aktorzy i reguły startują jako puste tabele. Produkcyjny loader waliduje pack
+przed zapisem absolutnej ścieżki w zakresie folderu albo użytkownika. Żadna część onboardingu
+nie wywołuje LLM. Pliki powstają przez wyłączne `wx+`, bez nadpisywania. W razie niepowodzenia
+sprzątanie usuwa wyłącznie utworzone w tej próbie pliki o zachowanej tożsamości, znacznikach
+czasu i treści oraz puste utworzone katalogi o zachowanej tożsamości. Po niepewnym błędzie
+zapisu ustawienia kod nie wykonuje ryzykownego rollbacku; zachowuje pack, jeśli bieżąca
+konfiguracja wskazuje jego ścieżkę. Udany zapis kończy onboarding; późniejszy Cancel modelu lub błąd generacji
+nie cofa packa.
+
+Bieżące bramki: testy celowane 70/70 PASS (poza sandboxem ze względu na loopback OBS1),
+pełny sekwencyjny gauntlet `npm test` **1359/1359 PASS**, `extension:test` **227/227 PASS**,
+oba typechecki, build, package, verify (529 wpisów i hashe OCR), `demo:dry-run`, whitespace
+oraz `npm audit` (0 podatności) PASS. Pierwsza próba pełnego gauntletu w sandboxie
+zatrzymała testy loopback na `listen EPERM`; powtórzona poza sandboxem przeszła.
+Nowy kandydat: `build/ux3/candidate/archi-agent-0.3.0-alpha.4.vsix`, **119811435 B**,
+SHA-256 `0dfe25b06007148c431d0669c171e19888934e2f83c62ba69db98c8ee35f03d6`.
+Osobny verify kandydata PASS (529 wpisów, zasoby OCR sprawdzone SHA-256). Wyodrębniony
+runtime CJS poza repo utworzył i zwalidował syntetyczny pack, po czym go sprzątnął: PASS.
+Wersja pakietu pozostaje `0.3.0-alpha.4`; artefakt OBS1 o SHA `3dea5732…c2390` zachowano
+bez przebudowy. Ten pierwszy kandydat trafił do owner smoke, który zgłosił problemy opisane
+poniżej; nie ma PASS.
+Zmiany UX3 są niezacommitowane, staging pusty; nie wykonano push, merge, tagowania ani publikacji.
+
+### UX3 — zgłoszenia owner smoke i poprawki (2026-10-04)
+
+Właściciel zgłosił cztery obserwacje dla pierwszego kandydata: Generate Diagram przy pustym
+`knowledgePackPath` pokazywał Create / Choose Existing / Cancel; wejście przez konfigurację
+Knowledge Pack pozwalało tylko wkleić ścieżkę; ustawienie ścieżki na pusty katalog nie
+uruchamiało działań onboardingu; Create zgłosił „the Knowledge Pack could not be created.
+Existing files were preserved”. To jest **zgłoszenie problemów, bez PASS**. Nie ma danych
+pozwalających ustalić konkretny wyjątek z tej ostatniej próby ani przypisać go danym
+użytkownika lub brakowi folderu. Potwierdzona przyczyna braku diagnozy: szeroki `catch`
+w Create zamieniał każdy błąd na ten sam komunikat. Testy syntetyczne potwierdziły, że
+poprzednia implementacja potrafiła tworzyć brakujący `.archi-agent`; brak katalogu sam
+w sobie nie wyjaśnia zgłoszenia. Potwierdzono też, że Generate sprawdzał jedynie niepustą
+ścieżkę, a menu otwierało bezpośrednio Settings.
+
+Poprawiony kandydat dodaje publiczną komendę **Configure Knowledge Pack** w palecie,
+Configuration i Knowledge Management. Ta sama ścieżka UX3 służy jawnej konfiguracji i
+generowaniu. Jawna konfiguracja działa również przy poprawnym packu, a Cancel zachowuje
+wartość. Generate pomija onboarding tylko po walidacji produkcyjnym loaderem; niepoprawna
+konfiguracja pokazuje zamknięty kod przyczyny oraz akcje Settings, Create, Choose Existing
+i Cancel bez automatycznej zmiany ustawienia. Create pokazuje edytowalną absolutną lokalizację
+przed formularzem systemu. Wymaga nowego katalogu docelowego; także istniejący pusty
+katalog jest kolizją, po której kreator pozwala wybrać inną lokalizację. Brakujące katalogi
+nadrzędne są tworzone z kontrolą dowiązań. Zachowano `wx`, warunkowe sprzątanie tylko
+własnych niezmienionych plików i pustych własnych katalogów oraz zapis ustawienia na końcu.
+Błędy tworzenia pokazują bezpieczny kod i konkretne następne działanie; rzeczywista przyczyna
+historycznej próby właściciela pozostaje nieustalona.
+
+Testy celowane po poprawkach: 93/93 PASS. Pełny sekwencyjny gauntlet po ostatnich
+zmianach: `npm test` 1370/1370 PASS, `extension:test` 238/238 PASS, oba typechecki,
+build, package, verify (529 wpisów), `demo:dry-run`, `git diff --check`, audit 0 podatności
+PASS. Pierwsza próba w sandboxie zatrzymała testy loopback na `listen EPERM`; powtórzenie
+poza sandboxem przeszło. Osobny VSIX:
+`build/ux3/owner-smoke-fix-final/archi-agent-0.3.0-alpha.4.vsix`, **119812785 B**,
+SHA-256 `bb588da2675c996d33c18ef9e4898baddb4f78fc4700ba00ab16f77e1ad23e43`;
+verify tego pliku PASS (529 wpisów, hashe OCR). Poprzedni UX3 `build/ux3/candidate/`
+o SHA `0dfe25b0…f03d6`, kandydat OBS1 i artefakt wydania alpha.4 pozostały zachowane.
+Poprawiony UX3 oczekuje na niezależny review i ponowny owner smoke; nie przypisano im PASS.
+
+### UX3 — poprawki po niezależnym review (2026-10-04)
+
+Review pierwszego kandydata `build/ux3/candidate/` o SHA-256
+`0dfe25b06007148c431d0669c171e19888934e2f83c62ba69db98c8ee35f03d6`
+wykazał trzy luki transakcyjne i niespójną kolejność K1 w roadmapie. Kod rejestruje teraz
+własność pliku zaraz po wyłącznym otwarciu `wx+`, przed zapisem; przy awarii zapisu,
+częściowym zapisie, błędzie odczytu kontrolnego lub zamknięcia sprząta tylko plik o
+niezmienionej tożsamości, metadanych i treści. Katalogi też są sprzątane tylko przy zgodnym
+urządzeniu/inode i pustce. Operacje kreatora dla tego samego zasobu są serializowane. Snapshot
+wartości właściwego zakresu (wraz z brakiem wartości) i wartości efektywnej jest pobierany
+przed formularzem i sprawdzany przed utworzeniem plików oraz zapisem ustawienia. Wykryta zmiana
+kończy operację konfliktem bez nadpisania.
+
+VS Code `WorkspaceConfiguration.update` nie oferuje atomowego compare-and-swap, więc końcowe
+okno między kontrolą a zapisem pozostaje. Przy odrzuconym zapisie kod nie wykonuje ryzykownego
+rollbacku. Jeśli update zastosował ścieżkę przed zgłoszeniem błędu, pack pozostaje zachowany,
+a użytkownik otrzymuje informację, by sprawdzić ustawienie. Operacje plikowe `lstat`/`unlink`
+i `lstat`/`rmdir` także nie są atomowe wobec zewnętrznej wymiany ścieżki.
+
+Uzupełniono testy dla zakresu Global bez workspace, wcześniejszej niepustej wartości przy
+odrzuceniu przed zapisem, zmiany ustawienia w formularzu i podczas niepewnego zapisu,
+serializacji własnych kreatorów, zachowania packa po błędzie generacji oraz zera wywołań
+providera/LLM przy Cancel i błędzie Create. Awarii pliku używają deterministycznego
+wstrzyknięcia błędu po wyłącznym utworzeniu, po częściowym zapisie, przed odczytem kontrolnym
+i przed zamknięciem. Test wymienia też utworzony katalog na cudzy pusty katalog.
+Historyczna przyczyna konkretnego owner-smoke Create nadal jest nieustalona: nie zapisano
+wyjątku ani kodu z tej próby. Potwierdzono, że dawny szeroki `catch` ukrywał przyczynę;
+obecna kolizja z istniejącym pustym katalogiem jest deterministycznie diagnozowana jako
+`location-exists`, lecz brak dowodu, że to był dokładnie błąd właściciela.
+
+Bieżąca weryfikacja po tych poprawkach: testy celowane **107/107 PASS**; sekwencyjnie
+`npm test` **1384/1384 PASS** i `npm run extension:test` **252/252 PASS**; oba typechecki,
+`extension:build`, pakowanie, verify (529 wpisów, hashe OCR), `demo:dry-run` i `npm audit`
+(0 podatności) PASS. Nowy, niewydany VSIX:
+`build/ux3/re-review-final/archi-agent-0.3.0-alpha.4.vsix`, **119813818 B**,
+SHA-256 `1f263eaf36f53b99f2a021f8b86ee0303c21541545708a09e983c0097ab5a3a0`.
+Wcześniejsze artefakty zachowano. UX3 nie jest zaakceptowany; kandydat wymaga niezależnego
+re-review i ponownego owner smoke. Zmiany pozostają niezacommitowane, staging pusty.
+
+### UX3 — powtarzalny gauntlet i naprawa pustego katalogu (2026-10-05)
+
+Właściciel zlecił automatyczne sprawdzenie kandydata przed przekazaniem do odbioru.
+`npm run ux3:gauntlet` rozszerza istniejący runner gauntletu, zapisując tekstowy i JSON-owy
+raport scenariuszy powiązany z HEAD, fingerprintem źródeł i SHA-256 dokładnego VSIX.
+Opcja runnera `--vsix-out` kieruje jedno sekwencyjne pakowanie do nowego katalogu.
+Wcześniejsze artefakty są zachowywane i porównywane przez hashe.
+
+Odtworzono odrzucenie istniejącego pustego celu jako `location-exists`. Zgodnie z nowym
+zakresem Create pozwala teraz użyć takiego katalogu; jego sprzątanie zachowuje katalog
+właściciela. Niepusty katalog, kolizja pliku i dowiązania nadal są odrzucane bez nadpisywania.
+Dodano kontrolowaną kolizję powstającą po zapisaniu pierwszego pliku, testy Cancel na
+wszystkich krokach i każde dozwolone First system kind. Historyczna przyczyna konkretnego
+błędu Create z pierwszego owner smoke nadal nie jest ustalona.
+
+Harness sprawdza także rzeczywiste ustawienia VS Code w izolowanym Extension Hoście
+(kontrolowane odpowiedzi edytora, osobna warstwa od UI). Rzeczywiste UI jest sterowane
+klawiaturą przez lokalny CDP, a natywny picker przez Accessibility. Nie dodano komend testowych
+do wydawanego rozszerzenia. Wszystkie projekty i dane są syntetyczne; klucze i płatne
+żądania nie są używane. Profile hosta są w `/private/tmp`, ponieważ kanoniczny TMPDIR
+na tym Macu może przekroczyć limit długości socketu VS Code. To jest ograniczenie lokalizacji
+harnessu, odrębne od świadomego testu odrzucenia dowiązania.
+
+Reprodukcja na wcześniejszym spakowanym kandydacie jest w
+`build/ux3/baseline-empty-reproduction.json` (SHA-256 poprzedniego VSIX
+`1f263eaf36f53b99f2a021f8b86ee0303c21541545708a09e983c0097ab5a3a0`).
+Dodano także rzeczywistą, kontrolowaną odmowę usuwania plików przez odebranie uprawnień
+katalogu: cleanup zachowuje pliki, a po przywróceniu uprawnień usuwa własne pliki.
+Test potwierdza samą awarię `EACCES`/`EPERM`, zanim oceni zachowanie runtime.
+
+Końcowe `npm run ux3:gauntlet` zakończyło się **kodem 0, PASS**, na pełnym HEAD
+`775d8e2454e276d46f82cd9125828df48b05bbe7` z lokalnymi zmianami UX3. Źródła były niezmienione
+podczas przebiegu (fingerprint `59f36903f4411f1726fbead8cd8a39667a145e26e55ac326028014069d058bd4`).
+Pełne bramki: `npm test` **1401/1401**, `extension:test` **269/269**, oba typechecki,
+build/package/verify (529 wpisów i hashe OCR), demo dry run, whitespace oraz audit
+(0 podatności) PASS. Celowany harness: **55/55 PASS**. Spakowany runtime poza repo:
+**18/18 PASS**, w tym częściowy zapis, sprzątanie, zachowanie cudzych danych i świadome
+odrzucenie systemowego aliasu TMPDIR. Razem z verify i zachowaniem poprzednich artefaktów
+warstwa ma 20 PASS. Rzeczywisty Extension Host: **12/12 PASS** dla WorkspaceFolder,
+multi-root i Global, bez fałszywego konfliktu oraz z konfliktem po rzeczywistej zmianie ustawienia.
+Rzeczywisty UI: **12/12 PASS**, obejmuje obie sekcje menu, paletę, nowy i istniejący pusty cel,
+pięć rodzajów systemu, natywny picker, ponowne otwarcie i Generate Diagram → Cancel.
+Licznik żądań providera: **0**. Żadna wymagana warstwa nie ma FAIL ani NOT_RUN.
+
+Raporty i dowody:
+`build/ux3/gauntlet-2026-10-05T20-42-00-906Z-35079/report.txt` oraz `report.json`
+(także logi, `packaged-runtime.json`, `host-*.json`, `real-ui-evidence.json` i zrzuty pięciu
+rzeczywistych QuickPick). Finalny VSIX:
+`build/ux3/gauntlet-2026-10-05T20-42-00-906Z-35079/archi-agent-0.3.0-alpha.4.vsix`,
+**119813867 B**, SHA-256
+`8763312368d703a98d599209d9edc0d227e066530f1fdd46c3c878e57ec83695`.
+Zachowano 20 wcześniejszych VSIX; porównanie hashy przed i po przebiegu PASS.
+Wcześniejsze nieudane przebiegi i diagnozy harnessu są zachowane, a ich wyników nie
+przeniesiono na końcowy artefakt. Stabilizacja UI dotyczyła sterowania i odczytu Accessibility:
+helper Swift czyta okna po PID, sprawdza aktualny fokus i zatwierdza natywny przycisk;
+QuickPick jest wybierany kliknięciem widocznego wiersza.
+
+Zakres dowodu UI: lokalny macOS ARM64, VS Code **1.140.0**; host Node **24.21.0**.
+Domyślny cel bez projektu `/Users/marcinkrzetowski/Documents/ArchiAgent/knowledge`
+sprawdzono bez zapisu w domu właściciela (brak dowiązań w istniejących przodkach).
+Nie wykonywano płatnej generacji ani prób na Windows/Linux. To automatyczny smoke agenta,
+bez nowego owner smoke PASS i bez nowego niezależnego re-review. Dokładna przyczyna
+pierwszego historycznego błędu Create pozostaje nieustalona.
+Po pełnym przebiegu uzupełniono tylko dokumentację; nie powtarzano pakowania.
+Staging pusty; bez commita, push, merge i publikacji.
+
+### UX3 — HIGH: własność treści receipt (2026-10-06)
+
+Aktywne zadanie: naprawa HIGH z niezależnego re-review odrzuconego VSIX
+`build/ux3/gauntlet-2026-10-05T20-42-00-906Z-35079/archi-agent-0.3.0-alpha.4.vsix`,
+**119813867 B**, SHA-256 `8763312368d703a98d599209d9edc0d227e066530f1fdd46c3c878e57ec83695`.
+Branch i HEAD nadal `feature/ux3-knowledge-pack-onboarding`,
+`775d8e2454e276d46f82cd9125828df48b05bbe7`; zachowano zastane niezacommitowane zmiany UX3
+i puste staging. Wszystkie wcześniejsze VSIX i raporty pozostają zachowane.
+
+Kontrolowany filesystem odtworzył edycję `systems.md` po writeFile, przed stat/digest:
+receipt przyjmował cudzą treść, walidacja zgłaszała file-changed, a cleanup wykonywał unlink.
+Regresja przed poprawką zawiodła zarówno na źródłach, jak i na niezmienionym bundle'u
+odrzuconego VSIX poza repo. Dowody: `build/ux3/high-ownership-reproduction/source-before.json`
+i `packaged-before.json` (ten drugi zawiera unlink i brak końcowego pliku).
+
+Poprawka wyznacza oczekiwane bajty i digest przed zapisem. Receipt rozdziela dev/ino z deskryptora
+wyłącznego utworzenia, oczekiwaną treść oraz potwierdzone metadane zgodnej treści.
+Późniejszy odczyt może potwierdzić pełną zgodność, ale nie zmienia oczekiwanego digestu,
+tożsamości ani nie adoptuje później zastanej treści. Niezmieniony pusty plik po awarii przed
+zapisem może być usunięty na podstawie stanu utworzenia; niepewny częściowy zapis pozostaje.
+Cleanup zgłasza zachowane pliki i konkretną poradę: obejrzeć katalog, zachować edycje,
+przenieść pozostałe pliki przed ponowieniem albo wybrać inny cel. Komenda pokazuje tę poradę
+także po błędzie ustawienia lub walidacji. Zabezpieczenia katalogów i ustawień pozostają.
+
+Wspólny kontrolowany filesystem sprawdza edycję przed stat i digestem, edycję tej samej długości,
+edycję po receipt, wymianę pliku przed i po receipt, sprzątanie własnego pliku po późniejszym
+błędzie oraz niepewny częściowy zapis z cudzą edycją i bez niej. Asercje obejmują końcowe bajty,
+dev/ino i brak unlink. Harness spakowanego runtime ładuje niezmieniony CJS z nowego VSIX
+z kontrolowanym modułem Node fs/promises, poza repo. Fixture i harness nie trafiają do rozszerzenia.
+Gauntlet porównuje wszystkie trzy bundle z VSIX z osobnym świeżym buildem źródeł oraz zapisuje
+hashe wejściowych plików, aby wyjaśnić późniejsze zmiany dokumentacji i fingerprintu.
+
+Weryfikacja bieżącej sesji, kolejno: testy celowane **65/65 PASS** (w tym **9/9** regresji
+własności), oba typechecki PASS, pełny runner gauntletu, następnie `npm run ux3:gauntlet`.
+Pierwszy pełny runner w sandboxie zatrzymał się na `listen EPERM`; log jest zachowany.
+Powtórzony poza sandboxem i pełne bramki w ux3:gauntlet: `npm test` **1411/1411 PASS**,
+`extension:test` **279/279 PASS**, oba typechecki, build, package, verify (529 wpisów i hashe OCR),
+demo dry run oraz whitespace PASS. Oba pełne przebiegi zakończyły się **kodem 1, FAIL**
+przez `npm audit --audit-level=low`: **1 high i 3 moderate** (source-map-js;
+sprintf-js → argparse → mammoth). Zależności i lockfile nie były zmieniane; naprawa zależności
+jest poza zakresem tej korekty UX3. Historyczne wyniki audit 0 nie opisują bieżącej sesji.
+
+Nowy `ux3:gauntlet` ma **INCOMPLETE_OR_FAILED**, jedną niezaliczoną bramkę sources
+(pełny runner przez audit), bez NOT_RUN. Warstwy: sources **69 PASS / 1 FAIL**,
+packaged-runtime **30 PASS**, Extension Host **12 PASS**, real-ui **12 PASS**.
+Spakowany runtime poza repo: **27/27 PASS**, w tym te same **9/9** regresji własności.
+Pozostałe trzy wyniki warstwy packaged-runtime to verify, świeży rebuild trzech bundle'i
+zgodny bajtowo z VSIX i zachowanie 22 wcześniejszych artefaktów. Dane i ścieżki są syntetyczne;
+licznik żądań providera 0. Nowe fixture i VM harness nie występują w VSIX.
+
+Kandydat: `build/ux3/gauntlet-2026-10-06T05-47-13-606Z-43450/archi-agent-0.3.0-alpha.4.vsix`,
+**119814263 B**, SHA-256 `25a1f362134a5242b63a4fb1fa6421676c7067ac14a02430e35aa95be1be19e5`.
+Raporty `report.txt`, `report.json`, `packaged-runtime.json`, `host-*.json`,
+`real-ui-evidence.json` i focused-tests w tym katalogu są powiązane z tym SHA i fingerprintem
+testowanego stanu `25371502253386d2017c66203352c197316ba6f1f2b40fc810bfee49581d8661`.
+Źródła nie zmieniły się podczas przebiegu. Po nim uzupełniono **tylko docs/project-state.md**;
+ten plik nie jest częścią VSIX. Nowy fingerprint całego drzewa różni się z tego powodu,
+natomiast manifest hashy źródeł i `high-ownership-reproduction/post-verification-state.json`
+potwierdzają brak późniejszych zmian kodu i wejść pakowania. Nie przebudowano finalnego VSIX.
+Oddzielny wcześniejszy runner pakował do `build/ux3/high-full-gates-2026-10-06/`;
+to zachowany artefakt pośredni, a dowody runtime/host/UI odnoszą się wyłącznie do powyższego
+finalnego SHA. Logi pierwszych przebiegów: `build/ux3/high-ownership-reproduction/`.
+
+Ograniczenia: `lstat`/`unlink`, `lstat`/`rmdir` i końcowe sprawdzenie/zapis ustawienia nadal
+nie są atomowe wobec zewnętrznej zmiany. Poprawka zamyka adopcję obcych bajtów do receipt;
+nie dodaje nowego mechanizmu transakcyjnego. Automatyczny UI smoke dotyczy lokalnego
+macOS ARM64 i VS Code 1.140.0; bez prób Windows/Linux ani płatnej generacji.
+Niezależne potwierdzenie zamknięcia HIGH i owner smoke **nie były wykonane w tej sesji**.
+Następny krok: niezależny re-review nowego SHA, z jawnym uwzględnieniem FAIL audit.
+Staging pozostaje pusty; bez commit, push, merge, tagowania i publikacji.
 
 ## Publikacja UX2 i późniejszy raport Cancel alpha.4 (2026-10-03)
 

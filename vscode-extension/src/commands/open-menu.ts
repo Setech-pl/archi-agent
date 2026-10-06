@@ -19,14 +19,14 @@ export const configurationChoices: readonly Choice<ConfigChoice>[] = Object.free
   { id: "check", label: "Check Provider Configuration" },
   { id: "set-key", label: "Set/Update API Key" },
   { id: "delete-key", label: "Delete API Key" },
-  { id: "pack", label: "Configure Knowledge Pack Path" },
+  { id: "pack", label: "Configure Knowledge Pack" },
   { id: "verbose", label: "Verbose Diagnostics" },
   { id: "other", label: "Other Archi Agent Settings" },
   { id: "back", label: "$(arrow-left) Back" }
 ]);
 
 export const knowledgeChoices: readonly Choice<"pack" | "back">[] = Object.freeze([
-  { id: "pack", label: "Configure Knowledge Pack Path" },
+  { id: "pack", label: "Configure Knowledge Pack" },
   { id: "back", label: "$(arrow-left) Back" }
 ]);
 
@@ -46,7 +46,7 @@ export async function openArchiAgentMenu(): Promise<void> {
       const selected = await vscode.window.showQuickPick(knowledgeChoices, { title: "Archi Agent: Knowledge Management" });
       if (!selected) return;
       if (selected.id === "back") continue;
-      return void (await openSetting(settingKeys.knowledgePackPath));
+      return void (await vscode.commands.executeCommand(commandIds.configureKnowledgePack));
     }
 
     const selected = await vscode.window.showQuickPick(configurationChoices, { title: "Archi Agent: Configuration" });
@@ -62,7 +62,7 @@ export async function openArchiAgentMenu(): Promise<void> {
     if (selected.id in command) {
       return void (await vscode.commands.executeCommand(command[selected.id as keyof typeof command]));
     }
-    if (selected.id === "pack") return void (await openSetting(settingKeys.knowledgePackPath));
+    if (selected.id === "pack") return void (await vscode.commands.executeCommand(commandIds.configureKnowledgePack));
     if (selected.id === "verbose") return void (await openSetting(settingKeys.diagnosticsVerbose));
     return void (await vscode.commands.executeCommand("workbench.action.openSettings", settingsSection));
   }

@@ -4,13 +4,20 @@ set -euo pipefail
 dry_run=false
 with_install=false
 audit_unavailable=false
-for arg in "$@"; do
-  case "$arg" in
+vsix_out=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
     --dry-run) dry_run=true ;;
     --with-install) with_install=true ;;
     --audit-unavailable) audit_unavailable=true ;;
-    *) printf 'Usage: %s [--dry-run] [--with-install] [--audit-unavailable]\n' "$0" >&2; exit 2 ;;
+    --vsix-out)
+      if [[ "$#" -lt 2 || "$2" != /* ]]; then
+        printf '%s\n' '--vsix-out requires an absolute directory' >&2; exit 2
+      fi
+      vsix_out="$2"; shift ;;
+    *) printf 'Usage: %s [--dry-run] [--with-install] [--audit-unavailable] [--vsix-out /absolute/directory]\n' "$0" >&2; exit 2 ;;
   esac
+  shift
 done
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
@@ -58,8 +65,14 @@ run npm run typecheck
 run npm run extension:typecheck
 run npm run extension:test
 run npm run extension:build
-run npm run extension:package
-run npm run extension:verify
+if [[ -n "$vsix_out" ]]; then
+  run npm run extension:package -- --out "$vsix_out"
+  vsix_name=$(node -p 'const p = require(process.argv[1]); `${p.name}-${p.version}.vsix`' "$repo_root/vscode-extension/package.json")
+  run npm run extension:verify -- "$vsix_out/$vsix_name"
+else
+  run npm run extension:package
+  run npm run extension:verify
+fi
 run npm run demo:dry-run
 check_quietly git diff --check
 check_quietly git diff --cached --check

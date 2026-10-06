@@ -15,6 +15,7 @@ import {
 } from "../user-messages.js";
 import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPrompts } from "./sequence-generation-session.js";
 import { selectLocalModel } from "./local-provider-selection.js";
+import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -269,7 +270,9 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
 
 async function runGenerateCommand(dependencies: GenerateCommandDependencies, diagramType?: DiagramType): Promise<void> {
   const { runtime, output, secrets } = dependencies;
-  const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection));
+  const pack = await ensureKnowledgePack();
+  if (pack.status !== "ready") return;
+  const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection, pack.resource));
 
   if (!settingsResult.ok) {
     await show(output, describeSettingsProblems(settingsResult.problems));

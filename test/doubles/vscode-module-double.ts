@@ -33,6 +33,7 @@ export interface RecordedShownDocument {
 type QuickPickAnswer = (items: readonly unknown[], options: unknown) => unknown;
 
 export interface DoubleState {
+  workspaceFolders: { name: string; uri: DoubleUri; index: number }[] | undefined;
   configuration: Map<string, unknown>;
   configurationInspect: Map<
     string,
@@ -41,6 +42,7 @@ export interface DoubleState {
   configurationUpdateFailures: Set<string>;
   /** One-based update call numbers that reject before mutating configuration. */
   configurationUpdateFailureCalls: Set<number>;
+  configurationUpdateHook?: (key: string, value: unknown, target: unknown) => void;
   configurationUpdates: { key: string; value: unknown; target: unknown }[];
   secrets: Map<string, string>;
   secretReads: string[];
@@ -51,6 +53,7 @@ export interface DoubleState {
   quickPicks: { items: readonly unknown[]; options: unknown }[];
   inputBoxAnswers: (string | undefined)[];
   inputBoxes: unknown[];
+  inputBoxHook?: (options: unknown, call: number) => void;
   openDialogAnswers: (DoubleUri[] | undefined)[];
   messageAnswers: (string | undefined)[];
   messages: RecordedMessage[];
@@ -70,10 +73,12 @@ export interface DoubleState {
 
 function freshState(): DoubleState {
   return {
+    workspaceFolders: undefined,
     configuration: new Map(),
     configurationInspect: new Map(),
     configurationUpdateFailures: new Set(),
     configurationUpdateFailureCalls: new Set(),
+    configurationUpdateHook: undefined,
     configurationUpdates: [],
     secrets: new Map(),
     secretReads: [],
@@ -84,6 +89,7 @@ function freshState(): DoubleState {
     quickPicks: [],
     inputBoxAnswers: [],
     inputBoxes: [],
+    inputBoxHook: undefined,
     openDialogAnswers: [],
     messageAnswers: [],
     messages: [],
@@ -179,6 +185,7 @@ export const window = {
   },
   showInputBox(options: unknown): Promise<string | undefined> {
     state.inputBoxes.push(options);
+    state.inputBoxHook?.(options, state.inputBoxes.length);
     return Promise.resolve(state.inputBoxAnswers.shift());
   },
   showOpenDialog(): Promise<DoubleUri[] | undefined> {
@@ -212,35 +219,40 @@ export const window = {
 };
 
 export const workspace = {
-  getConfiguration(section: string) {
+  get workspaceFolders() { return state.workspaceFolders; },
+  getConfiguration(section: string, resource?: DoubleUri) {
     const fullKey = (key: string): string => `${section}.${key}`;
+    const folderKey = (key: string): string => `${section}.${key}@${resource?.fsPath ?? ""}`;
     const effectiveValue = (key: string): unknown => {
-      const inspected = state.configurationInspect.get(fullKey(key));
+      const inspected = resource === undefined ? state.configurationInspect.get(fullKey(key)) : state.configurationInspect.get(folderKey(key));
+      const global = state.configurationInspect.get(fullKey(key));
 
       if (inspected !== undefined) {
-        return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? inspected.globalValue ?? inspected.defaultValue;
+        return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? global?.workspaceValue ?? global?.globalValue ?? global?.defaultValue;
       }
 
-      return state.configuration.get(fullKey(key));
+      return global?.workspaceValue ?? global?.globalValue ?? state.configuration.get(fullKey(key));
     };
 
     return {
       get: (key: string): unknown => effectiveValue(key),
       inspect: (key: string) => {
-        const inspected = state.configurationInspect.get(fullKey(key));
+        const inspected = resource === undefined ? state.configurationInspect.get(fullKey(key)) : state.configurationInspect.get(folderKey(key));
+        const global = state.configurationInspect.get(fullKey(key));
         return inspected === undefined
-          ? { globalValue: state.configuration.get(fullKey(key)) }
-          : Object.freeze({ ...inspected });
+          ? Object.freeze({ ...global, globalValue: global?.globalValue ?? state.configuration.get(fullKey(key)) })
+          : Object.freeze({ ...inspected, globalValue: global?.globalValue ?? state.configuration.get(fullKey(key)) });
       },
       update: (key: string, value: unknown, target: unknown): Promise<void> => {
         const qualified = fullKey(key);
         state.configurationUpdates.push({ key: qualified, value, target });
+        state.configurationUpdateHook?.(qualified, value, target);
 
         if (state.configurationUpdateFailures.has(qualified) || state.configurationUpdateFailureCalls.has(state.configurationUpdates.length)) {
           return Promise.reject(new Error("synthetic configuration update failure"));
         }
 
-        const inspected = state.configurationInspect.get(qualified) ?? {};
+        const inspected = state.configurationInspect.get(target === ConfigurationTarget.WorkspaceFolder && resource !== undefined ? folderKey(key) : qualified) ?? {};
 
         if (target === ConfigurationTarget.Global) {
           const next = { ...inspected };
@@ -252,6 +264,14 @@ export const workspace = {
           }
 
           state.configurationInspect.set(qualified, next);
+        }
+
+        if (target === ConfigurationTarget.WorkspaceFolder && resource !== undefined) {
+          const next = { ...inspected };
+          if (value === undefined) delete next.workspaceFolderValue;
+          else next.workspaceFolderValue = value;
+          state.configurationInspect.set(folderKey(key), next);
+          return Promise.resolve();
         }
 
         if (value === undefined) {

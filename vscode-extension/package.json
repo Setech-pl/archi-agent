@@ -23,6 +23,7 @@
   "activationEvents": [
     "onCommand:archiAgent.open",
     "onCommand:archiAgent.convertToMarkdown",
+    "onCommand:archiAgent.configureKnowledgePack",
     "onCommand:archiAgent.generateDiagram",
     "onCommand:archiAgent.generateSequenceDiagram",
     "onCommand:archiAgent.selectProviderProfile",
@@ -65,6 +66,11 @@
       {
         "command": "archiAgent.convertToMarkdown",
         "title": "Convert to Markdown",
+        "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.configureKnowledgePack",
+        "title": "Configure Knowledge Pack",
         "category": "Archi Agent"
       },
       {
@@ -117,6 +123,7 @@
         "archiAgent.knowledgePackPath": {
           "type": "string",
           "default": "",
+          "scope": "resource",
           "markdownDescription": "Absolute path of the Architecture Knowledge Pack directory (the folder holding `systems.md`, `actors.md`, `relationships.md`, `aliases.md` and `rules.md`). The directory may be anywhere on the local file system; it is never resolved relative to a workspace or the working directory."
         },
         "archiAgent.localModel.baseUrl": {

@@ -24,7 +24,8 @@
     "extension:build": "node vscode-extension/scripts/build.mjs",
     "extension:package": "node vscode-extension/scripts/package-vsix.mjs",
     "extension:verify": "node vscode-extension/scripts/verify-vsix.mjs",
-    "extension:test": "vitest run test/runtime test/vscode-extension"
+    "extension:test": "vitest run test/runtime test/vscode-extension",
+    "ux3:gauntlet": "node scripts/ux3-gauntlet.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.8.15",
@@ -37,6 +38,11 @@
     "unpdf": "1.7.0",
     "yauzl": "3.4.0",
     "zod": "4.6.5"
+  },
+  "overrides": {
+    "mammoth": {
+      "argparse": "2.0.1"
+    }
   },
   "devDependencies": {
     "@types/node": "22.20.2",

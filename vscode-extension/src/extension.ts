@@ -7,6 +7,7 @@ import { commandIds, legacyCommandIds, outputChannelName } from "./contributions
 import { openArchiAgentMenu } from "./commands/open-menu.js";
 import { convertToMarkdownCommand } from "./commands/convert-to-markdown.js";
 import { createPackagedRuntime } from "./runtime/packaged-runtime-adapter.js";
+import { configureKnowledgePack } from "./commands/knowledge-pack-onboarding.js";
 
 /**
  * Extension entry point. The editor layer is deliberately thin: it creates the packaged runtime
@@ -29,6 +30,9 @@ export function activate(context: vscode.ExtensionContext): void {
     })),
     vscode.commands.registerCommand(commandIds.convertToMarkdown, () => convertToMarkdownCommand().catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: conversion could not be completed.");
+    })),
+    vscode.commands.registerCommand(commandIds.configureKnowledgePack, () => configureKnowledgePack().catch(() => {
+      void vscode.window.showErrorMessage("Archi Agent: [configuration-failed] Knowledge Pack configuration could not be completed. Run Configure Knowledge Pack again.");
     })),
     vscode.commands.registerCommand(commandIds.generateDiagram, () =>
       generateDiagramCommand({ runtime, output, secrets: context.secrets }).catch((error: unknown) => {

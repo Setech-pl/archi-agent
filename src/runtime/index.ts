@@ -8,6 +8,10 @@
 
 export { createArchiAgentRuntime, deriveDiagramName, runtimeLimits } from "./archi-agent-runtime.js";
 export { convertDocument } from "./convert-document.js";
+export { createStarterKnowledgePack, cleanupStarterKnowledgePack, validateKnowledgePackDirectory, defaultKnowledgePackPath } from "./knowledge-pack-onboarding.js";
+export { StarterPackCreateError } from "./knowledge-pack-onboarding.js";
+export type { StarterPackCreateCode } from "./knowledge-pack-onboarding.js";
+export type { FirstSystem, StarterPackReceipt } from "./knowledge-pack-onboarding.js";
 export { conversionLimits } from "../core/document-conversion/contract.js";
 export type { ConvertDocumentOptions, PdfOcrMode } from "./convert-document.js";
 export type { ConvertFormat, ConvertErrorCode, ConvertOutcome } from "../core/document-conversion/contract.js";

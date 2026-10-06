@@ -289,7 +289,7 @@ describe("activation", () => {
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(12);
+    expect(context.subscriptions.length).toBe(13);
     deactivate();
   });
 
@@ -396,17 +396,17 @@ describe("activation", () => {
     expect(state.outputLines).toContain('{"event":"command.started"}');
   });
 
-  it("reports missing settings through the registered command without any runtime call", async () => {
+  it("offers onboarding for a missing pack and lets Escape stop before any runtime call", async () => {
     const context = createExtensionContext();
     activate(context as never);
 
     const handler = state.registeredCommands.get(commandIds.generateSequenceDiagram);
     await handler?.();
 
-    expect(state.messages).toEqual([
-      expect.objectContaining({ level: "error", text: "archiAgent.knowledgePackPath: Set the absolute path of the Architecture Knowledge Pack directory." })
+    expect(state.quickPicks[0]?.items).toMatchObject([
+      { label: "Create Knowledge Pack" }, { label: "Choose Existing" }, { label: "Cancel" }
     ]);
-    expect(state.messages[0]?.actions).toContain("Open Settings");
+    expect(state.messages).toEqual([]);
     expect(state.openedDocuments).toEqual([]);
   });
 
@@ -792,9 +792,9 @@ describe("generate command", () => {
 
     await generateSequenceDiagramCommand({ runtime: echoRuntime(), output: output() });
 
-    expect(state.messages[0]?.text).toContain("Knowledge Pack could not be loaded");
-    expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: [settingsSection] }]);
-    expect(state.outputLines.some((line) => line.includes("[missing-file]"))).toBe(true);
+    expect(state.messages[0]?.text).toContain("[missing-file]");
+    expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: [`${settingsSection}.${settingKeys.knowledgePackPath}`] }]);
+    expect(state.secretReads).toEqual([]);
   });
 
   it("shows the output channel when the user asks for details of a rejected model answer", async () => {

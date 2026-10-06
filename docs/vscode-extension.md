@@ -65,8 +65,8 @@ flow and the bare directory name of the pack.
 `Archi Agent: Open` (`archiAgent.open`) displays four QuickPick sections: Generate Diagram,
 Configuration, Knowledge Management and Convert to Markdown. Generate Diagram calls the existing
 `archiAgent.generateDiagram`; Configuration routes to the existing provider, model and API-key
-commands or opens the relevant VS Code setting; Knowledge Management currently offers only
-Knowledge Pack Path. Back returns to the first picker, and Escape closes it. Existing public
+commands or opens the relevant VS Code setting; Configuration and Knowledge Management both offer
+**Configure Knowledge Pack** (`archiAgent.configureKnowledgePack`). Back returns to the first picker, and Escape closes it. Existing public
 command IDs remain registered even when their direct Command Palette entries are hidden.
 
 `Archi Agent: Convert to Markdown` (`archiAgent.convertToMarkdown`) is also directly callable.
@@ -162,7 +162,7 @@ the existing artifact writer is a later checkpoint.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `archiAgent.knowledgePackPath` | (empty) | Absolute path of the Knowledge Pack directory holding the five pack files. Relative paths are rejected; nothing is resolved against a workspace or the working directory. |
+| `archiAgent.knowledgePackPath` | (empty) | Absolute path of the Knowledge Pack directory holding the five pack files. An explicit value takes precedence. The onboarding flow saves a project pack in the selected workspace folder's resource scope, or in user scope without a project. Relative paths are rejected. |
 | `archiAgent.localModel.profile` | `local-lm-studio` | Explicit local or cloud profile. Scope `machine`: not synchronized and not overridable by workspace settings. The manifest default is not an explicit migration. |
 | `archiAgent.localModel.selectedModel` | (empty) | Model for the explicit profile. Scope `machine`; written through `ConfigurationTarget.Global`. Cloud IDs may contain a namespace slash. |
 | `archiAgent.localModel.selectedModelProfile` | (empty) | Extension-managed binding of `selectedModel` to its profile. Scope `machine`; written through `ConfigurationTarget.Global`. |
@@ -305,7 +305,33 @@ failure policy and cost-warning smoke flows are in [`cloud-models.md`](cloud-mod
 
 ## Knowledge Pack configuration
 
-Set `archiAgent.knowledgePackPath` to the absolute path of a directory holding `systems.md`,
+Generate Diagram validates the configured directory through the production loader before selecting a model
+or reading an API key. A missing or invalid pack displays a safe cause and actions to open Settings,
+create a pack, choose an existing pack or cancel. An empty directory is invalid. You can also run
+**Configure Knowledge Pack** from Configuration, Knowledge Management or the Command Palette; this
+opens the same Create / Choose Existing / Cancel wizard even when the current pack is valid. Cancel
+keeps the existing setting. In a multi-root workspace, first choose the project folder. **Create**
+shows the proposed absolute location and lets you change it before asking for one real system's
+identifier, name, kind and description. It then creates
+`systems.md`, `actors.md`, `relationships.md`, `aliases.md` and `rules.md`. The other four tables start
+empty; no relationship is invented. The default directory is `.archi-agent/knowledge` in the selected
+project, or `Documents/ArchiAgent/knowledge` in the user home directory when no project is open.
+An explicit valid `archiAgent.knowledgePackPath` takes precedence during generation. **Choose Existing** validates a selected
+local directory. Both paths are checked with the production Knowledge Pack loader before the setting
+is saved. Create accepts a new or existing empty destination. A nonempty directory reports a collision
+and offers another location. Missing parent directories are created without following links. Failures
+show a closed cause code and a next action. Existing files are never overwritten. On a failed creation or setting write, cleanup removes
+only unchanged files created by that attempt and directories that are both empty and still the ones created by it.
+The wizard checks the selected settings scope before prompting and again before saving; a detected
+change ends in a conflict. Its own operations for one folder are serialized. VS Code's configuration
+API has no atomic compare-and-swap, so an external change in the final read/write window cannot be
+fully excluded. If a write rejects after applying, the extension leaves the current setting alone
+instead of risking an overwrite during rollback. A pack still referenced by the current setting is
+kept. File cleanup also uses identity and content checks but is not an atomic filesystem transaction.
+Once the path is saved,
+later model cancellation or provider/generation failure leaves the pack and setting in place.
+
+You can also set `archiAgent.knowledgePackPath` to the absolute path of a directory holding `systems.md`,
 `actors.md`, `relationships.md`, `aliases.md` and `rules.md` (see `docs/knowledge-pack-format.md`).
 The directory may be anywhere; it is not part of the VSIX and not resolved relative to a workspace.
 The repository sample `samples/space-mission/architecture` works as a first pack when its absolute

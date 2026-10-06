@@ -17,10 +17,10 @@ beforeEach(() => {
 describe("UX1 QuickPick navigation", () => {
   it("shows exactly four main functions and no future knowledge options", () => {
     expect(mainChoices.map((item) => item.label)).toEqual(["Generate Diagram", "Configuration", "Knowledge Management", "Convert to Markdown"]);
-    expect(knowledgeChoices.map((item) => item.label)).toEqual(["Configure Knowledge Pack Path", "$(arrow-left) Back"]);
+    expect(knowledgeChoices.map((item) => item.label)).toEqual(["Configure Knowledge Pack", "$(arrow-left) Back"]);
     expect(configurationChoices.map((item) => item.label)).toEqual([
       "Select Provider Profile", "Select Model", "Check Provider Configuration", "Set/Update API Key", "Delete API Key",
-      "Configure Knowledge Pack Path", "Verbose Diagnostics", "Other Archi Agent Settings", "$(arrow-left) Back"
+      "Configure Knowledge Pack", "Verbose Diagnostics", "Other Archi Agent Settings", "$(arrow-left) Back"
     ]);
   });
 
@@ -37,21 +37,22 @@ describe("UX1 QuickPick navigation", () => {
     ["provider", commandIds.selectProviderProfile],
     ["model", commandIds.selectModel],
     ["set-key", commandIds.setApiKey],
-    ["delete-key", commandIds.deleteApiKey]
+    ["delete-key", commandIds.deleteApiKey],
+    ["pack", commandIds.configureKnowledgePack]
   ])("routes Configuration/%s to the public command ID", async (id, command) => {
     state.quickPickAnswers.push(choose("configuration"), choose(id));
     await openArchiAgentMenu();
     expect(state.executedCommands).toEqual([{ command, args: [] }]);
   });
 
-  it("opens exact settings from Configuration and Knowledge Management", async () => {
+  it("opens exact settings and routes Knowledge Management to the wizard", async () => {
     state.quickPickAnswers.push(choose("configuration"), choose("verbose"));
     await openArchiAgentMenu();
     expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: ["archiAgent.diagnostics.verbose"] }]);
     resetDouble();
     state.quickPickAnswers.push(choose("knowledge"), choose("pack"));
     await openArchiAgentMenu();
-    expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: ["archiAgent.knowledgePackPath"] }]);
+    expect(state.executedCommands).toEqual([{ command: commandIds.configureKnowledgePack, args: [] }]);
   });
 
   it("Back and Escape perform no command or file operation", async () => {
