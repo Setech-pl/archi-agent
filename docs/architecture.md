@@ -35,6 +35,18 @@ K1 exports the pure snapshot factory and types through the runtime boundary. It 
 acquisition port: local Markdown remains the runtime's only source adapter. Document
 harvesting, MCP adapters, persistence and conflict-resolution UI are later milestones.
 
+## K2 bounded document acquisition
+
+`extractDocumentCandidates` is a host-neutral production runtime operation through the existing
+runtime entry. It captures explicit MD/TXT/PDF/DOCX/XLSX files, converts private copies through
+CL1/UX2, freezes bounded text/provenance, makes one `StructuredChatClient` call and validates
+pending proposals deterministically. KPB-A supplies its envelope, collision and row checks;
+the existing loader supplies cross-file validation and K1 supplies recognizable snapshot conflicts.
+No parallel architecture catalog or provider layer is added. No pack/onboarding prerequisite,
+persistence, settings changes, diagram, retry, repair, fallback or production reviewer is involved.
+See [the K2 contract](document-candidates.md) for normalization, evidence locations, limits,
+cancellation and the explicit distinction between verified evidence structure and accepted knowledge.
+
 ## Layers and the core boundary
 
 | Layer | Location | Responsibility |

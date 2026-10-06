@@ -11,7 +11,7 @@ project is to demonstrate vibe-coding and AI SDLC techniques on a working produc
 3. local and cloud model providers: local models listed from LM Studio or Ollama; cloud providers Anthropic,
    OpenAI and OpenRouter, with API keys kept in VS Code `SecretStorage`.
 
-The completed and active sequence through this candidate is **R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3 → K1**.
+The completed and active sequence through this candidate is **R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3 → K1 → K2**.
 The owner-approved knowledge sequence is **UX3 → K1 → K2 → K3**. K1 implements
 a provider-independent architecture-catalog contract for entities, aliases, relationships,
 source identities/scopes, provenance, gaps, conflicts and deterministic snapshots. The current
@@ -25,8 +25,9 @@ onboarding issues; the corrected UX3 candidate has passed automatic gates and in
 including audit with zero vulnerabilities after a scoped Mammoth → argparse 2.0.1 override.
 The 2026-10-06 owner policy uses milestone loops with independent review and authorized local
 checkpoints; owner smoke is collected later as `OWNER_SMOKE: DEFERRED`. Required FAIL/NOT_RUN
-and open high/medium still block checkpoints. UX3 and K1 have passed automatic gates and independent review; K2,
-K3, M1, C1, D3–D5 and full REL scope remain open.
+and open high/medium still block checkpoints. UX3, K1 and K2 have passed automatic gates and independent review. K2 adds the bounded document
+extraction runtime operation with pending candidates and checked evidence ([contract](document-candidates.md));
+K3, M1, C1, D3–D5 and full REL scope remain open. K2 does not add review UI or accepted-pack persistence.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
 and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
 2026-09-28. CL1 increased local PDF, DOCX and XLSX conversion limits and shipped in
@@ -52,7 +53,7 @@ Completed sequence and planned work (unranked rows have no approved position rel
 | 8 | OBS1 | Reviewed local checkpoint and reported owner smoke: safe provider diagnostics and configuration check. |
 | 9 | UX3 | Local checkpoint f7b548c; full gates, zero-vulnerability audit and independent review PASS. OWNER_SMOKE: DEFERRED. |
 | 10 | K1 | Implemented and technically verified: shared knowledge snapshot, partial coverage, provenance/gaps/conflicts, Markdown adapter; full gates/audit/review PASS. Local checkpoint only. OWNER_SMOKE: DEFERRED. |
-| 11 | K2 | Planned after K1: Knowledge Pack Builder extraction and evidence verifier. |
+| 11 | K2 | Implemented and technically verified: bounded document bundle, one extraction call and deterministic evidence verifier through runtime; full gates/audit/review PASS, local checkpoint only, OWNER_SMOKE DEFERRED. |
 | 12 | K3 | Planned after K2: Knowledge Pack Builder UI, runtime integration and atomic write. |
 | — | M1 | Separate planned MCP adapter into `ArchitectureSnapshot`; scheduling relative to K1–K3 is open. |
 | — | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
@@ -305,7 +306,7 @@ do not imply a newly approved cross-stage order.
 | D3 | planned | `c4-context` plan, validator and renderer; no external includes. | C1 |
 | D4 | planned | `c4-container` plan, validator and renderer; no external includes. | D3 |
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
-| K2 | planned | Knowledge Pack Builder extraction and evidence verifier. | K1 |
+| K2 | implemented and technically verified; gates/audit/review PASS | Knowledge Pack Builder extraction and evidence verifier. | K1 |
 | K3 | planned | Knowledge Pack Builder UI and five-file write. | K2 |
 | REL | planned | Broader release work and owner-accepted VSIX after K3; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` were earlier prereleases. | K3 |
 
@@ -433,14 +434,14 @@ kept in provider-specific VS Code `SecretStorage` entries; see `cloud-models.md`
 
 # Knowledge Pack Builder
 
-**Status: partial — stage A implemented.** After the extension foundation was merged to `main`
+**Status: partial — stages A, B1 and K2 extraction/evidence validation implemented and technically verified.** After the extension foundation was merged to `main`
 (`b759bb9`), the priority moved from the EA XML source to building a Knowledge Pack from project
 material. EA XML is deferred because no safe, public fixture representing real EA data is
-available. B1 (the neutral model port) is implemented; the remaining builder stages follow the
-reviewed diagram work as K2 and K3.
+available. B1 (the neutral model port) and K2 (bounded document extraction and evidence validation) are
+implemented; review UI and accepted-pack persistence remain K3.
 
-The builder produces the same five Markdown files that the loader already reads. A language model
-may later propose candidates, but it never writes the pack: every candidate carries evidence and an
+The builder produces the same five Markdown files that the loader already reads. The K2 language model
+proposes pending candidates, but it never writes the pack: every candidate carries evidence and an
 `explicit` or `inferred` basis, inferred candidates need an explicit user acceptance, and the final
 Markdown always comes from a deterministic renderer whose output is loaded back through the regular
 loader before it is accepted. Evidence stays out of the pack files.
@@ -449,8 +450,8 @@ loader before it is accepted. Evidence stays out of the pack files.
 | --- | --- | --- |
 | A | Candidate and evidence model, reviewed draft validation, deterministic renderer, in-memory round trip through the loader (`src/core/knowledge-pack/builder`) | implemented |
 | B1 | Neutral `StructuredChatClient` port and extraction of the local transport (approved stage B plan) | implemented |
-| B2, B3 | Remaining stage B scope: bounded source bundle and LLM extraction of candidates (approved stage B decisions unchanged; roadmap step K2) | planned |
-| C | Runtime API, source adapters, review UI, atomic write of the five files (roadmap step K3) | planned |
+| B2, B3 | Bounded source bundle and one LLM extraction call, deterministic evidence validation through runtime ([K2 contract](document-candidates.md)) | implemented and technically verified; gates/audit/review PASS |
+| C | Review UI and atomic write of the five files (roadmap step K3); K2 supplies the document runtime operation | planned |
 
 ---
 
@@ -875,7 +876,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | D3 — C4 context | planned after C1 |
 | D4 — C4 container | planned after D3 |
 | D5 — ArchiMate HLD | planned after D4 |
-| K2 — Knowledge Pack Builder extraction and evidence verifier | planned |
+| K2 — Knowledge Pack Builder extraction and evidence verifier | implemented and technically verified; gates/audit/review PASS |
 | K3 — Knowledge Pack Builder UI and five-file write | planned |
 | v0.3.0-alpha.1 prerelease | published after D2; owner smoke PASS on the integration VSIX reported on 2026-09-29 |
 | v0.3.0-alpha.3 prerelease | published after CL1; owner smoke PASS on exact final VSIX SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056` |

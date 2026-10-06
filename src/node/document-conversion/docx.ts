@@ -19,7 +19,7 @@ export async function convertDocx(bytes: Buffer): Promise<Extract<ConvertOutcome
     service.addRule("archi-no-links", { filter: "a", replacement: (content) => content });
     service.addRule("archi-no-images", { filter: "img", replacement: () => "" });
     const markdown = boundedMarkdown(service.turndown(result.value).replace(/<(?=\/?[A-Za-z])/g, "&lt;").trim());
-    return { status: "success", format: "docx", markdown, counts: {} };
+    return { status: "success", format: "docx", markdown, counts: {}, coverage: { warnings: ["images-and-external-resources-excluded", "layout-not-preserved", ...(result.messages.length ? ["converter-warnings"] : [])] } };
   } catch (error) {
     if (error instanceof ConversionFailure) throw error;
     throw new ConversionFailure("corrupt-document");

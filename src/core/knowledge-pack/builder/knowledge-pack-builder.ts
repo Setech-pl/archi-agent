@@ -3,13 +3,14 @@ import { stableCompare } from "../../util/ordering.js";
 import { InMemoryKnowledgePackSource } from "../in-memory-knowledge-pack-source.js";
 import {
   loadKnowledgePack,
+  crossFileIssues,
   type KnowledgePackIndexes,
   type KnowledgePackLoadIssue,
   type KnowledgePackLoadIssueCode,
   type KnowledgePackLoadSeverity
 } from "../knowledge-pack-loader.js";
 import type { CancellationSignal } from "../knowledge-pack-source.js";
-import { knowledgePackTables, type KnowledgePack, type KnowledgePackTableKind } from "../knowledge-pack.schema.js";
+import { validateSystemsTable, validateActorsTable, validateRelationshipsTable, validateAliasesTable, validateRulesTable, knowledgePackTables, type KnowledgePack, type KnowledgePackTableKind } from "../knowledge-pack.schema.js";
 import { containsForbiddenMarkup } from "../markdown-table-parser.js";
 import { safeMessageFor, type KnowledgePackErrorCode } from "../source-errors.js";
 import { containsControlCharacter, knowledgePackLimits } from "../source-limits.js";
@@ -18,6 +19,7 @@ import {
   knowledgePackBuilderLimits,
   knowledgePackDraftEntrySchema,
   knowledgePackTableKinds,
+  type KnowledgePackCandidate,
   type KnowledgePackDraft,
   type KnowledgePackDraftEntry,
   type KnowledgePackRows
@@ -454,4 +456,40 @@ export async function buildKnowledgePack(
       maxIssues
     ).issues
   });
+}
+
+/** K2 validates partial proposals using the same envelope, collisions, rows and cross-file checks.
+ * No Markdown is rendered and no review decision is returned or persisted. Empty systems are
+ * allowed because this is a candidate set, not the five-file pack required by the loader.
+ */
+export function validateKnowledgePackCandidateRows(candidates: readonly KnowledgePackCandidate[]):
+  { readonly ok: true; readonly pack: KnowledgePack } | { readonly ok: false } {
+  const issues: KnowledgePackBuildIssue[] = [];
+  const included = checkEntries(candidates.map((candidate) => ({ candidate, decision: "accepted" })), issues);
+  issues.push(...collisionIssues(included));
+  if (issues.length) return { ok: false };
+  for (const kind of knowledgePackTableKinds) {
+    for (const { row } of included[kind]) {
+      for (const column of knowledgePackTables[kind].columns) {
+        const value = row[column] ?? "";
+        // Full KPB-A rejects any value altered by the Markdown parser's trim pass.
+        if (value !== value.trim() || (value === "" && !(knowledgePackTables[kind].optionalColumns as readonly string[]).includes(column)))
+          return { ok: false };
+      }
+    }
+  }
+  const table = (kind: KnowledgePackTableKind) => ({
+    file: knowledgePackTables[kind].file, columns: knowledgePackTables[kind].columns, headerLine: 1,
+    rows: included[kind].map(({ row }, index) => ({ line: index + 1, cells: [], values: row }))
+  });
+  const systems = validateSystemsTable(table("systems"));
+  const actors = validateActorsTable(table("actors"));
+  const relationships = validateRelationshipsTable(table("relationships"));
+  const aliases = validateAliasesTable(table("aliases"));
+  const rules = validateRulesTable(table("rules"));
+  if ([systems, actors, relationships, aliases, rules].some((result) => !result.ok)) return { ok: false };
+  const pack: KnowledgePack = { systems: systems.records, actors: actors.records, relationships: relationships.records,
+    aliases: aliases.records, rules: rules.records };
+  if (crossFileIssues(pack).some((issue) => issue.severity === "error")) return { ok: false };
+  return { ok: true, pack };
 }

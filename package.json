@@ -26,7 +26,8 @@
     "extension:verify": "node vscode-extension/scripts/verify-vsix.mjs",
     "extension:test": "vitest run test/runtime test/vscode-extension",
     "ux3:gauntlet": "node scripts/ux3-gauntlet.mjs",
-    "k1:gauntlet": "node scripts/k1-gauntlet.mjs"
+    "k1:gauntlet": "node scripts/k1-gauntlet.mjs",
+    "k2:gauntlet": "node scripts/k2-gauntlet.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.8.15",

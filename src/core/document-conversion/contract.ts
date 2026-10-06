@@ -31,6 +31,10 @@ export type ConvertOutcome =
       readonly status: "success";
       readonly format: ConvertFormat;
       readonly markdown: string;
+      readonly coverage?: {
+        readonly pages?: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" }[];
+        readonly warnings: readonly string[];
+      };
       readonly counts: {
         readonly pages?: number;
         readonly sheets?: number;

@@ -75,3 +75,7 @@ export {
 } from "../node/llm/remote-provider-profiles.js";
 export { isSafeModelId } from "../core/pipeline/sequence-model-generator.js";
 export { diagramTypes, isDiagramType, isSupportedDiagramType } from "../core/model/diagram-type.js";
+
+export { documentCandidateLimits, documentCandidateJsonSchema, normalizeDocumentText } from "../core/knowledge-pack/builder/document-candidates.js";
+export type { DocumentSource, DocumentSourceBundle, DocumentCandidateResult, VerifiedDocumentCandidate } from "../core/knowledge-pack/builder/document-candidates.js";
+export type { ExtractDocumentCandidatesRequest, ExtractDocumentCandidatesOutcome, DocumentExtractionOptions } from "./extract-document-candidates.js";

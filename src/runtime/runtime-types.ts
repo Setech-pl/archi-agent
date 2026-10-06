@@ -1,3 +1,4 @@
+import type { ExtractDocumentCandidatesRequest, ExtractDocumentCandidatesOutcome } from "./extract-document-candidates.js";
 import type { CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import type { GenerationSummary } from "../core/pipeline/generation-outcome.js";
 import type { ProviderProfile } from "../core/llm/provider-profile.js";
@@ -211,6 +212,8 @@ export interface ListLocalModelsOptions {
  * interface do not change.
  */
 export interface ArchiAgentRuntime {
+  /** K2 production entry; optional only for existing host test doubles. */
+  extractDocumentCandidates?(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome>;
   /** D1 entry point. Optional on legacy host doubles compiled against the sequence-only contract. */
   generateDiagram?(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome>;
   generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult>;

@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-10-06 |
-| Stan Git | Lokalny checkpoint UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`; niniejszy lokalny checkpoint K1 na `feature/k1-common-knowledge-contract` od niego. Dokładny commit K1 i drzewo sprawdzaj w Git; dokument nie może zawierać SHA swojego własnego commita. |
+| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a` i K1 `59be33946883ff275a80f95e53aa1acf375db3d6`; niniejszy lokalny checkpoint K2 na `feature/k2-document-candidates` od K1. Dokładny commit K2 i drzewo sprawdzaj w Git; dokument nie zawiera SHA swojego własnego commita. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -27,11 +27,61 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan OBS1 | Lokalny checkpoint `775d8e2`; niezależny re-review zamknął cztery ustalenia, a właściciel zgłosił ręczny smoke zachowanego kandydata. Bez publikacji. |
 | Stan UX3 | Lokalny checkpoint `f7b548c`; override Mammoth → argparse 2.0.1 usunął rzeczywisty sprintf-js. Czyste npm ci, audit 0 i końcowe bramki UX3 PASS (1412 root, 279 extension, DOCX sources/package 5/5, runtime27, Host12, UI12). Zamknięte HIGH zachowane. Niezależny finalny review PASS bez otwartych high/medium. OWNER_SMOKE: DEFERRED. |
 | Stan K1 | Wspólny kontrakt i adapter Markdown zaimplementowane. Celowane77, root1445, extension289, audit0, poza repo K1 16/16, UX3runtime27/27, DOCX5/5, Host12/12 i wszystkie bramki PASS. Niezależny review źródeł i dokładnego VSIX PASS, trzy medium zamknięte; brak otwartych high/medium. Lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
-| Następny etap | STOP po K1. Zbiorczy owner smoke DEFERRED; K2/K3 wymagają kolejnej autoryzowanej pętli, nie rozpoczęto ich automatycznie. |
+| Stan K2 | Produkcyjna ekstrakcja dokumentów i deterministyczna walidacja propozycji zaimplementowane. Root1518, extension362, focused215, audit root/OCR0, runtime poza repo17, Host12 i pełny gauntlet PASS. Niezależny re-review zamknął trzy medium; brak otwartych high/medium. Lokalny checkpoint; OWNER_SMOKE: DEFERRED. |
+| Następny etap | STOP po K2. Zbiorczy owner smoke DEFERRED; K3 wymaga kolejnej autoryzowanej pętli. K3, ART1 i MCP nie rozpoczęto. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## K2 — implementacja i weryfikacja (2026-10-06)
+
+Baza `59be33946883ff275a80f95e53aa1acf375db3d6` (K1); preflight czysty, staging pusty.
+Branch `feature/k2-document-candidates` utworzono zgodnie z autoryzowanym zadaniem.
+Produkcja: `createArchiAgentRuntime().extractDocumentCandidates()` przez `src/runtime/index.ts`.
+Jawne lokalne MD/TXT/PDF/DOCX/XLSX → frozen bundle → jeden StructuredChatClient →
+ścisła walidacja cytatów, digestów, referencji i propozycji. Bez wymaganego packa/onboardingu,
+UI K3, zapisu packa/ustawień, diagramów, MCP i dodatkowych żądań. Kontrakt:
+[`document-candidates.md`](document-candidates.md). KPB-A i K1 pozostają walidatorami semantyki.
+Pierwszy gauntlet `build/k2/gauntlet-2026-10-06T13-52-46-731Z-75718/`:
+root1501, extension345, focused198, audit root/OCR0, runtime K2 17/K1 16/UX3 27,
+DOCX source/package5, Host12 i 107 bramek PASS. VSIX 119823235 B, SHA256
+`158e200ab125b1c01d2081911f47a83c87b41aad44ff8790c0884ea6be9b1f85`.
+Niezależny reviewer `/root/k2_readonly_review` reprodukował trzy MEDIUM: whitespace/trim
+w partial KPB-A, podwójne usuwanie BOM i utratę dyskryminacji union table→row. Pierwszy
+raport BLOCKED zachowany; własny smoke reviewera z tego VSIX 17/17 PASS nie zamyka ustaleń.
+Poprawki i dodatkowe regresje granic/read Cancel są wdrożone. Finalny techniczny gauntlet:
+`build/k2/gauntlet-2026-10-06T14-07-09-757Z-79280/`, **107 wymaganych PASS**, 0 FAIL/NOT_RUN.
+Root **1518/1518**, extension **362/362**, focused **215/215** (K2 **73/73**), oba typechecki,
+build/package/verify **529 entries**, demo i audit root/OCR **0** PASS. K2 runtime poza repo
+**17/17**, K1 **16/16**, UX3 **27/27**, DOCX source/package **5/5** każdy, Host **12/12**.
+Rzeczywisty host VS Code **1.140.0**, Node **24.21.0**, macOS arm64; harness Node **v26.10.0**.
+Trzy bundle i **521** zasobów OCR zgodne ze świeżym buildem; wcześniejsze VSIX zachowane.
+UI K2 **N/A**, bo nie zmieniono UI; wyników UI starego VSIX nie przypisano nowemu kandydatowi.
+Nowy VSIX **119823380 B**, SHA256
+`41e3aa80e4f490f355efe26d6a77bd996c2e97d762ddef8fc3d29207412046ec`.
+Fingerprint rzeczywistych źródeł podczas builda:
+`90a926044ac967baf3a1c6973170f9d7c676209707c53fd5172bd413a4e61024`.
+Manifest, report JSON/TXT, źródłowe/transportowe tests, packaged-runtime i host reports w tym katalogu.
+Końcowy niezależny re-review `/root/k2_readonly_review` zamknął wszystkie trzy MEDIUM;
+brak nowych high/medium. Własne sprawdzenia reviewera na dokładnym nowym VSIX:
+17/17 smoke poza repo z pustym PATH/NODE_PATH, verify529, trzy fresh in-memory bundle i
+OCR521 zgodne, cztery whitespace/padded rows odrzucone, cztery BOM cases zgodne z publiczną
+normalizacją, tsc zawężający każdą z pięciu tabel i przypisujący do KPB-A bez castów kod0.
+Pełne zestawy i Host są dowodami wykonawcy, nie własnymi uruchomieniami reviewera.
+Raport `independent-review.txt`; historia pierwszej rundy zachowana w jej katalogu.
+`manifest.json` zachowuje fingerprint źródeł użytych do builda i oddzielny końcowy fingerprint
+po zmianach wyłącznie dokumentacyjnych; runtime/deps/pakiet nie zmieniły się po gauntlecie.
+Końcowy `final-report.json` / `final-report.txt` oddziela implementację, automatyczne bramki,
+niezależny review, owner smoke i publikację. Lokalny checkpoint tej pętli kończy K2; pełny hash
+znajduje się w Git oraz w końcowym raporcie, bez wpisywania SHA własnego commita do tego pliku.
+Kontrolowany transport potwierdza kontrakty/evidence/liczbę żądań, nie jakość rzeczywistego LLM.
+K3 handoff: wywołać runtime z jawnie wybranymi dokumentami i bindingiem profilu/modelu;
+wyświetlać pending, cytaty/offsety/linie i conversion/OCR limitations. Akceptację/edycję należy
+ponownie walidować KPB-A i dopiero w K3 dodać autoryzowaną bezpieczną transakcję zapisu pięciu plików.
+Pusty/actor-only wynik jest częściową propozycją, nie pełnym packiem; verified evidence nie jest
+semantyczną akceptacją wiedzy. K3, ART1 i MCP nie rozpoczęto.
+OWNER_SMOKE: DEFERRED. PUSH / MAIN_INTEGRATION / TAG / PUBLICATION: NOT_REQUESTED.
 
 ## K1 — implementacja i weryfikacja (2026-10-06)
 

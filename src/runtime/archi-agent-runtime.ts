@@ -1,3 +1,4 @@
+import { extractDocumentCandidates, type ExtractDocumentCandidatesRequest, type ExtractDocumentCandidatesOutcome, type DocumentExtractionOptions } from "./extract-document-candidates.js";
 import path from "node:path";
 import { parseFlowDocument, type FlowDocument } from "../core/grounding/grounded-context-builder.js";
 import type { AmbiguityReport } from "../core/grounding/grounded-context.js";
@@ -86,6 +87,7 @@ export const runtimeLimits = Object.freeze({
 export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpoint) => SequenceModelGenerator;
 
 export interface ArchiAgentRuntimeOptions {
+  readonly documentExtraction?: DocumentExtractionOptions;
   readonly generatorFactory?: GeneratorFactory;
   /** Structured-chat seam for the D1 local path; remote adapters use remoteTransport. */
   readonly diagramClientFactory?: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
@@ -538,6 +540,7 @@ function mapOutcome(outcome: PipelineOutcome): GenerateSequenceDiagramResult {
 }
 
 class NodeArchiAgentRuntime implements ArchiAgentRuntime {
+  readonly #documentExtraction: DocumentExtractionOptions;
   readonly #generatorFactory: GeneratorFactory;
   readonly #providerRegistry: ProviderRegistry;
   readonly #defaultBaseUrlForProfile: (profileId: string) => string | undefined;
@@ -545,11 +548,17 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #diagramClientFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
 
   public constructor(options: ArchiAgentRuntimeOptions) {
+    this.#documentExtraction = options.documentExtraction ?? {};
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
     this.#providerRegistry = options.providerRegistry ?? new ProviderRegistry([...localProviderProfiles, ...remoteProviderProfiles]);
     this.#defaultBaseUrlForProfile = options.defaultBaseUrlForProfile ?? defaultBaseUrlForLocalProfile;
     this.#remoteTransport = options.remoteTransport;
     this.#diagramClientFactory = options.diagramClientFactory ?? ((config, endpoint) => new OpenAiCompatibleLocalChatClient({ endpoint, modelId: config.modelId, ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }) }));
+  }
+
+  public async extractDocumentCandidates(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome> {
+    return extractDocumentCandidates(request, () => resolveDiagramClient(request.generator,
+      this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory), this.#documentExtraction);
   }
 
   public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {
