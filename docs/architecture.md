@@ -444,3 +444,19 @@ Grounding decides which architecture elements a diagram may use. Keeping it dete
 and free of models and renderers makes that decision reproducible, testable and auditable:
 the same flow and pack always give the same context and the same digest, and any
 ambiguity is surfaced to a person instead of being resolved by a guess.
+
+## K3 document review and new-pack save
+
+The editor calls production K2 with explicitly selected documents and delayed existing model
+selection after frozen input validation. One extraction returns pending candidates. The runtime's
+`KnowledgePackReviewSession` holds the existing KPB-A reviewed draft in memory; grouped native
+controls collect decisions and row edits. KPB-A remains the semantic/row validator and renderer.
+A minimal trailing metadata section in the five Markdown files preserves source digests,
+evidence, basis, user edits and conversion limits through the production loader and K1 snapshot.
+
+Physical staging validates the exact preview; the shared UX3 exclusive writer requires a new
+K3 destination and checks final load, bytes and ownership before success. It is an operation
+transaction with conditional cleanup, not an atomic directory rename. Save is separate from
+activation through UX3's scoped, guarded setting update; committed data survives activation
+failure. No extra generation, persistent drafts, existing-pack update/merge, ART1 or MCP.
+See [K3](knowledge-pack-review.md) for API, user flow and concurrency/atomicity limits.

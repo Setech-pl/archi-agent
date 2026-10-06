@@ -32,7 +32,7 @@ Automated tests cover the provider adapters and reviewed pipelines with controll
 
 - One local Knowledge Pack directory is supported. Diagram output is untitled; the extension does not persist or version artifacts. A PlantUML preview requires separate editor support.
 - PDF conversion has no layout reconstruction. DOCX complex layout and merged cells may lose fidelity. XLSX uses saved formula results and does not recalculate formulas. Input, output, archive, page, sheet, cell, OCR image, and time limits apply; see [known limitations](docs/vscode-extension.md#known-limitations).
-- DOC, XLS, Enterprise Architect integration, MCP (M1), VS Code Chat (C1), C4 and ArchiMate diagram types (D3–D5), Knowledge Pack Builder extraction and evidence verification (K2), and its UI and write flow (K3) are planned or deferred, **not implemented in this candidate**. An internal deterministic Builder Stage A core exists, but the VSIX does not expose it. Conversion does not automatically build a Knowledge Pack or feed documents into diagram grounding.
+- DOC, XLS, Enterprise Architect integration, MCP (M1), VS Code Chat (C1), C4 and ArchiMate diagram types (D3–D5), retry and repair are planned or deferred, **not implemented in this candidate**. Knowledge Pack Builder K3 provides document extraction, explicit review and safe creation of a new pack; see [the user workflow](docs/knowledge-pack-review.md). Conversion does not automatically build a Knowledge Pack or feed documents into diagram grounding.
 
 ## Documentation and development
 

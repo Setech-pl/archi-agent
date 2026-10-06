@@ -1,3 +1,4 @@
+import type { DocumentProvenance } from "./document-provenance.js";
 import { z } from "zod";
 import { parseMarkdownTable, type ParsedTable } from "./markdown-table-parser.js";
 import {
@@ -160,6 +161,7 @@ export interface RuleRecord {
 
 /** Validated content of one pack, assembled by the loader in a later phase. */
 export interface KnowledgePack {
+  readonly documentProvenance?: readonly DocumentProvenance[];
   readonly systems: readonly SystemRecord[];
   readonly actors: readonly ActorRecord[];
   readonly relationships: readonly RelationshipRecord[];

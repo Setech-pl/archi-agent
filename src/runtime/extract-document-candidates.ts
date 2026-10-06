@@ -15,7 +15,7 @@ import {
 
 export interface ExtractDocumentCandidatesRequest {
   readonly documents: readonly { readonly path: string; readonly pdfOcrMode?: PdfOcrMode }[];
-  readonly generator: GeneratorConfig;
+  readonly generator: GeneratorConfig | ((signal: AbortSignal) => Promise<GeneratorConfig | undefined>);
   readonly signal?: AbortSignal;
   /** May only lower the absolute K2 deadline. */
   readonly timeoutMs?: number;
@@ -33,7 +33,7 @@ const size = (value: unknown): number => Buffer.byteLength(candidateCanonical(va
 /** Frozen bounded read, one conversion per explicit source and exactly one structured generation. */
 export async function extractDocumentCandidates(
   request: ExtractDocumentCandidatesRequest,
-  resolveClient: () => { readonly ok: true; readonly client: StructuredChatClient } | { readonly ok: false; readonly issues: readonly { readonly code: string }[] },
+  resolveClient: (signal: AbortSignal) => Promise<{ readonly ok: true; readonly client: StructuredChatClient } | { readonly ok: false; readonly issues: readonly { readonly code: string }[] }> | { readonly ok: true; readonly client: StructuredChatClient } | { readonly ok: false; readonly issues: readonly { readonly code: string }[] },
   options: DocumentExtractionOptions = {}
 ): Promise<ExtractDocumentCandidatesOutcome> {
   let logicalRequests: 0 | 1 = 0;
@@ -143,7 +143,16 @@ export async function extractDocumentCandidates(
       schema: documentCandidateJsonSchema, maxTokens: limits.maxTokens };
     if (size(prepared) > limits.requestBytes) throw new DocumentCandidateError("request-too-large", stage);
     enter("generation", limits.generationMs);
-    const resolved = resolveClient();
+    // Model selection/credential lookup may remain pending; abort must release this operation.
+    let stop: (() => void) | undefined;
+    const aborted = new Promise<never>((_resolve, reject) => {
+      stop = () => reject(new DocumentCandidateError(timedOut ? "timeout" : "cancelled", stage));
+      controller.signal.addEventListener("abort", stop, { once: true });
+      if (controller.signal.aborted) stop();
+    });
+    let resolved: Awaited<ReturnType<typeof resolveClient>>;
+    try { resolved = await Promise.race([resolveClient(controller.signal), aborted]); }
+    finally { if (stop) controller.signal.removeEventListener("abort", stop); }
     if (!resolved.ok) throw new DocumentCandidateError(resolved.issues[0]?.code ?? "generator-unavailable", stage);
     check();
     logicalRequests = 1;

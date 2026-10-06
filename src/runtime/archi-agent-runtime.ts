@@ -557,8 +557,11 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   }
 
   public async extractDocumentCandidates(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome> {
-    return extractDocumentCandidates(request, () => resolveDiagramClient(request.generator,
-      this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory), this.#documentExtraction);
+    return extractDocumentCandidates(request, async (signal) => {
+      const generator = typeof request.generator === "function" ? await request.generator(signal) : request.generator;
+      if (!generator || signal.aborted) return { ok: false, issues: [{ code: "cancelled" }] };
+      return resolveDiagramClient(generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
+    }, this.#documentExtraction);
   }
 
   public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {

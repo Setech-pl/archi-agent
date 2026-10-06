@@ -21,6 +21,7 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
+    "onCommand:archiAgent.buildKnowledgePack",
     "onCommand:archiAgent.open",
     "onCommand:archiAgent.convertToMarkdown",
     "onCommand:archiAgent.configureKnowledgePack",
@@ -58,6 +59,11 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "archiAgent.buildKnowledgePack",
+        "title": "Build Knowledge Pack from Documents",
+        "category": "Archi Agent"
+      },
       {
         "command": "archiAgent.open",
         "title": "Open",
@@ -111,10 +117,22 @@
     ],
     "menus": {
       "commandPalette": [
-        { "command": "archiAgent.selectProviderProfile", "when": "false" },
-        { "command": "archiAgent.selectModel", "when": "false" },
-        { "command": "archiAgent.setApiKey", "when": "false" },
-        { "command": "archiAgent.deleteApiKey", "when": "false" }
+        {
+          "command": "archiAgent.selectProviderProfile",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.selectModel",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.setApiKey",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.deleteApiKey",
+          "when": "false"
+        }
       ]
     },
     "configuration": {

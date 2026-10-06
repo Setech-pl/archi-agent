@@ -13,8 +13,8 @@ import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits }
 /**
  * Candidates for a knowledge pack extracted from source material, and the reviewed draft built from
  * them. A candidate proposes one row of one of the five pack tables in the exact column format of
- * that table and carries evidence that is kept for review only; evidence never reaches the rendered
- * pack files.
+ * that table and carries evidence for review. The base renderer produces only tables; K3 adds
+ * compatible document provenance through the production loader.
  *
  * Values of a proposed row are untrusted text. They are validated by the regular pack schemas and
  * the loader after rendering, not by rules repeated here. The schemas in this module check only the

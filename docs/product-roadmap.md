@@ -27,7 +27,7 @@ The 2026-10-06 owner policy uses milestone loops with independent review and aut
 checkpoints; owner smoke is collected later as `OWNER_SMOKE: DEFERRED`. Required FAIL/NOT_RUN
 and open high/medium still block checkpoints. UX3, K1 and K2 have passed automatic gates and independent review. K2 adds the bounded document
 extraction runtime operation with pending candidates and checked evidence ([contract](document-candidates.md));
-K3, M1, C1, D3–D5 and full REL scope remain open. K2 does not add review UI or accepted-pack persistence.
+K3 is implemented on the owner-authorized new-folder-only scope; full automatic gates PASS, independent final review PASS; local checkpoint only; OWNER_SMOKE DEFERRED; M1, C1, D3–D5 and full REL scope remain open. K2 does not add review UI or accepted-pack persistence.
 R2 and D1.2 are completed. S1 passed owner smoke on 2026-09-23 with Ollama `qwen3:30b`
 and Wire Plan v3. UX1 passed owner smoke on 2026-09-23. D2 passed owner smoke on
 2026-09-28. CL1 increased local PDF, DOCX and XLSX conversion limits and shipped in
@@ -54,7 +54,7 @@ Completed sequence and planned work (unranked rows have no approved position rel
 | 9 | UX3 | Local checkpoint f7b548c; full gates, zero-vulnerability audit and independent review PASS. OWNER_SMOKE: DEFERRED. |
 | 10 | K1 | Implemented and technically verified: shared knowledge snapshot, partial coverage, provenance/gaps/conflicts, Markdown adapter; full gates/audit/review PASS. Local checkpoint only. OWNER_SMOKE: DEFERRED. |
 | 11 | K2 | Implemented and technically verified: bounded document bundle, one extraction call and deterministic evidence verifier through runtime; full gates/audit/review PASS, local checkpoint only, OWNER_SMOKE DEFERRED. |
-| 12 | K3 | Planned after K2: Knowledge Pack Builder UI, runtime integration and atomic write. |
+| 12 | K3 | Implemented; full automatic gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED: document review, grouped decisions/edits and five-file save in new folders only. Updates/merges excluded; controlled operation transaction, not atomic directory publication. |
 | — | M1 | Separate planned MCP adapter into `ArchitectureSnapshot`; scheduling relative to K1–K3 is open. |
 | — | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
 | — | D3 | `c4-context` plan, validator and renderer. |
@@ -307,7 +307,7 @@ do not imply a newly approved cross-stage order.
 | D4 | planned | `c4-container` plan, validator and renderer; no external includes. | D3 |
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
 | K2 | implemented and technically verified; gates/audit/review PASS | Knowledge Pack Builder extraction and evidence verifier. | K1 |
-| K3 | planned | Knowledge Pack Builder UI and five-file write. | K2 |
+| K3 | implemented; full automatic gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED | Knowledge Pack Builder UI and five-file write. | K2 |
 | REL | planned | Broader release work and owner-accepted VSIX after K3; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` were earlier prereleases. | K3 |
 
 ## Later
@@ -444,14 +444,14 @@ The builder produces the same five Markdown files that the loader already reads.
 proposes pending candidates, but it never writes the pack: every candidate carries evidence and an
 `explicit` or `inferred` basis, inferred candidates need an explicit user acceptance, and the final
 Markdown always comes from a deterministic renderer whose output is loaded back through the regular
-loader before it is accepted. Evidence stays out of the pack files.
+loader before it is accepted. The base renderer emits tables only; K3 appends compatible document provenance in the same five files ([format and limits](knowledge-pack-review.md)).
 
 | Stage | Scope | Status |
 | --- | --- | --- |
 | A | Candidate and evidence model, reviewed draft validation, deterministic renderer, in-memory round trip through the loader (`src/core/knowledge-pack/builder`) | implemented |
 | B1 | Neutral `StructuredChatClient` port and extraction of the local transport (approved stage B plan) | implemented |
 | B2, B3 | Bounded source bundle and one LLM extraction call, deterministic evidence validation through runtime ([K2 contract](document-candidates.md)) | implemented and technically verified; gates/audit/review PASS |
-| C | Review UI and atomic write of the five files (roadmap step K3); K2 supplies the document runtime operation | planned |
+| C | Review UI and new-folder-only five-file save (K3); no update/merge or atomic directory publication claim | implemented; full gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED |
 
 ---
 
@@ -877,7 +877,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | D4 — C4 container | planned after D3 |
 | D5 — ArchiMate HLD | planned after D4 |
 | K2 — Knowledge Pack Builder extraction and evidence verifier | implemented and technically verified; gates/audit/review PASS |
-| K3 — Knowledge Pack Builder UI and five-file write | planned |
+| K3 — Knowledge Pack Builder UI and five-file write | implemented; full gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED; new folders only |
 | v0.3.0-alpha.1 prerelease | published after D2; owner smoke PASS on the integration VSIX reported on 2026-09-29 |
 | v0.3.0-alpha.3 prerelease | published after CL1; owner smoke PASS on exact final VSIX SHA-256 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056` |
 | REL — broader release work | planned |
@@ -892,3 +892,5 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 Milestones up to the AI SDLC demo follow the agreed order in [Product priority](#product-priority);
 the rest are not ordered. The order may change as integration constraints appear. No release dates
 are set.
+
+K3 owner decision (2026-10-06): create a new pack in a new folder in the current project or an explicitly chosen local location. No new project requirement, update, merge, migration, persistent drafts or autosave. See [K3](knowledge-pack-review.md).

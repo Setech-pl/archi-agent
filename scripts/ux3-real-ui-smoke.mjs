@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { prepareVscode, vscodeBinary } from "./ux3-vscode-smoke.mjs";
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-async function waitFor(fn, label, timeout = 12000) {
+export async function waitFor(fn, label, timeout = 12000) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const result = await fn();
@@ -19,14 +19,14 @@ async function waitFor(fn, label, timeout = 12000) {
   }
   throw new Error(`UI timeout: ${label}`);
 }
-async function freePort() {
+export async function freePort() {
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = server.address().port;
   await new Promise((resolve) => server.close(resolve));
   return port;
 }
-class Cdp {
+export class Cdp {
   constructor(socket) {
     this.socket = socket; this.sequence = 0; this.pending = new Map();
     socket.addEventListener("message", (event) => {

@@ -79,3 +79,6 @@ export { diagramTypes, isDiagramType, isSupportedDiagramType } from "../core/mod
 export { documentCandidateLimits, documentCandidateJsonSchema, normalizeDocumentText } from "../core/knowledge-pack/builder/document-candidates.js";
 export type { DocumentSource, DocumentSourceBundle, DocumentCandidateResult, VerifiedDocumentCandidate } from "../core/knowledge-pack/builder/document-candidates.js";
 export type { ExtractDocumentCandidatesRequest, ExtractDocumentCandidatesOutcome, DocumentExtractionOptions } from "./extract-document-candidates.js";
+export { KnowledgePackReviewSession, PackReviewError, validateDocumentSelection } from "./knowledge-pack-review.js";
+export type { PackReviewState, PackPreview } from "./knowledge-pack-review.js";
+export type { CandidateDecision, KnowledgePackDraft, KnowledgePackCandidate } from "../core/knowledge-pack/builder/knowledge-pack-candidate.js";

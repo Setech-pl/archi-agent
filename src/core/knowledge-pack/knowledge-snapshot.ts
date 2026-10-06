@@ -1,3 +1,4 @@
+import type { DocumentProvenance } from "./document-provenance.js";
 import {
   actorRowSchema, aliasRowSchema, knowledgePackTables, relationshipRowSchema, ruleRowSchema, systemRowSchema,
   type KnowledgePack, type KnowledgePackTableKind, type RecordByTable, type SourceLocation
@@ -46,6 +47,7 @@ export interface KnowledgeConflict {
   readonly factIds: readonly string[];
 }
 export interface KnowledgeSnapshot {
+  readonly documentProvenance?: readonly DocumentProvenance[];
   readonly domain: "archi-agent-knowledge/1";
   readonly id: string;
   readonly digest: string;
@@ -195,13 +197,18 @@ export function createKnowledgeSnapshot(contributions: readonly KnowledgeContrib
 
 /** Adapter of the validated five-file format, without rereading or changing any Markdown. */
 export function knowledgeSnapshotFromPack(pack: KnowledgePack, sourceId = "knowledge-pack"): KnowledgeSnapshot {
-  return createKnowledgeSnapshot([{ source: { id: sourceId, kind: "markdown-pack", scope: {
-    systems: "complete", actors: "complete", relationships: "complete", aliases: "complete", rules: "complete"
-  } }, records: pack }]);
+  const { documentProvenance: _documentProvenance, ...records } = pack;
+  const snapshot = createKnowledgeSnapshot([{ source: { id: sourceId, kind: "markdown-pack", scope: {
+    systems: pack.documentProvenance ? "partial" : "complete", actors: pack.documentProvenance ? "partial" : "complete", relationships: pack.documentProvenance ? "partial" : "complete", aliases: pack.documentProvenance ? "partial" : "complete", rules: pack.documentProvenance ? "partial" : "complete"
+  } }, records }]);
+  if (!pack.documentProvenance) return snapshot;
+  const payload = { ...snapshot, documentProvenance: pack.documentProvenance };
+  const digest = hash({ digest: snapshot.digest, documentProvenance: pack.documentProvenance });
+  return freezeTree({ ...payload, digest, id: `knowledge-${digest}` });
 }
 
 /** Only provenance relevant to locally selected elements; full unrelated knowledge stays local. */
-export type SelectedKnowledgeContext = Pick<KnowledgeSnapshot, "id" | "digest" | "sources" | "gaps" | "conflicts" | "ambiguities"> & {
+export type SelectedKnowledgeContext = Pick<KnowledgeSnapshot, "id" | "digest" | "sources" | "gaps" | "conflicts" | "ambiguities" | "documentProvenance"> & {
   readonly provenance: readonly { readonly factId: string; readonly recordKey: string; readonly provenance: readonly KnowledgeProvenance[] }[];
 };
 export function selectKnowledgeContext(snapshot: KnowledgeSnapshot, selectedIds: readonly string[]): SelectedKnowledgeContext {
@@ -214,6 +221,12 @@ export function selectKnowledgeContext(snapshot: KnowledgeSnapshot, selectedIds:
   return freezeTree({ id: snapshot.id, digest: snapshot.digest, sources: snapshot.sources.filter((entry) => sourceIds.has(entry.id)),
     provenance: facts.map((fact) => ({ factId: fact.id, recordKey: identity(fact), provenance: fact.provenance })),
     gaps: snapshot.gaps.filter((gap) => gap.factId !== undefined ? factIds.has(gap.factId) : gap.sourceId !== undefined && sourceIds.has(gap.sourceId)),
+    ...(snapshot.documentProvenance ? { documentProvenance: snapshot.documentProvenance.map((m) => {
+      const entries = m.entries.filter((e) => e.candidate.table === "systems" || e.candidate.table === "actors" ? selected.has(e.candidate.row.id) :
+        e.candidate.table === "aliases" ? selected.has(e.candidate.row.target_id) : selected.has(e.candidate.row.from_id) && selected.has(e.candidate.row.to_id));
+      const sources = m.sources.filter((s) => entries.some((e) => e.evidence.some((v) => v.sourceId === s.sourceId)));
+      return { ...m, entries, sources };
+    }).filter((m) => m.entries.length) } : {}),
     conflicts: snapshot.conflicts,
     ambiguities: snapshot.ambiguities.filter((entry) => entry.targetIds.some((id) => selected.has(id))) });
 }

@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-10-06 |
-| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a` i K1 `59be33946883ff275a80f95e53aa1acf375db3d6`; niniejszy lokalny checkpoint K2 na `feature/k2-document-candidates` od K1. Dokładny commit K2 i drzewo sprawdzaj w Git; dokument nie zawiera SHA swojego własnego commita. |
+| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a` i K1 `59be33946883ff275a80f95e53aa1acf375db3d6`; K2 `93667c249bbfca8f83808915e53b61706ef3793e`; bieżący K3 na `feature/k3-knowledge-pack-review-and-save` od K2. Dokładny checkpoint K3 i drzewo sprawdzaj w Git; dokument nie zawiera SHA swojego własnego commita. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -28,11 +28,45 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan UX3 | Lokalny checkpoint `f7b548c`; override Mammoth → argparse 2.0.1 usunął rzeczywisty sprintf-js. Czyste npm ci, audit 0 i końcowe bramki UX3 PASS (1412 root, 279 extension, DOCX sources/package 5/5, runtime27, Host12, UI12). Zamknięte HIGH zachowane. Niezależny finalny review PASS bez otwartych high/medium. OWNER_SMOKE: DEFERRED. |
 | Stan K1 | Wspólny kontrakt i adapter Markdown zaimplementowane. Celowane77, root1445, extension289, audit0, poza repo K1 16/16, UX3runtime27/27, DOCX5/5, Host12/12 i wszystkie bramki PASS. Niezależny review źródeł i dokładnego VSIX PASS, trzy medium zamknięte; brak otwartych high/medium. Lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Stan K2 | Produkcyjna ekstrakcja dokumentów i deterministyczna walidacja propozycji zaimplementowane. Root1518, extension362, focused215, audit root/OCR0, runtime poza repo17, Host12 i pełny gauntlet PASS. Niezależny re-review zamknął trzy medium; brak otwartych high/medium. Lokalny checkpoint; OWNER_SMOKE: DEFERRED. |
-| Następny etap | STOP po K2. Zbiorczy owner smoke DEFERRED; K3 wymaga kolejnej autoryzowanej pętli. K3, ART1 i MCP nie rozpoczęto. |
+| Następny etap | K3 zaimplementowane; pełne bramki i niezależny finalny review PASS. Lokalny checkpoint; STOP. Następny milestone ART1 wymaga osobnej autoryzacji. Zbiorczy owner smoke DEFERRED. ART1/MCP nie rozpoczęto. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## K3 — implementacja i weryfikacja (2026-10-06)
+
+Baza `93667c249bbfca8f83808915e53b61706ef3793e` na `feature/k2-document-candidates`,
+preflight clean/staging empty. Nowy branch `feature/k3-knowledge-pack-review-and-save`.
+K2 VSIX zachowany: 119823380 B, SHA256 `41e3aa80e4f490f355efe26d6a77bd996c2e97d762ddef8fc3d29207412046ec`.
+Decyzja właściciela: K3 tworzy wyłącznie nowe packi w nowych folderach, również w obecnym
+projekcie; bez aktualizacji/scalania istniejących packów i nowego projektu jako warunku.
+Implementacja: produkcyjny K2 → reviewed draft KPB-A → QuickPick/InputBox/natywne pickery →
+fizyczny staging/loader → wyłączny zapis pięciu plików → opcjonalny guarded scope UX3.
+Metadane provenance w pięciu Markdownach, zachowane przez loader i K1; brak pełnych źródeł.
+Pełny końcowy gauntlet `build/k3/gauntlet-2026-10-06T20-09-56-099Z-97965/`: PASS150/150.
+Bieżąca sesja: clean npm ci root/OCR, audit root/OCR0; focused248/248; root1551/1551
+(104 pliki), extension395/395 (20 plików); oba typechecki; build/package/verify529,
+demo dry run. Poza repo: K3runtime15/15, K2 17/17, K1 16/16, UX3runtime27/27,
+DOCX source/package5/5; Host UX3 12/12, K3 15/15; native K3UI9/9 z rzeczywistymi pickerami.
+Trzy bundle i 521 zasobów OCR zgodne bajtowo; wszystkie wcześniejsze VSIX zachowane.
+VSIX `archi-agent-0.3.0-alpha.4.vsix`: 119840785 B,
+SHA256 `27994ba152fcab79379139714042420689b36b79713cbb1b1b16b54f7ab6fd98`.
+Fingerprint builda `007ed4f1f6da1321e23845a2e1ffaed886571c780c091ba09ea3d9b1e95c3922`.
+Manifest, raport oraz `independent-review-final.md` w tym samym katalogu.
+Niezależny finalny reviewer GPT-6.1 Sol/high: PASS, brak otwartych HIGH/MEDIUM;
+własne exact-VSIX checks12/12 (pending async Cancel/timeout4, reviewed draft/save8).
+Dowody automatyczne i własne review są rozdzielone.
+Runda1 znalazła MEDIUM Cancel/deadline podczas async wyboru modelu; poprawka propaguje
+signal, kończy await i blokuje spóźnioną generację/setting writes. Nowe unit i exact-packaged
+regresje PASS. LOW sprzecznego statusu README/snapshot naprawione. Historyczne nieudane
+przebiegi i review rundy1 zachowane w poprzednich katalogach K3; nie dotyczą finalnego SHA.
+Lokalny checkpoint K3; dokładny hash i czystość drzewa sprawdzaj w Git. OWNER_SMOKE: DEFERRED.
+PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED. ART1/MCP nie rozpoczęto.
+Granice: Host steruje odpowiedziami kontrolek; native UI jest osobną warstwą.
+Transport syntetyczny, bez dowodu jakości żywego modelu. Portable Node zapewnia wyłączne
+utworzenie i conditional rollback, nie atomową publikację katalogu ani atomowy CAS ustawień.
+Dokumentacja: [K3 review and save](knowledge-pack-review.md).
 
 ## K2 — implementacja i weryfikacja (2026-10-06)
 

@@ -45,17 +45,20 @@ export interface StarterPackReceipt {
 export interface StarterPackCreateOptions {
   readonly onStep?: (step: "after-open" | "after-write" | "before-close" | "before-verify", file: string, handle: FileHandle) => Promise<void> | void;
   readonly closeHandle?: (handle: FileHandle) => Promise<void>;
+  readonly requireNewDirectory?: boolean;
+  readonly signal?: AbortSignal;
+  readonly verify?: () => Promise<void>;
 }
 
 export type StarterPackCreateCode = "invalid-location" | "location-exists" | "symbolic-link" |
-  "permission-denied" | "storage-full" | "file-changed" | "write-failed";
+  "permission-denied" | "storage-full" | "file-changed" | "write-failed" | "cancelled";
 
 const cleanupRecovery = "Some files were preserved because safe cleanup could not be confirmed. Inspect the chosen directory, keep any edits, and move the preserved files before retrying there, or choose another location.";
 
 export class StarterPackCreateError extends Error {
   public readonly recovery: string;
-  public constructor(public readonly code: StarterPackCreateCode, public readonly cleanupIncomplete = false) {
-    super(`Knowledge Pack creation failed (${code}).`);
+  public constructor(public readonly code: StarterPackCreateCode, public readonly cleanupIncomplete = false, cause?: unknown) {
+    super(`Knowledge Pack creation failed (${code}).`, { cause });
     this.name = "StarterPackCreateError";
     this.recovery = cleanupIncomplete ? cleanupRecovery : "";
   }
@@ -126,6 +129,15 @@ async function makeDirectories(directory: string, created: CreatedDirectory[]): 
 /** Creates exactly five files with exclusive opens. The receipt authorizes only conditional cleanup. */
 export async function createStarterKnowledgePack(directory: string, system: FirstSystem,
   options: StarterPackCreateOptions = {}): Promise<StarterPackReceipt> {
+  return createKnowledgePackFiles(directory, filesFor(system), options);
+}
+
+/** Shared exclusive writer. K3 requires a new directory; UX3 retains its existing contract. */
+export async function createKnowledgePackFiles(directory: string, contents: readonly string[],
+  options: StarterPackCreateOptions = {}): Promise<StarterPackReceipt> {
+  const check = () => { if (options.signal?.aborted) throw new StarterPackCreateError("cancelled"); };
+  check();
+  if (contents.length !== 5) throw new StarterPackCreateError("write-failed");
   if (!path.isAbsolute(directory) || /[\x00-\x1f\x7f]/u.test(directory) || path.parse(directory).root === directory) {
     throw new StarterPackCreateError("invalid-location");
   }
@@ -138,14 +150,20 @@ export async function createStarterKnowledgePack(directory: string, system: Firs
       createdDirectories.push(await createdDirectory(directory));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (options.requireNewDirectory) throw new StarterPackCreateError("location-exists");
       const info = await lstat(directory);
       if (info.isSymbolicLink()) throw new StarterPackCreateError("symbolic-link");
       if (!info.isDirectory()) throw new StarterPackCreateError("invalid-location");
       if ((await readdir(directory)).length > 0) throw new StarterPackCreateError("location-exists");
       // A pre-existing empty destination belongs to its owner, including after a failed write.
     }
-    const contents = filesFor(system);
     for (let index = 0; index < names.length; index += 1) {
+      check();
+      // Refuse to write through a directory replaced since exclusive creation.
+      for (const ownedDirectory of createdDirectories) {
+        const current = await createdDirectory(ownedDirectory.path);
+        if (current.dev !== ownedDirectory.dev || current.ino !== ownedDirectory.ino) throw new StarterPackCreateError("file-changed");
+      }
       const file = path.join(directory, names[index]!);
       const expectedBytes = Buffer.from(contents[index]!, "utf8");
       const expectedDigest = createHash("sha256").update(expectedBytes).digest("hex");
@@ -164,6 +182,9 @@ export async function createStarterKnowledgePack(directory: string, system: Firs
       let operationError: unknown;
       try {
         await options.onStep?.("after-open", file, handle);
+        const beforeWrite = await handle.stat();
+        if (beforeWrite.size !== initial.size || beforeWrite.ctimeMs !== initial.ctimeMs || beforeWrite.mtimeMs !== initial.mtimeMs)
+          throw new StarterPackCreateError("file-changed");
         await handle.writeFile(expectedBytes);
         await options.onStep?.("after-write", file, handle);
       } catch (error) { operationError = error; }
@@ -197,10 +218,23 @@ export async function createStarterKnowledgePack(directory: string, system: Firs
       if (proof === undefined || recorded.digest !== owned.expectedDigest || recorded.size !== owned.expectedSize ||
         recorded.ctimeMs !== proof.ctimeMs || recorded.mtimeMs !== proof.mtimeMs) throw new StarterPackCreateError("file-changed");
     }
+    check();
+    await options.verify?.();
+    for (const owned of createdDirectories) {
+      const current = await createdDirectory(owned.path);
+      if (current.dev !== owned.dev || current.ino !== owned.ino) throw new StarterPackCreateError("file-changed");
+    }
+    for (const owned of createdFiles) {
+      const current = await recordedFile(owned.path);
+      if (!owned.content || current.dev !== owned.dev || current.ino !== owned.ino ||
+          current.digest !== owned.expectedDigest || current.ctimeMs !== owned.content.ctimeMs || current.mtimeMs !== owned.content.mtimeMs)
+        throw new StarterPackCreateError("file-changed");
+    }
+    check();
     return { directory, files: createdFiles, directories: createdDirectories };
   } catch (error) {
     const cleanup = await cleanupStarterKnowledgePack({ directory, files: createdFiles, directories: createdDirectories });
-    throw new StarterPackCreateError(createCode(error), cleanup.preservedFiles.length > 0);
+    throw new StarterPackCreateError(createCode(error), cleanup.preservedFiles.length > 0, error);
   }
 }
 
@@ -209,6 +243,11 @@ export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): 
   const preservedFiles: string[] = [];
   for (const file of [...receipt.files].reverse()) {
     try {
+      // Every owned ancestor must still be the same directory before any unlink.
+      for (const ancestor of receipt.directories) {
+        const currentDirectory = await createdDirectory(ancestor.path);
+        if (currentDirectory.dev !== ancestor.dev || currentDirectory.ino !== ancestor.ino) throw new StarterPackCreateError("file-changed");
+      }
       const current = await recordedFile(file.path);
       const proof = file.content;
       if (proof !== undefined && current.dev === file.dev && current.ino === file.ino &&
@@ -224,7 +263,10 @@ export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): 
       const current = await lstat(directory.path);
       if (current.isDirectory() && !current.isSymbolicLink() && current.dev === directory.dev && current.ino === directory.ino)
         await rmdir(directory.path);
-    } catch { /* Only the same empty directory can be removed. */ }
+      else if (!preservedFiles.some((f) => f.startsWith(directory.path + path.sep))) preservedFiles.push(directory.path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !preservedFiles.some((f) => f.startsWith(directory.path + path.sep))) preservedFiles.push(directory.path);
+    }
   }
   return { preservedFiles, recovery: preservedFiles.length > 0 ? cleanupRecovery : "" };
 }

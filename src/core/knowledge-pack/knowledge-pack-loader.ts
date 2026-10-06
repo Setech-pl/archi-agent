@@ -1,3 +1,4 @@
+import { splitDocumentProvenance, validateDocumentProvenance, type DocumentProvenance } from "./document-provenance.js";
 import { normalizeGroundingReference } from "../grounding/reference-key.js";
 import { stableCompare } from "../util/ordering.js";
 import { ActorIndex } from "./index/actor-index.js";
@@ -281,6 +282,7 @@ export async function loadKnowledgePack(
   }
 
   const tables: ParsedTables = {};
+  const documentProvenance: DocumentProvenance[] = [];
 
   for (const [file, kind, allowEmpty] of tableByFile) {
     if (!present.has(file)) {
@@ -312,7 +314,14 @@ export async function loadKnowledgePack(
       continue;
     }
 
-    const result = parseKnowledgePackTable(kind, text, { maxIssues, allowEmpty });
+    let content;
+    try { content = splitDocumentProvenance(text); }
+    catch { issues.push(issue("error", "invalid-value", { file })); continue; }
+    const result = parseKnowledgePackTable(kind, content.text, { maxIssues, allowEmpty });
+    if (content.metadata) {
+      if (!result.ok || !validateDocumentProvenance(content.metadata, kind, result.records)) issues.push(issue("error", "invalid-value", { file }));
+      else documentProvenance.push(content.metadata);
+    }
 
     for (const found of result.issues) {
       issues.push(issue("error", found.code, found));
@@ -334,12 +343,30 @@ export async function loadKnowledgePack(
     return failure(issues, maxIssues);
   }
 
+  if (documentProvenance.length) {
+    const sourceValues = new Map<string, string>();
+    const candidateIds = new Set<string>();
+    let valid = documentProvenance.length === 5 && new Set(documentProvenance.map((m) => m.bundleDigest)).size === 1;
+    for (const metadata of documentProvenance) {
+      for (const source of metadata.sources) {
+        const value = JSON.stringify(source);
+        if (sourceValues.has(source.sourceId) && sourceValues.get(source.sourceId) !== value) valid = false;
+        sourceValues.set(source.sourceId, value);
+      }
+      for (const entry of metadata.entries) {
+        if (candidateIds.has(entry.candidateId)) valid = false;
+        candidateIds.add(entry.candidateId);
+      }
+    }
+    if (!valid) return failure([issue("error", "invalid-value")], maxIssues);
+  }
   const pack: KnowledgePack = Object.freeze({
     systems: systems.records,
     actors: actors.records,
     relationships: relationships.records,
     aliases: aliases.records,
-    rules: rules.records
+    rules: rules.records,
+    ...(documentProvenance.length ? { documentProvenance: Object.freeze(documentProvenance) } : {})
   });
 
   issues.push(...crossFileIssues(pack));

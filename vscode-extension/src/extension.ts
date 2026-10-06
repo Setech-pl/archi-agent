@@ -1,3 +1,4 @@
+import { buildKnowledgePackCommand } from "./commands/build-knowledge-pack.js";
 import * as vscode from "vscode";
 import { generateDiagramCommand, generateSequenceDiagramCommand } from "./commands/generate-sequence-diagram.js";
 import { removeApiKey, setApiKey } from "./commands/api-key-management.js";
@@ -25,6 +26,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(output);
   context.subscriptions.push(
+    vscode.commands.registerCommand(commandIds.buildKnowledgePack, () => buildKnowledgePackCommand({ runtime, output, secrets: context.secrets })),
     vscode.commands.registerCommand(commandIds.open, () => openArchiAgentMenu().catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: navigation could not be opened.");
     })),

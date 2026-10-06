@@ -183,3 +183,17 @@ IMPLEMENTATION READY FOR REVIEW
 
 Zaktualizuj w `docs/project-state.md`: aktywne zadanie i fazę, co jest zrobione, co niezweryfikowane,
 stan working tree i jeden następny krok. Nie wpisuj wyników testów, których nie uruchomiono.
+
+## Automatyczny gauntlet K3
+
+`npm run k3:gauntlet` zapisuje nowy `build/k3/gauntlet-<UTC timestamp>-<pid>/`.
+Obejmuje czyste instalacje root/OCR, oba audity, pełne testy root/rozszerzenia, typechecki,
+build/package/verify, demo dry run, celowane K3 i regresje K2/K1/UX3/DOCX. Dokładny VSIX
+jest rozpakowany poza repo; runtime działa z pustymi PATH/NODE_PATH. Runner sprawdza zgodność
+trzech bundle i zasobów OCR ze świeżym buildem oraz zachowanie wcześniejszych VSIX.
+Nowe przypadki Host używają rzeczywistego VS Code i ustawień ze sterowanymi odpowiedziami
+kontrolek; nowe przypadki real UI sterują widocznymi kontrolkami oraz natywnymi pickerami
+macOS przez CDP/Accessibility. Te warstwy są raportowane osobno. Brak real UI lub review
+nie może być N/A dla K3 i blokuje checkpoint jako NOT_RUN. Manifest wiąże bazę, fingerprint
+źródeł, środowisko, ścieżkę, rozmiar i SHA256 kandydata. Niezależny review oraz późniejszy
+owner smoke pozostają osobne. Wspólne pakowanie uruchamiaj sekwencyjnie.

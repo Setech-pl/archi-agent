@@ -69,6 +69,12 @@ commands or opens the relevant VS Code setting; Configuration and Knowledge Mana
 **Configure Knowledge Pack** (`archiAgent.configureKnowledgePack`). Back returns to the first picker, and Escape closes it. Existing public
 command IDs remain registered even when their direct Command Palette entries are hidden.
 
+`Archi Agent: Build Knowledge Pack from Documents` (`archiAgent.buildKnowledgePack`) is available
+in the Command Palette and Open → Knowledge Management. Select local MD/TXT/PDF/DOCX/XLSX,
+review pending candidates in groups, edit row fields, preview five exact files and save to a new
+folder. Save keeps settings; Save and use activates the final loaded pack in the selected scope.
+See [K3 workflow and limits](knowledge-pack-review.md). No existing pack is required.
+
 `Archi Agent: Convert to Markdown` (`archiAgent.convertToMarkdown`) is also directly callable.
 It selects one local PDF, DOCX or XLSX file and opens a single unsaved Markdown editor after full
 success. It needs no configured provider, model, API key or Knowledge Pack, makes no LLM or network

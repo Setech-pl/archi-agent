@@ -25,7 +25,8 @@ export const configurationChoices: readonly Choice<ConfigChoice>[] = Object.free
   { id: "back", label: "$(arrow-left) Back" }
 ]);
 
-export const knowledgeChoices: readonly Choice<"pack" | "back">[] = Object.freeze([
+export const knowledgeChoices: readonly Choice<"build" | "pack" | "back">[] = Object.freeze([
+  { id: "build", label: "Build Knowledge Pack from Documents" },
   { id: "pack", label: "Configure Knowledge Pack" },
   { id: "back", label: "$(arrow-left) Back" }
 ]);
@@ -46,6 +47,7 @@ export async function openArchiAgentMenu(): Promise<void> {
       const selected = await vscode.window.showQuickPick(knowledgeChoices, { title: "Archi Agent: Knowledge Management" });
       if (!selected) return;
       if (selected.id === "back") continue;
+      if (selected.id === "build") return void (await vscode.commands.executeCommand(commandIds.buildKnowledgePack));
       return void (await vscode.commands.executeCommand(commandIds.configureKnowledgePack));
     }
 

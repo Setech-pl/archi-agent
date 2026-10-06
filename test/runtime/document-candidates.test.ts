@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, readdirSync, truncateSync, symlinkSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, readdirSync, truncateSync, symlinkSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "node:http";
@@ -11,10 +11,14 @@ import type { KnowledgePackCandidate } from "../../src/core/knowledge-pack/build
 import type { RemoteJsonRequest } from "../../src/node/llm/remote-json-transport.js";
 
 
-const readHooks = vi.hoisted(() => ({ afterRead: undefined as (() => void) | undefined, delayMs: 0 }));
+const readHooks = vi.hoisted(() => ({ afterRead: undefined as (() => void) | undefined, delayMs: 0, createdDirectories: [] as string[] }));
 vi.mock("node:fs/promises", async (importOriginal) => {
   const original = await importOriginal<typeof import("node:fs/promises")>();
-  return { ...original, open: async (...args: Parameters<typeof original.open>) => {
+  return { ...original, mkdtemp: async (prefix: string) => {
+    const directory = await original.mkdtemp(prefix);
+    if (path.basename(prefix).startsWith("archi-k2-")) readHooks.createdDirectories.push(directory);
+    return directory;
+  }, open: async (...args: Parameters<typeof original.open>) => {
     const handle = await original.open(...args);
     const read = handle.read.bind(handle);
     handle.read = (async (...readArgs: any[]) => {
@@ -60,6 +64,26 @@ beforeAll(async () => {
 afterAll(() => rmSync(temporary, { recursive: true, force: true }));
 
 describe("K2 production runtime", () => {
+  it.each(["cancel", "timeout"] as const)("ends pending generator selection on %s, ignores late results and cleans owned sources", async (mode) => {
+    const initial = readHooks.createdDirectories.length;
+    const controller = new AbortController();
+    let start!: () => void, release!: (value: typeof generator) => void, signal!: AbortSignal;
+    const started = new Promise<void>((resolve) => { start = resolve; });
+    const pending = new Promise<typeof generator>((resolve) => { release = resolve; });
+    const factory = vi.fn(() => client);
+    const op = createArchiAgentRuntime({ diagramClientFactory: factory }).extractDocumentCandidates!({ documents,
+      generator: (s) => { signal = s; start(); return pending; }, signal: controller.signal,
+      ...(mode === "timeout" ? { timeoutMs: 100 } : {}) });
+    await started;
+    if (mode === "cancel") controller.abort();
+    const result = await Promise.race([op, new Promise((resolve) => setTimeout(() => resolve("hung"), 1000))]);
+    expect(result).toMatchObject({ status: mode === "cancel" ? "cancelled" : "failed", code: mode === "cancel" ? "cancelled" : "timeout", logicalRequests: 0 });
+    expect(signal.aborted).toBe(true);
+    for (const directory of readHooks.createdDirectories.slice(initial)) expect(existsSync(directory)).toBe(false);
+    release(generator); await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(factory).not.toHaveBeenCalled();
+  });
+
   it("extracts pending KPB rows, frozen evidence, mapped IDs and partial coverage with one call", async () => {
     const result = await run();
     expect(result.status).toBe("success"); expect(requests).toHaveLength(1);
@@ -193,12 +217,13 @@ describe("K2 production runtime", () => {
     const slow = path.join(temporary, "slow.cjs"); writeFileSync(slow, "while(true) {}");
     const controller = new AbortController();
     const file = path.resolve("test/fixtures/document-conversion/structured.docx");
-    const before = readdirSync(tmpdir()).filter((f) => f.startsWith("archi-k2-")).sort();
+    readHooks.createdDirectories = [];
     requests = [];
     const op = createArchiAgentRuntime({ diagramClientFactory: () => client, documentExtraction: { conversion: { workerFile: slow } } }).extractDocumentCandidates!({ documents: [{ path: file }], generator, signal: controller.signal, ...(kind === "timeout" ? { timeoutMs: 60 } : {}) });
     if (kind === "cancel") setTimeout(() => controller.abort(), 60);
     expect(await op).toMatchObject({ code: kind === "timeout" ? "timeout" : "cancelled", logicalRequests: 0 });
-    expect(readdirSync(tmpdir()).filter((f) => f.startsWith("archi-k2-")).sort()).toEqual(before);
+    expect(readHooks.createdDirectories.length).toBeGreaterThan(0);
+    for (const directory of readHooks.createdDirectories) expect(existsSync(directory)).toBe(false);
   });
   it("preserves OCR pages and blank coverage without invented confidence", async () => {
     const parent = path.join(temporary, "ocr-parent.mjs");

@@ -13,6 +13,7 @@ const createReasons = {
   "permission-denied": "The editor cannot write to this location.",
   "storage-full": "There is not enough storage space for the Knowledge Pack.",
   "file-changed": "A new pack file changed during creation.",
+  "cancelled": "The operation was cancelled.",
   "write-failed": "The Knowledge Pack could not be written at this location."
 } as const;
 
@@ -215,4 +216,18 @@ async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | und
 
 export async function configureKnowledgePack(): Promise<void> {
   await ensureKnowledgePack(true);
+}
+
+/** Reuse UX3 scope selection, serialization and guarded update without a cleanup receipt. */
+export async function preparePackActivation(): Promise<{ activate(directory: string): Promise<boolean> } | undefined> {
+  const folder = await selectedFolder();
+  if (folder === "cancelled" || (folder && folder.uri.scheme !== "file")) return undefined;
+  const configuration = vscode.workspace.getConfiguration(settingsSection, folder?.uri);
+  const target = folder ? vscode.ConfigurationTarget.WorkspaceFolder : vscode.ConfigurationTarget.Global;
+  const before = snapshot(configuration, target);
+  return { activate: (directory) => serialForResource(folder ? `folder:${folder.uri.fsPath}` : "global", async () => {
+    const valid = await validateKnowledgePackDirectory(directory);
+    if (!valid.ok) return false;
+    return (await storePath(configuration, target, before, directory, folder?.uri)).status === "ready";
+  }) };
 }

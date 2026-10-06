@@ -1,6 +1,6 @@
 # Archi Agent for VS Code
 
-This local UX3 candidate retains the **0.3.0-alpha.4** package version and has a different SHA-256 from the published release. It generates grounded PlantUML **Sequence** and **Component** diagrams from a flow and a local Architecture Knowledge Pack. A model proposes a plan, local code validates and renders it, and an independent model review checks the candidate. Verified diagrams and reports open in untitled editors.
+This local K3 candidate retains the **0.3.0-alpha.4** package version and has a different SHA-256 from the published release. It generates grounded PlantUML **Sequence** and **Component** diagrams from a flow and a local Architecture Knowledge Pack. A model proposes a plan, local code validates and renders it, and an independent model review checks the candidate. Verified diagrams and reports open in untitled editors.
 
 ## Install and start
 
@@ -19,7 +19,7 @@ For diagram generation:
 
 ## Commands and settings
 
-The public commands are **Open**, **Convert to Markdown**, **Generate Diagram**, **Generate Sequence Diagram** (the separate compatibility path), **Select Provider Profile**, **Select Model**, **Set or Update API Key**, and **Delete Saved API Key**, all under **Archi Agent**. Configuration in **Open** links to these commands and settings. The legacy local profile/model command IDs remain callable.
+The public commands are **Open**, **Build Knowledge Pack from Documents**, **Configure Knowledge Pack**, **Convert to Markdown**, **Generate Diagram**, **Generate Sequence Diagram** (the separate compatibility path), **Select Provider Profile**, **Select Model**, **Set or Update API Key**, and **Delete Saved API Key**, all under **Archi Agent**. Configuration in **Open** links to these commands and settings. The legacy local profile/model command IDs remain callable.
 
 **archiAgent.localModel.profile** and **archiAgent.localModel.selectedModel** are machine scoped. **archiAgent.localModel.selectedModelProfile** is an extension-managed binding; do not edit it. Legacy LM Studio **archiAgent.localModel.baseUrl** and **archiAgent.localModel.model** work until an explicit profile is selected. **archiAgent.localModel.timeoutSeconds** controls one model request, **archiAgent.defaultAuthor** applies to typed descriptions, and **archiAgent.diagnostics.verbose** enables safe structured diagnostics. Cloud keys are not settings.
 
@@ -27,4 +27,19 @@ The public commands are **Open**, **Convert to Markdown**, **Generate Diagram**,
 
 Only bounded, relevant grounded context is sent to the selected model, not the full pack. Local profiles accept loopback endpoints only; cloud profiles use fixed HTTPS hosts. Profile choice alone makes no provider request. Automated tests cover all adapters, but live owner smoke does not cover every provider. The prior UX2 VSIX passed owner smoke on Mac ARM; this `alpha.4` file awaits its own installation smoke.
 
-One Knowledge Pack directory is supported. Generated editors are not saved automatically, and PlantUML preview needs separate editor support. PDF OCR does not recover layout or tables. DOCX complex layout may lose fidelity; XLSX uses cached formula results. Conversion limits are 50 MiB input, 8 MiB Markdown output, 120 seconds, and 300 PDF pages. OCR allows 20 recognized pages, a 10 MP rendered canvas, a 16 MP embedded image, and a 300-second deadline once a page without text becomes an OCR candidate. Office ZIP allows at most 1000 entries, 100 MiB inflated in total, 25 MiB per entry, and a 100:1 compression ratio. XLSX allows at most 40 sheets, 20000 rows, 150 columns, and 250000 cells; worksheet XML is checked before parsing. DOC and XLS are unsupported. MCP, VS Code Chat, C4/ArchiMate types, Knowledge Pack Builder extraction/UI (K2/K3), retry, and repair are deferred; an internal deterministic Builder Stage A core exists but is not exposed by the VSIX. See the [full extension guide](https://github.com/Setech-pl/archi-agent/blob/main/docs/vscode-extension.md) and [root README](https://github.com/Setech-pl/archi-agent/blob/main/README.md).
+One Knowledge Pack directory is supported. Generated editors are not saved automatically, and PlantUML preview needs separate editor support. PDF OCR does not recover layout or tables. DOCX complex layout may lose fidelity; XLSX uses cached formula results. Conversion limits are 50 MiB input, 8 MiB Markdown output, 120 seconds, and 300 PDF pages. OCR allows 20 recognized pages, a 10 MP rendered canvas, a 16 MP embedded image, and a 300-second deadline once a page without text becomes an OCR candidate. Office ZIP allows at most 1000 entries, 100 MiB inflated in total, 25 MiB per entry, and a 100:1 compression ratio. XLSX allows at most 40 sheets, 20000 rows, 150 columns, and 250000 cells; worksheet XML is checked before parsing. DOC and XLS are unsupported. MCP, VS Code Chat, C4/ArchiMate types, retry, and repair are deferred. Knowledge Pack Builder K3 exposes document extraction and review using the deterministic Builder Stage A core. See the [full extension guide](https://github.com/Setech-pl/archi-agent/blob/main/docs/vscode-extension.md) and [root README](https://github.com/Setech-pl/archi-agent/blob/main/README.md).
+
+### Build a Knowledge Pack from documents
+
+Use **Archi Agent: Build Knowledge Pack from Documents**, also available under
+**Open → Knowledge Management**. Select local MD/TXT/PDF/DOCX/XLSX files, review the pending
+proposals, accept/reject groups, edit row fields and inspect the five exact Markdown previews.
+Pending decisions and unresolved dependencies/conflicts block saving. Evidence, IDs and
+inferred basis remain unchanged; OCR and partial coverage warnings remain visible.
+
+Choose an existing parent folder and a **new** pack folder name. **Save** leaves the configured
+pack unchanged; **Save and use** activates only after successful save/load, at the selected
+project scope (or Global without a workspace). An existing folder, even empty, is rejected.
+Activation failure preserves the saved pack. No autosave, existing-pack update/merge, extra LLM
+review call or persistent draft is added. Technical validation does not prove proposal truth.
+See the repository's `docs/knowledge-pack-review.md` for limitations and owner smoke.

@@ -49,7 +49,7 @@ function startHost(args, env, logPath) {
     child.once("close", (code) => { clearTimeout(timer); writeFileSync(logPath, Buffer.concat(output)); resolve(timedOut ? null : code); });
   });
 }
-export async function runHostSmoke(vsix, out) {
+export async function runHostSmoke(vsix, out, testScript = "ux3-extension-host.cjs", reportPrefix = "host") {
   const results = [];
   if (process.platform !== "darwin" || !existsSync(vscodeBinary)) return [{ id: "extension-host-settings", layer: "Extension Host",
     status: "NOT_RUN", expected: "real VS Code settings", actual: "local macOS VS Code binary unavailable", errorCode: "vscode-unavailable" }];
@@ -59,8 +59,8 @@ export async function runHostSmoke(vsix, out) {
     writeFileSync(path.join(harness, "package.json"), JSON.stringify({ name: "ux3-test-harness", publisher: "local", version: "0.0.1",
       engines: { vscode: "^1.91.0" }, main: "./extension.cjs", activationEvents: [] }));
     writeFileSync(path.join(harness, "extension.cjs"), "exports.activate = () => {};\n");
-    copyFileSync(path.join(scriptDirectory, "ux3-extension-host.cjs"), path.join(harness, "test.cjs"));
-    const reportPath = path.join(out, `host-${mode}.json`);
+    copyFileSync(path.join(scriptDirectory, testScript), path.join(harness, "test.cjs"));
+    const reportPath = path.join(out, `${reportPrefix}-${mode}.json`);
     const configPath = path.join(harness, "config.json");
     writeFileSync(configPath, JSON.stringify({ root: environment.root, mode, report: reportPath }));
     let workspace;
@@ -76,11 +76,11 @@ export async function runHostSmoke(vsix, out) {
     const exitCode = await startHost(["--user-data-dir", environment.user, "--extensions-dir", environment.extensions,
       `--extensionDevelopmentPath=${harness}`, `--extensionTestsPath=${path.join(harness, "test.cjs")}`,
       "--skip-welcome", "--skip-release-notes", ...(workspace ? [workspace] : [])],
-      { ...process.env, UX3_HOST_CONFIG: configPath }, path.join(out, `host-${mode}.log`));
+      { ...process.env, UX3_HOST_CONFIG: configPath }, path.join(out, `${reportPrefix}-${mode}.log`));
     if (existsSync(reportPath)) results.push(...JSON.parse(readFileSync(reportPath, "utf8")).results);
-    else results.push({ id: `host-${mode}`, layer: "Extension Host", status: "NOT_RUN", expected: "host settings assertions",
+    else results.push({ id: `${reportPrefix}-${mode}`, layer: "Extension Host", status: "NOT_RUN", expected: "host settings assertions",
       actual: "Extension Host did not write its report; see host log", errorCode: "host-start-failed" });
-    if (exitCode !== 0) results.push({ id: `host-completion-${mode}`, layer: "Extension Host", status: "FAIL",
+    if (exitCode !== 0) results.push({ id: `${reportPrefix}-completion-${mode}`, layer: "Extension Host", status: "FAIL",
       expected: "test host exits with code 0", actual: `exit ${exitCode ?? "timeout or signal"}`, errorCode: "host-run-failed" });
   }
   return results;

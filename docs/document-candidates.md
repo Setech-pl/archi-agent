@@ -127,3 +127,23 @@ K3 handoff: call this runtime entry, display pending proposals and normalized ev
 collect explicit decisions/edits, then revalidate with KPB-A before K3 implements its separately authorized safe five-file
 transaction. KPB-A currently renders/validates in memory; K2 supplies no accepted-pack writer.
 K2 does not provide write authorization, change `knowledgePackPath`, or initialize trusted knowledge.
+
+## K3 integration
+
+K3 reuses this production extraction operation and frozen `result.bundle.sources[].text`.
+The request's `generator` also accepts an async selection callback returning the existing
+`GeneratorConfig` or `undefined` (Cancel). It runs only after bounded read/conversion and
+bundle/request validation; static configurations remain compatible. Cancel or invalid input
+makes no generation request. This callback is a host interaction within the operation's
+existing deadline, not another extraction or retry.
+
+`KnowledgePackReviewSession` maps candidates to the existing KPB-A reviewed draft. Immutable
+entity and candidate IDs stay stable through row edits; references remain valid identity keys.
+Evidence is rechecked against frozen K2 text, never the original file. Row edits preserve basis,
+reasoning, evidence and conversion/OCR limitations, with a separate user-edit flag. Accepted
+provenance persists inside the same five Markdown files and survives the production loader/K1
+snapshot. See [K3 review and save](knowledge-pack-review.md) for user flow and transaction limits.
+
+The optional generator resolver receives the extraction AbortSignal. Cancel or deadline ends
+waiting even if a credential/model callback has not returned; a late result cannot construct a
+provider client or generate. K3 also forwards cancellation to model listing and its picker.
