@@ -28,7 +28,8 @@
     "ux3:gauntlet": "node scripts/ux3-gauntlet.mjs",
     "k1:gauntlet": "node scripts/k1-gauntlet.mjs",
     "k2:gauntlet": "node scripts/k2-gauntlet.mjs",
-    "k3:gauntlet": "node scripts/k3-gauntlet.mjs"
+    "k3:gauntlet": "node scripts/k3-gauntlet.mjs",
+    "art1:gauntlet": "node scripts/art1-gauntlet.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.8.15",

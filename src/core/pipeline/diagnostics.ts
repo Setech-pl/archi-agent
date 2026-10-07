@@ -31,6 +31,7 @@ export class DiagnosticRun {
   #phase = "command";
 
   constructor(sink?: DiagnosticSink) { this.#sink = sink; this.#runId = sink === undefined ? undefined : globalThis.crypto.randomUUID(); }
+  get runId(): string | null { return this.#runId ?? null; }
   get generatorCalls(): number { return this.#generatorCalls; }
   get reviewerCalls(): number { return this.#reviewerCalls; }
   generatorStarted(): void { this.#generatorCalls += 1; }

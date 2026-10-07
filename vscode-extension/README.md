@@ -43,3 +43,15 @@ project scope (or Global without a workspace). An existing folder, even empty, i
 Activation failure preserves the saved pack. No autosave, existing-pack update/merge, extra LLM
 review call or persistent draft is added. Technical validation does not prove proposal truth.
 See the repository's `docs/knowledge-pack-review.md` for limitations and owner smoke.
+
+## Controlled diagram and report save (ART1)
+
+Use **Save Diagram and Report** after a completed Sequence/Component generation, or run
+**Archi Agent: Save Diagram and Report** from the palette or **Archi Agent: Open**. Select an
+original result and, for multi-root, its destination project; confirm the displayed folder and
+`diagram.puml` / `report.json`. Original generation bytes and the linked report are saved together
+in a new `archi-agent-results/<UTC-time>-<bundle-UUID>/` folder. Existing targets are never
+overwritten; Cancel before save creates nothing. The report envelope records snapshot/source
+digests and a safe deterministic configuration digest. Save makes no model request or source
+refresh. The two-file write is not atomic publication; rollback preserves data it cannot prove
+unchanged and owned. Repository documentation: `docs/diagram-artifact-save.md` (format and boundaries).

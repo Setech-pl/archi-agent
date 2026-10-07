@@ -62,7 +62,7 @@ flow and the bare directory name of the pack.
 
 ## Commands
 
-`Archi Agent: Open` (`archiAgent.open`) displays four QuickPick sections: Generate Diagram,
+`Archi Agent: Open` (`archiAgent.open`) displays five QuickPick choices: Generate Diagram, Save Diagram and Report,
 Configuration, Knowledge Management and Convert to Markdown. Generate Diagram calls the existing
 `archiAgent.generateDiagram`; Configuration routes to the existing provider, model and API-key
 commands or opens the relevant VS Code setting; Configuration and Knowledge Management both offer
@@ -467,3 +467,10 @@ The automated extracted-VSIX smoke is
   Google Drive, OneDrive and SharePoint, C4 and ArchiMate profiles,
   the repair loop and marketplace publishing. Semantic review is implemented for D1.2 Sequence
   and D2 Component.
+
+## ART1 controlled save
+
+The separate save command consumes the original completed runtime artifact associated with open
+result previews. It does not read settings, buffers, secrets or architecture sources. It saves two
+files in a new project subdirectory only after explicit confirmation; multi-root chooses a project.
+See [format, digests and conditional rollback](diagram-artifact-save.md).

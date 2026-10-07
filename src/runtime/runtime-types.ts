@@ -166,6 +166,8 @@ export type RuntimeFailureStage =
 
 export interface GenerateSequenceDiagramSuccess {
   readonly status: "success";
+  /** ART1 original completed run; absent on older host doubles. */
+  readonly artifact?: import("./diagram-artifact.js").DiagramArtifact;
   readonly diagramName: string;
   readonly generatorType: string;
   /** Lower-case hexadecimal SHA-256 of the grounded context. */

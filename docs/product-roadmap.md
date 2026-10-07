@@ -55,6 +55,7 @@ Completed sequence and planned work (unranked rows have no approved position rel
 | 10 | K1 | Implemented and technically verified: shared knowledge snapshot, partial coverage, provenance/gaps/conflicts, Markdown adapter; full gates/audit/review PASS. Local checkpoint only. OWNER_SMOKE: DEFERRED. |
 | 11 | K2 | Implemented and technically verified: bounded document bundle, one extraction call and deterministic evidence verifier through runtime; full gates/audit/review PASS, local checkpoint only, OWNER_SMOKE DEFERRED. |
 | 12 | K3 | Implemented; full automatic gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED: document review, grouped decisions/edits and five-file save in new folders only. Updates/merges excluded; controlled operation transaction, not atomic directory publication. |
+| 13 | ART1 | Implemented on separately authorized local branch: explicit original Sequence/Component diagram and linked report save; no overwrite, history, regeneration or MCP. Full technical gates PASS after same-VSIX K3 UI rerun; independent review PASS; local technical checkpoint; OWNER_SMOKE DEFERRED. |
 | — | M1 | Separate planned MCP adapter into `ArchitectureSnapshot`; scheduling relative to K1–K3 is open. |
 | — | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
 | — | D3 | `c4-context` plan, validator and renderer. |
@@ -308,6 +309,7 @@ do not imply a newly approved cross-stage order.
 | D5 | planned | `archimate-hld` plan, validator and renderer; no external includes. | D4 |
 | K2 | implemented and technically verified; gates/audit/review PASS | Knowledge Pack Builder extraction and evidence verifier. | K1 |
 | K3 | implemented; full automatic gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED | Knowledge Pack Builder UI and five-file write. | K2 |
+| ART1 | implemented; full technical gates PASS, independent review PASS; local technical checkpoint; OWNER_SMOKE DEFERRED | Explicit original Sequence/Component PlantUML plus linked report in a new two-file bundle, captured snapshot/source/configuration digests, no overwrite or regeneration; conditional rollback. | K3 |
 | REL | planned | Broader release work and owner-accepted VSIX after K3; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` were earlier prereleases. | K3 |
 
 ## Later
@@ -884,6 +886,7 @@ Summary of the [Status overview](#status-overview), which is authoritative.
 | Semantic reviewer in D1.1 | implemented; retained in R2 target |
 | Repair loop | deferred |
 | Quality modes | deferred |
+| ART1 — controlled diagram and linked report save | implemented; technical gates PASS, independent review PASS; local technical checkpoint; OWNER_SMOKE DEFERRED |
 | Document sources (PDF, DOCX; Confluence/Jira via MCP) | planned |
 | EA XML architecture source (local file) | deferred (no safe public EA fixture) |
 | EA API, Prolaborate | planned |
@@ -894,3 +897,10 @@ the rest are not ordered. The order may change as integration constraints appear
 are set.
 
 K3 owner decision (2026-10-06): create a new pack in a new folder in the current project or an explicitly chosen local location. No new project requirement, update, merge, migration, persistent drafts or autosave. See [K3](knowledge-pack-review.md).
+
+ART1 is separately authorized after the K3 local checkpoint. [Controlled artifact save](diagram-artifact-save.md)
+captures the original completed result and saves `diagram.puml` / `report.json` only after explicit
+confirmation in a selected project. It adds no history, replay, regeneration, extra model calls,
+source refresh, export formats or MCP. Two-file publication is not atomic; conditional rollback
+preserves foreign or uncertain data. Technical gates, independent review and deferred owner smoke
+are separate statuses; this candidate keeps alpha.4 and is not a published installer.

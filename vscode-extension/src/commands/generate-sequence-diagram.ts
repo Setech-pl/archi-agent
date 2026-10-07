@@ -1,3 +1,4 @@
+import { OpenDiagramResults, saveDiagramAction, saveDiagramAndReportCommand } from "./save-diagram-and-report.js";
 import path from "node:path";
 import * as vscode from "vscode";
 import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, DiagramType, FlowSource, GenerateDiagramUnverified, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
@@ -27,6 +28,7 @@ import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
 export interface GenerateCommandDependencies {
   readonly runtime: ArchiAgentRuntime;
   readonly output: vscode.OutputChannel;
+  readonly results?: OpenDiagramResults;
   readonly secrets?: vscode.SecretStorage;
 }
 
@@ -210,7 +212,7 @@ function resolutionPrompts(): ResolutionPrompts {
   };
 }
 
-async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): Promise<void> {
+async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess, results?: OpenDiagramResults): Promise<void> {
   const languages = await vscode.languages.getLanguages();
   const diagram = await vscode.workspace.openTextDocument({
     language: languages.includes("plantuml") ? "plantuml" : "plaintext",
@@ -218,6 +220,7 @@ async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): P
   });
   await vscode.window.showTextDocument(diagram, { viewColumn: vscode.ViewColumn.Active, preview: false });
   const report = await vscode.workspace.openTextDocument({ language: "json", content: result.groundingReport });
+  results?.remember(result.artifact, [diagram, report]);
   await vscode.window.showTextDocument(report, { viewColumn: vscode.ViewColumn.Beside, preview: false, preserveFocus: true });
 }
 
@@ -366,6 +369,14 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
     return;
   }
 
-  await openGeneratedDocuments(outcome.result);
-  await show(output, describeSuccess(outcome.result, diagramType === "component" ? "component" : "sequence"));
+  await openGeneratedDocuments(outcome.result, dependencies.results);
+  const message = describeSuccess(outcome.result, diagramType === "component" ? "component" : "sequence");
+  if (dependencies.results && outcome.result.artifact) {
+    output.appendLine(message.text);
+    for (const detail of message.details) output.appendLine(`  ${detail}`);
+    const notify = message.level === "warning" ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
+    const action = await notify(message.text, saveDiagramAction, showDetailsAction);
+    if (action === saveDiagramAction) await saveDiagramAndReportCommand(dependencies.results, outcome.result.artifact);
+    if (action === showDetailsAction) output.show(true);
+  } else await show(output, message);
 }

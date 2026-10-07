@@ -15,8 +15,8 @@ beforeEach(() => {
 });
 
 describe("UX1 QuickPick navigation", () => {
-  it("shows exactly four main functions and no future knowledge options", () => {
-    expect(mainChoices.map((item) => item.label)).toEqual(["Generate Diagram", "Configuration", "Knowledge Management", "Convert to Markdown"]);
+  it("shows five main functions and no future knowledge options", () => {
+    expect(mainChoices.map((item) => item.label)).toEqual(["Generate Diagram", "Save Diagram and Report", "Configuration", "Knowledge Management", "Convert to Markdown"]);
     expect(knowledgeChoices.map((item) => item.label)).toEqual(["Build Knowledge Pack from Documents", "Configure Knowledge Pack", "$(arrow-left) Back"]);
     expect(configurationChoices.map((item) => item.label)).toEqual([
       "Select Provider Profile", "Select Model", "Check Provider Configuration", "Set/Update API Key", "Delete API Key",

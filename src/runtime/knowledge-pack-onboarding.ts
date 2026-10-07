@@ -39,6 +39,7 @@ export interface StarterPackReceipt {
   readonly directory: string;
   readonly files: readonly CreatedFile[];
   readonly directories: readonly CreatedDirectory[];
+  readonly guards?: readonly CreatedDirectory[];
 }
 
 /** Narrow fault seam for deterministic transaction tests; production calls omit it. */
@@ -48,6 +49,8 @@ export interface StarterPackCreateOptions {
   readonly requireNewDirectory?: boolean;
   readonly signal?: AbortSignal;
   readonly verify?: () => Promise<void>;
+  /** Existing ancestors owned by the project, checked but never removed. */
+  readonly projectRoot?: string;
 }
 
 export type StarterPackCreateCode = "invalid-location" | "location-exists" | "symbolic-link" |
@@ -135,15 +138,42 @@ export async function createStarterKnowledgePack(directory: string, system: Firs
 /** Shared exclusive writer. K3 requires a new directory; UX3 retains its existing contract. */
 export async function createKnowledgePackFiles(directory: string, contents: readonly string[],
   options: StarterPackCreateOptions = {}): Promise<StarterPackReceipt> {
+  if (contents.length !== 5) throw new StarterPackCreateError("write-failed");
+  return createExclusiveArtifactFiles(directory, names, contents, options);
+}
+
+/** Shared K3/ART1 file creation and conditional rollback; no recursive deletion. */
+export async function createExclusiveArtifactFiles(directory: string, fileNames: readonly string[], contents: readonly string[],
+  options: StarterPackCreateOptions = {}): Promise<StarterPackReceipt> {
   const check = () => { if (options.signal?.aborted) throw new StarterPackCreateError("cancelled"); };
   check();
-  if (contents.length !== 5) throw new StarterPackCreateError("write-failed");
+  if (contents.length !== fileNames.length || fileNames.some((name) => !/^[a-z][a-z.]*$/.test(name)) || new Set(fileNames).size !== fileNames.length) throw new StarterPackCreateError("write-failed");
   if (!path.isAbsolute(directory) || /[\x00-\x1f\x7f]/u.test(directory) || path.parse(directory).root === directory) {
     throw new StarterPackCreateError("invalid-location");
   }
   const createdDirectories: CreatedDirectory[] = [];
   const createdFiles: CreatedFile[] = [];
+  const guards: CreatedDirectory[] = [];
+  if (options.projectRoot !== undefined) {
+    const root = options.projectRoot;
+    const relative = path.relative(root, directory);
+    if (!path.isAbsolute(root) || !relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new StarterPackCreateError("invalid-location");
+    // Existing ancestors must stay the same throughout writes and cleanup.
+    let ancestor = root;
+    for (const segment of ["", ...relative.split(path.sep).slice(0, -1)]) {
+      if (segment) ancestor = path.join(ancestor, segment);
+      try { guards.push(await createdDirectory(ancestor)); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") break; throw error; }
+    }
+  }
+  const checkDirectories = async () => {
+    for (const owned of [...guards, ...createdDirectories]) {
+      const current = await createdDirectory(owned.path);
+      if (current.dev !== owned.dev || current.ino !== owned.ino) throw new StarterPackCreateError("file-changed");
+    }
+  };
   try {
+    await checkDirectories();
     await makeDirectories(path.dirname(directory), createdDirectories);
     try {
       await mkdir(directory);
@@ -157,14 +187,14 @@ export async function createKnowledgePackFiles(directory: string, contents: read
       if ((await readdir(directory)).length > 0) throw new StarterPackCreateError("location-exists");
       // A pre-existing empty destination belongs to its owner, including after a failed write.
     }
-    for (let index = 0; index < names.length; index += 1) {
+    for (let index = 0; index < fileNames.length; index += 1) {
       check();
       // Refuse to write through a directory replaced since exclusive creation.
-      for (const ownedDirectory of createdDirectories) {
+      for (const ownedDirectory of [...guards, ...createdDirectories]) {
         const current = await createdDirectory(ownedDirectory.path);
         if (current.dev !== ownedDirectory.dev || current.ino !== ownedDirectory.ino) throw new StarterPackCreateError("file-changed");
       }
-      const file = path.join(directory, names[index]!);
+      const file = path.join(directory, fileNames[index]!);
       const expectedBytes = Buffer.from(contents[index]!, "utf8");
       const expectedDigest = createHash("sha256").update(expectedBytes).digest("hex");
       const handle = await open(file, "wx+", 0o600);
@@ -220,7 +250,7 @@ export async function createKnowledgePackFiles(directory: string, contents: read
     }
     check();
     await options.verify?.();
-    for (const owned of createdDirectories) {
+    for (const owned of [...guards, ...createdDirectories]) {
       const current = await createdDirectory(owned.path);
       if (current.dev !== owned.dev || current.ino !== owned.ino) throw new StarterPackCreateError("file-changed");
     }
@@ -231,9 +261,9 @@ export async function createKnowledgePackFiles(directory: string, contents: read
         throw new StarterPackCreateError("file-changed");
     }
     check();
-    return { directory, files: createdFiles, directories: createdDirectories };
+    return { directory, files: createdFiles, directories: createdDirectories, guards };
   } catch (error) {
-    const cleanup = await cleanupStarterKnowledgePack({ directory, files: createdFiles, directories: createdDirectories });
+    const cleanup = await cleanupStarterKnowledgePack({ directory, files: createdFiles, directories: createdDirectories, guards });
     throw new StarterPackCreateError(createCode(error), cleanup.preservedFiles.length > 0, error);
   }
 }
@@ -244,7 +274,7 @@ export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): 
   for (const file of [...receipt.files].reverse()) {
     try {
       // Every owned ancestor must still be the same directory before any unlink.
-      for (const ancestor of receipt.directories) {
+      for (const ancestor of [...(receipt.guards ?? []), ...receipt.directories]) {
         const currentDirectory = await createdDirectory(ancestor.path);
         if (currentDirectory.dev !== ancestor.dev || currentDirectory.ino !== ancestor.ino) throw new StarterPackCreateError("file-changed");
       }
@@ -260,6 +290,10 @@ export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): 
   }
   for (const directory of [...receipt.directories].reverse()) {
     try {
+      for (const guard of receipt.guards ?? []) {
+        const currentGuard = await createdDirectory(guard.path);
+        if (currentGuard.dev !== guard.dev || currentGuard.ino !== guard.ino) throw new StarterPackCreateError("file-changed");
+      }
       const current = await lstat(directory.path);
       if (current.isDirectory() && !current.isSymbolicLink() && current.dev === directory.dev && current.ino === directory.ino)
         await rmdir(directory.path);

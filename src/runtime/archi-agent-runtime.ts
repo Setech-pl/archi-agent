@@ -1,3 +1,4 @@
+import { captureDiagramArtifact } from "./diagram-artifact.js";
 import { extractDocumentCandidates, type ExtractDocumentCandidatesRequest, type ExtractDocumentCandidatesOutcome, type DocumentExtractionOptions } from "./extract-document-candidates.js";
 import path from "node:path";
 import { parseFlowDocument, type FlowDocument } from "../core/grounding/grounded-context-builder.js";
@@ -87,6 +88,7 @@ export const runtimeLimits = Object.freeze({
 export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpoint) => SequenceModelGenerator;
 
 export interface ArchiAgentRuntimeOptions {
+  readonly extensionVersion?: string;
   readonly documentExtraction?: DocumentExtractionOptions;
   readonly generatorFactory?: GeneratorFactory;
   /** Structured-chat seam for the D1 local path; remote adapters use remoteTransport. */
@@ -539,7 +541,16 @@ function mapOutcome(outcome: PipelineOutcome): GenerateSequenceDiagramResult {
   }
 }
 
+/** Freeze caller inputs before the first await, without mutating the host's settings. */
+function freezeGenerationRequest<T extends GenerateSequenceDiagramRequest>(request: T): T {
+  return { ...request, flow: { ...request.flow }, knowledgePack: { ...request.knowledgePack },
+    generator: { ...request.generator, ...("credential" in request.generator && request.generator.credential ? { credential: { ...request.generator.credential } } : {}) },
+    ...(request.selections ? { selections: { ...request.selections } } : {}),
+    ...(request.confirmedNewParticipants ? { confirmedNewParticipants: [...request.confirmedNewParticipants] } : {}) };
+}
+
 class NodeArchiAgentRuntime implements ArchiAgentRuntime {
+  readonly #extensionVersion: string | null;
   readonly #documentExtraction: DocumentExtractionOptions;
   readonly #generatorFactory: GeneratorFactory;
   readonly #providerRegistry: ProviderRegistry;
@@ -548,6 +559,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #diagramClientFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
 
   public constructor(options: ArchiAgentRuntimeOptions) {
+    this.#extensionVersion = options.extensionVersion ?? null;
     this.#documentExtraction = options.documentExtraction ?? {};
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
     this.#providerRegistry = options.providerRegistry ?? new ProviderRegistry([...localProviderProfiles, ...remoteProviderProfiles]);
@@ -565,6 +577,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   }
 
   public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {
+    request = freezeGenerationRequest(request);
     const diagnostics = new DiagnosticRun(request.diagnosticSink);
     diagnostics.emit("command.started", { diagramType: request.diagramType, flowSourceKind: request.flow.kind });
     const execute = async (): Promise<GenerateDiagramOutcome> => {
@@ -586,7 +599,9 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
         ...(request.selections === undefined ? {} : { selections: request.selections }),
         ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
         ...(request.signal === undefined ? {} : { signal: request.signal }) });
-      return outcome.status === "unverified" ? outcome : mapOutcome(outcome);
+      const result = outcome.status === "unverified" ? outcome : mapOutcome(outcome);
+      return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
+        pack.knowledgePack.knowledge!, request.diagramType as "sequence" | "component", diagnostics.runId, this.#extensionVersion) }) : result;
     };
     try {
       const result = await execute();
@@ -601,6 +616,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   }
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {
+    request = freezeGenerationRequest(request);
     const flow = await resolveFlow(request.flow);
 
     if (!flow.ok) {
@@ -636,7 +652,9 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       ...(request.signal === undefined ? {} : { signal: request.signal })
     });
 
-    return mapOutcome(outcome);
+    const result = mapOutcome(outcome);
+    return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
+      pack.knowledgePack.knowledge!, "sequence", null, this.#extensionVersion) }) : result;
   }
 
   public listProviderProfiles() {

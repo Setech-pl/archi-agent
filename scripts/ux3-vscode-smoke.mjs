@@ -49,7 +49,7 @@ function startHost(args, env, logPath) {
     child.once("close", (code) => { clearTimeout(timer); writeFileSync(logPath, Buffer.concat(output)); resolve(timedOut ? null : code); });
   });
 }
-export async function runHostSmoke(vsix, out, testScript = "ux3-extension-host.cjs", reportPrefix = "host") {
+export async function runHostSmoke(vsix, out, testScript = "ux3-extension-host.cjs", reportPrefix = "host", extraFiles = []) {
   const results = [];
   if (process.platform !== "darwin" || !existsSync(vscodeBinary)) return [{ id: "extension-host-settings", layer: "Extension Host",
     status: "NOT_RUN", expected: "real VS Code settings", actual: "local macOS VS Code binary unavailable", errorCode: "vscode-unavailable" }];
@@ -60,6 +60,7 @@ export async function runHostSmoke(vsix, out, testScript = "ux3-extension-host.c
       engines: { vscode: "^1.91.0" }, main: "./extension.cjs", activationEvents: [] }));
     writeFileSync(path.join(harness, "extension.cjs"), "exports.activate = () => {};\n");
     copyFileSync(path.join(scriptDirectory, testScript), path.join(harness, "test.cjs"));
+    for (const file of extraFiles) copyFileSync(path.join(scriptDirectory, file), path.join(harness, file));
     const reportPath = path.join(out, `${reportPrefix}-${mode}.json`);
     const configPath = path.join(harness, "config.json");
     writeFileSync(configPath, JSON.stringify({ root: environment.root, mode, report: reportPath }));

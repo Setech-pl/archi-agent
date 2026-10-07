@@ -8,6 +8,6 @@ import { createArchiAgentRuntime, type ArchiAgentRuntime } from "../../../src/ru
  * the Node adapters and their single dependency. The extension therefore never spawns a process,
  * never runs an npm script and never resolves anything in the source repository.
  */
-export function createPackagedRuntime(): ArchiAgentRuntime {
-  return createArchiAgentRuntime();
+export function createPackagedRuntime(extensionVersion?: string): ArchiAgentRuntime {
+  return createArchiAgentRuntime({ extensionVersion });
 }

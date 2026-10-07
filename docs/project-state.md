@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-10-06 |
-| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a` i K1 `59be33946883ff275a80f95e53aa1acf375db3d6`; K2 `93667c249bbfca8f83808915e53b61706ef3793e`; bieżący K3 na `feature/k3-knowledge-pack-review-and-save` od K2. Dokładny checkpoint K3 i drzewo sprawdzaj w Git; dokument nie zawiera SHA swojego własnego commita. |
+| Data aktualizacji | 2026-10-07 |
+| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`, K1 `59be33946883ff275a80f95e53aa1acf375db3d6`, K2 `93667c249bbfca8f83808915e53b61706ef3793e` i K3 `4b280e3fb469b4d1bdcea0fa0be6937916938b2a`. ART1 na `feature/art1-controlled-artifact-save` od K3; dokładny HEAD/checkpoint i drzewo sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -28,11 +28,66 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan UX3 | Lokalny checkpoint `f7b548c`; override Mammoth → argparse 2.0.1 usunął rzeczywisty sprintf-js. Czyste npm ci, audit 0 i końcowe bramki UX3 PASS (1412 root, 279 extension, DOCX sources/package 5/5, runtime27, Host12, UI12). Zamknięte HIGH zachowane. Niezależny finalny review PASS bez otwartych high/medium. OWNER_SMOKE: DEFERRED. |
 | Stan K1 | Wspólny kontrakt i adapter Markdown zaimplementowane. Celowane77, root1445, extension289, audit0, poza repo K1 16/16, UX3runtime27/27, DOCX5/5, Host12/12 i wszystkie bramki PASS. Niezależny review źródeł i dokładnego VSIX PASS, trzy medium zamknięte; brak otwartych high/medium. Lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Stan K2 | Produkcyjna ekstrakcja dokumentów i deterministyczna walidacja propozycji zaimplementowane. Root1518, extension362, focused215, audit root/OCR0, runtime poza repo17, Host12 i pełny gauntlet PASS. Niezależny re-review zamknął trzy medium; brak otwartych high/medium. Lokalny checkpoint; OWNER_SMOKE: DEFERRED. |
-| Następny etap | K3 zaimplementowane; pełne bramki i niezależny finalny review PASS. Lokalny checkpoint; STOP. Następny milestone ART1 wymaga osobnej autoryzacji. Zbiorczy owner smoke DEFERRED. ART1/MCP nie rozpoczęto. |
+| Stan K3 | Techniczny checkpoint `4b280e3`, pełne bramki i niezależny review PASS. OWNER_SMOKE: DEFERRED; bez ponownej finalizacji. |
+| Stan ART1 | Implemented; wszystkie techniczne bramki PASS po celowanym K3 UI rerun na tym samym VSIX. Niezależny re-review PASS (32/32 własnych kontroli), brak otwartych HIGH/MEDIUM; lokalny techniczny checkpoint, OWNER_SMOKE: DEFERRED. |
+| Następny etap | STOP po lokalnym checkpointcie ART1. MCP/K4 i przygotowanie wydania nie rozpoczęte. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## ART1 — controlled diagram and report save (2026-10-07)
+
+Autoryzacja: preflight → implementacja → pełny gauntlet → niezależny review → lokalny
+checkpoint → STOP. Bez push/main/tag/publication ani K4. Baza K3
+`4b280e3fb469b4d1bdcea0fa0be6937916938b2a`, preflight clean/staging empty; K2
+`93667c249bbfca8f83808915e53b61706ef3793e` jest przodkiem. Branch
+`feature/art1-controlled-artifact-save`. Historyczny VSIX K3 zachowany, oczekiwany SHA256
+`27994ba152fcab79379139714042420689b36b79713cbb1b1b16b54f7ab6fd98` potwierdzony.
+ART1 przechwytuje zamrożony oryginalny wynik przy sukcesie runtime, bez zmiany semantyki
+Sequence/Component. Cienkie UI: Save Diagram and Report → wybrany projekt → natywny modal
+z celem i dwoma plikami → wyłączny zapis `diagram.puml` / `report.json`. Wspólny writer K3
+rozszerzony o dwa stałe pliki i guards istniejących przodków; conditional rollback, bez
+atomowej publikacji katalogu. Kontrakt: [ART1](diagram-artifact-save.md).
+Wszystkie bieżące bramki techniczne PASS: root1597/1597 (106 plików), extension441/441
+(22 pliki), focused294/294 (ART1 46), oba typechecki, build/package/verify529, demo dry run,
+audit root/OCR0. Dokładny packaged runtime poza repo: ART112/12, K315/15, K217/17,
+K116/16, UX327/27, DOCX source/package5/5. Host UX312/12, K315/15, ART121/21;
+native Mac ARM ART1UI9/9. Host VS Code1.140.0, Node24.21.0, macOS arm64;
+harness Node26.10.0. Transport syntetyczny, bez dowodu jakości żywego LLM.
+Kandydat ART1 (nie opublikowany instalator):
+`build/art1/gauntlet-2026-10-07T10-00-28-814Z-27274/archi-agent-0.3.0-alpha.4.vsix`,
+119846376 B, SHA256 `eb348a23b0b049cd99f200106302d4d143b70c8a25f4e5851d75afa042135288`.
+W tym katalogu `final-manifest.json` / `final-report.json` / `final-report.txt` wiążą
+194 bramki, bazę, źródła, dokładny VSIX i bieżące dowody. Trzy bundle i OCR521 zgodne
+bajtowo ze świeżymi źródłami; wcześniejsze VSIX zachowane.
+Runda1 niezależnego review: FAIL, jedno MEDIUM — błąd Open Diagram/Open Report po
+zweryfikowanym commitcie był zgłaszany jako nieukończony zapis. Poprawiono lokalną obsługę
+błędu otwarcia: potwierdza zapis i wskazuje plik do ręcznego otwarcia, bez Retry Save.
+Cztery nowe regresje obejmują openTextDocument/showTextDocument dla obu plików.
+Po poprawce wykonano nowy pełny gauntlet i wszystkie wymagane dowody na nowym SHA VSIX.
+Jego exit1 wynikał wyłącznie z K3 native harness: mouse-release starego QuickPicka po
+otwarciu szczegółów odrzucił następną kontrolkę. Failed `report.json` i pierwszy narrow
+rerun zachowane. Produkcja nie zmieniona; harness zatwierdza widoczne wybory klawiaturą i
+czeka na zamknięcie native sheet. `k3-ui-keyboard-rerun-2/summary.json`: PASS9/9 na tym samym
+SHA. Finalny świeży build trzech bundle zgodny z kandydatem; manifest oddziela fingerprint
+builda od końcowych zmian harnessu/dokumentacji. Pierwszy kandydat w
+`build/art1/gauntlet-2026-10-07T09-29-06-828Z-22263/` oraz jego failed/rerun dowody i
+`independent-review-round-1.md` zachowane; nie są dowodami nowego SHA.
+Niezależny re-review runda2: PASS, 32/32 własnych kontroli (runtime/package/build/guards22,
+Open failure4, evidence/whitespace6). MEDIUM zamknięte; brak otwartych HIGH/MEDIUM.
+`independent-review-final.md` oraz oddzielne własne skrypty i raporty reviewera zachowane
+przy finalnym kandydacie. Finalne statusy dokumentacji sprawdzone osobno po review.
+ART1 kończy się autoryzowanym lokalnym checkpointem obejmującym wyłącznie ART1; dokładny
+hash i clean working tree/staging potwierdź w Git oraz `final-manifest.json`. STOP po nim.
+OWNER_SMOKE: DEFERRED. K2/K3 techniczne checkpointy i review PASS pozostają historyczne;
+nowe regresje są dowodami dokładnego ART1, nie przeniesionymi wynikami starych VSIX.
+PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED. MCP/K4 nie rozpoczęto.
+Granice: kontrolowana transakcja dwóch plików, bez atomowej publikacji/crash recovery/fsync
+ani race-free ochrony przed wrogimi zmianami ścieżek między syscallami; conditional rollback
+zachowuje niepewne dane. Owner smoke zbiorczy: UX3/K2/K3 → Knowledge Pack → oba typy
+przez żywy model → Save Diagram and Report → oryginalne bajty/raport/digesty → powtórny
+zapis, istniejący pokazany cel (także pusty) oraz Cancel. Użyj wyłącznie powyższego kandydata.
 
 ## K3 — implementacja i weryfikacja (2026-10-06)
 

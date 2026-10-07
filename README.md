@@ -49,3 +49,20 @@ The [local-model demo](docs/local-model.md) is also a contributor workflow. With
 npm run demo:llm:dry-run -- "<model-id>"
 npm run demo:llm -- "<model-id>"
 ```
+
+## Controlled diagram and report save (ART1)
+
+Use **Save Diagram and Report** after a completed Sequence/Component generation, or run
+**Archi Agent: Save Diagram and Report** from the palette or **Archi Agent: Open**. Select an
+original result and, for multi-root, its destination project; confirm the displayed folder and
+`diagram.puml` / `report.json`. Original generation bytes and the linked report are saved together
+in a new `archi-agent-results/<UTC-time>-<bundle-UUID>/` folder. Existing targets are never
+overwritten; Cancel before save creates nothing. The report envelope records snapshot/source
+digests and a safe deterministic configuration digest. Save makes no model request or source
+refresh. The two-file write is not atomic publication; rollback preserves data it cannot prove
+unchanged and owned. See [ART1 format and boundaries](docs/diagram-artifact-save.md).
+
+ART1 technical gates and independent review are PASS; ART1 has a local technical checkpoint.
+K2/K3 keep their existing technical checkpoints and review PASS. Owner smoke for the combined
+candidate is DEFERRED; the ART1 alpha.4 candidate is not published. Current evidence and separate
+statuses are recorded in [project state](docs/project-state.md).

@@ -4,6 +4,7 @@
  */
 
 export const commandIds = Object.freeze({
+  saveDiagramAndReport: "archiAgent.saveDiagramAndReport",
   buildKnowledgePack: "archiAgent.buildKnowledgePack",
   open: "archiAgent.open",
   convertToMarkdown: "archiAgent.convertToMarkdown",

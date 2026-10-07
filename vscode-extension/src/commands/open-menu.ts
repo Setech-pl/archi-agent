@@ -1,13 +1,14 @@
 import * as vscode from "vscode";
 import { commandIds, settingKeys, settingsSection } from "../contributions.js";
 
-type MainChoice = "generate" | "configuration" | "knowledge" | "convert";
+type MainChoice = "generate" | "save" | "configuration" | "knowledge" | "convert";
 type ConfigChoice = "provider" | "model" | "check" | "set-key" | "delete-key" | "pack" | "verbose" | "other" | "back";
 
 interface Choice<T extends string> extends vscode.QuickPickItem { readonly id: T }
 
 export const mainChoices: readonly Choice<MainChoice>[] = Object.freeze([
   { id: "generate", label: "Generate Diagram" },
+  { id: "save", label: "Save Diagram and Report" },
   { id: "configuration", label: "Configuration" },
   { id: "knowledge", label: "Knowledge Management" },
   { id: "convert", label: "Convert to Markdown" }
@@ -41,6 +42,7 @@ export async function openArchiAgentMenu(): Promise<void> {
     const main = await vscode.window.showQuickPick(mainChoices, { title: "Archi Agent", placeHolder: "Choose a function" });
     if (!main) return;
     if (main.id === "generate") return void (await vscode.commands.executeCommand(commandIds.generateDiagram));
+    if (main.id === "save") return void (await vscode.commands.executeCommand(commandIds.saveDiagramAndReport));
     if (main.id === "convert") return void (await vscode.commands.executeCommand(commandIds.convertToMarkdown));
 
     if (main.id === "knowledge") {

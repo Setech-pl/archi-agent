@@ -58,6 +58,8 @@ for _ in 0..<50 {
     RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
 }
 _ = wait("sheet on synthetic VS Code PID") { tree(app).first { attribute($0, kAXRoleAttribute) as? String == kAXSheetRole } }
+// Wait for the native sheet to finish presenting before its keyboard action.
+RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.5))
 key(5, [.maskCommand, .maskShift]) // G: native Go to Folder
 let field = wait("focused Go to Folder text field") {
     tree(app).first { attribute($0, kAXRoleAttribute) as? String == kAXTextFieldRole && attribute($0, kAXFocusedAttribute) as? Bool == true }
@@ -68,10 +70,10 @@ guard AXUIElementSetAttributeValue(field, kAXValueAttribute as CFString, destina
     exit(1)
 }
 key(36)
-let button = wait("enabled Use Knowledge Pack button") {
+let button = wait("enabled picker confirmation button") {
     tree(app).first {
         attribute($0, kAXRoleAttribute) as? String == kAXButtonRole &&
-        ["Use documents", "Choose parent folder", "Use Knowledge Pack", "Open", "Otwórz", "Select Folder"].contains(attribute($0, kAXTitleAttribute) as? String ?? "") &&
+        ["Use flow file", "Use documents", "Choose parent folder", "Use Knowledge Pack", "Open", "Otwórz", "Select Folder"].contains(attribute($0, kAXTitleAttribute) as? String ?? "") &&
         attribute($0, kAXEnabledAttribute) as? Bool == true &&
         !tree(app).contains { attribute($0, kAXRoleAttribute) as? String == kAXTextFieldRole && attribute($0, kAXFocusedAttribute) as? Bool == true }
     }
