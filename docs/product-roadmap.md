@@ -904,3 +904,9 @@ confirmation in a selected project. It adds no history, replay, regeneration, ex
 source refresh, export formats or MCP. Two-file publication is not atomic; conditional rollback
 preserves foreign or uncertain data. Technical gates, independent review and deferred owner smoke
 are separate statuses; this candidate keeps alpha.4 and is not a published installer.
+
+ART1 audit follow-up (2026-10-07): ART1-01/02/03 and the confirmed Q-02 preview-language
+lifecycle issue are fixed with final technical gates PASS. The new candidate and preserved
+UI reruns are documented in [the verification report](art1-audit-fixes-verification.md).
+Independent review PASS has no open HIGH/MEDIUM; the authorized local fix checkpoint closes this loop. OWNER_SMOKE remains
+DEFERRED; Q-04 remains an owner-smoke question. This adds no new milestone, UX feature or K4 work.

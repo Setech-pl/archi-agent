@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { readdir } from "node:fs/promises";
 import { canonicalSerialize, type CanonicalValue } from "../core/util/stable-digest.js";
+import { isSafeModelId } from "../core/llm/structured-chat-client.js";
 import type { KnowledgeSnapshot } from "../core/knowledge-pack/knowledge-snapshot.js";
 import { canonicalDirectory, resolveContainedPath } from "../node/local-file-path.js";
 import { createExclusiveArtifactFiles, StarterPackCreateError, type StarterPackCreateOptions } from "./knowledge-pack-onboarding.js";
@@ -24,8 +25,9 @@ function freeze<T>(value: T): T {
 }
 /** Canonical JSON: UTF-16 sorted object keys, ordered arrays, UTF-8, no whitespace or trailing LF. */
 export const serializeArtifactConfiguration = (value: CanonicalValue): string => canonicalSerialize(value);
-const safeIdentifier = (value: string | undefined): string | null => value !== undefined &&
+const safeProviderProfileId = (value: string | undefined): string | null => value !== undefined &&
   /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(value) && !value.includes("//") && !/^[A-Za-z]:/.test(value) && !/^file:/i.test(value) ? value : null;
+const safeModelId = (value: unknown): string | null => isSafeModelId(value) ? value : null;
 type Projection = "scalar" | "scalars" | { readonly [key: string]: Projection } | readonly [Projection];
 const fields = (names: string): Record<string, Projection> => Object.fromEntries(names.split(" ").map((key) => [key, "scalar"]));
 const locator = fields("file line column length field");
@@ -74,14 +76,14 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
   for (const key of ["generator", "reviewer", "modelGeneration"]) {
     if (report[key] && typeof report[key] === "object" && !Array.isArray(report[key])) {
       const model = report[key] as Record<string, CanonicalValue>;
-      report[key] = { ...model, ...(typeof model.modelId === "string" ? { modelId: safeIdentifier(model.modelId) } : {}) };
+      report[key] = { ...model, ...(typeof model.modelId === "string" ? { modelId: safeModelId(model.modelId) } : {}) };
     }
   }
   const configuration = {
     diagramType, generationPath: report.generationPath ?? "compatibility-sequence",
     generatorKind: request.generator.kind,
-    providerProfileId: "profileId" in request.generator ? safeIdentifier(request.generator.profileId) : "local-lm-studio",
-    modelId: safeIdentifier(request.generator.modelId), timeoutMs: request.generator.timeoutMs ?? 120000,
+    providerProfileId: "profileId" in request.generator ? safeProviderProfileId(request.generator.profileId) : "local-lm-studio",
+    modelId: safeModelId(request.generator.modelId), timeoutMs: request.generator.timeoutMs ?? 120000,
     endpoint: null, endpointAvailability: "omitted-for-privacy",
     selections: Object.entries(request.selections ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
       .map(([mention, elementId]) => ({ mention, elementId })),

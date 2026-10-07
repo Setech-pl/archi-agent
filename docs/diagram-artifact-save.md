@@ -5,6 +5,9 @@ Save Diagram and Report** to the Command Palette, and the same leaf to **Archi A
 The palette/menu selects an original completed Sequence or Component result identified by type,
 UTC creation time and result UUID. These in-memory choices belong to open result previews; closing
 both diagram and report removes that choice. There is no persistent run history or reload/import.
+Changing a preview's language does not close the result: VS Code's language-change close event
+has `isClosed: false` and is ignored. Actual document closure still removes the choice after
+both previews close.
 
 The action always saves the original final generation bytes, including the terminal newline.
 Manual buffer edits, the active editor, subsequent generations, changed settings and changed packs
@@ -57,7 +60,12 @@ no physical source reference.
 timeout, ambiguity selections and confirmed new participants from the original request. Provider
 endpoint is explicitly omitted for privacy. No credentials, SecretStorage, headers, raw provider
 errors, prompts or transport responses are serialized. Unsafe model identifiers are represented
-as `null`. Its deterministic SHA-256 uses the existing canonical JSON serializer: recursively
+as `null`.
+The model identifier follows the shared core `isSafeModelId` contract, including `@` and `+`;
+the provider profile identifier retains its separate contract. Safe model identifiers remain in
+`generator`, `reviewer`, `modelGeneration` when present and in the configuration projection.
+Different model variants therefore have different configuration digests.
+Its deterministic SHA-256 uses the existing canonical JSON serializer: recursively
 sort object keys by UTF-16 code units, preserve array order and Unicode, use JSON scalar encoding,
 encode UTF-8, and add neither whitespace nor trailing LF. Unsupported values are rejected.
 This is a safe configuration projection, not a configuration capable of replaying a run.
@@ -87,6 +95,11 @@ ancestors are guards, never cleanup targets. Partial writes without a content pr
 files, replacements or edits are retained. Failure reports the exact proposed destination and
 instructs the user to inspect retained data, keep edits and move preserved files or choose a new
 location. No unconditional recursive destination deletion is used.
+Retaining only a shared ancestor occupied by another completed bundle after this attempt's
+destination was successfully removed is not incomplete cleanup. Retained files, edits, uncertain
+ownership and cleanup errors still require inspection. Path failures identify symbolic links,
+missing directories, non-directory parents or containment violations and give a concrete action
+instead of advising a new bundle for an unchanged path problem.
 
 ## Evidence
 
@@ -98,3 +111,7 @@ visible QuickPick, native flow-file dialog, confirmation/Cancel, both diagram ty
 existing-target protection and repeated save. Synthetic transport confirms integration and call
 counts; it is no evidence of live-model quality. Independent review and owner smoke are separate
 statuses. Owner smoke remains DEFERRED until the owner reports it.
+`ART1_AUDIT_FIXES=1 npm run art1:gauntlet` preserves the same required gates in a new
+`build/art1-audit-fixes/` directory, uses the audited product checkpoint as its base and adds
+model-identity assertions in both exact-VSIX diagram paths, shared-writer regressions and real
+Extension Host language-change/actual-close scenarios in all three workspace modes.

@@ -14,7 +14,8 @@ import { runHostSmoke } from "./ux3-vscode-smoke.mjs";
 import { prepareDocxFixtures } from "./docx-compatibility-smoke.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const out = path.join(repo, "build/art1", `gauntlet-${new Date().toISOString().replace(/[:.]/gu, "-")}-${process.pid}`);
+const auditFixes = process.env.ART1_AUDIT_FIXES === "1";
+const out = path.join(repo, auditFixes ? "build/art1-audit-fixes" : "build/art1", `gauntlet-${new Date().toISOString().replace(/[:.]/gu, "-")}-${process.pid}`);
 mkdirSync(out, { recursive: true });
 const commands = [], scenarios = [];
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -52,12 +53,12 @@ function artifacts(folder) {
     return entry.isDirectory() ? artifacts(file) : entry.name.endsWith(".vsix") ? [{ path: file, sha256: sha(readFileSync(file)) }] : [];
   });
 }
-const metadata = { milestone: "ART1", base: "4b280e3fb469b4d1bdcea0fa0be6937916938b2a", independentReview: "PENDING", head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current"), initialStatus: git("status", "--short"),
+const metadata = { milestone: auditFixes ? "ART1 audit fixes" : "ART1", base: auditFixes ? "6c31fd46c5b1a2762e108c0ea5fa783a13da1420" : "4b280e3fb469b4d1bdcea0fa0be6937916938b2a", independentReview: "PENDING", head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current"), initialStatus: git("status", "--short"),
   initialStaging: git("diff", "--cached", "--name-only"), sourceFilesSha256: sourceFiles(),
   environment: { node: process.version, platform: process.platform, arch: process.arch }, startedAt: new Date().toISOString(), ownerSmoke: "DEFERRED",
   uiApplicability: "Required: real native pickers, ART1 confirmation and visible ART1/K3 controls; host controlled-answer evidence reported separately." };
 metadata.sourceStateSha256 = sha(JSON.stringify(metadata.sourceFilesSha256));
-const previous = ["build/ux3", "build/k1", "build/k2", "build/k3", "build/art1"].flatMap((folder) => artifacts(path.join(repo, folder)));
+const previous = ["build/ux3", "build/k1", "build/k2", "build/k3", "build/art1", "build/art1-audit-fixes"].flatMap((folder) => artifacts(path.join(repo, folder)));
 let vsix, vsixSha256, vsixSize;
 try {
   const ocrAudit = run("audit-ocr", "npm", ["audit", "--json"], { cwd: path.join(repo, "experiments/ux2-ocr") });
@@ -65,7 +66,7 @@ try {
   const focusedJson = path.join(out, "focused-tests.json");
   run("focused", "npx", ["vitest", "run", "test/runtime/diagram-artifact.test.ts", "test/vscode-extension/save-diagram-and-report.test.ts", "test/runtime/knowledge-pack-review.test.ts", "test/vscode-extension/build-knowledge-pack.test.ts", "test/runtime/document-candidates.test.ts", "test/runtime/convert-document.test.ts", "test/node/document-conversion.test.ts", "test/unit/knowledge-pack/builder/knowledge-pack-builder.test.ts", "test/unit/knowledge-pack/knowledge-snapshot.test.ts", "test/runtime/knowledge-snapshot.test.ts",
     "test/core/pipeline/reviewed-sequence-digest.test.ts", "test/core/pipeline/component-diagram.test.ts", "test/runtime/generate-diagram.test.ts",
-    "test/runtime/component-diagram.test.ts", "--reporter=json", `--outputFile=${focusedJson}`]);
+    "test/runtime/component-diagram.test.ts", "test/runtime/knowledge-pack-onboarding.test.ts", "test/runtime/knowledge-pack-onboarding-ownership.test.ts", "test/vscode-extension/knowledge-pack-onboarding.test.ts", "--reporter=json", `--outputFile=${focusedJson}`]);
   if (!existsSync(focusedJson)) scenarios.push({ id: "focused-json", status: "NOT_RUN" });
   else {
     const focused = JSON.parse(readFileSync(focusedJson, "utf8"));
@@ -130,7 +131,10 @@ try {
   readScenarios(k3Json, 13);
   const art1Json = path.join(out, "art1-runtime.json");
   run("art1-runtime", process.execPath, [path.join(extracted, "art1-packaged-runtime-smoke.mjs"), runtime, art1Json], isolated);
-  readScenarios(art1Json, 12);
+  readScenarios(art1Json, 14);
+  const art1Runtime = JSON.parse(readFileSync(art1Json, "utf8"));
+  scenarios.push({ id: "ART1-01-exact-VSIX-coverage", status: ["sequence", "component"].every((type) =>
+    art1Runtime.results.some((entry) => entry.id === `art1-${type}-model-identity-audit-regression` && entry.status === "PASS")) ? "PASS" : "FAIL" });
   const host = await runHostSmoke(vsix, out);
   metadata.extensionHost = { executable: "/Applications/Visual Studio Code.app/Contents/MacOS/Code",
     reports: ["global", "single-folder", "multi-root"].map((mode) => {
@@ -145,6 +149,9 @@ try {
   const art1host = await runHostSmoke(vsix, out, "art1-extension-host.cjs", "art1-host", ["art1-smoke-fixture.cjs"]);
   scenarios.push(...art1host);
   scenarios.push({ id: "ART1-Host-coverage", status: art1host.length === 21 && art1host.every((r) => r.status === "PASS") ? "PASS" : "FAIL" });
+  const lifecycle = await runHostSmoke(vsix, out, "art1-preview-lifecycle-host.cjs", "art1-q02-host", ["art1-smoke-fixture.cjs"]);
+  scenarios.push(...lifecycle);
+  scenarios.push({ id: "ART1-Q02-Host-coverage", status: lifecycle.length === 15 && lifecycle.every((r) => r.status === "PASS") ? "PASS" : "FAIL" });
   const art1ui = await runArt1UiSmoke(vsix, out);
   scenarios.push(...art1ui);
   scenarios.push({ id: "ART1-real-UI-coverage", status: art1ui.length === 9 && art1ui.every((r) => r.status === "PASS") ? "PASS" : "FAIL" });

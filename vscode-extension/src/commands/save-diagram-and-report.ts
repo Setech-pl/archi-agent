@@ -1,6 +1,6 @@
 import path from "node:path";
 import * as vscode from "vscode";
-import { isCompletedDiagramArtifact, planDiagramBundle, saveDiagramBundle, StarterPackCreateError,
+import { isCompletedDiagramArtifact, planDiagramBundle, saveDiagramBundle, StarterPackCreateError, LocalPathError,
   type DiagramArtifact } from "../../../src/runtime/index.js";
 
 /** Only completed originals associated with currently open result previews; no disk history. */
@@ -10,6 +10,8 @@ export class OpenDiagramResults {
     if (isCompletedDiagramArtifact(artifact)) this.entries.set(artifact, new Set(documents.map((doc) => `${doc.uri.scheme}:${doc.uri.path}`)));
   }
   close(document: vscode.TextDocument): void {
+    // VS Code also emits document-close when its language changes, while the URI remains open.
+    if (document.isClosed === false) return;
     for (const [artifact, uris] of this.entries) {
       uris.delete(`${document.uri.scheme}:${document.uri.path}`);
       if (uris.size === 0) this.entries.delete(artifact);
@@ -18,6 +20,13 @@ export class OpenDiagramResults {
   results(): readonly DiagramArtifact[] { return [...this.entries.keys()]; }
 }
 export const saveDiagramAction = "Save Diagram and Report";
+const localPathRecovery = {
+  "symbolic-link": "The project or result path contains a symbolic link. Open the project's real folder and use a result path without symbolic links.",
+  "not-found": "The project folder is missing or unavailable. Restore it or open an accessible local project folder.",
+  "not-a-directory": "The project or result parent is not a directory. Open a project folder and move any file blocking the archi-agent-results directory.",
+  "containment-violation": "The result path is outside the selected project. Open a valid local project folder and keep the result path inside it.",
+  "invalid-path": "The project or result path is invalid or inaccessible. Check the path and filesystem permissions, then open a valid local project folder."
+} as const;
 export async function saveDiagramAndReportCommand(results: OpenDiagramResults, selected?: DiagramArtifact): Promise<void> {
   let artifact = selected;
   if (!artifact) {
@@ -68,9 +77,12 @@ export async function saveDiagramAndReportCommand(results: OpenDiagramResults, s
     if (error instanceof StarterPackCreateError && error.code === "cancelled" && !error.cleanupIncomplete) {
       await vscode.window.showInformationMessage("Archi Agent: diagram and report save cancelled."); return;
     }
+    if (error instanceof LocalPathError) {
+      await vscode.window.showErrorMessage(`Archi Agent: diagram and report save failed (${error.code}). ${localPathRecovery[error.code]}`); return;
+    }
     const recovery = error instanceof StarterPackCreateError && error.cleanupIncomplete ?
-      ` Preserved data at ${destination}. Inspect it and keep any edits; move preserved files or choose a new location before retrying.` : " Retry Save Diagram and Report to choose a new bundle.";
-    await vscode.window.showErrorMessage(`Archi Agent: diagram and report save failed (${error instanceof StarterPackCreateError ? error.code : "invalid-location"}).${recovery}`); return;
+      ` Safe cleanup could not be confirmed. Data may remain at ${destination} or in its parent. Inspect these locations and keep any edits; move preserved files or choose a new location before retrying.` : " Retry Save Diagram and Report to choose a new bundle.";
+    await vscode.window.showErrorMessage(`Archi Agent: diagram and report save failed (${error instanceof StarterPackCreateError ? error.code : "write-failed"}).${recovery}`); return;
   }
   // The runtime returned a verified committed bundle; late cancellation cannot undo this success.
   const action = await vscode.window.showInformationMessage(`Archi Agent: diagram and report saved at ${saved.directory}`, "Open Diagram", "Open Report");

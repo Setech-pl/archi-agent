@@ -5,10 +5,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { planDiagramBundle, saveDiagramBundle, serializeArtifactConfiguration, createKnowledgeSnapshot, createArchiAgentRuntime } from "../../src/runtime/index.js";
 import { captureDiagramArtifact } from "../../src/runtime/diagram-artifact.js";
 import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
+import { isSafeModelId } from "../../src/core/llm/structured-chat-client.js";
 import { art1Fixture } from "../doubles/art1-fixture.js";
 const roots: string[] = [];
 afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
-async function fixture(type: "sequence" | "component" = "sequence") { const f = await art1Fixture(type); roots.push(f.root); return f; }
+async function fixture(type: "sequence" | "component" = "sequence", modelId = "test-model") { const f = await art1Fixture(type, modelId); roots.push(f.root); return f; }
 const sha = (bytes: Buffer | string) => createHash("sha256").update(bytes).digest("hex");
 describe("ART1 completed original bundle", () => {
   it.each(["sequence", "component"] as const)("saves exact %s bytes, report evidence and correct SHA without requests or source reads", async (type) => {
@@ -21,8 +22,7 @@ describe("ART1 completed original bundle", () => {
     const report = JSON.parse(await readFile(path.join(saved.directory, "report.json"), "utf8"));
     expect(diagram.equals(Buffer.from(expected))).toBe(true);
     expect(report.diagram).toEqual({ file: "diagram.puml", encoding: "utf8", byteLength: diagram.length, sha256: sha(diagram) });
-    expect(report.generationReport.facts).toEqual(originalReport.facts);
-    expect(report.generationReport.sources).toEqual(originalReport.sources);
+    expect(report.generationReport).toEqual(originalReport);
     expect(report.generationReport.snapshotDigest.value).toBe(f.result.digest);
     expect(report.knowledge).toEqual(knowledge); expect(report.configuration).toEqual(configuration);
     expect(report.sourceReferences.knowledgePack).toEqual({ reference: "architecture", availability: "project-relative" });
@@ -33,6 +33,61 @@ describe("ART1 completed original bundle", () => {
     for (const marker of ["SECRET_MARKER", "TOKEN_MARKER", "RAW_ERROR_MARKER", "CHANGED_MODEL", f.root, f.request.flow.kind === "document" ? f.request.flow.text : "..."])
       expect(text).not.toContain(marker);
     expect(text).not.toContain("Authorization"); expect(text).not.toContain("baseUrl");
+  });
+  it.each(["sequence", "component"] as const)("preserves supported @/+ model IDs and distinct configuration digests in reviewed %s", async (type) => {
+    const configurations: any[] = [];
+    for (const modelId of ["local-model@q4_k_m", "local-model@q8_0", "vendor/model+tuned"]) {
+      const f = await fixture(type, modelId);
+      const saved = await saveDiagramBundle(f.root, f.artifact, planDiagramBundle());
+      const report = JSON.parse(await readFile(path.join(saved.directory, "report.json"), "utf8"));
+      expect(report.generationReport).toEqual(JSON.parse(f.result.groundingReport));
+      expect(report.generationReport.generator.modelId).toBe(modelId);
+      expect(report.generationReport.reviewer.modelId).toBe(modelId);
+      expect(report.configuration.projection.modelId).toBe(modelId);
+      expect(report.configuration.sha256).toBe(sha(serializeArtifactConfiguration(report.configuration.projection)));
+      expect(await readFile(path.join(saved.directory, "diagram.puml"))).toEqual(Buffer.from(f.result.plantUml, "utf8"));
+      expect(f.calls()).toBe(2);
+      configurations.push(report.configuration);
+    }
+    expect(new Set(configurations.map((c) => c.sha256)).size).toBe(3);
+    expect(configurations[0].projection).toEqual({ ...configurations[1].projection, modelId: "local-model@q4_k_m" });
+  });
+  it.each(["local-model@q4_k_m", "vendor/model+tuned"])("preserves modelGeneration in compatibility Sequence for %s without another generation", async (modelId) => {
+    const f = await fixture("sequence", modelId);
+    const generator = Object.assign(new ContextEchoGenerator(), { generationMetadata: {
+      modelId, temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true
+    } });
+    const app = createArchiAgentRuntime({ generatorFactory: () => generator });
+    const result = await app.generateSequenceDiagram(f.request);
+    expect(result.status).toBe("success"); if (result.status !== "success") return;
+    const saved = await saveDiagramBundle(f.root, result.artifact!, planDiagramBundle());
+    const report = JSON.parse(await readFile(path.join(saved.directory, "report.json"), "utf8"));
+    expect(report.generationReport).toEqual(JSON.parse(result.groundingReport));
+    expect(report.generationReport.modelGeneration.modelId).toBe(modelId);
+    expect(report.configuration.projection.modelId).toBe(modelId);
+    expect(await readFile(path.join(saved.directory, "diagram.puml"))).toEqual(Buffer.from(result.plantUml, "utf8"));
+    expect(generator.requests).toHaveLength(1); expect(f.calls()).toBe(2);
+  });
+  it.each(["model..variant", "model//variant", "model with space", "model?api_key=SECRET", "model\nSECRET", "x".repeat(129), ""])("redacts model IDs rejected by the shared core contract: %j", async (modelId) => {
+    expect(isSafeModelId(modelId)).toBe(false);
+    const f = await fixture(), report = JSON.parse(f.result.groundingReport);
+    report.generator.modelId = modelId; report.reviewer.modelId = modelId;
+    report.modelGeneration = { modelId, temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true };
+    const knowledge = createKnowledgeSnapshot([{ source: { id: "knowledge-pack", kind: "markdown-pack", scope: {} }, records: {} }]);
+    const artifact = captureDiagramArtifact({ ...f.result, groundingReport: JSON.stringify(report) },
+      { ...f.request, generator: { ...f.request.generator, modelId } }, knowledge, "sequence", null, null);
+    const saved = await saveDiagramBundle(f.root, artifact, planDiagramBundle());
+    const written = JSON.parse(await readFile(path.join(saved.directory, "report.json"), "utf8"));
+    for (const key of ["generator", "reviewer", "modelGeneration"]) expect(written.generationReport[key].modelId).toBeNull();
+    expect(written.configuration.projection.modelId).toBeNull();
+    expect(f.calls()).toBe(2);
+  });
+  it.each(["profile@variant", "profile+variant"])("keeps providerProfileId separate from the model ID contract: %s", async (profileId) => {
+    const f = await fixture(), knowledge = createKnowledgeSnapshot([{ source: { id: "knowledge-pack", kind: "markdown-pack", scope: {} }, records: {} }]);
+    const artifact = captureDiagramArtifact(f.result, { ...f.request, generator: { ...f.request.generator, profileId } } as any,
+      knowledge, "sequence", null, null);
+    expect((artifact.metadata.configuration as any).projection.providerProfileId).toBeNull();
+    expect((artifact.metadata.configuration as any).projection.modelId).toBe("test-model");
   });
   it("keeps earlier original distinct after another generation and repeated saves", async () => {
     const f = await fixture(), first = f.artifact;
@@ -84,6 +139,23 @@ describe("ART1 completed original bundle", () => {
   it("allows concurrent independent bundles", async () => {
     const f = await fixture(); const saved = await Promise.all([saveDiagramBundle(f.root, f.artifact, planDiagramBundle()), saveDiagramBundle(f.root, f.artifact, planDiagramBundle())]);
     expect(saved[0].directory).not.toBe(saved[1].directory);
+  });
+  it("reports complete cleanup of failed A while preserving a complete concurrent bundle B and shared parent", async () => {
+    const f = await fixture(), planA = planDiagramBundle(), targetA = path.join(f.root, planA.relativeDirectory);
+    let savedB: { directory: string } | undefined;
+    await expect(saveDiagramBundle(f.root, f.artifact, planA, { onStep: async (step, file) => {
+      if (step === "before-verify" && file.endsWith("report.json")) {
+        savedB = await saveDiagramBundle(f.root, f.artifact, planDiagramBundle());
+        throw new Error("injected failure A");
+      }
+    } })).rejects.toMatchObject({ code: "write-failed", cleanupIncomplete: false, recovery: "" });
+    await expect(lstat(targetA)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(savedB).toBeDefined();
+    expect(await readdir(path.join(f.root, "archi-agent-results"))).toEqual([path.basename(savedB!.directory)]);
+    expect(await readdir(savedB!.directory)).toEqual(["diagram.puml", "report.json"]);
+    expect(await readFile(path.join(savedB!.directory, "diagram.puml"))).toEqual(Buffer.from(f.result.plantUml));
+    expect(JSON.parse(await readFile(path.join(savedB!.directory, "report.json"), "utf8")).generationReport).toEqual(JSON.parse(f.result.groundingReport));
+    expect(f.calls()).toBe(2);
   });
   it.each(["before", "after-open", "after-write", "before-close", "before-verify"])("handles Cancel %s with conditional cleanup", async (step) => {
     const f = await fixture(), plan = planDiagramBundle(), controller = new AbortController();

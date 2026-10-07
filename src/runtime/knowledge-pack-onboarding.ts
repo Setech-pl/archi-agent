@@ -271,6 +271,7 @@ export async function createExclusiveArtifactFiles(directory: string, fileNames:
 /** Removes only files whose identity, timestamps and bytes still match this attempt. */
 export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): Promise<{ readonly preservedFiles: readonly string[]; readonly recovery: string }> {
   const preservedFiles: string[] = [];
+  let removedDestination = false;
   for (const file of [...receipt.files].reverse()) {
     try {
       // Every owned ancestor must still be the same directory before any unlink.
@@ -295,11 +296,18 @@ export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): 
         if (currentGuard.dev !== guard.dev || currentGuard.ino !== guard.ino) throw new StarterPackCreateError("file-changed");
       }
       const current = await lstat(directory.path);
-      if (current.isDirectory() && !current.isSymbolicLink() && current.dev === directory.dev && current.ino === directory.ino)
+      if (current.isDirectory() && !current.isSymbolicLink() && current.dev === directory.dev && current.ino === directory.ino) {
         await rmdir(directory.path);
+        if (directory.path === receipt.directory) removedDestination = true;
+      }
       else if (!preservedFiles.some((f) => f.startsWith(directory.path + path.sep))) preservedFiles.push(directory.path);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !preservedFiles.some((f) => f.startsWith(directory.path + path.sep))) preservedFiles.push(directory.path);
+      const code = (error as NodeJS.ErrnoException).code;
+      // A removed destination leaves no attempt data in a shared ancestor occupied by another bundle.
+      // Identity/permission errors and any retained or uncertain attempt data still require recovery.
+      const sharedParentOnly = (code === "ENOTEMPTY" || code === "EEXIST") && removedDestination &&
+        receipt.directory.startsWith(directory.path + path.sep) && preservedFiles.length === 0;
+      if (code !== "ENOENT" && !sharedParentOnly && !preservedFiles.some((f) => f.startsWith(directory.path + path.sep))) preservedFiles.push(directory.path);
     }
   }
   return { preservedFiles, recovery: preservedFiles.length > 0 ? cleanupRecovery : "" };

@@ -13,6 +13,7 @@ export type { KnowledgeSnapshot, KnowledgeSource, KnowledgeContribution, Knowled
 export { convertDocument } from "./convert-document.js";
 export { createStarterKnowledgePack, cleanupStarterKnowledgePack, validateKnowledgePackDirectory, defaultKnowledgePackPath } from "./knowledge-pack-onboarding.js";
 export { StarterPackCreateError } from "./knowledge-pack-onboarding.js";
+export { LocalPathError } from "../node/local-file-path.js";
 export type { StarterPackCreateCode } from "./knowledge-pack-onboarding.js";
 export type { FirstSystem, StarterPackReceipt } from "./knowledge-pack-onboarding.js";
 export { conversionLimits } from "../core/document-conversion/contract.js";

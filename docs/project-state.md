@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-10-07 |
-| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`, K1 `59be33946883ff275a80f95e53aa1acf375db3d6`, K2 `93667c249bbfca8f83808915e53b61706ef3793e` i K3 `4b280e3fb469b4d1bdcea0fa0be6937916938b2a`. ART1 na `feature/art1-controlled-artifact-save` od K3; dokładny HEAD/checkpoint i drzewo sprawdzaj w Git. |
+| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`, K1 `59be33946883ff275a80f95e53aa1acf375db3d6`, K2 `93667c249bbfca8f83808915e53b61706ef3793e` i K3 `4b280e3fb469b4d1bdcea0fa0be6937916938b2a`. ART1 checkpoint `6c31fd4`; aktywna pętla poprawek audytu na `fix/art1-audit-findings` od `6c31fd4`. Dokładny HEAD/checkpoint i drzewo sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -29,14 +29,65 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan K1 | Wspólny kontrakt i adapter Markdown zaimplementowane. Celowane77, root1445, extension289, audit0, poza repo K1 16/16, UX3runtime27/27, DOCX5/5, Host12/12 i wszystkie bramki PASS. Niezależny review źródeł i dokładnego VSIX PASS, trzy medium zamknięte; brak otwartych high/medium. Lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Stan K2 | Produkcyjna ekstrakcja dokumentów i deterministyczna walidacja propozycji zaimplementowane. Root1518, extension362, focused215, audit root/OCR0, runtime poza repo17, Host12 i pełny gauntlet PASS. Niezależny re-review zamknął trzy medium; brak otwartych high/medium. Lokalny checkpoint; OWNER_SMOKE: DEFERRED. |
 | Stan K3 | Techniczny checkpoint `4b280e3`, pełne bramki i niezależny review PASS. OWNER_SMOKE: DEFERRED; bez ponownej finalizacji. |
-| Stan ART1 | Implemented; wszystkie techniczne bramki PASS po celowanym K3 UI rerun na tym samym VSIX. Niezależny re-review PASS (32/32 własnych kontroli), brak otwartych HIGH/MEDIUM; lokalny techniczny checkpoint, OWNER_SMOKE: DEFERRED. |
+| Stan ART1 | Audit fixes ART1-01/02/03 i Q-02 implemented; końcowe bramki PASS213/213 po pełnych celowanych UI rerunach na tym samym VSIX. Niezależny review PASS, brak otwartych HIGH/MEDIUM; autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Następny etap | STOP po lokalnym checkpointcie ART1. MCP/K4 i przygotowanie wydania nie rozpoczęte. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
 
-## ART1 — controlled diagram and report save (2026-10-07)
+## ART1 — audit fixes (2026-10-07)
+
+Autoryzacja właściciela: preflight → reprodukcja → implementacja → pełny gauntlet →
+niezależny review GPT-6.1 Sol/high → lokalny checkpoint → STOP. Preflight potwierdził
+`audit/repo-20261007-1321-6c31fd4`, HEAD raportów `cd743631c0ca5550d68d6ef44b8107ccc3aa7653`,
+clean working tree / staging empty. Commit raportów ma bezpośredniego rodzica produktu
+`6c31fd46c5b1a2762e108c0ea5fa783a13da1420` i zmienia wyłącznie `audits/`.
+Gałąź źródłowa wskazuje ten checkpoint; nowy `fix/art1-audit-findings` utworzony z produktu.
+Raport Claude pozostaje niezmieniony na gałęzi audytu.
+
+Reprodukcje audytu przed zmianą gałęzi: 7/7 PASS asercji defektów. ART1-01/02/03
+potwierdzone. Q-02 potwierdzony w rzeczywistym Host VS Code 1.140.0 / Node24.21.0,
+macOS arm64: po zmianie języków obu nadal otwartych podglądów paleta Save utraciła wynik.
+Przy zmianie języka `isClosed=false`; przy real close `isClosed=true`.
+Dowody przed naprawą: `build/art1-audit-fixes/preflight-20261007-1344/`.
+
+Poprawki: core `isSafeModelId` dla wszystkich modelId, osobny kontrakt profilu; konkretna
+bezpieczna diagnostyka LocalPathError bez bezskutecznego Retry; shared parent z cudzym
+bundle po dowiedzionym usunięciu własnego destination nie oznacza incomplete cleanup.
+Niepewność, cudze edycje i inne błędy pozostają konserwatywne. Q-02 ignoruje language-change
+close bez rzeczywistego zamknięcia. Zakres generacji, snapshotów, write-exclusive, symlinków,
+atomowości i zamrożonego oryginału pozostaje zgodny z kontraktem ART1.
+Końcowe bramki techniczne PASS213/213: root1627/1627 (106 plików), extension471/471
+(22 pliki), focused389/389, oba typechecki, build/package/verify529, demo dry run,
+audit root/OCR0. Runtime poza repo: ART114/14, K315/15, K217/17, K116/16, UX327/27,
+DOCX source/package5/5. Host UX312/12, K315/15, ART121/21, Q-02 15/15.
+Native Mac ARM ART1UI9/9 i K3UI9/9. Nowy VSIX:
+`build/art1-audit-fixes/gauntlet-2026-10-07T12-13-56-397Z-43506/archi-agent-0.3.0-alpha.4.vsix`,
+119846838 B, SHA256 `02b70bba8ef43ec2123f2ba9db4728d48f58e53f2d8b48c72d180c3c16b55f16` (pomiar rzeczywistego pliku).
+`effective-report.json` / `final-manifest.json` / `final-report.json` w tym katalogu.
+Pierwotny `report.json` zachowuje FAIL/NOT_RUN natywnego UI. Pełny ART1 rerun9/9 w
+`ui-rerun-2026-10-07T12-27-08-652Z/`; jego K3 zatrzymał się przy pickerze invalid file.
+Pełny K3 rerun9/9 w `k3-ui-rerun-2026-10-07T12-30-56-143Z/` zamyka wszystkie przypadki.
+Reruny zmierzyły ten sam VSIX; bez zmian źródeł ani asercji. Ślad prób pozostaje zachowany.
+Pierwszy gauntlet PASS213/213 w `gauntlet-2026-10-07T12-07-06-703Z-39831/` został
+zastąpiony po koniecznej zmianie produkcyjnego komunikatu niepewnego cleanupu ART1-03:
+cel może być już usunięty, więc komunikat wskazuje możliwe dane pod celem lub rodzicem.
+Nie przypisano dowodów pierwszego kandydata końcowemu VSIX. Celowane nieudane próby/setup
+oraz uzasadnienia rerunów: `build/art1-audit-fixes/focused-20261007-1349/`.
+Niezależny reviewer GPT-6.1 Sol/high: runda1 PASS, brak otwartych HIGH/MEDIUM ani innych
+findings wymagających poprawki. Własne read-only checks obejmują 386 źródeł, VSIX/CRC529,
+bundle/OCR521 i dokładne mapowanie effective213 do zachowanych raportów. Raport:
+`independent-review-final.md` przy kandydacie. Wyniki reviewera są osobne od bramek wykonawcy.
+Pętla kończy się autoryzowanym lokalnym checkpointem: dokładny commit/tree/parent i clean
+working tree/staging sprawdź w Git oraz końcowym `final-manifest.json`. STOP po checkpointcie.
+Późniejsza kontrola zamknięcia przez Claude Code pozostaje osobna.
+Raport zamknięcia i ograniczeń: [ART1 audit verification](art1-audit-fixes-verification.md).
+Historyczny kandydat ART1 z sekcji niżej zachowany; owner smoke powinien użyć nowego VSIX.
+OWNER_SMOKE: DEFERRED; Q-04 do oceny owner smoke. Bez nowych funkcji UX ani K4.
+PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED.
+
+## ART1 — historical product checkpoint (2026-10-07)
 
 Autoryzacja: preflight → implementacja → pełny gauntlet → niezależny review → lokalny
 checkpoint → STOP. Bez push/main/tag/publication ani K4. Baza K3

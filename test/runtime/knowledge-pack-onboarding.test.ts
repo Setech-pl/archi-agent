@@ -15,6 +15,20 @@ function directory(): string {
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 
 describe("starter Knowledge Pack transaction", () => {
+  it.each([false, true])("cleans failed five-file A without reporting a shared parent as its data (new directory=%s)", async (requireNewDirectory) => {
+    const folderA = directory(), folderB = path.join(path.dirname(folderA), "other-knowledge");
+    let completeB = false;
+    await expect(createStarterKnowledgePack(folderA, system, { requireNewDirectory, onStep: async (step, file) => {
+      if (step === "before-verify" && path.basename(file) === "rules.md") {
+        await createStarterKnowledgePack(folderB, system, { requireNewDirectory }); completeB = true;
+        throw new Error("injected A failure");
+      }
+    } })).rejects.toMatchObject({ code: "write-failed", cleanupIncomplete: false, recovery: "" });
+    expect(completeB).toBe(true); expect(existsSync(folderA)).toBe(false);
+    expect(readdirSync(path.dirname(folderA))).toEqual(["other-knowledge"]);
+    expect((await validateKnowledgePackDirectory(folderB)).ok).toBe(true);
+    expect(readFileSync(path.join(folderB, "systems.md"), "utf8")).toContain("invoice-service | Invoice Service");
+  });
   it("creates missing project and Documents-style parents and removes only its own empty parents", async () => {
     const projectPack = directory();
     const documentsPack = path.join(path.dirname(path.dirname(projectPack)), "Documents", "ArchiAgent", "knowledge");
