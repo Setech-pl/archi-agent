@@ -168,7 +168,7 @@ export async function buildKnowledgePackCommand({ runtime, output, secrets }: Ge
             try { await session.save(preview, directory, { signal: controller.signal }); }
             finally { subscription.dispose(); }
           });
-        } catch (error) { await vscode.window.showErrorMessage(`Archi Agent: save failed [${safeCode(error)}]. ${directory}. ${(error as { recovery?: string }).recovery ?? "Choose another new folder."}`); restart = true; break; }
+        } catch (error) { await vscode.window.showErrorMessage(`Archi Agent: save failed [${safeCode(error)}]. ${directory}. ${(error as { recovery?: string }).recovery || "Choose another new folder."}`); restart = true; break; }
         let used = false;
         if (activation) { try { used = await activation.activate(directory); } catch { /* Preserve the committed pack. */ } }
         void vscode.window.showInformationMessage(activation && !used ? `Archi Agent: saved, not activated: ${directory}. Check Knowledge Pack settings.` : `Archi Agent: saved${used ? " and activated" : ""}: ${directory}`);

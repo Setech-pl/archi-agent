@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, realpathSync, writeFileSync, readdirSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, realpathSync, writeFileSync, readdirSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { createArchiAgentRuntime } from "../../src/runtime/index.js";
+import { KnowledgePackReviewSession, StarterPackCreateError, createArchiAgentRuntime } from "../../src/runtime/index.js";
 import { selectModel } from "../../vscode-extension/src/commands/local-provider-selection.js";
 import { buildKnowledgePackCommand } from "../../vscode-extension/src/commands/build-knowledge-pack.js";
 import { resetDouble, state, Uri, window, ConfigurationTarget } from "../doubles/vscode-module-double.js";
@@ -22,7 +22,7 @@ function setup() {
   } }) });
   state.openDialogAnswers.push([Uri.file(doc)], [Uri.file(root)]);
   state.inputBoxAnswers.push("pack");
-  return { root, doc, run: () => buildKnowledgePackCommand({ runtime, output: window.createOutputChannel("test") }), calls: () => calls };
+  return { root, doc, runtime, run: () => buildKnowledgePackCommand({ runtime, output: window.createOutputChannel("test") }), calls: () => calls };
 }
 describe("K3 editor adapter (controlled answers, not native UI evidence)", () => {
   it("production K2 without existing pack, group acceptance, preview and Save use one generation", async () => {
@@ -40,6 +40,36 @@ describe("K3 editor adapter (controlled answers, not native UI evidence)", () =>
     await s.run(); expect(s.calls()).toBe(1);
     expect(state.configurationUpdates[0]).toMatchObject({ value: path.join(s.root, "pack"), target: mode === "global" ? ConfigurationTarget.Global : ConfigurationTarget.WorkspaceFolder });
     expect(state.messages.at(-1)?.text).toContain("saved and activated");
+  });
+  for (const action of ["Save", "Save and use"]) for (const populated of [false, true]) it(`${action} collision preserves ${populated ? "populated" : "empty"} target and offers a new location without extraction`, async () => {
+    const s = setup(), directory = path.join(s.root, "pack");
+    const locations = vi.spyOn(window, "showOpenDialog");
+    mkdirSync(directory);
+    if (populated) writeFileSync(path.join(directory, "keep.txt"), "Existing owner data.");
+    const extract = vi.spyOn(s.runtime, "extractDocumentCandidates");
+    state.openDialogAnswers.push([Uri.file(s.root)]); state.inputBoxAnswers.push("retry-pack");
+    state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick(action), pick("Validate and preview"), pick(action));
+    await s.run();
+    const failure = state.messages.find((m) => m.text.includes("save failed"));
+    expect(failure?.text).toBe(`Archi Agent: save failed [location-exists]. ${directory}. Choose another new folder.`);
+    expect(readdirSync(directory)).toEqual(populated ? ["keep.txt"] : []);
+    if (populated) expect(readFileSync(path.join(directory, "keep.txt"), "utf8")).toBe("Existing owner data.");
+    expect(readdirSync(path.join(s.root, "retry-pack"))).toHaveLength(5);
+    expect(extract).toHaveBeenCalledTimes(1); expect(s.calls()).toBe(1);
+    expect(locations).toHaveBeenCalledTimes(3);
+    if (action === "Save") expect(state.configurationUpdates).toEqual([]);
+    else expect(state.configurationUpdates).toEqual([expect.objectContaining({ value: path.join(s.root, "retry-pack"), target: ConfigurationTarget.Global })]);
+  });
+  for (const action of ["Save", "Save and use"]) for (const incomplete of [false, true]) it(`${action} preserves ${incomplete ? "incomplete cleanup recovery" : "fallback when recovery is absent"}`, async () => {
+    const s = setup();
+    const error = incomplete ? new StarterPackCreateError("write-failed", true) : { code: "write-failed" };
+    const save = vi.spyOn(KnowledgePackReviewSession.prototype, "save").mockRejectedValueOnce(error);
+    const extract = vi.spyOn(s.runtime, "extractDocumentCandidates");
+    state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick(action), pick("Cancel"));
+    await s.run();
+    expect(state.messages.find((m) => m.text.includes("save failed"))?.text).toBe(`Archi Agent: save failed [write-failed]. ${path.join(s.root, "pack")}. ${incomplete ? (error as StarterPackCreateError).recovery : "Choose another new folder."}`);
+    expect(save).toHaveBeenCalledTimes(1); expect(extract).toHaveBeenCalledTimes(1); expect(s.calls()).toBe(1);
+    expect(existsSync(path.join(s.root, "pack"))).toBe(false); expect(state.configurationUpdates).toEqual([]);
   });
   it("activation failure preserves committed pack and concurrent setting", async () => {
     const s = setup(); state.configurationUpdateFailures.add("archiAgent.knowledgePackPath");

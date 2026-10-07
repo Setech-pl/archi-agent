@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-10-07 |
-| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`, K1 `59be33946883ff275a80f95e53aa1acf375db3d6`, K2 `93667c249bbfca8f83808915e53b61706ef3793e` i K3 `4b280e3fb469b4d1bdcea0fa0be6937916938b2a`. ART1 checkpoint `6c31fd4`; aktywna pętla poprawek audytu na `fix/art1-audit-findings` od `6c31fd4`. Dokładny HEAD/checkpoint i drzewo sprawdzaj w Git. |
+| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`, K1 `59be33946883ff275a80f95e53aa1acf375db3d6`, K2 `93667c249bbfca8f83808915e53b61706ef3793e` i K3 `4b280e3fb469b4d1bdcea0fa0be6937916938b2a`. ART1 audit-fix checkpoint `a3dd71f`; ograniczona pętla FU-01 na `fix/k3-save-recovery-message` od `a3dd71f`. Dokładny HEAD/checkpoint i drzewo sprawdzaj w Git. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -30,11 +30,45 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan K2 | Produkcyjna ekstrakcja dokumentów i deterministyczna walidacja propozycji zaimplementowane. Root1518, extension362, focused215, audit root/OCR0, runtime poza repo17, Host12 i pełny gauntlet PASS. Niezależny re-review zamknął trzy medium; brak otwartych high/medium. Lokalny checkpoint; OWNER_SMOKE: DEFERRED. |
 | Stan K3 | Techniczny checkpoint `4b280e3`, pełne bramki i niezależny review PASS. OWNER_SMOKE: DEFERRED; bez ponownej finalizacji. |
 | Stan ART1 | Audit fixes ART1-01/02/03 i Q-02 implemented; końcowe bramki PASS213/213 po pełnych celowanych UI rerunach na tym samym VSIX. Niezależny review PASS, brak otwartych HIGH/MEDIUM; autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
-| Następny etap | STOP po lokalnym checkpointcie ART1. MCP/K4 i przygotowanie wydania nie rozpoczęte. |
+| Następny etap | FU-01: ograniczona poprawka wskazówki błędu zapisu K3 na `fix/k3-save-recovery-message`, baza `a3dd71f`; STOP po autoryzowanym lokalnym checkpointcie i niezależnym review. MCP/K4 i przygotowanie wydania nie rozpoczęte. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## FU-01 — K3 save recovery message (2026-10-07)
+
+Preflight zgodny: branch audytu `audit/follow-up-20261007-1532-a3dd71f`, raporty
+`791481be703b227fb2f26d6e6404c77e9f1f45d3`, clean/staging empty. Raporty zmieniają tylko
+`audits/`; bezpośredni rodzic i źródłowa gałąź produktu to
+`a3dd71fc5b59bb4d83ffd34ae6daf91efb347eb2`. Branch poprawki powstał z produktu, bez
+merge/cherry-pick. Cache audytora zachowany. Zmiana produkcyjna: `??` → `||` w komunikacie
+błędu zapisu K3; niepuste recovery zachowane, pusty string/brak pola daje istniejącą
+wskazówkę `Choose another new folder.`. Kod i lokalizacja pozostają. Writer, symlinki,
+rollback, Cancel, Save/Save and use i konfiguracja bez zmian. ART1-01/02/03 oraz Q-02 zamknięte.
+
+Bieżące dowody: `build/fu01/run-2026-10-07T14-11-23Z/`. Przed poprawką cztery oczekiwane
+FAIL kolizji; po poprawce produkcyjna komenda19/19, focused256/256, root1635/1635,
+extension479/479, oba typechecki, build/package/verify529, demo dry run, npm ci root/OCR
+i audity0 PASS. Runtime poza repo: K315/15, K217/17, K116/16, UX327/27, DOCX source/package
+po5/5. Real Host UX312/12 i K333/33, w tym18 nowych FU-01. Natywny UI K39/9 po kompletnym
+celowanym rerunie na tym samym VSIX; pierwszy UI odrzucił alias `/tmp` jako symlink,
+więc rerun użył istniejącego parametru kanonicznego projectParent. Surowe nieudane próby
+zachowane; `effective-report.json` PASS168/168 scenariuszy i13/13 komend. Brak obowiązkowych N/A.
+
+Nowy kandydat do zbiorczego owner smoke:
+`build/fu01/run-2026-10-07T14-11-23Z/candidate/archi-agent-0.3.0-alpha.4.vsix`,
+119846838 B, SHA256 `1416fd4b5b9654dabe44985c817a7746bf788cbca81ae4f9cde7b320a0b521ae`.
+Porównanie529 wpisów z zachowanym ART1: zmienił się tylko `extension/dist/extension.js`;
+runtime, worker i zasoby mają identyczne rzeczywiste SHA. Nie przypisano historycznych213/213
+nowemu kandydatowi. Raport: [FU-01 verification](fu01-save-recovery-verification.md).
+Wynik osobnego read-only review GPT-6.1 Sol/high: `independent-review-final.md` w katalogu
+dowodów. `final-manifest.json` wiąże finalne źródła, dowody, dokładny VSIX oraz wynik
+checkpointu; dokładny commit/tree/parent i finalny clean/staging sprawdź w Git.
+Checkpoint autoryzowany wyłącznie po wymaganych bramkach i braku otwartych HIGH/MEDIUM.
+Host ma kontrolowane odpowiedzi, incomplete cleanup jest wstrzykniętym błędem runtime;
+transporty/dokumenty syntetyczne. OWNER_SMOKE: DEFERRED.
+PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED. Po checkpointcie STOP na gałęzi poprawki.
 
 ## ART1 — audit fixes (2026-10-07)
 

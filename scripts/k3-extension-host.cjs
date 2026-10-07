@@ -21,8 +21,8 @@ exports.run = async () => {
   vscode.window.showInputBox = async () => folderName;
   vscode.window.showQuickPick = async (items, o) => {
     if (o.title === "Archi Agent: select project folder") return items.at(-1);
-    if (o.title === "Archi Agent: review Knowledge Pack candidates") return phase === "cancel" ? "Cancel" : sequence++ === 0 ? "Accept all pending" : "Validate and preview";
-    if (o.title === "Archi Agent: preview new Knowledge Pack") return phase === "save" ? "Save" : "Save and use";
+    if (o.title === "Archi Agent: review Knowledge Pack candidates") return phase === "cancel" || (phase.startsWith("recovery-") && sequence >= 2) ? "Cancel" : sequence++ === 0 ? "Accept all pending" : "Validate and preview";
+    if (o.title === "Archi Agent: preview new Knowledge Pack") return phase === "save" || phase === "recovery-save" ? "Save" : "Save and use";
     return undefined;
   };
   vscode.window.showErrorMessage = async (m) => { messages.push(m); };
@@ -62,6 +62,31 @@ exports.run = async () => {
       assert.equal(calls, 4); assert.equal(config().get("knowledgePackPath"), "parallel-change"); assert.equal(fs.readdirSync(path.join(settings.root, "host-failure")).length, 5);
       assert.ok(messages.at(-1).includes("saved, not activated"));
     });
+    const runtime = require(path.join(extension.extensionPath, "dist/archi-agent-runtime.js"));
+    for (const action of ["save", "use"]) for (const kind of ["collision", "absent", "incomplete"]) {
+      await check(`fu01-${action}-${kind}`, async () => {
+        const name = `fu01-${action}-${kind}`, directory = path.join(settings.root, name);
+        const beforeCalls = calls, beforeSetting = config().get("knowledgePackPath");
+        const save = runtime.KnowledgePackReviewSession.prototype.save;
+        const error = kind === "incomplete" ? new runtime.StarterPackCreateError("write-failed", true) : { code: "write-failed" };
+        if (kind === "collision") { fs.mkdirSync(directory); fs.writeFileSync(path.join(directory, "keep.txt"), "Existing owner data."); }
+        else runtime.KnowledgePackReviewSession.prototype.save = async () => { throw error; };
+        try {
+          const beforeMessages = messages.length;
+          await run(`recovery-${action}`, name);
+          const code = kind === "collision" ? "location-exists" : "write-failed";
+          const recovery = kind === "incomplete" ? error.recovery : "Choose another new folder.";
+          assert.equal(messages.slice(beforeMessages).find((m) => m.includes("save failed")), `Archi Agent: save failed [${code}]. ${directory}. ${recovery}`);
+          assert.equal(sequence, 2); // return to review, then controlled Cancel; no second extraction
+          assert.equal(calls, beforeCalls + 1);
+          assert.equal(config().get("knowledgePackPath"), beforeSetting);
+          if (kind === "collision") {
+            assert.deepEqual(fs.readdirSync(directory), ["keep.txt"]);
+            assert.equal(fs.readFileSync(path.join(directory, "keep.txt"), "utf8"), "Existing owner data.");
+          } else assert.ok(!fs.existsSync(directory));
+        } finally { runtime.KnowledgePackReviewSession.prototype.save = save; }
+      });
+    }
   } finally {
     Module._load = load; for (const [k, v] of Object.entries(original)) if (k !== "getConfiguration") vscode.window[k] = v;
     vscode.workspace.getConfiguration = original.getConfiguration; server.closeAllConnections(); await new Promise((r) => server.close(r));
