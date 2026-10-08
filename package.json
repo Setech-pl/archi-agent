@@ -3,7 +3,7 @@
   "displayName": "ArchGround",
   "version": "0.1.0-private.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "publisher": "setech-pl",
   "type": "module",
   "engines": {

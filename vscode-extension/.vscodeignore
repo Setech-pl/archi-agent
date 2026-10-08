@@ -3,6 +3,8 @@
 **
 !package.json
 !README.md
+!README.pl.md
+!LICENSE.txt
 !dist/extension.js
 !dist/archi-agent-runtime.js
 !dist/archi-agent-converter-worker.js

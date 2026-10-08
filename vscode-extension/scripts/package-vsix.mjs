@@ -28,6 +28,8 @@ export async function packageExtension(options = {}) {
     cwd: extensionRoot,
     packagePath,
     dependencies: false,
+    // Standalone bilingual docs link to files inside the VSIX, including unpublished local builds.
+    rewriteRelativeLinks: false,
     skipLicense: true,
     allowMissingRepository: true,
     updatePackageJson: false

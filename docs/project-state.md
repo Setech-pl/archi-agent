@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-10-07 |
-| Stan Git | Lokalne checkpointy UX3 `f7b548c728360e25c2a8bae59c967d947d9b7e1a`, K1 `59be33946883ff275a80f95e53aa1acf375db3d6`, K2 `93667c249bbfca8f83808915e53b61706ef3793e` i K3 `4b280e3fb469b4d1bdcea0fa0be6937916938b2a`. ART1 audit-fix checkpoint `a3dd71f`; ograniczona pętla FU-01 na `fix/k3-save-recovery-message` od `a3dd71f`. Dokładny HEAD/checkpoint i drzewo sprawdzaj w Git. |
+| Data aktualizacji | 2026-10-08 |
+| Stan Git | DOC1 na `docs/pl-en-guides-and-diagrams`, baza produktu po FU-01 `a76b15ca822364810edb0298852db70437f73e9d`; preflight clean/staging empty. Gałęzie audytu nie zostały scalone. Dokładny checkpoint, HEAD i drzewo sprawdzaj w Git oraz manifestach dowodów. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -30,11 +30,59 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan K2 | Produkcyjna ekstrakcja dokumentów i deterministyczna walidacja propozycji zaimplementowane. Root1518, extension362, focused215, audit root/OCR0, runtime poza repo17, Host12 i pełny gauntlet PASS. Niezależny re-review zamknął trzy medium; brak otwartych high/medium. Lokalny checkpoint; OWNER_SMOKE: DEFERRED. |
 | Stan K3 | Techniczny checkpoint `4b280e3`, pełne bramki i niezależny review PASS. OWNER_SMOKE: DEFERRED; bez ponownej finalizacji. |
 | Stan ART1 | Audit fixes ART1-01/02/03 i Q-02 implemented; końcowe bramki PASS213/213 po pełnych celowanych UI rerunach na tym samym VSIX. Niezależny review PASS, brak otwartych HIGH/MEDIUM; autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
-| Następny etap | FU-01: ograniczona poprawka wskazówki błędu zapisu K3 na `fix/k3-save-recovery-message`, baza `a3dd71f`; STOP po autoryzowanym lokalnym checkpointcie i niezależnym review. MCP/K4 i przygotowanie wydania nie rozpoczęte. |
+| Stan FU-01 | Completed — lokalny checkpoint `a76b15c`; status i dowody potwierdzone przed DOC1. OWNER_SMOKE: DEFERRED. |
+| Stan DOC1 | Completed — dokumentacja PL/EN, 10 renderów Mermaid, 3 rzeczywiste demonstracje UI, MIT i samowystarczalne README pakietu. Bramki i niezależny finalny re-review PASS; brak otwartych HIGH/MEDIUM/LOW. Autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
+| Następny etap | STOP po lokalnym checkpointcie DOC1. K4/MCP i przygotowanie wydania nie rozpoczęte; wymagają osobnego zadania. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## DOC1 — bilingual documentation and real UI media (2026-10-08)
+
+Baza produktu po FU-01: `a76b15ca822364810edb0298852db70437f73e9d`, branch
+`docs/pl-en-guides-and-diagrams`; bez zmian zachowania produktu ani wersji wydania.
+Punkty wejścia: [README EN](../README.md), [README PL](../README.pl.md),
+[user guide EN](en/user-guide.md), [instrukcja PL](pl/user-guide.md),
+[architecture EN](en/architecture.md), [architektura PL](pl/architecture.md),
+[development EN](en/development.md), [development PL](pl/development.md).
+Stabilne ścieżki kontraktów, roadmapy i historycznych audytów zachowane.
+Publiczna alpha.4 z `31a6609` pozostaje wcześniejszym wydaniem UX2; OBS1/UX3/K1–K3/ART1/FU-01
+są lokalne. Numer alpha.4 nowego VSIX nie oznacza publikacji późniejszych funkcji.
+
+[Media i pochodzenie](assets/README.md): prawdziwe okno VS Code w izolowanym profilu,
+syntetyczny workspace i loopback z kontrolowanymi odpowiedziami. Trzy GIF-y: wybór packa
+i generowanie (16 s), dokumenty/review/Save (30 s), ART1 (14 s), każdy poniżej 5 MiB.
+Próbkowanie 1 fps, bez przyspieszenia ani zmiany kolejności; osobiste etykiety natywnego
+pickera wyłączone kadrem. To nie dowód jakości żywego LLM ani owner smoke.
+Surowe materiały i nieudane próby pozostają poza śledzonymi plikami produktu.
+Dodano MIT dla własnego kodu (wcześniej brak licencji projektu); kanoniczny [LICENSE](../LICENSE).
+Własne metadane MIT, notices i licencje zależności/OCR zachowane w dokładnym pakiecie.
+
+Bieżące dowody: `build/docs-pl-en/run-2026-10-07T19-28-51Z/`.
+Profil dokumentacyjny: oba typechecki, testy pakowania 14/14, build/package/verify531,
+linki/kotwice, przykłady PL/EN, ustawienia i topologia, lokalny render i wizualna kontrola
+10 diagramów, pełne dekodowanie 3 GIF-ów i kontrola początku/środka/końca,
+3 rzeczywiste scenariusze UI na syntetycznym workspace oraz `git diff --check`.
+524 wpisy runtime/OCR są identyczne bajtowo z kandydatem FU-01; pełnych gauntletów
+funkcjonalnych nie powtarzano dla zmiany dokumentacji i metadanych. Historyczne liczniki
+FU-01/ART1 pozostają dowodami tamtych artefaktów, nie wynikiem DOC1.
+
+Dokładny kandydat użyty w nagraniach i końcowej weryfikacji:
+`build/docs-pl-en/run-2026-10-07T19-28-51Z/candidate-review-fixed/archi-agent-0.3.0-alpha.4.vsix`,
+119860264 B, SHA-256 `910c1d5cb483cd04efdfd4caa140566a2918248f5edaef326dd6cb8ab45cb769`.
+README EN/PL, MIT i wymagane notices są dołączone; GIF-y, audyty i narzędzia dokumentacyjne
+nie są dołączone. Brak nowych potwierdzonych problemów produktu.
+Niezależny read-only review GPT-6.1 Sol/high: runda 1 PASS, 0 HIGH/MEDIUM i 2 LOW.
+Oba LOW poprawione: dokładne etykiety Configuration i lifecycle rejestru menu/palety
+wobec oczekującego powiadomienia. Finalny re-review PASS, brak otwartych HIGH/MEDIUM/LOW; raport
+`independent-review-final.md` w katalogu dowodów. Runda 1 i nieudane próby pozostają
+osobne. Końcowe 60 klatek z nowego VSIX mają aktualne hashe w provenance; wszystkie
+przejścia pickerów sprawdzone po konserwatywnym kadrowaniu sąsiednich próbek.
+Pięć literalnych plików przykładu instrukcji zweryfikowano przez dokładny pakowany runtime.
+Checkpoint dopuszczony wyłącznie po zamknięciu HIGH/MEDIUM i wymaganych FAIL/NOT_RUN.
+OWNER_SMOKE: DEFERRED.
+PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED. STOP po checkpointcie.
 
 ## FU-01 — K3 save recovery message (2026-10-07)
 

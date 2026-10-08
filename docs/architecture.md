@@ -1,5 +1,7 @@
 # ArchGround architecture
 
+Current bilingual overview and implemented-flow diagrams: [English](en/architecture.md) · [Polski](pl/architecture.md). This stable technical reference also retains explicitly historical sections.
+
 ArchGround turns a plain-language flow description into a sequence diagram that is grounded
 in an Architecture Knowledge Pack. This document distinguishes the historical code on base commit
 `4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the historical D1.1 sequence path, the implemented D1.2 path,

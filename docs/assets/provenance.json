@@ -1,0 +1,114 @@
+{
+  "sourceCommit": "a76b15ca822364810edb0298852db70437f73e9d",
+  "sourceState": "FU-01 product plus uncommitted DOC1 documentation/license/package tooling; executable bundle parity checked separately",
+  "recordedVsix": {
+    "name": "archi-agent-0.3.0-alpha.4.vsix",
+    "sha256": "910c1d5cb483cd04efdfd4caa140566a2918248f5edaef326dd6cb8ab45cb769",
+    "bytes": 119860264
+  },
+  "encoding": {
+    "fps": 1,
+    "paletteColors": 96,
+    "dither": "none",
+    "loop": 0,
+    "dimensions": [
+      1120,
+      760
+    ],
+    "codec": "GIF",
+    "speedup": false
+  },
+  "syntheticTransport": true,
+  "generationRequests": 3,
+  "modelListRequests": 0,
+  "platform": "darwin",
+  "arch": "arm64",
+  "recordingHarnessSha256": "f9ee3169d175e0fc326661eb2425d4f10d96bdf0c09194db7cd9b1c75e875fe4",
+  "outputs": [
+    {
+      "scenario": "choose-pack-generate",
+      "gif": {
+        "path": "docs/assets/choose-pack-generate.gif",
+        "bytes": 867626,
+        "sha256": "9001fe17491fe85345674672dd35c9ca415a845a264ab60f33198e4c538494f8"
+      },
+      "preview": {
+        "path": "docs/assets/choose-pack-generate.png",
+        "bytes": 252208,
+        "sha256": "c97a838b3d6e4c744ee00138b685f78e351110301692113fc6369f04f90a9f92"
+      },
+      "decoded": {
+        "width": 1120,
+        "height": 760,
+        "duration": "16.000000",
+        "nb_read_frames": "16"
+      },
+      "status": "PASS",
+      "rawFrames": 30,
+      "nativePickerFramesDetected": 7,
+      "nativePickerFramesCropped": 15,
+      "nativeTransitionPaddingRawFrames": 2,
+      "crop": "native picker content only: x320 y160 w680 h444, scaled/padded to 1120x760; personal sidebar and two adjacent raw transition samples excluded, actual UI pixels retained",
+      "previewCaptureSeconds": 11.371533989906311,
+      "capture": "ScreenCaptureKit, desktopIndependentWindow filtered by isolated VS Code PID; genuine native sheets",
+      "timing": "measured frame intervals sampled to 1 fps (up to 1 s rounding); no acceleration or reordered actions"
+    },
+    {
+      "scenario": "save-original-pair",
+      "gif": {
+        "path": "docs/assets/save-original-pair.gif",
+        "bytes": 1465845,
+        "sha256": "fd000d907f63ffd733553739c8a4908fe022a9ef8f138934e8086006491e3ff6"
+      },
+      "preview": {
+        "path": "docs/assets/save-original-pair.png",
+        "bytes": 290610,
+        "sha256": "b09d1ec3c18c2bf0e942d6dbeab993e91f93ae28696cfe05fc7d1983d532bff9"
+      },
+      "decoded": {
+        "width": 1120,
+        "height": 760,
+        "duration": "14.000000",
+        "nb_read_frames": "14"
+      },
+      "status": "PASS",
+      "rawFrames": 26,
+      "nativePickerFramesDetected": 0,
+      "nativePickerFramesCropped": 0,
+      "nativeTransitionPaddingRawFrames": 2,
+      "crop": "native picker content only: x320 y160 w680 h444, scaled/padded to 1120x760; personal sidebar and two adjacent raw transition samples excluded, actual UI pixels retained",
+      "previewCaptureSeconds": 5.154181003570557,
+      "capture": "ScreenCaptureKit, desktopIndependentWindow filtered by isolated VS Code PID; genuine native sheets",
+      "timing": "measured frame intervals sampled to 1 fps (up to 1 s rounding); no acceleration or reordered actions"
+    },
+    {
+      "scenario": "documents-review-save",
+      "gif": {
+        "path": "docs/assets/documents-review-save.gif",
+        "bytes": 3866630,
+        "sha256": "c33bbe61e7dbb2d3790e2ebd596f1d60fd5f12656da02b530885c1dc7e5b442f"
+      },
+      "preview": {
+        "path": "docs/assets/documents-review-save.png",
+        "bytes": 366540,
+        "sha256": "46481e1850c9274f812674e1aa90646579d9a1eb1b5a1a38ab22139ef0b80ae5"
+      },
+      "decoded": {
+        "width": 1120,
+        "height": 760,
+        "duration": "30.000000",
+        "nb_read_frames": "30"
+      },
+      "status": "PASS",
+      "rawFrames": 56,
+      "nativePickerFramesDetected": 7,
+      "nativePickerFramesCropped": 15,
+      "nativeTransitionPaddingRawFrames": 2,
+      "crop": "native picker content only: x320 y160 w680 h444, scaled/padded to 1120x760; personal sidebar and two adjacent raw transition samples excluded, actual UI pixels retained",
+      "previewCaptureSeconds": 24.14624810218811,
+      "capture": "ScreenCaptureKit, desktopIndependentWindow filtered by isolated VS Code PID; genuine native sheets",
+      "timing": "measured frame intervals sampled to 1 fps (up to 1 s rounding); no acceleration or reordered actions"
+    }
+  ],
+  "OWNER_SMOKE": "DEFERRED"
+}

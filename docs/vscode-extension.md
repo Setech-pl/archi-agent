@@ -1,5 +1,7 @@
 # Archi Agent VS Code extension
 
+Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the local FU-01/DOC1 candidate; the public UX2 package is distinct. This stable path remains a technical reference.
+
 The extension is the first self-contained host of the Archi Agent runtime. It packages the existing
 sequence compatibility path and the reviewed Sequence and Component pipelines (Knowledge Pack loading,
 deterministic grounding, plan validation, PlantUML rendering and grounding reports) into a VSIX that runs without the
