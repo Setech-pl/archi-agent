@@ -111,8 +111,8 @@ export const state: DoubleState = freshState();
 
 export function resetDouble(): void {
   panels.splice(0).forEach((p) => p.dispose());
-  webviewDrivers.splice(0); configListeners.clear(); folderListeners.clear();
-  Object.assign(state, freshState());
+  webviewDrivers.splice(0); configListeners.clear(); folderListeners.clear(); saveListeners.clear(); treeViews.splice(0);
+  Object.assign(state, freshState()); window.tabGroups.activeTabGroup.activeTab = undefined;
 }
 
 function uriFromPath(fsPath: string, scheme = "file"): DoubleUri {
@@ -156,7 +156,23 @@ export const Uri = Object.freeze({
   parse: (value: string): DoubleUri => uriFromPath(value, value.split(":")[0] ?? "file")
 });
 
+export const treeViews: { id: string; provider: any }[] = [];
+export class EventEmitter<T> {
+  private listeners = new Set<(value: T) => void>();
+  readonly event = (fn: (value: T) => void) => { this.listeners.add(fn); return { dispose: () => this.listeners.delete(fn) }; };
+  fire(value: T): void { for (const listener of this.listeners) listener(value); }
+  dispose(): void { this.listeners.clear(); }
+}
+export class TreeItem { constructor(public label: string, public collapsibleState: number) {} }
+export const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
+export class Range { constructor(public startLine: number, public startCharacter: number, public endLine: number, public endCharacter: number) {} }
+export class TabInputText { constructor(public uri: DoubleUri) {} }
+export class TabInputCustom { constructor(public uri: DoubleUri) {} }
+const saveListeners = new Set<(doc: DoubleDocument) => void>();
+export function documentSaved(doc: DoubleDocument): void { for (const listener of saveListeners) listener(doc); }
 export const window = {
+  tabGroups: { activeTabGroup: { activeTab: undefined as { input: unknown } | undefined } },
+  createTreeView(id: string, options: { treeDataProvider: any }) { treeViews.push({ id, provider: options.treeDataProvider }); return { dispose() {} }; },
   get activeTextEditor(): { document: DoubleDocument } | undefined {
     return state.activeTextEditor;
   },
@@ -221,6 +237,8 @@ export const window = {
 };
 
 export const workspace = {
+  get textDocuments() { return [...state.openedDocuments, ...(state.activeTextEditor ? [state.activeTextEditor.document] : [])]; },
+  onDidSaveTextDocument(listener: (doc: DoubleDocument) => void) { saveListeners.add(listener); return { dispose: () => saveListeners.delete(listener) }; },
   get workspaceFolders() { return state.workspaceFolders; },
   getConfiguration(section: string, resource?: DoubleUri) {
     const fullKey = (key: string): string => `${section}.${key}`;

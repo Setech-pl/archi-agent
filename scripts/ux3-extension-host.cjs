@@ -50,7 +50,7 @@ exports.run = async function run() {
     if(vscode.workspace.workspaceFolders?.length>1 && !panel.latest.projectSelected) await panel.send("project",{project:String(vscode.workspace.workspaceFolders.length-1)});
     return panel;
   }
-  async function create() { const panel=await open(); await panel.send("create"); }
+  async function create() { const panel=await open(); await wait(()=>!panel.latest.busy && panel.latest.packPath===(config().get("knowledgePackPath")??""), "settled effective pack before create"); await panel.send("create"); }
   async function check(id, expected, fn) {
     try {
       const actual = await fn();

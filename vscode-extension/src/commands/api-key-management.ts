@@ -3,14 +3,14 @@ import { validateApiKey, type ArchiAgentRuntime, type ProviderProfile } from "..
 import { settingKeys, settingsSection } from "../contributions.js";
 import { deleteApiKey, readApiKey, storeApiKey } from "../api-key-storage.js";
 
-function currentProfile(runtime: ArchiAgentRuntime): ProviderProfile | undefined {
+function currentProfile(runtime: ArchiAgentRuntime, explicitProfileId?: string): ProviderProfile | undefined {
   const configured = vscode.workspace.getConfiguration(settingsSection).inspect(settingKeys.localModelProfile)?.globalValue;
-  const profileId = typeof configured === "string" ? configured : "local-lm-studio";
+  const profileId = explicitProfileId ?? (typeof configured === "string" ? configured : "local-lm-studio");
   return runtime.listProviderProfiles().find((profile) => profile.profileId === profileId);
 }
 
-export async function setApiKey(runtime: ArchiAgentRuntime, secrets: vscode.SecretStorage, output: vscode.OutputChannel): Promise<void> {
-  const profile = currentProfile(runtime);
+export async function setApiKey(runtime: ArchiAgentRuntime, secrets: vscode.SecretStorage, output: vscode.OutputChannel, explicitProfileId?: string): Promise<void> {
+  const profile = currentProfile(runtime, explicitProfileId);
   if (profile === undefined) {
     void vscode.window.showErrorMessage("Archi Agent: the selected provider profile is not registered.");
     return;
@@ -47,8 +47,8 @@ export async function setApiKey(runtime: ArchiAgentRuntime, secrets: vscode.Secr
   }
 }
 
-export async function removeApiKey(runtime: ArchiAgentRuntime, secrets: vscode.SecretStorage, output: vscode.OutputChannel): Promise<void> {
-  const profile = currentProfile(runtime);
+export async function removeApiKey(runtime: ArchiAgentRuntime, secrets: vscode.SecretStorage, output: vscode.OutputChannel, explicitProfileId?: string): Promise<void> {
+  const profile = currentProfile(runtime, explicitProfileId);
   if (profile === undefined) {
     void vscode.window.showErrorMessage("Archi Agent: the selected provider profile is not registered.");
     return;

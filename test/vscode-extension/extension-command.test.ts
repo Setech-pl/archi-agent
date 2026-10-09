@@ -282,14 +282,14 @@ describe("activation", () => {
 
     expect([...state.registeredCommands.keys()].sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].sort());
     expect(manifest.contributes.commands.map((entry) => entry.command).sort()).toEqual(Object.values(commandIds).sort());
-    expect(manifest.activationEvents.sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`).sort());
+    expect(manifest.activationEvents.sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`).concat("onView:archiAgent.knowledge").sort());
     expect(Object.keys(manifest.contributes.configuration.properties).sort()).toEqual(
       Object.values(settingKeys)
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(18);
+    expect(context.subscriptions.length).toBe(21);
     deactivate();
   });
 

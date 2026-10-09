@@ -13,7 +13,7 @@ import { configurationHtml } from "./configuration-ui.js";
 import { plainMessage } from "./webview.js";
 
 const files = ["systems.md", "actors.md", "relationships.md", "aliases.md", "rules.md"];
-const operations = ["ready", "refresh", "project", "apply", "discard", "draft-changed", "models", "diagnose", "set-key", "delete-key", "choose", "create", "build", "open-file"];
+const operations = ["ready", "refresh", "project", "apply", "discard", "draft-changed", "models", "diagnose", "set-key", "delete-key", "choose", "create", "build", "browse", "open-file"];
 interface ProviderForm { profile: string; endpoint: string; timeout: number; model: string }
 function validForm(value: unknown): value is ProviderForm {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -62,7 +62,7 @@ export class ConfigurationWorkbench implements vscode.Disposable {
         if ((vscode.workspace.workspaceFolders?.length ?? 0) > 1 && !this.folder) this.projectSelected = false;
         this.invalidate(); void this.publish("Workspace changed. Check the selected project before continuing.");
       }),
-      this.secrets.onDidChange(() => { this.invalidate(); void this.publish(); })
+      this.secrets.onDidChange(() => { this.epoch++; this.controller?.abort(); this.diagnostic = ""; this.models = []; void this.publish(); })
     ];
     void this.panel.webview.postMessage({ type: "tab", tab });
   }
@@ -78,7 +78,11 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     const profileId = selected.ok ? selected.settings.profileId : String(configuration.inspect(settingKeys.localModelProfile)?.globalValue ?? "local-lm-studio");
     const profile = this.runtime.listProviderProfiles().find((p) => p.profileId === profileId);
     let keyPresent = false;
-    try { keyPresent = !!profile && !!(await readApiKey(this.secrets, profile)); }
+    const profileKeys: Record<string, boolean> = {};
+    try {
+      for (const entry of this.runtime.listProviderProfiles()) profileKeys[entry.profileId] = !!(await readApiKey(this.secrets, entry));
+      keyPresent = profileKeys[profileId] ?? false;
+    }
     catch { error ||= "SecretStorage could not be read. Retry the operation."; }
     const packPath = this.projectSelected ? configuration.get<string>(settingKeys.knowledgePackPath) ?? "" : "";
     const validation = packPath ? await inspectKnowledgePackDirectory(packPath) : undefined;
@@ -101,7 +105,7 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       counts: validation?.ok ? validation.counts : undefined, files: validation?.ok ? files : [],
       profiles: this.runtime.listProviderProfiles(), form,
       effective: selected.ok ? `${selected.settings.profileId}\nEndpoint: ${selected.settings.baseUrl ?? "fixed HTTPS profile endpoint"}\nModel: ${selected.settings.modelId ?? "none selected"}\nTimeout: ${selected.settings.timeoutMs / 1000}s\nSelection: ${selected.settings.selectionMode}` : selected.problems.map((p) => `${p.setting}: ${p.message}`).join("\n"),
-      keyRequired: profile?.credentialRequirement === "api-key", keyPresent, models: this.models, diagnostic: this.diagnostic });
+      profileKeys, keyRequired: profile?.credentialRequirement === "api-key", keyPresent, models: this.models, diagnostic: this.diagnostic });
   }
   private async receive(value: unknown): Promise<void> {
     if (!plainMessage(value, operations) || !this.panel) return;
@@ -125,13 +129,20 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       if (m.op === "refresh") { this.invalidate(); }
       else if (m.op === "apply") await this.apply(m);
       else if (["models", "diagnose", "set-key", "delete-key"].includes(m.op)) {
-        if (this.dirty) throw new Error("Apply or Discard Changes before using the applied provider configuration.");
+        if (this.dirty && (m.op === "models" || m.op === "diagnose")) throw new Error("Apply or Discard Changes before using the applied provider configuration.");
         if (m.op === "models" || m.op === "diagnose") await this.listModels(m.op);
-        else { if (m.op === "set-key") await setApiKey(this.runtime, this.secrets, this.output); else await removeApiKey(this.runtime, this.secrets, this.output); this.invalidate(); }
-      } else if (["choose", "create", "build", "open-file"].includes(m.op)) {
+        else {
+          const keyProfile = typeof m.profile === "string" ? this.runtime.listProviderProfiles().find(p => p.profileId === m.profile) : undefined;
+          if (!keyProfile || keyProfile.credentialRequirement !== "api-key") throw new WorkbenchError("Select a registered cloud profile for the key operation.");
+          if (m.op === "set-key") await setApiKey(this.runtime, this.secrets, this.output, keyProfile.profileId);
+          else await removeApiKey(this.runtime, this.secrets, this.output, keyProfile.profileId);
+          this.epoch++; this.diagnostic = ""; this.models = [];
+        }
+      } else if (["choose", "create", "build", "browse", "open-file"].includes(m.op)) {
         if (!this.projectSelected || (this.folder && !vscode.workspace.workspaceFolders?.includes(this.folder))) throw new Error("Select a current local project first.");
         if (this.folder?.uri.scheme && this.folder.uri.scheme !== "file") throw new Error("Choose a local project folder.");
         if (m.op === "choose" || m.op === "create") await configureKnowledgePackForFolder(this.folder, m.op === "choose" ? "existing" : "create");
+        else if (m.op === "browse") await vscode.commands.executeCommand(commandIds.knowledgeBrowser);
         else if (m.op === "build") await buildKnowledgePackCommand({ runtime: this.runtime, output: this.output, secrets: this.secrets }, { folder: this.folder });
         else if (typeof m.file === "string" && files.includes(m.file)) {
           const pack = this.configuration().get<string>(settingKeys.knowledgePackPath);

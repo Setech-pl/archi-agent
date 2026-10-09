@@ -7,7 +7,7 @@ acceptance history or automatic saves.
 
 ## User flow
 
-Run **Archi Agent: Build Knowledge Pack from Documents**, or the button in
+Run **Archi: Build Knowledge Pack from Documents**, or the button in
 **Archi: Configuration → Knowledge Management**. The project is chosen before extraction;
 multi-root requires an explicit choice. Native pickers select MD/TXT/PDF/DOCX/XLSX and PDF
 OCR mode. Cancellable notification progress covers local conversion/OCR and one extraction.

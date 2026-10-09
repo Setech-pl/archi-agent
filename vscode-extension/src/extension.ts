@@ -1,6 +1,7 @@
+import { KnowledgeBrowser } from "./knowledge-browser.js";
 import { ConfigurationWorkbench } from "./workbench/configuration.js";
 import { OpenDiagramResults, saveDiagramAndReportCommand } from "./commands/save-diagram-and-report.js";
-import { buildKnowledgePackCommand } from "./commands/build-knowledge-pack.js";
+import { buildKnowledgePackCommand, buildKnowledgePackFromActiveFileCommand } from "./commands/build-knowledge-pack.js";
 import * as vscode from "vscode";
 import { generateDiagramCommand } from "./commands/generate-sequence-diagram.js";
 import { removeApiKey, setApiKey } from "./commands/api-key-management.js";
@@ -24,12 +25,16 @@ export function activate(context: vscode.ExtensionContext): void {
   const output = vscode.window.createOutputChannel(outputChannelName);
   const runtime = createPackagedRuntime(context.extension?.packageJSON.version);
   const results = new OpenDiagramResults();
+  const browser = new KnowledgeBrowser();
+  context.subscriptions.push(browser);
   const configuration = new ConfigurationWorkbench(runtime, output, context.secrets);
   context.subscriptions.push(configuration);
   if (vscode.workspace.onDidCloseTextDocument) context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => results.close(doc)));
 
   context.subscriptions.push(output);
   context.subscriptions.push(
+    vscode.commands.registerCommand(commandIds.knowledgeBrowser, () => browser.reveal()),
+    vscode.commands.registerCommand(commandIds.buildKnowledgePackFromActiveFile, () => buildKnowledgePackFromActiveFileCommand({ runtime, output, secrets: context.secrets })),
     vscode.commands.registerCommand(commandIds.configuration, () => configuration.open()),
     vscode.commands.registerCommand(commandIds.help, () => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.joinPath(context.extensionUri, "readme.md"))),
     vscode.commands.registerCommand(commandIds.saveDiagramAndReport, () => saveDiagramAndReportCommand(results).catch(() => {

@@ -8,16 +8,18 @@ establish acceptance of this package. K4/MCP and release preparation are outside
 
 | Entry | Destination |
 | --- | --- |
-| Archi Agent: Open → Create Diagram | Sequence / Component selection, then the existing reviewed generation |
+| Archi: Open → Create Diagram | Sequence / Component selection, then the existing reviewed generation |
 | Archi: Create Diagram | Same type selection; Cancel makes no provider request or configuration change |
 | Configuration / Archi: Configuration | Singleton editor panel: Knowledge Management / LLM Provider |
-| Knowledge Management / Configure Knowledge Pack | Knowledge tab in that same panel |
+| Configure Knowledge Pack compatibility ID | Knowledge tab in that same panel; hidden from palette |
+| Knowledge Browser | Native Explorer view, also reached by Browse Knowledge |
+| Build Knowledge Pack from Active File | Captured active editor/preview input, same K2/K3 flow |
 | Select Provider Profile / Select Model compatibility IDs | Provider tab in that same panel; hidden from palette |
 | Build Knowledge Pack from Documents | Native document selection, one K2 extraction, linked review panel |
 | Save Diagram and Report | Existing ART1 original-pair flow |
 | Convert to Markdown | Existing standalone local conversion and OCR |
 | Help | Packaged English user instructions |
-| Check Provider Configuration | Existing OBS1 applied-configuration check; also available in Provider tab |
+| Check Provider Configuration compatibility ID | Existing OBS1 applied-configuration check in Provider tab; hidden from palette |
 
 The old Sequence command ID is hidden and delegates to Create Diagram. The older runtime
 compatibility API is retained internally. No C4 or MCP option is exposed.
@@ -102,3 +104,7 @@ remain preserved and blocked; their Apply/lifetime findings are closed. Final ma
 records only status-documentation changes after the gauntlet and reconfirms bundle parity.
 The new isolated owner handoff retains33 earlier cases and adds12 UX4, all NOT_RUN.
 Owner smoke NOT_COMPLETED; no live model quality inferred. No release/version change.
+
+## UX4-FU1 follow-up
+
+Current navigation, draft-profile keys, active-file input and native knowledge tree: [owner findings and contract](ux4-owner-findings.md). The verified candidate above remains historical evidence for its original SHA. The follow-up uses a fresh artifact and owner handoff; no PASS is transferred.

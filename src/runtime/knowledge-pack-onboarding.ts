@@ -4,6 +4,8 @@ import path from "node:path";
 import os from "node:os";
 import { loadKnowledgePack, type KnowledgePackLoadIssue } from "../core/knowledge-pack/knowledge-pack-loader.js";
 import { NodeKnowledgePackSource } from "../node/node-knowledge-pack-source.js";
+import type { KnowledgePack } from "../core/knowledge-pack/knowledge-pack.schema.js";
+import { knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
 import { KnowledgePackError } from "../core/knowledge-pack/source-errors.js";
 
 export interface FirstSystem {
@@ -313,12 +315,12 @@ export async function cleanupStarterKnowledgePack(receipt: StarterPackReceipt): 
   return { preservedFiles, recovery: preservedFiles.length > 0 ? cleanupRecovery : "" };
 }
 
-export async function inspectKnowledgePackDirectory(directory: string): Promise<{ readonly ok: true; readonly counts: Readonly<Record<string, number>> } | { readonly ok: false; readonly code: string; readonly issues: readonly KnowledgePackLoadIssue[] }> {
+export async function inspectKnowledgePackDirectory(directory: string): Promise<{ readonly ok: true; readonly pack: KnowledgePack; readonly snapshot: ReturnType<typeof knowledgeSnapshotFromPack>; readonly counts: Readonly<Record<string, number>> } | { readonly ok: false; readonly code: string; readonly issues: readonly KnowledgePackLoadIssue[] }> {
   try {
     if (!path.isAbsolute(directory)) return { ok: false, code: "invalid-path", issues: [] };
     const source = await NodeKnowledgePackSource.open(path.dirname(directory), path.basename(directory));
     const result = await loadKnowledgePack(source);
-    return result.ok ? { ok: true, counts: Object.fromEntries(["systems", "actors", "relationships", "aliases", "rules"].map((table) => [table, result.pack[table as "systems"].length])) } : { ok: false, code: result.issues[0]?.code ?? "invalid-pack", issues: result.issues };
+    return result.ok ? { ok: true, pack: result.pack, snapshot: knowledgeSnapshotFromPack(result.pack), counts: Object.fromEntries(["systems", "actors", "relationships", "aliases", "rules"].map((table) => [table, result.pack[table as "systems"].length])) } : { ok: false, code: result.issues[0]?.code ?? "invalid-pack", issues: result.issues };
   } catch (error) {
     return { ok: false, code: error instanceof KnowledgePackError ? error.code : "read-failed", issues: [] };
   }

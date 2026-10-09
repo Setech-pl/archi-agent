@@ -36,7 +36,12 @@
     "onCommand:archiAgent.selectLocalProviderProfile",
     "onCommand:archiAgent.selectLocalModel",
     "onCommand:archiAgent.configuration",
-    "onCommand:archiAgent.help"
+    "onCommand:archiAgent.help",
+    "onCommand:archiAgent.knowledgeBrowser",
+    "onCommand:archiAgent.buildKnowledgePackFromActiveFile",
+    "onCommand:archiAgent.refreshKnowledge",
+    "onCommand:archiAgent.openKnowledgeRecord",
+    "onView:archiAgent.knowledge"
   ],
   "extensionKind": [
     "workspace"
@@ -65,27 +70,27 @@
       {
         "command": "archiAgent.saveDiagramAndReport",
         "title": "Save Diagram and Report",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.buildKnowledgePack",
         "title": "Build Knowledge Pack from Documents",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.open",
         "title": "Open",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.convertToMarkdown",
         "title": "Convert to Markdown",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.configureKnowledgePack",
         "title": "Configure Knowledge Pack",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.generateDiagram",
@@ -95,32 +100,32 @@
       {
         "command": "archiAgent.generateSequenceDiagram",
         "title": "Generate Sequence Diagram",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.selectProviderProfile",
         "title": "Select Provider Profile",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.selectModel",
         "title": "Select Model",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.checkProviderConfiguration",
         "title": "Check Provider Configuration",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.setApiKey",
         "title": "Set or Update API Key",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.deleteApiKey",
         "title": "Delete Saved API Key",
-        "category": "Archi Agent"
+        "category": "Archi"
       },
       {
         "command": "archiAgent.configuration",
@@ -130,7 +135,27 @@
       {
         "command": "archiAgent.help",
         "title": "Help",
-        "category": "Archi Agent"
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.knowledgeBrowser",
+        "title": "Knowledge Browser",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.buildKnowledgePackFromActiveFile",
+        "title": "Build Knowledge Pack from Active File",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.refreshKnowledge",
+        "title": "Refresh Knowledge",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.openKnowledgeRecord",
+        "title": "Open Knowledge Record",
+        "category": "Archi"
       }
     ],
     "menus": {
@@ -154,6 +179,36 @@
         {
           "command": "archiAgent.generateSequenceDiagram",
           "when": "false"
+        },
+        {
+          "command": "archiAgent.configureKnowledgePack",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.checkProviderConfiguration",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.refreshKnowledge",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.openKnowledgeRecord",
+          "when": "false"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "archiAgent.buildKnowledgePackFromActiveFile",
+          "group": "archi",
+          "when": "resourceScheme == file || resourceScheme == untitled"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "archiAgent.refreshKnowledge",
+          "when": "view == archiAgent.knowledge",
+          "group": "navigation"
         }
       ]
     },
@@ -227,6 +282,14 @@
           "description": "Write safe structured Archi Agent pipeline diagnostics to the Archi Agent output channel."
         }
       }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "archiAgent.knowledge",
+          "name": "Archi Agent \u2014 Knowledge"
+        }
+      ]
     }
   }
 }

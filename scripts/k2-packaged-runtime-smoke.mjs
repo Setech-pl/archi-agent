@@ -25,9 +25,10 @@ const server = createServer((req, res) => {
     wire = JSON.parse(body); started?.();
     if (mode === "timeout" || mode === "cancel") return;
     const s = JSON.parse(wire.messages[1].content).sources[0];
-    const excerpt = s.text.slice(0, Math.min(48, s.text.length));
+    const located = s.evidenceSlices?.find(e => e.startOffset > 0 && !e.excerpt.startsWith("##"));
+    const excerpt = mode.startsWith("ocr-location") ? located.excerpt : s.text.slice(0, Math.min(48, s.text.length));
     const evidence = [{ sourceId: s.sourceId, originalDigest: s.originalDigest, textDigest: s.textDigest,
-      excerpt: mode === "bad-evidence" ? "fabricated" : excerpt, startOffset: 0, endOffset: excerpt.length }];
+      excerpt: mode === "bad-evidence" ? "fabricated" : excerpt, startOffset: mode === "ocr-location-good" ? located.startOffset : 0, endOffset: mode === "ocr-location-good" ? located.endOffset : excerpt.length }];
     const candidates = [
       { table: "systems", row: { id: "a", canonical_name: "Alpha", kind: "service", description: "Service" }, basis: "explicit", reasoning: null, evidence },
       { table: "systems", row: { id: "b", canonical_name: "Beta", kind: "database", description: "Store" }, basis: "inferred", reasoning: "Proposed responsibility", evidence },
@@ -76,6 +77,20 @@ try {
     const s = r.result.bundle.sources[0]; assert.equal(s.originalDigest, sha(before)); assert.equal(s.textDigest, sha(s.text));
     if (file === "mixed.pdf") assert.deepEqual(s.conversion.pages.map((p) => p.source), ["text", "ocr", "blank"]);
     if (file === "pl-clean-200.pdf") { assert.equal(s.conversion.pages[0].source, "ocr"); assert.ok(s.conversion.warnings.includes("ocr-confidence-unavailable")); }
+  });
+  for (const origin of ["file:///synthetic/dirty.md", "untitled:Untitled-1"]) await check(`buffer-frozen-${origin.startsWith("untitled") ? "untitled" : "dirty"}`, async () => {
+    const input = { kind: "editor-buffer", uri: origin, type: "md", content: "Alpha original buffer." };
+    const pending = op([input]); input.content = "Changed after start.";
+    const result = await pending; assert.equal(result.status, "success", result.code); assert.equal(calls, 1);
+    assert.equal(result.result.bundle.sources[0].text, "Alpha original buffer.");
+    assert.equal(result.result.bundle.sources[0].scope, "editor-buffer"); assert.equal(result.result.bundle.sources[0].editorUri, origin);
+    assert.ok(!wire.messages[1].content.includes(origin));
+  });
+  for (const locationMode of ["ocr-location-good", "ocr-location-bad"]) await check(locationMode + "-exact-frozen-bundle", async () => {
+    mode = locationMode; const result = await op([{ path: path.join(fixtures, "mixed.pdf"), pdfOcrMode: "auto" }]);
+    assert.equal(calls, 1);
+    if (locationMode === "ocr-location-good") { assert.equal(result.status, "success", result.code); const e = result.result.candidates[0].evidence[0]; assert.equal(result.result.bundle.sources[0].text.slice(e.location.startOffset,e.location.endOffset),e.excerpt); }
+    else { assert.equal(result.status, "failed"); assert.equal(result.code,"evidence-location-mismatch"); assert.ok(!("result" in result)); }
   });
   await check("blank-ocr-blocked-zero-http", async () => { assert.equal((await op([{ path: path.join(fixtures, "blank-only.pdf"), pdfOcrMode: "auto" }])).status, "failed"); assert.equal(calls, 0); });
   for (const control of ["cancel", "timeout"]) await check(`${control}-active-ocr-cleanup-zero-http`, async () => {

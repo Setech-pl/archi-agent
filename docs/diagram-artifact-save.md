@@ -1,7 +1,7 @@
 # Controlled diagram and report save (ART1)
 
-ART1 adds **Save Diagram and Report** to a completed generation notification, **Archi Agent:
-Save Diagram and Report** to the Command Palette, and the same leaf to **Archi Agent: Open**.
+ART1 adds **Save Diagram and Report** to a completed generation notification, **Archi:
+Save Diagram and Report** to the Command Palette, and the same leaf to **Archi: Open**.
 The palette/menu selects an original completed Sequence or Component result identified by type,
 UTC creation time and result UUID. These in-memory choices belong to open result previews; closing
 both diagram and report removes that choice. There is no persistent run history or reload/import.

@@ -4,6 +4,10 @@
  */
 
 export const commandIds = Object.freeze({
+  knowledgeBrowser: "archiAgent.knowledgeBrowser",
+  refreshKnowledge: "archiAgent.refreshKnowledge",
+  openKnowledgeRecord: "archiAgent.openKnowledgeRecord",
+  buildKnowledgePackFromActiveFile: "archiAgent.buildKnowledgePackFromActiveFile",
   saveDiagramAndReport: "archiAgent.saveDiagramAndReport",
   buildKnowledgePack: "archiAgent.buildKnowledgePack",
   open: "archiAgent.open",

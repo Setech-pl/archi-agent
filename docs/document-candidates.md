@@ -147,3 +147,9 @@ snapshot. See [K3 review and save](knowledge-pack-review.md) for user flow and t
 The optional generator resolver receives the extraction AbortSignal. Cancel or deadline ends
 waiting even if a credential/model callback has not returned; a late result cannot construct a
 provider client or generate. K3 also forwards cancellation to model listing and its picker.
+
+## UX4-FU1 input/location clarification
+
+The request also accepts explicit `editor-buffer` MD/TXT inputs (`uri`, `type`, `content`). The host captures before yielding; runtime clones inputs before asynchronous work. Source scope and editor URI survive local provenance/save; the URI is omitted from the model message. Original digest hashes captured UTF-8 bytes; text digest hashes the existing normalized text. No disk read or temporary source identity is used for buffers.
+
+Each model input source additionally provides deterministic `evidenceSlices` (nonblank lines, split at the excerpt ceiling without splitting surrogate pairs). These are request annotations, not a changed frozen bundle or evidence verifier. The model must copy a full slice and offsets; validation still rejects any nonliteral location. Provider selection has its own stage under the operation deadline; generation's unchanged 120s budget begins after selection returns. Optional `onStage` emits closed stage names to host progress.

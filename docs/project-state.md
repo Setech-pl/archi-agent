@@ -11,7 +11,7 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Pole | Wartość |
 | --- | --- |
 | Data aktualizacji | 2026-10-09 |
-| Stan Git | UX4 na `feature/ux4-configuration-workbench`, baza DOC1 `8375861582e64cd90e75843eb4c0fa66e50f7867`; preflight clean/staging empty. Autoryzowany lokalny checkpoint po bramkach i review. Dokładny checkpoint, HEAD, drzewo i staging sprawdzaj w Git oraz final-manifest.json. Bez push/merge/tag/publikacji. |
+| Stan Git | UX4-FU1 w izolowanym worktree `/private/tmp/archi-ux4-fu1`, branch `fix/ux4-owner-findings-and-knowledge-browser`, baza UX4 `4dd62465a909020b415ae27698a0878508da438d`. Preflight clean/staging empty; implementacja i pełne bramki zakończone. Finalny niezależny review PASS0 HIGH/MEDIUM/LOW; lokalny checkpoint autoryzowany, jego tożsamość w final-manifest.json. Współdzielony checkout zachowany. Bez push/merge/tag/publikacji. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -32,12 +32,31 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan ART1 | Audit fixes ART1-01/02/03 i Q-02 implemented; końcowe bramki PASS213/213 po pełnych celowanych UI rerunach na tym samym VSIX. Niezależny review PASS, brak otwartych HIGH/MEDIUM; autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Stan FU-01 | Completed — lokalny checkpoint `a76b15c`; status i dowody potwierdzone przed DOC1. OWNER_SMOKE: DEFERRED. |
 | Stan DOC1 | Completed — dokumentacja PL/EN, 10 renderów Mermaid, 3 rzeczywiste demonstracje UI, MIT i samowystarczalne README pakietu. Bramki i niezależny finalny re-review PASS; brak otwartych HIGH/MEDIUM/LOW. Autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
-| Stan UX4 | Implemented and automatically verified; końcowy gauntlet272/272 PASS, root1670/extension514, niezależny review3: 0 HIGH/MEDIUM. Nowy owner smoke NOT_COMPLETED; wszystkie45 przypadków NOT_RUN. |
-| Następny etap | STOP — odbiór właściciela na nowych ekranach i dokładnym SHA UX4. K4 i przygotowanie wydania nie rozpoczęte. |
+| Stan UX4 | Historyczne bramki272/272 PASS, root1670/extension514, review3 bez HIGH/MEDIUM. Owner smoke NOT_COMPLETED; właściciel zgłosił A–D dla SHA358c31ff… — osobne obserwacje w UX4-FU1, bez nadpisania historycznego formularza. |
+| Stan UX4-FU1 | Implemented and automatically verified; pełny profil289/289 PASS po kompletnych UI rerunach na identycznym VSIX, root1688/extension532, review0 HIGH/MEDIUM/LOW. Lokalny checkpoint autoryzowany; nowy owner smoke57 NOT_RUN, NOT_COMPLETED. |
+| Następny etap | Odbiór UX4-FU1 przez Marcina w nowym izolowanym owner smoke. STOP. DEMO-KP1, K4 i przygotowanie wydania nie rozpoczęte. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## UX4-FU1 — full gates verified, final handoff (2026-10-09)
+
+Authorized owner-findings repair, active-buffer extraction, nine Archi commands and native Knowledge Browser. Base UX4 `4dd62465a909020b415ae27698a0878508da438d`, preflight clean/staging empty. Branch `fix/ux4-owner-findings-and-knowledge-browser` is isolated in `/private/tmp/archi-ux4-fu1`; shared checkout preserved. Checkpoint identity is recorded after commit in the final manifest, rather than embedding a self-referential hash here.
+
+Original owner reports apply only to VSIX `358c31ffdd985b0612136b975cd80ea39b3d55304fc2ef2c3538003d2f573647`. Append-only observations, exact document identification and synthetic live reproductions are preserved in `build/ux4-fu1/final-20261009T1920Z/owner-findings/`. Historical smoke unchanged; no inferred PASS. Original isolated profile history contains the synthetic scan PDF URI, but source-picker selection was not persisted separately. [Causes, contracts and live limits](ux4-owner-findings.md).
+
+Strict evidence hints preserve literal UTF-16 checks and reject wrong OCR locations. Provider selection has a separate stage, bounded by the existing total deadline; stage progress and Cancel report actual extraction state. Keys follow the displayed draft profile and stay in native masked SecretStorage operations; Apply/Discard/model binding and late responses are covered. Active MD/TXT captures dirty/untitled buffers before yielding, retains true local provenance/digests and does not save. Binary tabs use their actual local file URI. The production K1 loader powers the native multi-root Knowledge tree, invalidation, aliases, flat relations, records and evidence details. All nine public commands use Archi; Configure/Check remain available on the proper screens with hidden legacy delegates.
+
+Full profile `npm run ux4:gauntlet -- --fu1`: **289/289 PASS after complete targeted UI reruns on the identical final VSIX**. Root1688/1688, extension532/532, focused449/449; both typechecks, clean root/OCR installs, both audits0, build/package/verify, demo dry run, documentation and diff checks. Outside-repo runtime K1 16, K2 21, K3 15, UX3 27, ART1 14; DOCX source/package 5+5. Actual Host99; native ART1 9, UX4/K3 28 and FU1 12. Bundle/OCR parity PASS. Final report: `build/ux4-fu1/final-20261009T1920Z/report.json`.
+
+The original full attempt remains INCOMPLETE_OR_FAILED in `gauntlet-original/`: ART1 narrow DOM-format assertion timed out despite a correctly opened report; UX4 CDP renderer connection timed out. Complete native reruns, their screenshots and independent exact installed-bundle comparisons are retained. No historical FAIL was overwritten. The final aggregate uses the reruns only for those UI cases. Post-gate source delta is restricted to the ART1 assertion and documentation; final manifest records it explicitly. Custom preview extensions are not installed: native binary text-tab URI behavior and stable TabInputCustom API/unit coverage are distinguished.
+
+Final VSIX: `build/ux4-fu1/final-20261009T1920Z/archi-agent-0.3.0-alpha.4.vsix`, **119875273 B**, SHA-256 `eae14988c3f8fc6ae9d8f985aaf00c9803a454db1d4c1b825822d8e85e917f4a`. Version unchanged. Independent read-only GPT-6.1 Sol/high final review: PASS, 0 HIGH/MEDIUM/LOW. Review report, exact installed-bundle comparisons, final documentation checks and source delta/parity are retained beside the final report. Local checkpoint is authorized; its identity is recorded in final-manifest.json.
+
+Live Ollama gemma3:27b: revised MD succeeded in77.171s; revised PDF conversion/OCR0.706s + generation82.926s, all four evidence locations correct, but a malformed trailing-whitespace row was strictly rejected. Live PDF end-to-end PASS is not claimed. The owner's original MD timeout did not reproduce; source-level deadline/progress fixes and deterministic timeout/Cancel regression are distinct from that unresolved original live observation. No paid requests, model downloads or retry/fallback.
+
+Fresh handoff at `build/owner-smoke/ux4-fu1-20261009T1920Z-c56d/`: synthetic sources, exact absolute document paths, Finder helper and 57 freshly NOT_RUN cases. Installation/launch state and isolated profile paths are recorded in environment.json. Previous owner/personal profiles preserved. OWNER_SMOKE: NOT_COMPLETED. PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED. STOP after checkpoint and handoff; no DEMO-KP1, K4 or release preparation.
 
 ## UX4 — verified local checkpoint, owner handoff (2026-10-09)
 

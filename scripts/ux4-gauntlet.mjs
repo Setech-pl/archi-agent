@@ -13,8 +13,9 @@ import { runK3UiSmoke } from "./k3-real-ui-smoke.mjs";
 import { runHostSmoke } from "./ux3-vscode-smoke.mjs";
 import { prepareDocxFixtures } from "./docx-compatibility-smoke.mjs";
 
+const fu1 = process.argv.includes("--fu1");
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const out = path.join(repo, "build/ux4", `gauntlet-${new Date().toISOString().replace(/[:.]/gu, "-")}-${process.pid}`);
+const out = path.join(repo, fu1 ? "build/ux4-fu1" : "build/ux4", `gauntlet-${new Date().toISOString().replace(/[:.]/gu, "-")}-${process.pid}`);
 mkdirSync(out, { recursive: true });
 const commands = [], scenarios = [];
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -52,7 +53,7 @@ function artifacts(folder) {
     return entry.isDirectory() ? artifacts(file) : entry.name.endsWith(".vsix") ? [{ path: file, sha256: sha(readFileSync(file)) }] : [];
   });
 }
-const metadata = { milestone: "UX4", base: "8375861582e64cd90e75843eb4c0fa66e50f7867", independentReview: "PENDING", head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current"), initialStatus: git("status", "--short"),
+const metadata = { milestone: fu1 ? "UX4-FU1" : "UX4", base: fu1 ? "4dd62465a909020b415ae27698a0878508da438d" : "8375861582e64cd90e75843eb4c0fa66e50f7867", independentReview: "PENDING", head: git("rev-parse", "HEAD"), branch: git("branch", "--show-current"), initialStatus: git("status", "--short"),
   initialStaging: git("diff", "--cached", "--name-only"), sourceFilesSha256: sourceFiles(),
   environment: { node: process.version, platform: process.platform, arch: process.arch }, startedAt: new Date().toISOString(), ownerSmoke: "NOT_COMPLETED",
   uiApplicability: "Required: real native pickers, ART1 confirmation and visible ART1/K3 controls; host controlled-answer evidence reported separately." };
@@ -65,7 +66,7 @@ try {
   const ocrAudit = run("audit-ocr", "npm", ["audit", "--json"], { cwd: path.join(repo, "experiments/ux2-ocr") });
   writeFileSync(path.join(out, "audit-ocr.json"), ocrAudit.stdout ?? "");
   const focusedJson = path.join(out, "focused-tests.json");
-  run("focused", "npx", ["vitest", "run", "test/vscode-extension/configuration-workbench.test.ts", "test/runtime/diagram-artifact.test.ts", "test/vscode-extension/save-diagram-and-report.test.ts", "test/runtime/knowledge-pack-review.test.ts", "test/vscode-extension/build-knowledge-pack.test.ts", "test/runtime/document-candidates.test.ts", "test/runtime/convert-document.test.ts", "test/node/document-conversion.test.ts", "test/unit/knowledge-pack/builder/knowledge-pack-builder.test.ts", "test/unit/knowledge-pack/knowledge-snapshot.test.ts", "test/runtime/knowledge-snapshot.test.ts",
+  run("focused", "npx", ["vitest", "run", "test/vscode-extension/configuration-workbench.test.ts", "test/runtime/ux4-fu1.test.ts", "test/vscode-extension/knowledge-browser.test.ts", "test/runtime/diagram-artifact.test.ts", "test/vscode-extension/save-diagram-and-report.test.ts", "test/runtime/knowledge-pack-review.test.ts", "test/vscode-extension/build-knowledge-pack.test.ts", "test/runtime/document-candidates.test.ts", "test/runtime/convert-document.test.ts", "test/node/document-conversion.test.ts", "test/unit/knowledge-pack/builder/knowledge-pack-builder.test.ts", "test/unit/knowledge-pack/knowledge-snapshot.test.ts", "test/runtime/knowledge-snapshot.test.ts",
     "test/core/pipeline/reviewed-sequence-digest.test.ts", "test/core/pipeline/component-diagram.test.ts", "test/runtime/generate-diagram.test.ts",
     "test/runtime/component-diagram.test.ts", "test/runtime/knowledge-pack-onboarding.test.ts", "test/runtime/knowledge-pack-onboarding-ownership.test.ts", "test/vscode-extension/knowledge-pack-onboarding.test.ts", "--reporter=json", `--outputFile=${focusedJson}`]);
   if (!existsSync(focusedJson)) scenarios.push({ id: "focused-json", status: "NOT_RUN" });
@@ -160,7 +161,15 @@ try {
   const art1ui = await runArt1UiSmoke(vsix, out);
   scenarios.push(...art1ui);
   scenarios.push({ id: "ART1-real-UI-coverage", status: art1ui.length === 9 && art1ui.every((r) => r.status === "PASS") ? "PASS" : "FAIL" });
-  const ui = await runK3UiSmoke(vsix, out, out);
+  if (fu1) {
+    const { runFu1UiSmoke } = await import("./ux4-fu1-real-ui-smoke.mjs");
+    const fu1ui = await runFu1UiSmoke(vsix, out);
+    scenarios.push(...fu1ui);
+    scenarios.push({ id: "UX4-FU1-native-coverage", status: fu1ui.length === 12 && fu1ui.every(r=>r.status === "PASS") ? "PASS" : "FAIL" });
+  }
+  const nativeProjectParent = fu1 ? path.join(path.dirname(git("rev-parse", "--path-format=absolute", "--git-common-dir")), "build/ux4-fu1/native-projects", path.basename(out)) : out;
+  mkdirSync(nativeProjectParent, { recursive: true });
+  const ui = await runK3UiSmoke(vsix, out, nativeProjectParent);
   scenarios.push(...ui);
   scenarios.push({ id: "UX4-K3-real-UI-coverage", status: ui.length >= 28 && ui.every((r) => r.status === "PASS") ? "PASS" : "FAIL" });
 } catch (error) { scenarios.push({ id: "gauntlet", status: "FAIL", reason: error.message }); }

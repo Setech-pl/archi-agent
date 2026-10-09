@@ -224,7 +224,8 @@ export function selectKnowledgeContext(snapshot: KnowledgeSnapshot, selectedIds:
     ...(snapshot.documentProvenance ? { documentProvenance: snapshot.documentProvenance.map((m) => {
       const entries = m.entries.filter((e) => e.candidate.table === "systems" || e.candidate.table === "actors" ? selected.has(e.candidate.row.id) :
         e.candidate.table === "aliases" ? selected.has(e.candidate.row.target_id) : selected.has(e.candidate.row.from_id) && selected.has(e.candidate.row.to_id));
-      const sources = m.sources.filter((s) => entries.some((e) => e.evidence.some((v) => v.sourceId === s.sourceId)));
+      const sources = m.sources.filter((s) => entries.some((e) => e.evidence.some((v) => v.sourceId === s.sourceId)))
+        .map(({ editorUri: _localEditorIdentity, ...source }) => source);
       return { ...m, entries, sources };
     }).filter((m) => m.entries.length) } : {}),
     conflicts: snapshot.conflicts,

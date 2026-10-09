@@ -141,8 +141,8 @@ describe("UX4 configuration host", () => {
   it("public state contains only presence of a secret, native masked input has no saved value",async()=>{
     state.configuration.set("archiAgent.localModel.profile","cloud-openai");const id=secretIdForProfile("cloud-openai")!;state.secrets.set(id,"synthetic-secret-sentinel");
     const s=await setup();expect(s.latest().keyPresent).toBe(true);expect(JSON.stringify(s.panel.webview.messages)).not.toContain("synthetic-secret-sentinel");
-    state.inputBoxAnswers.push("synthetic-replacement");await s.send("set-key");expect(state.inputBoxes.at(-1)).toMatchObject({password:true});expect(state.inputBoxes.at(-1)).not.toHaveProperty("value");
-    expect(JSON.stringify(s.panel.webview.messages)).not.toContain("synthetic-replacement");state.messageAnswers.push("Delete API Key");await s.send("delete-key");expect(s.latest().keyPresent).toBe(false);
+    state.inputBoxAnswers.push("synthetic-replacement");await s.send("set-key", {profile:"cloud-openai"});expect(state.inputBoxes.at(-1)).toMatchObject({password:true});expect(state.inputBoxes.at(-1)).not.toHaveProperty("value");
+    expect(JSON.stringify(s.panel.webview.messages)).not.toContain("synthetic-replacement");state.messageAnswers.push("Delete API Key");await s.send("delete-key", {profile:"cloud-openai"});expect(s.latest().keyPresent).toBe(false);
   });
   it("missing cloud key performs zero network calls and exposes recovery",async()=>{
     state.configuration.set("archiAgent.localModel.profile","cloud-openai");const s=await setup(),list=vi.spyOn(s.runtime,"listProviderModels");await s.send("diagnose");expect(list).not.toHaveBeenCalled();expect(s.latest().diagnostic).toContain("credential-required");
@@ -150,6 +150,22 @@ describe("UX4 configuration host", () => {
   it("invalid operations and arbitrary paths cannot invoke commands or writes",async()=>{
     const s=await setup();await s.send("execute-command",{command:"evil"});await s.send("open-file",{file:"../../secret"});await s.panel.receive({op:"apply",revision:"0",form});
     expect(state.executedCommands).toEqual([]);expect(state.configurationUpdates).toEqual([]);expect(state.openedDocuments).toEqual([]);
+  });
+  it.each(["local-lm-studio","local-ollama","cloud-anthropic","cloud-openai","cloud-openrouter"])("applies %s, clears previous model, and restores after reopening",async profile=>{
+    state.configuration.set("archiAgent.localModel.profile","local-ollama");state.configuration.set("archiAgent.localModel.selectedModel","old-ollama-model");state.configuration.set("archiAgent.localModel.selectedModelProfile","local-ollama");
+    const s=await setup();await s.send("apply",{form:{...form,profile,model:""},baseRevision:s.latest().revision});
+    expect(state.configuration.get("archiAgent.localModel.profile")).toBe(profile);expect(s.latest().form.model).toBe("");
+    s.workbench.dispose();s.workbench.open();await vi.waitFor(()=>expect(panels[1]?.webview.messages.some(m=>m.type==="state")).toBe(true));
+    expect(panels[1]?.webview.messages.filter(m=>m.type==="state").at(-1)?.form.profile).toBe(profile);
+  });
+  it.each(["cloud-anthropic","cloud-openai","cloud-openrouter"])("draft key for %s stays bound while profile changes and Cancel writes nothing",async profile=>{
+    state.configuration.set("archiAgent.localModel.profile","local-ollama");const s=await setup();await s.send("draft-changed",{dirty:true});
+    state.inputBoxAnswers.push(undefined);await s.send("set-key",{profile});expect(state.secretWrites).toEqual([]);
+    let release!:(v:string)=>void;const input=vi.spyOn(window,"showInputBox").mockImplementationOnce(()=>new Promise(r=>{release=r;}));
+    const operation=s.send("set-key",{profile});await vi.waitFor(()=>expect(input).toHaveBeenCalled());await s.send("draft-changed",{dirty:true});
+    state.configuration.set("archiAgent.localModel.profile","cloud-openrouter");release("synthetic-profile-key");await operation;
+    expect(state.secretWrites).toEqual([{key:secretIdForProfile(profile),value:"synthetic-profile-key"}]);expect(s.latest().profileKeys[profile]).toBe(true);
+    expect(JSON.stringify(s.panel.webview.messages)).not.toContain("synthetic-profile-key");
   });
   it("Create Diagram type Cancel precedes onboarding, secrets and provider calls",async()=>{
     const runtime=createArchiAgentRuntime(),gen=vi.spyOn(runtime,"generateDiagram"),list=vi.spyOn(runtime,"listProviderModels");
