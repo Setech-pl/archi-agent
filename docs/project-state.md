@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-10-08 |
-| Stan Git | DOC1 na `docs/pl-en-guides-and-diagrams`, baza produktu po FU-01 `a76b15ca822364810edb0298852db70437f73e9d`; preflight clean/staging empty. Gałęzie audytu nie zostały scalone. Dokładny checkpoint, HEAD i drzewo sprawdzaj w Git oraz manifestach dowodów. |
+| Data aktualizacji | 2026-10-09 |
+| Stan Git | UX4 na `feature/ux4-configuration-workbench`, baza DOC1 `8375861582e64cd90e75843eb4c0fa66e50f7867`; preflight clean/staging empty. Autoryzowany lokalny checkpoint po bramkach i review. Dokładny checkpoint, HEAD, drzewo i staging sprawdzaj w Git oraz final-manifest.json. Bez push/merge/tag/publikacji. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -32,11 +32,67 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan ART1 | Audit fixes ART1-01/02/03 i Q-02 implemented; końcowe bramki PASS213/213 po pełnych celowanych UI rerunach na tym samym VSIX. Niezależny review PASS, brak otwartych HIGH/MEDIUM; autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Stan FU-01 | Completed — lokalny checkpoint `a76b15c`; status i dowody potwierdzone przed DOC1. OWNER_SMOKE: DEFERRED. |
 | Stan DOC1 | Completed — dokumentacja PL/EN, 10 renderów Mermaid, 3 rzeczywiste demonstracje UI, MIT i samowystarczalne README pakietu. Bramki i niezależny finalny re-review PASS; brak otwartych HIGH/MEDIUM/LOW. Autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
-| Następny etap | STOP po lokalnym checkpointcie DOC1. K4/MCP i przygotowanie wydania nie rozpoczęte; wymagają osobnego zadania. |
+| Stan UX4 | Implemented and automatically verified; końcowy gauntlet272/272 PASS, root1670/extension514, niezależny review3: 0 HIGH/MEDIUM. Nowy owner smoke NOT_COMPLETED; wszystkie45 przypadków NOT_RUN. |
+| Następny etap | STOP — odbiór właściciela na nowych ekranach i dokładnym SHA UX4. K4 i przygotowanie wydania nie rozpoczęte. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## UX4 — verified local checkpoint, owner handoff (2026-10-09)
+
+Preflight potwierdził DOC1: docs/pl-en-guides-and-diagrams,
+`8375861582e64cd90e75843eb4c0fa66e50f7867`, clean/staging empty.
+Utworzono feature/ux4-configuration-workbench z tej bazy. Cudzych zmian nie zastano.
+Autoryzacja: implementacja, pełny gauntlet, niezależny review GPT-6.1 Sol/high,
+lokalny checkpoint i przygotowanie nowego izolowanego owner smoke, potem STOP.
+
+[Configuration i review](configuration-workbench.md) używają istniejących UX3/K3/OBS1
+oraz SecretStorage. Singleton editor ma Knowledge Management / LLM Provider, jawny projekt,
+zakres/źródło, rzeczywiste liczności/walidację, natywne pickery i Apply/Discard.
+Apply blokuje pola synchronicznie do jawnego zakończenia; błędy zachowują draft i odczytują stan.
+Powiązany review obsługuje evidence/OCR, decyzje grupowe, edycję i pięć podglądów przez
+KnowledgePackReviewSession. Pending/zależności blokują zapis; Save nie aktywuje, Save and use
+stosuje UX3 do wybranego projektu; kolizja wskazuje inny nowy folder. Brak merge/update packów,
+ponownej ekstrakcji przy review oraz nowych retry/fallbacków/płatnych testów diagnostycznych.
+Sekrety są natywne/SecretStorage, publiczny stan zawiera wyłącznie obecność klucza.
+CSP, allowlista i lifetime guards ograniczają granicę webview/host. Kontrakt ART1 bez zmian.
+Menu: Create Diagram → Sequence/Component; Save Diagram and Report; Configuration;
+Knowledge Management (ta sama zakładka); Convert to Markdown; Help.
+Paleta Archi: Create Diagram / Archi: Configuration; stary Sequence ID ukryty.
+Dokumentacja PL/EN aktualna; GIF-y DOC1 zachowane jako historyczne z pochodzeniem.
+
+Końcowe dowody: `build/ux4/gauntlet-2026-10-09T12-26-40-457Z-37727/`.
+Pełny gauntlet **272/272 PASS**, bez FAIL/NOT_RUN, w jednym końcowym podejściu:
+root1670/1670, extension514/514, focused433/433, oba typechecki, czyste npm ci root/OCR,
+audity0, build/package/verify531, demo dry run, dokumentacja/diff; rzeczywisty pakowany
+runtime K1/K2/K3/UX3/DOCX/ART1 poza repo, Host99 oraz native UI ART1 9 i UX4/K3 28.
+Świeże3 bundle i zasoby OCR są zgodne bajtowo z pakietem. Natywne UI wykonało dokładnie5
+kontrolowanych ekstrakcji; review/edit/save nie wykonały kolejnej. Zrzuty knowledge/provider,
+review, light/dark/high contrast/narrow sprawdzone wizualnie. Transporty i dane syntetyczne
+nie dowodzą jakości żywego LLM ani odbioru właściciela.
+
+Dokładny VSIX: `build/ux4/gauntlet-2026-10-09T12-26-40-457Z-37727/archi-agent-0.3.0-alpha.4.vsix`,
+**119869441 B**, SHA-256 `358c31ffdd985b0612136b975cd80ea39b3d55304fc2ef2c3538003d2f573647`.
+Wersji nie zmieniono; to lokalny kandydat, nie nowe wydanie alpha.4.
+Final-manifest.json wiąże checkpoint, końcowe źródła, bramki, review i dokładny pakiet.
+Po gauntlecie zmieniono jedynie statusy w project-state/roadmap/kontrakcie UX4; jawny delta
+fingerprintów i ponowna zgodność bundle/package są w finalnym manifeście. Wcześniejsze
+nieudane gauntlety, UI i VSIX zachowano w build/ux4; nie są wynikiem końcowego pakietu.
+Review1 BLOCKED2M, review2 BLOCKED1M; round3 PASS0HIGH/0MEDIUM, oba ustalenia zamknięte
+(synchroniczny Apply oraz brak operacji po zamknięciu w trakcie odczytów asynchronicznych).
+Raporty poprzednich rund: build/ux4/run-20261009-configuration/independent-review-round-*.md;
+końcowy: independent-review-final.md przy finalnym VSIX. Brak otwartych ustaleń blokujących.
+
+Nowy owner smoke: `build/owner-smoke/ux4-20261009T123358Z-8b7d/`.
+Launcher/instrukcja/formularz obejmują wcześniejsze33 ID oraz12 UX4; wszystkie45 NOT_RUN.
+Stan instalacji/uruchomienia i izolowany profil sprawdzaj w environment.json.
+Pierwszy krok: Archi: Configuration → jawnie Smoke — main → LLM Provider → wybór żywego
+lokalnego profilu/modelu, Apply, Refresh Models, Apply, Check; generacja pozostaje unchecked.
+Poprzedni DOC1 smoke był częściowy; kompletnego wyniku33 przypadków nie otrzymano i nie
+przeniesiono żadnego PASS na nowy SHA. Osobisty profil i poprzedni smoke zachowane.
+OWNER_SMOKE: NOT_COMPLETED. PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED.
+STOP. Czekaj na odbiór Marcina; K4 i przygotowanie wydania nie rozpoczęte.
 
 ## DOC1 — bilingual documentation and real UI media (2026-10-08)
 

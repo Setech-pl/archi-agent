@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { KnowledgePackReviewSession, StarterPackCreateError, createArchiAgentRuntime } from "../../src/runtime/index.js";
 import { selectModel } from "../../vscode-extension/src/commands/local-provider-selection.js";
 import { buildKnowledgePackCommand } from "../../vscode-extension/src/commands/build-knowledge-pack.js";
-import { resetDouble, state, Uri, window, ConfigurationTarget } from "../doubles/vscode-module-double.js";
+import { openKnowledgePackReview } from "../../vscode-extension/src/workbench/review.js";
+import { resetDouble, state, Uri, window, ConfigurationTarget, webviewDrivers, panels } from "../doubles/vscode-module-double.js";
 const pick = (label: string) => (items: readonly unknown[]) => items.find((i) => i === label);
 const roots: string[] = [];
 beforeEach(resetDouble);
@@ -20,26 +21,58 @@ function setup() {
     const evidence = [{ sourceId: source.sourceId, originalDigest: source.originalDigest, textDigest: source.textDigest, excerpt: source.text, startOffset: 0, endOffset: source.text.length }];
     return { source: "content" as const, value: { version: 1, candidates: [{ table: "systems", row: { id: "a", canonical_name: "Alpha", kind: "service", description: "Service" }, basis: "explicit", reasoning: null, evidence }] } };
   } }) });
+  let pendingAction: string | undefined;
+  webviewDrivers.push(async (panel, view) => {
+    if (view.completed) { panel.dispose(); return; }
+    const action = pendingAction ?? state.quickPickAnswers.shift()?.(["Show review details", "Accept all pending", "Validate and preview", "Show summary and additions", "systems.md", "Save", "Save and use", "Cancel"], {});
+    pendingAction = undefined;
+    const send = (op: string, extra = {}) => panel.receive({ op, revision: view.revision, ...extra });
+    if (action === "Accept all pending") await send("decide", { indices: view.entries.flatMap((e: any,i: number) => e.decision === "pending" ? [i] : []), decision: "accepted" });
+    else if (action === "Validate and preview") await send("preview");
+    else if (action === "Save" || action === "Save and use") {
+      if (!view.directory) { pendingAction = String(action); await send("destination"); }
+      else await send(action === "Save" ? "save" : "save-use");
+    } else if (action === "systems.md" || action === "Show summary and additions" || action === "Show review details") await send("ready");
+    else await send("cancel");
+  });
   state.openDialogAnswers.push([Uri.file(doc)], [Uri.file(root)]);
   state.inputBoxAnswers.push("pack");
   return { root, doc, runtime, run: () => buildKnowledgePackCommand({ runtime, output: window.createOutputChannel("test") }), calls: () => calls };
 }
 describe("K3 editor adapter (controlled answers, not native UI evidence)", () => {
+  it.each([1, 2])("review closed during state read %i cannot open a destination picker", async blockedRead => {
+    const s = setup(); webviewDrivers.length = 0;
+    const extracted = await s.runtime.extractDocumentCandidates!({ documents: [{ path: s.doc }], generator: {
+      kind: "openai-compatible-local", baseUrl: "http://127.0.0.1:1234/v1", modelId: "synthetic", timeoutMs: 120000
+    } });
+    expect(extracted.status).toBe("success"); if (extracted.status !== "success") return;
+    const session = new KnowledgePackReviewSession(extracted.result), done = openKnowledgePackReview(session, { folder: undefined });
+    await vi.waitFor(() => expect(panels[0]?.webview.messages.some(m => m.type === "state")).toBe(true));
+    const panel = panels[0]!, current = await session.state(), open = vi.spyOn(window, "showOpenDialog");
+    let release!: (value: typeof current) => void;
+    const read = vi.spyOn(session, "state");
+    if (blockedRead === 2) read.mockResolvedValueOnce(current);
+    read.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    const pending = panel.receive({ op: "destination", revision: current.revision });
+    await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(blockedRead));
+    panel.dispose(); release(current); await pending; await done;
+    expect(open).not.toHaveBeenCalled(); expect(s.calls()).toBe(1);
+  });
   it("production K2 without existing pack, group acceptance, preview and Save use one generation", async () => {
     const s = setup(); state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick("Show summary and additions"), pick("systems.md"), pick("Save"));
     await s.run(); expect(s.calls()).toBe(1); expect(readdirSync(path.join(s.root, "pack"))).toHaveLength(5);
-    expect(state.configurationUpdates).toEqual([]); expect(state.openedDocuments).toHaveLength(2);
-    expect(state.messages.at(-1)?.text).toContain("saved:");
+    expect(state.configurationUpdates).toEqual([]); expect(panels[0]?.webview.messages.some((m) => m.previews?.length === 5)).toBe(true);
+    expect(panels[0]?.webview.messages.at(-1)?.notice).toContain("Saved:");
   });
   for (const mode of ["global", "single", "multi"]) it(`Save and use picks correct ${mode} scope`, async () => {
     const s = setup();
     if (mode !== "global") state.workspaceFolders = [{ name: "left", uri: Uri.file(s.root), index: 0 }];
     if (mode === "multi") state.workspaceFolders!.push({ name: "right", uri: Uri.file(path.join(s.root, "right")), index: 1 });
     state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick("Save and use"));
-    if (mode === "multi") state.quickPickAnswers.push((items: readonly unknown[]) => items[1]);
+    if (mode === "multi") state.quickPickAnswers.unshift((items: readonly unknown[]) => items[1]);
     await s.run(); expect(s.calls()).toBe(1);
     expect(state.configurationUpdates[0]).toMatchObject({ value: path.join(s.root, "pack"), target: mode === "global" ? ConfigurationTarget.Global : ConfigurationTarget.WorkspaceFolder });
-    expect(state.messages.at(-1)?.text).toContain("saved and activated");
+    expect(panels[0]?.webview.messages.at(-1)?.notice).toContain("Saved and activated");
   });
   for (const action of ["Save", "Save and use"]) for (const populated of [false, true]) it(`${action} collision preserves ${populated ? "populated" : "empty"} target and offers a new location without extraction`, async () => {
     const s = setup(), directory = path.join(s.root, "pack");
@@ -50,8 +83,8 @@ describe("K3 editor adapter (controlled answers, not native UI evidence)", () =>
     state.openDialogAnswers.push([Uri.file(s.root)]); state.inputBoxAnswers.push("retry-pack");
     state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick(action), pick("Validate and preview"), pick(action));
     await s.run();
-    const failure = state.messages.find((m) => m.text.includes("save failed"));
-    expect(failure?.text).toBe(`Archi Agent: save failed [location-exists]. ${directory}. Choose another new folder.`);
+    const failure = panels[0]?.webview.messages.find((m) => m.error?.includes("Save failed"));
+    expect(failure?.error).toBe(`Save failed [location-exists]. ${directory}. Choose another new folder.`);
     expect(readdirSync(directory)).toEqual(populated ? ["keep.txt"] : []);
     if (populated) expect(readFileSync(path.join(directory, "keep.txt"), "utf8")).toBe("Existing owner data.");
     expect(readdirSync(path.join(s.root, "retry-pack"))).toHaveLength(5);
@@ -67,7 +100,7 @@ describe("K3 editor adapter (controlled answers, not native UI evidence)", () =>
     const extract = vi.spyOn(s.runtime, "extractDocumentCandidates");
     state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick(action), pick("Cancel"));
     await s.run();
-    expect(state.messages.find((m) => m.text.includes("save failed"))?.text).toBe(`Archi Agent: save failed [write-failed]. ${path.join(s.root, "pack")}. ${incomplete ? (error as StarterPackCreateError).recovery : "Choose another new folder."}`);
+    expect(panels[0]?.webview.messages.find((m) => m.error?.includes("Save failed"))?.error).toBe(`Save failed [write-failed]. ${path.join(s.root, "pack")}. ${incomplete ? (error as StarterPackCreateError).recovery : "Choose another new folder."}`);
     expect(save).toHaveBeenCalledTimes(1); expect(extract).toHaveBeenCalledTimes(1); expect(s.calls()).toBe(1);
     expect(existsSync(path.join(s.root, "pack"))).toBe(false); expect(state.configurationUpdates).toEqual([]);
   });
@@ -77,12 +110,13 @@ describe("K3 editor adapter (controlled answers, not native UI evidence)", () =>
     state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick("Save and use")); await s.run();
     expect(readdirSync(path.join(s.root, "pack"))).toHaveLength(5);
     expect(state.configuration.get("archiAgent.knowledgePackPath")).toBe("parallel-change");
-    expect(state.messages.at(-1)?.text).toContain("saved, not activated"); expect(state.configurationUpdates).toHaveLength(1);
+    expect(panels[0]?.webview.messages.at(-1)?.notice).toContain("Saved, not activated"); expect(state.configurationUpdates).toHaveLength(1);
   });
   it("completed save releases session before success notification is dismissed", async () => {
     const s = setup(); state.quickPickAnswers.push(pick("Accept all pending"), pick("Validate and preview"), pick("Save"));
     vi.spyOn(window, "showInformationMessage").mockImplementation(() => new Promise(() => {}));
     await s.run();
+    webviewDrivers.push((panel, view) => panel.receive({ op: "cancel", revision: view.revision }));
     state.openDialogAnswers.push([Uri.file(s.doc)]); state.quickPickAnswers.push(pick("Cancel"));
     await s.run(); expect(s.calls()).toBe(2);
   });

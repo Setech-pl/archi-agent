@@ -11,7 +11,7 @@ export { createKnowledgeSnapshot, knowledgeSnapshotFromPack } from "../core/know
 export type { KnowledgeSnapshot, KnowledgeSource, KnowledgeContribution, KnowledgeRecord, KnowledgeFact,
   KnowledgeProvenance, KnowledgeGap, KnowledgeConflict } from "../core/knowledge-pack/knowledge-snapshot.js";
 export { convertDocument } from "./convert-document.js";
-export { createStarterKnowledgePack, cleanupStarterKnowledgePack, validateKnowledgePackDirectory, defaultKnowledgePackPath } from "./knowledge-pack-onboarding.js";
+export { createStarterKnowledgePack, cleanupStarterKnowledgePack, validateKnowledgePackDirectory, inspectKnowledgePackDirectory, defaultKnowledgePackPath } from "./knowledge-pack-onboarding.js";
 export { StarterPackCreateError } from "./knowledge-pack-onboarding.js";
 export { LocalPathError } from "../node/local-file-path.js";
 export type { StarterPackCreateCode } from "./knowledge-pack-onboarding.js";

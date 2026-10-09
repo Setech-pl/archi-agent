@@ -68,7 +68,7 @@ export async function runArt1UiSmoke(vsix, out) {
     const socket = new WebSocket(target.webSocketDebuggerUrl); await new Promise((r, j) => { socket.addEventListener("open", r, { once: true }); socket.addEventListener("error", j, { once: true }); }); cdp = new Cdp(socket); await delay(2500);
     await check(ids[0], async () => { await cdp.palette("Archi Agent: Open"); await cdp.pick("Archi Agent", "Save Diagram and Report");
       await waitFor(() => cdp.read('Array.from(document.querySelectorAll(".notification-list-item-message")).some(e=>e.textContent.includes("no completed diagram"))'), "no result instruction"); assert.equal(calls, 0); });
-    await check(ids[1], async () => { await cdp.palette("Archi Agent: Generate Diagram"); await cdp.pick("Archi Agent: diagram type", "Sequence");
+    await check(ids[1], async () => { await cdp.palette("Archi: Create Diagram"); await cdp.pick("Archi Agent: diagram type", "Sequence");
       await chooseFlow(flow);
       await waitFor(() => cdp.read('Array.from(document.querySelectorAll(".notification-list-item-message")).some(e=>e.textContent.includes("Archi Agent generated"))'), "generation success"); assert.equal(calls, 2);
     });
@@ -83,7 +83,7 @@ export async function runArt1UiSmoke(vsix, out) {
       assert.equal(sequenceReport.diagramType, "sequence"); assert.equal(calls, 2); assert.equal(readdirSync(sequenceDir).length, 2); await cdp.screenshot(path.join(out, "art1-sequence-saved.png"));
     });
     await check(ids[4], async () => { await clickButton("Open Report"); await waitFor(() => cdp.read('Array.from(document.querySelectorAll(".view-line")).some(e=>e.textContent.includes("archi-agent-artifact"))'), "opened report tab"); });
-    await check(ids[5], async () => { component = true; await cdp.palette("Archi Agent: Generate Diagram"); await cdp.pick("Archi Agent: diagram type", "Component");
+    await check(ids[5], async () => { component = true; await cdp.palette("Archi: Create Diagram"); await cdp.pick("Archi Agent: diagram type", "Component");
       await chooseFlow(flow); await waitFor(() => calls === 4, "two component requests"); await delay(700);
       await cdp.palette("Archi Agent: Open"); await cdp.pick("Archi Agent", "Save Diagram and Report"); await pickOriginal("component");
       const dir = await confirmation(); await clickButton("Save Diagram and Report", true); await waitFor(() => existsSync(path.join(dir, "report.json")), "component bundle");

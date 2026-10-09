@@ -56,12 +56,24 @@ Completed sequence and planned work (unranked rows have no approved position rel
 | 11 | K2 | Implemented and technically verified: bounded document bundle, one extraction call and deterministic evidence verifier through runtime; full gates/audit/review PASS, local checkpoint only, OWNER_SMOKE DEFERRED. |
 | 12 | K3 | Implemented; full automatic gates PASS, independent review PASS; local checkpoint only; OWNER_SMOKE DEFERRED: document review, grouped decisions/edits and five-file save in new folders only. Updates/merges excluded; controlled operation transaction, not atomic directory publication. |
 | 13 | ART1 | Implemented on separately authorized local branch: explicit original Sequence/Component diagram and linked report save; no overwrite, history, regeneration or MCP. Full technical gates PASS after same-VSIX K3 UI rerun; independent review PASS; local technical checkpoint; OWNER_SMOKE DEFERRED. |
+| 14 | UX4 | Implemented and automatically verified: Configuration/Review editor workbench, unified Create Diagram; full gauntlet272/272 PASS, independent review0 HIGH/MEDIUM. Owner smoke NOT_COMPLETED. |
 | — | M1 | Separate planned MCP adapter into `ArchitectureSnapshot`; scheduling relative to K1–K3 is open. |
 | — | C1 | VS Code Chat Participant `@archi-agent` with `/diagram`; see [C1 — VS Code Chat Participant](#c1--vs-code-chat-participant). |
 | — | D3 | `c4-context` plan, validator and renderer. |
 | — | D4 | `c4-container` plan, validator and renderer. |
 | — | D5 | `archimate-hld` plan, validator and renderer. |
 | — | REL | Broader release work: AI SDLC demo, branding, provider comparison and accepted owner smoke; `v0.3.0-alpha.1` and `v0.3.0-alpha.3` are earlier checkpoints. |
+
+### UX4 — Configuration, knowledge review and navigation
+
+Owner-authorized scope: singleton editor panel with Knowledge Management / LLM Provider,
+Apply/Discard and effective settings, existing UX3/K3/OBS1 services, linked K3 review editor,
+and one Create Diagram entry selecting Sequence/Component. Contracts, runtime request policy
+and ART1 frozen original pair are preserved. [Contract](configuration-workbench.md).
+Full required gauntlet272/272 and independent review (round3, no HIGH/MEDIUM) passed for the
+exact local candidate. Root1670/extension514, real Host99 and native UI37 passed. The authorized
+local checkpoint leads to a separate exact-SHA owner smoke; all45 cases remain NOT_RUN.
+Owner smoke is NOT_COMPLETED. Stop for owner acceptance; K4 and release work are not started.
 
 ### UX1 — Navigation and local document conversion
 

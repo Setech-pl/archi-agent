@@ -451,8 +451,8 @@ ambiguity is surfaced to a person instead of being resolved by a guess.
 
 The editor calls production K2 with explicitly selected documents and delayed existing model
 selection after frozen input validation. One extraction returns pending candidates. The runtime's
-`KnowledgePackReviewSession` holds the existing KPB-A reviewed draft in memory; grouped native
-controls collect decisions and row edits. KPB-A remains the semantic/row validator and renderer.
+`KnowledgePackReviewSession` holds the existing KPB-A reviewed draft in memory; the UX4 linked
+review webview collects decisions and row edits. KPB-A remains the semantic/row validator and renderer.
 A minimal trailing metadata section in the five Markdown files preserves source digests,
 evidence, basis, user edits and conversion limits through the production loader and K1 snapshot.
 
@@ -462,3 +462,14 @@ transaction with conditional cleanup, not an atomic directory rename. Save is se
 activation through UX3's scoped, guarded setting update; committed data survives activation
 failure. No extra generation, persistent drafts, existing-pack update/merge, ART1 or MCP.
 See [K3](knowledge-pack-review.md) for API, user flow and concurrency/atomicity limits.
+
+## UX4 editor configuration workbench
+
+A singleton VS Code webview hosts Knowledge Management and LLM Provider. It reads effective
+settings and loader counts, delegates native picker/activation to UX3 and displays the existing
+OBS1 classification. A linked webview edits the same K3 review session. Apply/Discard keeps
+unapplied fields separate from applied settings. SecretStorage values never enter public state;
+only key presence is projected. Locally bundled scripts use nonce CSP, no resource/network
+access, closed bounded operations and host validation. Source content uses textContent/value.
+No runtime generation semantics, quality policy or ART1 frozen original pair change.
+See [UX4](configuration-workbench.md) for navigation, lifecycle and verification.

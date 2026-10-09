@@ -2,9 +2,11 @@
 
 **English** · [Polski](../pl/architecture.md) · [Home](../../README.md)
 
-This is the implemented architecture at the local FU-01/DOC1 baseline, not the published UX2 package. [Detailed stable architecture](../architecture.md) retains historical explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
+This is the implemented architecture at the local UX4 candidate, not the published UX2 package. [Detailed stable architecture](../architecture.md) retains historical explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
 
 Core is deterministic and has no Node/VS Code I/O; orchestration calls injected ports and Node adapters. Runtime is host-neutral; the editor imports only `src/runtime/index.ts`. Providers are interchangeable adapters for StructuredChatClient. Documents/model responses are untrusted data. Only bounded relevant diagram snapshots or bounded selected extraction text reach a model. Settings and SecretStorage stay at the VS Code boundary.
+
+UX4 adds a singleton Configuration editor with Knowledge Management / LLM Provider and a linked K3 review webview. Both delegate to existing runtime services; a closed host protocol, nonce CSP and text-only rendering guard untrusted data. Keys remain in SecretStorage; the screen receives presence only. [UX4 contract](../configuration-workbench.md).
 
 ## A. Components and boundaries
 

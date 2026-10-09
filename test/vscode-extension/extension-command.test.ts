@@ -280,16 +280,16 @@ describe("activation", () => {
 
     activate(context as never);
 
-    expect([...state.registeredCommands.keys()]).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)]);
-    expect(manifest.contributes.commands.map((entry) => entry.command)).toEqual(Object.values(commandIds));
-    expect(manifest.activationEvents).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`));
+    expect([...state.registeredCommands.keys()].sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].sort());
+    expect(manifest.contributes.commands.map((entry) => entry.command).sort()).toEqual(Object.values(commandIds).sort());
+    expect(manifest.activationEvents.sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`).sort());
     expect(Object.keys(manifest.contributes.configuration.properties).sort()).toEqual(
       Object.values(settingKeys)
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(15);
+    expect(context.subscriptions.length).toBe(18);
     deactivate();
   });
 
@@ -396,11 +396,19 @@ describe("activation", () => {
     expect(state.outputLines).toContain('{"event":"command.started"}');
   });
 
+  it("hidden Sequence ID delegates to the common type picker, Cancel performs no onboarding or I/O", async () => {
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"}]);
+    expect(state.quickPicks).toHaveLength(1); expect(state.configurationUpdates).toEqual([]);
+    expect(state.secretReads).toEqual([]); expect(state.openedDocuments).toEqual([]);
+  });
+
   it("offers onboarding for a missing pack and lets Escape stop before any runtime call", async () => {
     const context = createExtensionContext();
     activate(context as never);
 
-    const handler = state.registeredCommands.get(commandIds.generateSequenceDiagram);
+    const handler = () => generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
     await handler?.();
 
     expect(state.quickPicks[0]?.items).toMatchObject([
@@ -430,8 +438,8 @@ describe("activation", () => {
     await state.registeredCommands.get(legacyCommandIds.selectLocalModel)?.();
 
     expect(state.executedCommands.map((entry) => entry.command)).toEqual([commandIds.selectProviderProfile, commandIds.selectModel]);
-    expect(calls.listings).toBe(1);
-    expect(state.quickPicks).toHaveLength(2);
+    expect(calls.listings).toBe(0);
+    expect(state.quickPicks).toHaveLength(0);
   });
 
   it("waits for the real Generate command before listing after a manual profile change and does not generate when model picking is cancelled", async () => {
@@ -475,7 +483,7 @@ describe("activation", () => {
     });
 
     state.quickPickAnswers.push(pickByLabel("active editor"));
-    const handler = state.registeredCommands.get(commandIds.generateSequenceDiagram);
+    const handler = () => generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
     await handler?.();
 
     expect(calls).toEqual({ listings: 1, generations: 0, requests: [] });
@@ -511,7 +519,7 @@ describe("generate command", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
 
     expect(state.secretReads).toEqual([secretId]);
     expect(transport.requests.map((request) => request.endpoint)).toEqual(["openai-models"]);
@@ -522,7 +530,7 @@ describe("generate command", () => {
     expect(state.quickPicks).toHaveLength(2);
   });
 
-  it("runs cloud generation through the registered command and reads its secret only after the flow picker", async () => {
+  it("runs cloud generation through the retained compatibility adapter and reads its secret only after the flow picker", async () => {
     configure({ [settingKeys.knowledgePackPath]: packDirectory });
     configureGlobal({
       [settingKeys.localModelProfile]: "cloud-openai",
@@ -549,7 +557,7 @@ describe("generate command", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
 
     expect(state.secretReads).toEqual([secretId]);
     expect(requests).toHaveLength(1);
@@ -586,7 +594,7 @@ describe("generate command", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
 
     expect(state.secretReads).toEqual([]);
     expect(state.secretWrites).toEqual([]);
@@ -631,7 +639,7 @@ describe("generate command", () => {
 
     state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
     state.quickPickAnswers.push(pickByLabel("active editor"));
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
     expect(calls.generations).toBe(0);
     expect(state.messages.at(-1)?.text).toContain("no valid API key");
   });
@@ -935,7 +943,7 @@ describe("local provider and model selection", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(state.secretReads).toEqual([secretId]);
     expect(transport.requests.map((request) => request.endpoint)).toEqual(["openai-models"]);
@@ -1133,7 +1141,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([
@@ -1171,7 +1179,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([
@@ -1210,7 +1218,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([

@@ -1,4 +1,6 @@
-# Real UI demonstrations / Demonstracje prawdziwego UI
+# Historical DOC1 UI demonstrations / Historyczne demonstracje UI DOC1
+
+**These preserved recordings show DOC1 picker screens, not the new UX4 Configuration/Review screens. Follow the updated user guides. / Zachowane nagrania pokazują pickery DOC1, nie nowe ekrany Configuration/Review UX4. Używaj aktualnych instrukcji.**
 
 [English user guide](../en/user-guide.md) · [Polska instrukcja](../pl/user-guide.md)
 

@@ -34,7 +34,9 @@
     "onCommand:archiAgent.setApiKey",
     "onCommand:archiAgent.deleteApiKey",
     "onCommand:archiAgent.selectLocalProviderProfile",
-    "onCommand:archiAgent.selectLocalModel"
+    "onCommand:archiAgent.selectLocalModel",
+    "onCommand:archiAgent.configuration",
+    "onCommand:archiAgent.help"
   ],
   "extensionKind": [
     "workspace"
@@ -87,8 +89,8 @@
       },
       {
         "command": "archiAgent.generateDiagram",
-        "title": "Generate Diagram",
-        "category": "Archi Agent"
+        "title": "Create Diagram",
+        "category": "Archi"
       },
       {
         "command": "archiAgent.generateSequenceDiagram",
@@ -119,6 +121,16 @@
         "command": "archiAgent.deleteApiKey",
         "title": "Delete Saved API Key",
         "category": "Archi Agent"
+      },
+      {
+        "command": "archiAgent.configuration",
+        "title": "Configuration",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.help",
+        "title": "Help",
+        "category": "Archi Agent"
       }
     ],
     "menus": {
@@ -137,6 +149,10 @@
         },
         {
           "command": "archiAgent.deleteApiKey",
+          "when": "false"
+        },
+        {
+          "command": "archiAgent.generateSequenceDiagram",
           "when": "false"
         }
       ]
@@ -178,7 +194,7 @@
           ],
           "default": "local-lm-studio",
           "scope": "machine",
-          "markdownDescription": "Provider profile used on this computer. Cloud API keys are stored separately in VS Code SecretStorage. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace. Use **Archi Agent: Select Provider Profile** to change it."
+          "markdownDescription": "Provider profile used on this computer. Cloud API keys are stored separately in VS Code SecretStorage. This machine-scoped choice is not synchronized by Settings Sync and cannot be overridden by a workspace. Use **Archi: Configuration \u2192 LLM Provider** to change it."
         },
         "archiAgent.localModel.selectedModel": {
           "type": "string",

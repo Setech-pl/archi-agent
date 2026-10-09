@@ -19,7 +19,7 @@ export function prepareVscode(vsix, mode) {
     "workbench.startupEditor": "none", "security.workspace.trust.enabled": false,
     "chat.disableAIFeatures": true,
     "telemetry.telemetryLevel": "off", "update.mode": "none", "extensions.autoCheckUpdates": false,
-    "extensions.autoUpdate": false, "window.title": `UX3 ${mode} ${path.basename(root)}`
+    "extensions.autoUpdate": false, "git.openRepositoryInParentFolders": "never", "window.title": `UX3 ${mode} ${path.basename(root)}`
   }));
   const installation = spawnSync("code", ["--user-data-dir", user, "--extensions-dir", extensions,
     "--install-extension", vsix], { encoding: "utf8", timeout: 60000 });
@@ -56,6 +56,7 @@ export async function runHostSmoke(vsix, out, testScript = "ux3-extension-host.c
   for (const mode of ["single-folder", "multi-root", "global"]) {
     const environment = prepareVscode(vsix, mode);
     const harness = path.join(environment.root, "harness"); mkdirSync(harness);
+    copyFileSync(path.join(scriptDirectory, "ux4-host-webview.cjs"), path.join(harness, "ux4-host-webview.cjs"));
     writeFileSync(path.join(harness, "package.json"), JSON.stringify({ name: "ux3-test-harness", publisher: "local", version: "0.0.1",
       engines: { vscode: "^1.91.0" }, main: "./extension.cjs", activationEvents: [] }));
     writeFileSync(path.join(harness, "extension.cjs"), "exports.activate = () => {};\n");

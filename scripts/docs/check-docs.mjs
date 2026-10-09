@@ -4,7 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {openVsix} from '../../vscode-extension/scripts/vsix-zip.mjs';
 import {createHash} from 'node:crypto';
-const [outArg,vsixArg]=process.argv.slice(2),out=path.resolve(outArg),vsix=path.resolve(vsixArg);
+const [outArg,vsixArg,mode]=process.argv.slice(2),out=path.resolve(outArg),vsix=path.resolve(vsixArg);
 const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','scripts/docs/README.md'];
 const issues=[],checks=[];const hash=b=>createHash('sha256').update(b).digest('hex');
 const content=f=>readFileSync(f,'utf8');
@@ -32,7 +32,7 @@ assert.equal(diagrams('en').length,5);assert.deepEqual(diagrams('en').map(topolo
 checks.push({id:'same-PL-EN-examples-and-diagram-topology',status:'PASS'});
 const manifest=JSON.parse(content('vscode-extension/package.json'));
 const settings=manifest.contributes.configuration.properties;
-for(const file of files)if(existsSync(file))for(const m of content(file).matchAll(/`(archiAgent\.[A-Za-z.]+)`/g))if(!(m[1] in settings))issues.push(`unknown setting ${file}: ${m[1]}`);
+for(const file of files)if(existsSync(file))for(const m of content(file).matchAll(/`(archiAgent\.[A-Za-z.]+)`/g))if(!(m[1] in settings)&&!manifest.contributes.commands.some(c=>c.command===m[1]))issues.push(`unknown setting ${file}: ${m[1]}`);
 const archive=openVsix(vsix),entries=archive.entries.map(e=>e.name);
 for(const name of ['extension/readme.md','extension/README.pl.md']){
  const text=archive.read(name).toString('utf8');
@@ -45,9 +45,9 @@ for(const required of ['extension/THIRD_PARTY_NOTICES.md','extension/ux2-ocr/TRI
 assert.ok(entries.every(e=>!e.endsWith('.gif')&&!e.includes('audits/')&&!e.includes('scripts/docs/')));
 // Confirm documentation-only packaging did not change executable code or OCR resources.
 const baseline=openVsix('build/fu01/run-2026-10-07T14-11-23Z/candidate/archi-agent-0.3.0-alpha.4.vsix');
-const runtimeEntries=entries.filter(e=>e.startsWith('extension/dist/')||e.startsWith('extension/ux2-ocr/'));
+const runtimeEntries=entries.filter(e=>e.startsWith('extension/ux2-ocr/')||(mode==='--functional'?e==='extension/dist/archi-agent-converter-worker.js':e.startsWith('extension/dist/')));
 for(const e of runtimeEntries)assert.ok(archive.read(e).equals(baseline.read(e)),'runtime bytes changed: '+e);
-checks.push({id:'license-and-exact-package-links-notices-runtime-byte-parity',status:'PASS',runtimeEntries:runtimeEntries.length});
+checks.push({id:mode==='--functional'?'license-and-package-links-notices-preserved-worker-OCR':'license-and-exact-package-links-notices-runtime-byte-parity',status:'PASS',runtimeEntries:runtimeEntries.length});
 const privacyPatterns=[/\/Users\//,/sk-[A-Za-z0-9]{16}/,/linkedin\.com/i];
 for(const file of files)if(existsSync(file)&&privacyPatterns.some(p=>p.test(content(file))))issues.push('private data pattern: '+file);
 const candidate={path:vsixArg,bytes:readFileSync(vsix).length,sha256:hash(readFileSync(vsix)),entries:entries.length};

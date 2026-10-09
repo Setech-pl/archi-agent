@@ -7,6 +7,8 @@ export const commandIds = Object.freeze({
   saveDiagramAndReport: "archiAgent.saveDiagramAndReport",
   buildKnowledgePack: "archiAgent.buildKnowledgePack",
   open: "archiAgent.open",
+  configuration: "archiAgent.configuration",
+  help: "archiAgent.help",
   convertToMarkdown: "archiAgent.convertToMarkdown",
   configureKnowledgePack: "archiAgent.configureKnowledgePack",
   generateDiagram: "archiAgent.generateDiagram",

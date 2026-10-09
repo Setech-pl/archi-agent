@@ -1,5 +1,6 @@
 // Real Extension Host/settings; controlled picker answers are adapter evidence, not native UI.
 const vscode = require("vscode"), assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), http = require("node:http");
+const {controlWebviews} = require("./ux4-host-webview.cjs");
 exports.run = async () => {
   const settings = JSON.parse(fs.readFileSync(process.env.UX3_HOST_CONFIG, "utf8")), results = [], messages = [];
   const original = {}, load = Module._load;
@@ -8,6 +9,16 @@ exports.run = async () => {
   const config = () => vscode.workspace.getConfiguration("archiAgent", resource);
   const source = path.join(settings.root, "synthetic.md"); fs.writeFileSync(source, "Alpha service.");
   let calls = 0, phase = "save", sequence = 0, folderName = "host-save", failActivation = false;
+  const views=controlWebviews(vscode,async(panel,state)=>{
+    if(panel.viewType!=="archiAgent.packReview")return;
+    if(state.error){messages.push(state.error);await panel.send("cancel");return;}
+    if(state.completed){messages.push(state.notice);panel.dispose();return;}
+    if(phase==="cancel"){await panel.send("cancel");return;}
+    if(sequence===0){sequence++;await panel.send("decide",{indices:state.entries.map((_,i)=>i),decision:"accepted"});return;}
+    if(sequence===1){sequence++;await panel.send("preview");return;}
+    if(!state.directory){await panel.send("destination");return;}
+    await panel.send(phase==="save"||phase==="recovery-save"?"save":"save-use");
+  });
   const server = http.createServer((req, res) => { let body = ""; req.on("data", (b) => body += b); req.on("end", () => {
     calls++; const s = JSON.parse(JSON.parse(body).messages[1].content).sources[0];
     const value = { version: 1, candidates: [{ table: "systems", row: { id: "a", canonical_name: "Alpha", kind: "service", description: "Service" }, basis: "explicit", reasoning: null,
@@ -60,7 +71,7 @@ exports.run = async () => {
     await check("k3-activation-fault-keeps-pack-parallel-setting", async () => {
       failActivation = true; await run("use", "host-failure"); failActivation = false;
       assert.equal(calls, 4); assert.equal(config().get("knowledgePackPath"), "parallel-change"); assert.equal(fs.readdirSync(path.join(settings.root, "host-failure")).length, 5);
-      assert.ok(messages.at(-1).includes("saved, not activated"));
+      assert.ok(messages.at(-1).includes("Saved, not activated"));
     });
     const runtime = require(path.join(extension.extensionPath, "dist/archi-agent-runtime.js"));
     for (const action of ["save", "use"]) for (const kind of ["collision", "absent", "incomplete"]) {
@@ -76,7 +87,7 @@ exports.run = async () => {
           await run(`recovery-${action}`, name);
           const code = kind === "collision" ? "location-exists" : "write-failed";
           const recovery = kind === "incomplete" ? error.recovery : "Choose another new folder.";
-          assert.equal(messages.slice(beforeMessages).find((m) => m.includes("save failed")), `Archi Agent: save failed [${code}]. ${directory}. ${recovery}`);
+          assert.equal(messages.slice(beforeMessages).find((m) => m.includes("Save failed")), `Save failed [${code}]. ${directory}. ${recovery}`);
           assert.equal(sequence, 2); // return to review, then controlled Cancel; no second extraction
           assert.equal(calls, beforeCalls + 1);
           assert.equal(config().get("knowledgePackPath"), beforeSetting);
@@ -88,6 +99,7 @@ exports.run = async () => {
       });
     }
   } finally {
+    views.restore();
     Module._load = load; for (const [k, v] of Object.entries(original)) if (k !== "getConfiguration") vscode.window[k] = v;
     vscode.workspace.getConfiguration = original.getConfiguration; server.closeAllConnections(); await new Promise((r) => server.close(r));
     fs.writeFileSync(settings.report, JSON.stringify({ version: vscode.version, node: process.version, requests: calls, messages, results }, null, 2) + "\n");

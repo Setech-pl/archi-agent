@@ -124,7 +124,7 @@ export async function ensureKnowledgePack(explicit = false): Promise<PackOutcome
     () => ensureKnowledgePackForFolder(folder, explicit));
 }
 
-async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | undefined, explicit: boolean): Promise<PackOutcome> {
+async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | undefined, explicit: boolean, directChoice?: "existing" | "create"): Promise<PackOutcome> {
   if (folder !== undefined && folder.uri.scheme !== "file") {
     await vscode.window.showErrorMessage("Archi Agent: choose a local project folder for the Knowledge Pack.");
     return { status: "failed" };
@@ -148,7 +148,9 @@ async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | und
   }
 
   let choice: PackChoice | undefined;
-  if (invalidCode !== undefined) {
+  if (directChoice) {
+    choice = directChoice;
+  } else if (invalidCode !== undefined) {
     const action = await vscode.window.showErrorMessage(`Archi Agent: [${invalidCode}] ${invalidReason} Repair the current pack or choose a valid one.`,
       "Open Settings", "Create Knowledge Pack", "Choose Existing", "Cancel");
     if (action === "Open Settings") {
@@ -183,11 +185,15 @@ async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | und
     let proposed = defaultKnowledgePackPath(folder?.uri.fsPath);
     let system: FirstSystem | undefined;
     while (true) {
-      const entered = await vscode.window.showInputBox({ title: "Archi Agent: new Knowledge Pack location",
+      const parent = directChoice ? await vscode.window.showOpenDialog({ title: "Archi Agent: choose parent folder for new pack", canSelectFolders: true, canSelectFiles: false, canSelectMany: false }) : undefined;
+      if (directChoice && (!parent?.[0] || parent[0].scheme !== "file")) return { status: "cancelled" };
+      const entered = await vscode.window.showInputBox(directChoice ? { title: "Archi Agent: new pack folder name", ignoreFocusOut: true, value: "knowledge-pack",
+        validateInput: (value) => !!value && value.trim() === value && value !== "." && value !== ".." && !/[\\/\x00-\x1f\x7f]/u.test(value) ? undefined : "Enter one new folder name." } : { title: "Archi Agent: new Knowledge Pack location",
         prompt: "Review or change the absolute destination before entering the first system.", value: proposed,
         ignoreFocusOut: true, validateInput: (value) => path.isAbsolute(value.trim()) ? undefined : "Enter an absolute directory path." });
       if (entered === undefined) return { status: "cancelled" };
-      directory = entered.trim();
+      if (directChoice && (!entered || entered.trim() !== entered || entered === "." || entered === ".." || /[\\/\x00-\x1f\x7f]/u.test(entered))) return { status: "failed" };
+      directory = directChoice ? path.join(parent![0]!.fsPath, entered) : entered.trim();
       proposed = directory;
       system ??= await firstSystem();
       if (system === undefined) return { status: "cancelled" };
@@ -218,9 +224,14 @@ export async function configureKnowledgePack(): Promise<void> {
   await ensureKnowledgePack(true);
 }
 
+/** Direct workbench action, with the project already explicitly selected by its screen. */
+export async function configureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | undefined, choice: "existing" | "create"): Promise<PackOutcome> {
+  return serialForResource(folder ? `folder:${folder.uri.fsPath}` : "global", () => ensureKnowledgePackForFolder(folder, true, choice));
+}
+
 /** Reuse UX3 scope selection, serialization and guarded update without a cleanup receipt. */
-export async function preparePackActivation(): Promise<{ activate(directory: string): Promise<boolean> } | undefined> {
-  const folder = await selectedFolder();
+export async function preparePackActivation(scope?: { folder: vscode.WorkspaceFolder | undefined }): Promise<{ activate(directory: string): Promise<boolean> } | undefined> {
+  const folder = scope ? scope.folder : await selectedFolder();
   if (folder === "cancelled" || (folder && folder.uri.scheme !== "file")) return undefined;
   const configuration = vscode.workspace.getConfiguration(settingsSection, folder?.uri);
   const target = folder ? vscode.ConfigurationTarget.WorkspaceFolder : vscode.ConfigurationTarget.Global;

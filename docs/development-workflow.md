@@ -197,3 +197,13 @@ macOS przez CDP/Accessibility. Te warstwy są raportowane osobno. Brak real UI l
 nie może być N/A dla K3 i blokuje checkpoint jako NOT_RUN. Manifest wiąże bazę, fingerprint
 źródeł, środowisko, ścieżkę, rozmiar i SHA256 kandydata. Niezależny review oraz późniejszy
 owner smoke pozostają osobne. Wspólne pakowanie uruchamiaj sekwencyjnie.
+
+## Automatyczny gauntlet UX4
+
+`npm run ux4:gauntlet` rozszerza pełny profil ART1 o Configuration/Review i zamknięty
+protokół webview. Clean npm ci root/OCR, audity, oba zestawy testów i typechecki,
+build/package/verify, demo, spakowany runtime i regresje oraz rzeczywisty Host i natywny UI
+są wymagane na tym samym VSIX. Dowody: `build/ux4/gauntlet-…/`. Pakowanie jest sekwencyjne.
+Kontrolowane odpowiedzi Host nie są dowodem UI ani owner smoke. Niezależny review
+i brak wymaganych FAIL/NOT_RUN oraz HIGH/MEDIUM warunkują lokalny checkpoint.
+Owner smoke UX4 jest NOT_COMPLETED aż do wyników właściciela na nowym SHA.

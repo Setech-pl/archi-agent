@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mainChoices, configurationChoices, knowledgeChoices, openArchiAgentMenu } from "../../vscode-extension/src/commands/open-menu.js";
+import { mainChoices, openArchiAgentMenu } from "../../vscode-extension/src/commands/open-menu.js";
 import { convertToMarkdownCommand } from "../../vscode-extension/src/commands/convert-to-markdown.js";
 import { commandIds } from "../../vscode-extension/src/contributions.js";
 import { resetDouble, state, Uri } from "../doubles/vscode-module-double.js";
@@ -14,57 +14,15 @@ beforeEach(() => {
   converter.run.mockReset();
 });
 
-describe("UX1 QuickPick navigation", () => {
-  it("shows five main functions and no future knowledge options", () => {
-    expect(mainChoices.map((item) => item.label)).toEqual(["Generate Diagram", "Save Diagram and Report", "Configuration", "Knowledge Management", "Convert to Markdown"]);
-    expect(knowledgeChoices.map((item) => item.label)).toEqual(["Build Knowledge Pack from Documents", "Configure Knowledge Pack", "$(arrow-left) Back"]);
-    expect(configurationChoices.map((item) => item.label)).toEqual([
-      "Select Provider Profile", "Select Model", "Check Provider Configuration", "Set/Update API Key", "Delete API Key",
-      "Configure Knowledge Pack", "Verbose Diagnostics", "Other Archi Agent Settings", "$(arrow-left) Back"
-    ]);
+describe("UX4 menu navigation", () => {
+  it("has one Create Diagram entry, screen shortcuts, conversion, save and help", () => {
+    expect(mainChoices.map((item) => item.label)).toEqual(["Create Diagram", "Save Diagram and Report", "Configuration", "Knowledge Management", "Convert to Markdown", "Help"]);
   });
-
-  it.each([
-    ["generate", commandIds.generateDiagram],
-    ["convert", commandIds.convertToMarkdown]
-  ])("routes %s to the existing command boundary", async (id, command) => {
-    state.quickPickAnswers.push(choose(id));
-    await openArchiAgentMenu();
-    expect(state.executedCommands).toEqual([{ command, args: [] }]);
+  it.each([["generate", commandIds.generateDiagram], ["configuration", commandIds.configuration], ["knowledge", commandIds.configureKnowledgePack], ["save", commandIds.saveDiagramAndReport], ["convert", commandIds.convertToMarkdown], ["help",commandIds.help]])("routes %s directly", async (id, command) => {
+    state.quickPickAnswers.push(choose(id)); await openArchiAgentMenu();
+    expect(state.executedCommands).toEqual([{ command, args: [] }]); expect(state.quickPicks).toHaveLength(1);
   });
-
-  it.each([
-    ["provider", commandIds.selectProviderProfile],
-    ["model", commandIds.selectModel],
-    ["set-key", commandIds.setApiKey],
-    ["delete-key", commandIds.deleteApiKey],
-    ["pack", commandIds.configureKnowledgePack]
-  ])("routes Configuration/%s to the public command ID", async (id, command) => {
-    state.quickPickAnswers.push(choose("configuration"), choose(id));
-    await openArchiAgentMenu();
-    expect(state.executedCommands).toEqual([{ command, args: [] }]);
-  });
-
-  it("opens exact settings and routes Knowledge Management to the wizard", async () => {
-    state.quickPickAnswers.push(choose("configuration"), choose("verbose"));
-    await openArchiAgentMenu();
-    expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: ["archiAgent.diagnostics.verbose"] }]);
-    resetDouble();
-    state.quickPickAnswers.push(choose("knowledge"), choose("pack"));
-    await openArchiAgentMenu();
-    expect(state.executedCommands).toEqual([{ command: commandIds.configureKnowledgePack, args: [] }]);
-  });
-
-  it("Back and Escape perform no command or file operation", async () => {
-    state.quickPickAnswers.push(choose("configuration"), choose("back"));
-    await openArchiAgentMenu();
-    expect(state.quickPicks).toHaveLength(3);
-    expect(state.executedCommands).toEqual([]);
-    expect(state.openedDocuments).toEqual([]);
-    resetDouble();
-    await openArchiAgentMenu();
-    expect(state.executedCommands).toEqual([]);
-  });
+  it("Escape performs no operation", async () => { await openArchiAgentMenu(); expect(state.executedCommands).toEqual([]); });
 });
 
 describe("standalone local converter command", () => {

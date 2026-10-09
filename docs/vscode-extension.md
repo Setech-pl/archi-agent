@@ -1,6 +1,6 @@
 # Archi Agent VS Code extension
 
-Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the local FU-01/DOC1 candidate; the public UX2 package is distinct. This stable path remains a technical reference.
+Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the local UX4 candidate; the public UX2 package is distinct. This stable path remains a technical reference.
 
 The extension is the first self-contained host of the Archi Agent runtime. It packages the existing
 sequence compatibility path and the reviewed Sequence and Component pipelines (Knowledge Pack loading,
@@ -17,7 +17,7 @@ marketplace.
 VS Code UI  (quick picks, input boxes, progress, editors, settings)
     |
     v
-vscode-extension/src            editor layer: QuickPick navigation, generation, conversion, settings
+vscode-extension/src            editor layer: configuration/review webviews, QuickPick diagram selection, generation, conversion, settings
     |
     v  createPackagedRuntime()
 src/runtime                     application runtime: ArchiAgentRuntime + convertDocument
@@ -64,18 +64,17 @@ flow and the bare directory name of the pack.
 
 ## Commands
 
-`Archi Agent: Open` (`archiAgent.open`) displays five QuickPick choices: Generate Diagram, Save Diagram and Report,
-Configuration, Knowledge Management and Convert to Markdown. Generate Diagram calls the existing
-`archiAgent.generateDiagram`; Configuration routes to the existing provider, model and API-key
-commands or opens the relevant VS Code setting; Configuration and Knowledge Management both offer
-**Configure Knowledge Pack** (`archiAgent.configureKnowledgePack`). Back returns to the first picker, and Escape closes it. Existing public
-command IDs remain registered even when their direct Command Palette entries are hidden.
+`Archi Agent: Open` has Create Diagram, Save Diagram and Report, Configuration,
+Knowledge Management (same screen shortcut), Convert to Markdown and Help.
+`Archi: Create Diagram` asks for Sequence / Component before generation; Cancel does nothing.
+`Archi: Configuration` reveals one editor panel with Knowledge Management and LLM Provider.
+Configure Knowledge Pack and provider/model shortcuts reveal the corresponding tab.
+The old Sequence ID is hidden and delegates to the same diagram selection.
+See [UX4](configuration-workbench.md) for fields, Apply/Discard, scopes, secrets and protocol.
 
-`Archi Agent: Build Knowledge Pack from Documents` (`archiAgent.buildKnowledgePack`) is available
-in the Command Palette and Open → Knowledge Management. Select local MD/TXT/PDF/DOCX/XLSX,
-review pending candidates in groups, edit row fields, preview five exact files and save to a new
-folder. Save keeps settings; Save and use activates the final loaded pack in the selected scope.
-See [K3 workflow and limits](knowledge-pack-review.md). No existing pack is required.
+Build Knowledge Pack from Documents uses native document selection and the linked review
+webview backed by the existing KnowledgePackReviewSession. Its five previews and Save/Save and
+use retain [K3 contracts](knowledge-pack-review.md). There is no separate configuration tree.
 
 `Archi Agent: Convert to Markdown` (`archiAgent.convertToMarkdown`) is also directly callable.
 It selects one local PDF, DOCX or XLSX file and opens a single unsaved Markdown editor after full
@@ -121,7 +120,7 @@ or incomplete. Cancellation stays cancellation. Diagnostics contain closed codes
 never keys, model IDs, response bodies, prompts or local paths. Existing Select Model and Generate
 Diagram request counts and pipeline decisions are unchanged.
 
-`Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
+`Archi: Create Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
 The picker offers Sequence and Component. Sequence runs the D1.2 Wire Plan v3 path;
 Component runs the D2 component plan and renderer. Each uses one strict plan request,
 local validation and deterministic PlantUML rendering, then one independent semantic
@@ -317,7 +316,7 @@ Generate Diagram validates the configured directory through the production loade
 or reading an API key. A missing or invalid pack displays a safe cause and actions to open Settings,
 create a pack, choose an existing pack or cancel. An empty directory is invalid. You can also run
 **Configure Knowledge Pack** from Configuration, Knowledge Management or the Command Palette; this
-opens the same Create / Choose Existing / Cancel wizard even when the current pack is valid. Cancel
+opens the Knowledge Management screen even when the current pack is valid. Cancel
 keeps the existing setting. In a multi-root workspace, first choose the project folder. **Create**
 shows the proposed absolute location and lets you change it before asking for one real system's
 identifier, name, kind and description. It then creates

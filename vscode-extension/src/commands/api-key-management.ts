@@ -12,11 +12,11 @@ function currentProfile(runtime: ArchiAgentRuntime): ProviderProfile | undefined
 export async function setApiKey(runtime: ArchiAgentRuntime, secrets: vscode.SecretStorage, output: vscode.OutputChannel): Promise<void> {
   const profile = currentProfile(runtime);
   if (profile === undefined) {
-    await vscode.window.showErrorMessage("Archi Agent: the selected provider profile is not registered.");
+    void vscode.window.showErrorMessage("Archi Agent: the selected provider profile is not registered.");
     return;
   }
   if (profile.credentialRequirement === "none") {
-    await vscode.window.showInformationMessage(`Archi Agent: ${profile.displayName} does not use an API key.`);
+    void vscode.window.showInformationMessage(`Archi Agent: ${profile.displayName} does not use an API key.`);
     return;
   }
   const value = await vscode.window.showInputBox({
@@ -35,26 +35,26 @@ export async function setApiKey(runtime: ArchiAgentRuntime, secrets: vscode.Secr
   });
   if (value === undefined) return;
   if (!validateApiKey(value).ok) {
-    await vscode.window.showErrorMessage("Archi Agent: the API key is invalid and was not saved.");
+    void vscode.window.showErrorMessage("Archi Agent: the API key is invalid and was not saved.");
     return;
   }
   try {
     await storeApiKey(secrets, profile, value);
-    await vscode.window.showInformationMessage(`Archi Agent: an API key is saved for ${profile.displayName}.`);
+    void vscode.window.showInformationMessage(`Archi Agent: an API key is saved for ${profile.displayName}.`);
   } catch {
     output.appendLine("The API key could not be stored (secret-storage-write-failed).");
-    await vscode.window.showErrorMessage("Archi Agent: the API key could not be stored securely.");
+    void vscode.window.showErrorMessage("Archi Agent: the API key could not be stored securely.");
   }
 }
 
 export async function removeApiKey(runtime: ArchiAgentRuntime, secrets: vscode.SecretStorage, output: vscode.OutputChannel): Promise<void> {
   const profile = currentProfile(runtime);
   if (profile === undefined) {
-    await vscode.window.showErrorMessage("Archi Agent: the selected provider profile is not registered.");
+    void vscode.window.showErrorMessage("Archi Agent: the selected provider profile is not registered.");
     return;
   }
   if (profile.credentialRequirement === "none") {
-    await vscode.window.showInformationMessage(`Archi Agent: ${profile.displayName} does not use an API key.`);
+    void vscode.window.showInformationMessage(`Archi Agent: ${profile.displayName} does not use an API key.`);
     return;
   }
   let saved: string | undefined;
@@ -62,11 +62,11 @@ export async function removeApiKey(runtime: ArchiAgentRuntime, secrets: vscode.S
     saved = await readApiKey(secrets, profile);
   } catch {
     output.appendLine("The API key could not be read (secret-storage-read-failed).");
-    await vscode.window.showErrorMessage("Archi Agent: secure key storage could not be read.");
+    void vscode.window.showErrorMessage("Archi Agent: secure key storage could not be read.");
     return;
   }
   if (saved === undefined) {
-    await vscode.window.showInformationMessage(`Archi Agent: no API key is saved for ${profile.displayName}.`);
+    void vscode.window.showInformationMessage(`Archi Agent: no API key is saved for ${profile.displayName}.`);
     return;
   }
   const confirmation = await vscode.window.showWarningMessage(
@@ -77,9 +77,9 @@ export async function removeApiKey(runtime: ArchiAgentRuntime, secrets: vscode.S
   if (confirmation !== "Delete API Key") return;
   try {
     await deleteApiKey(secrets, profile);
-    await vscode.window.showInformationMessage(`Archi Agent: the saved API key for ${profile.displayName} was deleted.`);
+    void vscode.window.showInformationMessage(`Archi Agent: the saved API key for ${profile.displayName} was deleted.`);
   } catch {
     output.appendLine("The API key could not be deleted (secret-storage-delete-failed).");
-    await vscode.window.showErrorMessage("Archi Agent: the API key could not be deleted from secure storage.");
+    void vscode.window.showErrorMessage("Archi Agent: the API key could not be deleted from secure storage.");
   }
 }

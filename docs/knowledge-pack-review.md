@@ -7,49 +7,34 @@ acceptance history or automatic saves.
 
 ## User flow
 
-Run **Archi Agent: Build Knowledge Pack from Documents** in the Command Palette, or use
-**Archi Agent: Open → Knowledge Management → Build Knowledge Pack from Documents**.
+Run **Archi Agent: Build Knowledge Pack from Documents**, or the button in
+**Archi: Configuration → Knowledge Management**. The project is chosen before extraction;
+multi-root requires an explicit choice. Native pickers select MD/TXT/PDF/DOCX/XLSX and PDF
+OCR mode. Cancellable notification progress covers local conversion/OCR and one extraction.
 
-1. Select local MD/TXT/PDF/DOCX/XLSX files in the native picker. No directory/workspace scan.
-   For PDF, choose the existing none/auto/all OCR policy. K2 validates and freezes the bounded
-   inputs before optional model selection and credentials. Select a model with the existing
-   provider controls when needed; an existing Knowledge Pack is not required.
-2. Wait for local conversion and one K2 extraction. Notification progress supports Cancel.
-3. Review pending proposals. **Show review details** opens an untitled document with all
-   rows, status, explicit/inferred basis, reasoning, evidence, locations and source limitations.
-   **Accept selected**, **Reject selected**, and **Return selected to pending** use a multi-select
-   QuickPick. **Accept all pending** and **Reject remaining pending** are explicit group actions.
-   Technical validation does not establish semantic truth.
-4. **Edit candidate** changes one existing row field. Entity IDs, basis, reasoning, quotes,
-   source IDs, digests and evidence locations cannot be edited. Reference fields use candidate
-   entity selection. Add/change an alias by editing an extracted alias row; this milestone
-   does not create new proposals. Cancel an edit to leave that field unchanged.
-5. **Validate and preview** uses KPB-A and the production loader. Every proposal must be
-   accepted or rejected. Accepted relationships, aliases and rules need accepted endpoints;
-   none are accepted or invented automatically. Conflicts, alias collisions and an empty or
-   actor-only accepted set block saving. Invalid edits are rejected; cross-row conflicts are
-   displayed and remain editable. Changing a row or decision invalidates the previous preview.
-6. Select an existing parent directory with the native picker, then enter one new folder name.
-   The preview shows the absolute destination and accepted/rejected counts. Open each of the
-   five Markdown files or **Show summary and additions** for all additions and source limitations.
-   The immutable preview is exactly what will be saved; untitled editor changes do not modify it.
-7. **Save** creates the pack and leaves `knowledgePackPath` unchanged. **Save and use** saves
-   and validates first, then uses UX3's scoped setting update. Single-root uses WorkspaceFolder,
-   multi-root explicitly selects a project, and no workspace uses Global. A configuration failure
-   says **saved, not activated** with the location; the valid saved pack is retained.
+The linked **Knowledge Pack Review** editor shows candidates, statuses, original evidence,
+explicit/inferred basis, references and conversion/OCR limitations. Checkboxes and accept/reject/
+pending buttons support groups. Expand **Edit proposed row**, change permitted fields and
+**Apply row edit**. IDs/evidence/basis are immutable; reference fields select candidate entities.
+Pending decisions and unresolved accepted dependencies block validation and Save. Technical
+validation does not establish semantic truth.
 
-Escape/Cancel before confirmation writes no final pack and changes no pack setting. Review
-never re-extracts: starting a new command is the explicit new extraction operation. One active
-build session per Extension Host prevents mixed drafts and destinations. Independent runtime
-sessions have their own state; exclusive creation arbitrates collisions at a shared destination.
+**Validate and preview** prepares five exact read-only file previews on that screen. Choose an
+existing parent with the native picker and enter one new folder name. **Save** preserves active
+settings; **Save and use** saves first and activates the previously selected UX3 project scope.
+Activation failure says saved, not activated and retains committed files. A collision clears the
+destination and instructs **Choose another new folder.**; no extraction or LLM is repeated.
+Cancel or closing the review panel before commit writes no final pack; after commit the saved
+pack survives. One active build per Extension Host ends on Cancel or a completed save.
+
+See [UX4 workbench](configuration-workbench.md) for navigation, protocol and verification.
 
 ## Runtime and request policy
 
 `createArchiAgentRuntime().extractDocumentCandidates()` is the production K2 extractor.
 `KnowledgePackReviewSession`, exported through `src/runtime/index.ts`, owns the existing
 `KnowledgePackDraft` decisions in memory. `state`, `decide`, `edit`, `prepare`, and `save`
-reuse KPB-A, K1 and the production Node loader. No new extraction engine or webview is used.
-Native pickers, grouped QuickPicks, InputBox and untitled review/preview documents are sufficient.
+reuse KPB-A, K1 and the production Node loader. UX4 supplies a webview editor for this same session, without a second extraction/review engine.
 
 Blocking input: **0** generational requests. Valid extraction: **1**. Review, edits, validation,
 rendering, staging, preview, saving and activation: **0 additional** requests. No reviewer LLM,

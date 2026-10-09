@@ -4,11 +4,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
+const {controlWebviews,wait} = require("./ux4-host-webview.cjs");
 
 exports.run = async function run() {
   const settings = JSON.parse(fs.readFileSync(process.env.UX3_HOST_CONFIG, "utf8"));
   const results = [];
   const original = {};
+  const views = controlWebviews(vscode);
   const messages = [];
   const prompts = [];
   let conflict = false;
@@ -35,11 +37,20 @@ exports.run = async function run() {
     }
     return ({
       "Archi Agent: new Knowledge Pack location": destination,
+      "Archi Agent: new pack folder name": "host-pack",
       "Archi Agent: first system identifier": "synthetic-service",
       "Archi Agent: first system name": "Synthetic Service",
       "Archi Agent: first system description": "Synthetic test system"
     })[options.title];
   };
+  vscode.window.showOpenDialog = async () => [vscode.Uri.file(settings.root)];
+  async function open() {
+    await vscode.commands.executeCommand("archiAgent.configureKnowledgePack");
+    const panel=await wait(()=>views.panels[0]?.latest&&views.panels[0]);
+    if(vscode.workspace.workspaceFolders?.length>1 && !panel.latest.projectSelected) await panel.send("project",{project:String(vscode.workspace.workspaceFolders.length-1)});
+    return panel;
+  }
+  async function create() { const panel=await open(); await panel.send("create"); }
   async function check(id, expected, fn) {
     try {
       const actual = await fn();
@@ -68,7 +79,7 @@ exports.run = async function run() {
     Module._load = loadModule;
     await config().update("knowledgePackPath", undefined, target);
     await check(`create-${settings.mode}`, "saved-without-conflict", async () => {
-      await vscode.commands.executeCommand("archiAgent.configureKnowledgePack");
+      await create();
       assert.equal(config().get("knowledgePackPath"), destination);
       assert.deepEqual(fs.readdirSync(destination).sort(), ["actors.md", "aliases.md", "relationships.md", "rules.md", "systems.md"]);
       assert.equal(messages.length, 0, messages.at(-1));
@@ -84,22 +95,23 @@ exports.run = async function run() {
       } else assert.equal(config().inspect("knowledgePackPath").globalValue, destination);
       return "saved-without-conflict";
     });
-    await check(`reopen-configure-${settings.mode}`, "wizard-open-pack-preserved", async () => {
+    await check(`reopen-configure-${settings.mode}`, "panel-open-pack-preserved", async () => {
       const before = fs.readFileSync(path.join(destination, "systems.md"));
       operation = "cancel";
       prompts.length = 0;
-      await vscode.commands.executeCommand("archiAgent.configureKnowledgePack");
-      assert.ok(prompts.includes("Archi Agent: Knowledge Pack"));
+      await open();
+      assert.equal(views.panels.length,1);
+      assert.equal(prompts.length,0);
       assert.equal(config().get("knowledgePackPath"), destination);
       assert.deepEqual(fs.readFileSync(path.join(destination, "systems.md")), before);
-      return "wizard-open-pack-preserved";
+      return "panel-open-pack-preserved";
     });
     await check(`changed-setting-${settings.mode}`, "settings-conflict-before-files", async () => {
       await config().update("knowledgePackPath", undefined, target);
       fs.rmSync(destination, { recursive: true, force: true });
       messages.length = 0;
       operation = "create"; conflict = true;
-      await vscode.commands.executeCommand("archiAgent.configureKnowledgePack");
+      await create();
       assert.ok(messages.some((message) => message.includes("[settings-conflict]")));
       assert.equal(config().get("knowledgePackPath"), path.join(settings.root, "external-pack"));
       assert.equal(fs.existsSync(destination), false);
@@ -110,6 +122,7 @@ exports.run = async function run() {
       return "zero-provider-requests";
     });
   } finally {
+    views.restore();
     Module._load = loadModule;
     for (const [key, value] of Object.entries(original)) vscode.window[key] = value;
     fs.writeFileSync(settings.report, JSON.stringify({ version: vscode.version, node: process.versions.node, results }, null, 2));

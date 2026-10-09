@@ -110,11 +110,13 @@ function freshState(): DoubleState {
 export const state: DoubleState = freshState();
 
 export function resetDouble(): void {
+  panels.splice(0).forEach((p) => p.dispose());
+  webviewDrivers.splice(0); configListeners.clear(); folderListeners.clear();
   Object.assign(state, freshState());
 }
 
 function uriFromPath(fsPath: string, scheme = "file"): DoubleUri {
-  return Object.freeze({ scheme, fsPath, path: fsPath.split("\\").join("/") });
+  return Object.freeze({ scheme, fsPath, path: fsPath.split("\\").join("/"), toString: () => scheme + ":" + fsPath });
 }
 
 export function makeDocument(text: string, options: { fileName?: string; languageId?: string } = {}): DoubleDocument {
@@ -346,3 +348,47 @@ export const secretStorage = {
 export function createExtensionContext(): { subscriptions: { dispose(): unknown }[]; secrets: typeof secretStorage } {
   return { subscriptions: [], secrets: secretStorage };
 }
+
+export interface DoublePanel {
+  viewType: string;
+  title: string;
+  options: unknown;
+  revealed: number;
+  disposed: boolean;
+  webview: { html: string; messages: any[]; postMessage(value: unknown): Promise<boolean>; onDidReceiveMessage(fn: (v: unknown) => unknown): Disposable };
+  receive(value: unknown): Promise<void>;
+  reveal(): void;
+  onDidDispose(fn: () => void): Disposable;
+  dispose(): void;
+}
+export const panels: DoublePanel[] = [];
+export const webviewDrivers: ((panel: DoublePanel, state: any) => unknown)[] = [];
+const configListeners = new Set<(event: {affectsConfiguration(s: string): boolean}) => void>();
+const folderListeners = new Set<() => void>();
+export function configurationChanged(): void { configListeners.forEach((fn) => fn({ affectsConfiguration: () => true })); }
+export function workspaceChanged(): void { folderListeners.forEach((fn) => fn()); }
+Object.assign(workspace, {
+  isTrusted: true,
+  onDidChangeConfiguration: (fn: any) => { configListeners.add(fn); return new Disposable(() => configListeners.delete(fn)); },
+  onDidChangeWorkspaceFolders: (fn: any) => { folderListeners.add(fn); return new Disposable(() => folderListeners.delete(fn)); }
+});
+Object.assign(window, {
+  createWebviewPanel: (viewType: string, title: string, _column: unknown, options: unknown) => {
+    const listeners = new Set<(v: unknown) => unknown>(), disposeListeners = new Set<() => void>();
+    const driver = webviewDrivers.shift();
+    const panel: DoublePanel = { viewType, title, options, revealed: 0, disposed: false,
+      webview: { html: "", messages: [], postMessage: async (v: any) => {
+        panel.webview.messages.push(v);
+        if (v.type === "state" && !v.busy && driver) queueMicrotask(() => { void driver(panel,v); });
+        return true;
+      }, onDidReceiveMessage: (fn) => { listeners.add(fn); return new Disposable(() => listeners.delete(fn)); } },
+      receive: async (value) => { for (const fn of listeners) await fn(value); },
+      reveal: () => { panel.revealed++; },
+      onDidDispose: (fn) => { disposeListeners.add(fn); return new Disposable(() => disposeListeners.delete(fn)); },
+      dispose: () => { if (panel.disposed) return; panel.disposed = true; [...disposeListeners].forEach((fn) => fn()); }
+    };
+    panels.push(panel);
+    queueMicrotask(() => { void panel.receive({ op: "ready", revision: 0 }); });
+    return panel;
+  }
+});
