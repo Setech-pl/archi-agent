@@ -15,6 +15,17 @@ import { plainMessage } from "./webview.js";
 const files = ["systems.md", "actors.md", "relationships.md", "aliases.md", "rules.md"];
 const operations = ["ready", "refresh", "project", "apply", "discard", "draft-changed", "models", "diagnose", "set-key", "delete-key", "choose", "create", "build", "browse", "open-file"];
 interface ProviderForm { profile: string; endpoint: string; timeout: number; model: string }
+function modelListKey(f: ProviderForm): string { return JSON.stringify([f.profile, f.profile === "local-lm-studio" ? f.endpoint.trim() : f.profile, f.timeout]); }
+function modelListMessage(kind: "loading" | "ready" | "empty" | "invalid" | "error", count = 0): string {
+  const messages = {
+    loading: ["Reading models for the profile and endpoint shown in this form…", "Odczyt modeli dla profilu i adresu widocznych w formularzu…"],
+    ready: [`Received ${count} models. Choose an exact ID, then Apply to save it.`, `Odebrano ${count} modeli. Wybierz dokładny identyfikator, następnie Apply, aby go zapisać.`],
+    empty: ["The provider returned an empty model list. Make a model available in the provider, then Refresh Models again, or enter its exact ID.", "Dostawca zwrócił pustą listę modeli. Udostępnij model u dostawcy i ponów Refresh Models albo wpisz dokładny identyfikator."],
+    invalid: ["The provider returned an invalid model list. Check its model-list response and endpoint, then Refresh Models again.", "Dostawca zwrócił niepoprawną listę modeli. Sprawdź odpowiedź listowania i adres, następnie ponów Refresh Models."],
+    error: ["Could not read models. Check the selected provider, endpoint or API key, then Refresh Models again.", "Nie udało się odczytać modeli. Sprawdź wybrany profil, adres lub klucz API, następnie ponów Refresh Models."]
+  };
+  return messages[kind].join("\n");
+}
 function validForm(value: unknown): value is ProviderForm {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const v = value as Record<string, unknown>;
@@ -31,11 +42,15 @@ export class ConfigurationWorkbench implements vscode.Disposable {
   private projectSelected = false;
   private revision = 0;
   private epoch = 0;
+  private publication = 0;
   private disposed = false;
   private busy = "";
   private dirty = false;
   private diagnostic = "";
   private models: readonly string[] = [];
+  private modelsFor = "";
+  private draftKey = "";
+  private modelMessage = "";
   private controller?: AbortController;
   private subscriptions: vscode.Disposable[] = [];
   constructor(private readonly runtime: ArchiAgentRuntime, private readonly output: vscode.OutputChannel, private readonly secrets: vscode.SecretStorage) {}
@@ -62,19 +77,19 @@ export class ConfigurationWorkbench implements vscode.Disposable {
         if ((vscode.workspace.workspaceFolders?.length ?? 0) > 1 && !this.folder) this.projectSelected = false;
         this.invalidate(); void this.publish("Workspace changed. Check the selected project before continuing.");
       }),
-      this.secrets.onDidChange(() => { this.epoch++; this.controller?.abort(); this.diagnostic = ""; this.models = []; void this.publish(); })
+      this.secrets.onDidChange(() => { this.epoch++; this.controller?.abort(); this.diagnostic = ""; this.models = []; this.modelsFor = ""; this.modelMessage = ""; void this.publish(); })
     ];
     void this.panel.webview.postMessage({ type: "tab", tab });
   }
   dispose(): void {
-    this.disposed = true; this.lifetime++; this.busy = ""; this.dirty = false; this.diagnostic = ""; this.models = []; this.invalidate();
+    this.disposed = true; this.lifetime++; this.draftKey = ""; this.busy = ""; this.dirty = false; this.diagnostic = ""; this.models = []; this.invalidate();
     const panel = this.panel; this.panel = undefined;
     this.subscriptions.splice(0).forEach((s) => s.dispose()); panel?.dispose();
   }
-  private invalidate(): void { this.revision++; this.epoch++; this.controller?.abort(); this.diagnostic = ""; this.models = []; }
+  private invalidate(): void { this.revision++; this.epoch++; this.controller?.abort(); this.diagnostic = ""; this.models = []; this.modelsFor = ""; this.modelMessage = ""; }
   private configuration() { return vscode.workspace.getConfiguration(settingsSection, this.folder?.uri); }
   private async publish(notice = "", error = "", applied = false): Promise<void> {
-    const epoch = ++this.epoch, configuration = this.configuration(), selected = readLocalModelSettings(configuration);
+    const publication = ++this.publication, epoch = this.epoch, configuration = this.configuration(), selected = readLocalModelSettings(configuration);
     const profileId = selected.ok ? selected.settings.profileId : String(configuration.inspect(settingKeys.localModelProfile)?.globalValue ?? "local-lm-studio");
     const profile = this.runtime.listProviderProfiles().find((p) => p.profileId === profileId);
     let keyPresent = false;
@@ -86,7 +101,7 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     catch { error ||= "SecretStorage could not be read. Retry the operation."; }
     const packPath = this.projectSelected ? configuration.get<string>(settingKeys.knowledgePackPath) ?? "" : "";
     const validation = packPath ? await inspectKnowledgePackDirectory(packPath) : undefined;
-    if (this.disposed || epoch !== this.epoch) return;
+    if (this.disposed || epoch !== this.epoch || publication !== this.publication) return;
     const inspected = configuration.inspect(settingKeys.knowledgePackPath);
     const source = !vscode.workspace.isTrusted ? "User settings only (untrusted workspace)" : inspected?.workspaceFolderValue !== undefined ? "Workspace Folder" : inspected?.workspaceValue !== undefined ? "Workspace" : inspected?.globalValue !== undefined ? "User" : "Default";
     const savedPath = this.folder ? inspected?.workspaceFolderValue : inspected?.globalValue;
@@ -105,15 +120,21 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       counts: validation?.ok ? validation.counts : undefined, files: validation?.ok ? files : [],
       profiles: this.runtime.listProviderProfiles(), form,
       effective: selected.ok ? `${selected.settings.profileId}\nEndpoint: ${selected.settings.baseUrl ?? "fixed HTTPS profile endpoint"}\nModel: ${selected.settings.modelId ?? "none selected"}\nTimeout: ${selected.settings.timeoutMs / 1000}s\nSelection: ${selected.settings.selectionMode}` : selected.problems.map((p) => `${p.setting}: ${p.message}`).join("\n"),
-      profileKeys, keyRequired: profile?.credentialRequirement === "api-key", keyPresent, models: this.models, diagnostic: this.diagnostic });
+      profileKeys, keyRequired: profile?.credentialRequirement === "api-key", keyPresent, models: this.models, modelsFor: this.modelsFor, modelMessage: this.modelMessage, diagnostic: this.diagnostic });
   }
   private async receive(value: unknown): Promise<void> {
     if (!plainMessage(value, operations) || !this.panel) return;
     const m = value;
-    if (m.op === "draft-changed") { if (typeof m.dirty !== "boolean") return; this.dirty = m.dirty === true; this.controller?.abort(); this.diagnostic = ""; this.models = []; this.epoch++; return; }
+    if (m.op === "draft-changed") {
+      if (typeof m.dirty !== "boolean" || (m.form !== undefined && !validForm(m.form))) return;
+      this.dirty = m.dirty;
+      const key = validForm(m.form) ? modelListKey(m.form) : "";
+      if (!key || key !== this.draftKey) { this.controller?.abort(); this.diagnostic = ""; this.models = []; this.modelsFor = ""; this.modelMessage = ""; this.epoch++; }
+      this.draftKey = key; return;
+    }
     if (m.op === "ready") { await this.panel.webview.postMessage({ type: "tab", tab: this.initialTab }); await this.publish(); return; }
     if (m.revision !== this.revision) { await this.publish("The project or settings changed. Review the current state and retry."); if (m.op === "apply") await this.panel?.webview.postMessage({ type: "apply-finished" }); return; }
-    if (m.op === "discard") { this.dirty = false; await this.publish(); return; }
+    if (m.op === "discard") { this.dirty = false; this.draftKey = ""; this.controller?.abort(); this.epoch++; this.models = []; this.modelsFor = ""; this.modelMessage = ""; await this.publish(); return; }
     if (this.busy) { if (m.op === "apply") await this.panel.webview.postMessage({ type: "apply-finished" }); return; }
     if (m.op === "project") {
       const folders = vscode.workspace.workspaceFolders ?? [];
@@ -122,21 +143,27 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       if (m.project !== "" && !folder) return;
       this.folder = folder; this.projectSelected = !!folder || folders.length < 2; this.invalidate(); await this.publish("Project changed. Provider edits are retained; Apply requires Discard after this change."); return;
     }
-    const lifetime = this.lifetime;
-    this.busy = m.op === "apply" ? "Applying settings…" : m.op === "models" || m.op === "diagnose" ? "Checking applied provider configuration / model listing…" : "Working…"; await this.publish();
+    const lifetime = this.lifetime, operationEpoch = this.epoch, operationRevision = this.revision;
+    if (m.op === "models" && validForm(m.form)) this.draftKey = modelListKey(m.form);
+    this.busy = m.op === "apply" ? "Applying settings…" : m.op === "models" ? "Reading models for this form…" : m.op === "diagnose" ? "Checking applied provider configuration…" : "Working…";
+    if (m.op === "models") { this.models = []; this.modelsFor = ""; this.modelMessage = modelListMessage("loading"); }
+    await this.publish();
     if (this.disposed || !this.panel || lifetime !== this.lifetime) return;
     try {
+      if (m.op === "models" && (operationEpoch !== this.epoch || operationRevision !== this.revision)) {
+        this.busy = ""; await this.publish(); return;
+      }
       if (m.op === "refresh") { this.invalidate(); }
       else if (m.op === "apply") await this.apply(m);
       else if (["models", "diagnose", "set-key", "delete-key"].includes(m.op)) {
-        if (this.dirty && (m.op === "models" || m.op === "diagnose")) throw new Error("Apply or Discard Changes before using the applied provider configuration.");
-        if (m.op === "models" || m.op === "diagnose") await this.listModels(m.op);
+        if (this.dirty && m.op === "diagnose") throw new Error("Apply or Discard Changes before using the applied provider configuration.");
+        if (m.op === "models" || m.op === "diagnose") await this.listModels(m.op, m.form);
         else {
           const keyProfile = typeof m.profile === "string" ? this.runtime.listProviderProfiles().find(p => p.profileId === m.profile) : undefined;
           if (!keyProfile || keyProfile.credentialRequirement !== "api-key") throw new WorkbenchError("Select a registered cloud profile for the key operation.");
           if (m.op === "set-key") await setApiKey(this.runtime, this.secrets, this.output, keyProfile.profileId);
           else await removeApiKey(this.runtime, this.secrets, this.output, keyProfile.profileId);
-          this.epoch++; this.diagnostic = ""; this.models = [];
+          this.epoch++; this.diagnostic = ""; this.models = []; this.modelsFor = ""; this.modelMessage = "";
         }
       } else if (["choose", "create", "build", "browse", "open-file"].includes(m.op)) {
         if (!this.projectSelected || (this.folder && !vscode.workspace.workspaceFolders?.includes(this.folder))) throw new Error("Select a current local project first.");
@@ -155,6 +182,7 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     } catch (error) {
       if (lifetime !== this.lifetime) return;
       this.busy = "";
+      if (m.op === "models") { this.models = []; this.modelsFor = validForm(m.form) ? modelListKey(m.form) : ""; this.modelMessage = modelListMessage("error"); }
       // Only our fixed operation messages may be shown; provider/source exceptions are untrusted.
       const message = error instanceof WorkbenchError ? error.message : error instanceof Error && ["Apply or Discard Changes before using the applied provider configuration.", "Select a current local project first.", "Choose a local project folder.", "Validate the active pack before opening its files."].includes(error.message) ? error.message : "Operation failed. Current settings have been re-read; check them before retrying.";
       await this.publish("", message);
@@ -183,13 +211,18 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     }
     this.dirty = false;
   }
-  private async listModels(operation: "models" | "diagnose"): Promise<void> {
-    const settings = readLocalModelSettings(this.configuration());
+  private async listModels(operation: "models" | "diagnose", form?: unknown): Promise<void> {
+    if (operation === "models" && !validForm(form)) throw new WorkbenchError("Review the provider form before refreshing models. / Sprawdź formularz dostawcy przed odświeżeniem modeli.");
+    const f = validForm(form) ? form : undefined;
+    const values: Record<string, unknown> | undefined = f ? { [settingKeys.localModelProfile]: f.profile, [settingKeys.localModelBaseUrl]: f.endpoint, [settingKeys.localModelTimeoutSeconds]: f.timeout } : undefined;
+    const settings = readLocalModelSettings(values ? { get: key => values[key], inspect: key => ({ globalValue: values[key] }) } : this.configuration());
     if (!settings.ok) throw new WorkbenchError(settings.problems.map((p) => p.message).join(" "));
     const selected = settings.settings, profile = this.runtime.listProviderProfiles().find((p) => p.profileId === selected.profileId);
     if (!profile) throw new WorkbenchError("The selected provider is not registered.");
     const epoch = this.epoch, revision = this.revision;
+    const listingKey = f ? modelListKey(f) : "";
     const controller = new AbortController(); this.controller = controller;
+    try {
     let key: string | undefined, failure: string | undefined;
     try { key = await readApiKey(this.secrets, profile); }
     catch { failure = "secret-storage-read-failed"; }
@@ -197,14 +230,18 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     if (!failure && profile.credentialRequirement === "api-key" && !key) failure = "credential-required";
     const result = failure ? { ok: false as const, code: failure } : await this.runtime.listProviderModels(profileSelection(selected, key), { signal: controller.signal });
     if (controller.signal.aborted || revision !== this.revision || epoch !== this.epoch || this.disposed) return;
-    if (result.ok && operation === "models") this.models = result.models;
+    if (operation === "models") {
+      this.models = result.ok ? result.models : [];
+      this.modelsFor = listingKey;
+      this.modelMessage = modelListMessage(result.ok ? result.models.length ? "ready" : "empty" : ["invalid-model-list", "too-many-models", "duplicate-model-id", "unsafe-listed-model-id", "invalid-encoding", "response-too-large"].includes(result.code) ? "invalid" : "error", result.ok ? result.models.length : 0);
+    }
     const message = describeProviderDiagnostic(classifyProviderDiagnostic({ profileId: profile.profileId, operation: "listing", credentialRequired: profile.credentialRequirement === "api-key",
       outcome: result.ok ? "success" : result.code === "cancelled" ? "cancelled" : "failure", ...(result.ok ? {} : { code: result.code }),
       modelSelected: selected.modelId !== undefined, selectedModelListed: result.ok && selected.modelId !== undefined && result.models.includes(selected.modelId) }));
     this.diagnostic = [message.text, ...message.details].join("\n");
     this.output.appendLine(message.text);
     for (const detail of message.details) this.output.appendLine(`  ${detail}`);
-    this.controller = undefined;
+    } finally { if (this.controller === controller) this.controller = undefined; }
   }
 }
 class WorkbenchError extends Error {}

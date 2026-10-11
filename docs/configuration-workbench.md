@@ -60,11 +60,11 @@ unapplied edits; external changes are displayed and cause stale Apply to require
 Provider fields are disabled during Apply, while model listing still permits draft edits to invalidate
 a delayed response. A partial settings failure reports actual state; several setting updates are not atomic.
 
-Model refresh and Check use applied settings and at most one bounded model-list request. OBS1
+Model refresh reads the visible draft profile, endpoint and timeout without saving settings. Check uses applied settings and requires Apply/Discard for dirty edits. Each uses at most one bounded model-list request. OBS1
 classifies the result; connection/listing/generation readiness remain separate. No listing success
 claims generation, billing, quota or credential verification. Explicit Create Diagram is the
-existing generation test. No new retry, repair, fallback or request budget is added. Profile/draft,
-settings, secret or panel changes invalidate diagnostic/model responses; stale replies are dropped.
+existing generation test. No new retry, repair, fallback or request budget is added. Profile/endpoint/timeout,
+settings, secret or panel changes invalidate diagnostic/model responses; model-only selection and unrelated state publication preserve the current catalog; stale replies are dropped.
 No model is selected automatically.
 
 Keys are entered using the existing native masked InputBox and stored only in SecretStorage.
@@ -108,3 +108,7 @@ Owner smoke NOT_COMPLETED; no live model quality inferred. No release/version ch
 ## UX4-FU1 follow-up
 
 Current navigation, draft-profile keys, active-file input and native knowledge tree: [owner findings and contract](ux4-owner-findings.md). The verified candidate above remains historical evidence for its original SHA. The follow-up uses a fresh artifact and owner handoff; no PASS is transferred.
+
+## UX4-FU2 model-list follow-up
+
+[Reproduction and current listing contract](ux4-model-selection.md) supersede the original applied-only Refresh rule. Native Available models provides visible exact-ID options. New listing outcomes have EN/PL text; this is distinct from the still missing persistent EN | PL UI switch.

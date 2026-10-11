@@ -19,14 +19,14 @@ async function setup() {
   await vi.waitFor(() => expect(panels[0]?.webview.messages.some((m) => m.type === "state")).toBe(true));
   const panel = panels[0]!;
   const latest = () => panel.webview.messages.filter((m) => m.type === "state").at(-1);
-  const send = async (op: string, extra = {}) => { await panel.receive({op,revision:latest().revision,...extra}); };
+  const send = async (op: string, extra = {}) => { await panel.receive({op,revision:latest().revision,...(op==="models"?{form:latest().form}:{}),...extra}); };
   return {runtime,workbench,panel,latest,send};
 }
 const form = { profile: "local-lm-studio", endpoint: "http://127.0.0.1:1234/v1", timeout: 120, model: "synthetic" };
 describe("UX4 configuration host", () => {
   it.each(["success", "error", "stale-revision"])("locks the actual UI immediately until Apply completion (%s)", async outcome => {
     const s = await setup(), html = configurationHtml(), messages: any[] = [], elements = new Map<string, any>();
-    for (const match of html.matchAll(/id="([^"]+)"/g)) elements.set(match[1]!, { value: "", disabled: false, textContent: "", addEventListener(event: string, fn: any) { this[event] = fn; }, setAttribute() {}, replaceChildren() {}, append() {}, focus() {} });
+    for (const match of html.matchAll(/id="([^"]+)"/g)) elements.set(match[1]!, { value: "", disabled: false, textContent: "", addEventListener(event: string, fn: any) { this[event] = fn; }, setAttribute() {}, options: [] as any[], replaceChildren() { this.options=[]; }, append(o: any) { this.options.push(o); }, focus() {} });
     let saved: any, receive!: (event: any) => void;
     runInNewContext(html.match(/<script nonce="[^"]+">([\s\S]*)<\/script>/)![1]!, {
       acquireVsCodeApi: () => ({ getState: () => saved, setState: (v: any) => { saved = v; }, postMessage: (v: any) => messages.push(v) }),
@@ -61,10 +61,10 @@ describe("UX4 configuration host", () => {
   it.each([{...form,endpoint:"https://evil.example/v1"},{...form,timeout:0},{...form,profile:"unknown"},{...form,model:"bad\nmodel"}])("blocks invalid form at host with zero writes",async bad=>{
     const s=await setup();await s.send("apply",{form:bad,baseRevision:s.latest().revision});expect(state.configurationUpdates).toEqual([]);expect(s.latest().error).toBeTruthy();expect(s.panel.webview.messages.at(-1)).toEqual({type:"apply-finished"});
   });
-  it("dirty drafts block diagnostics and listing, Discard restores effective state", async()=>{
+  it("dirty drafts block applied diagnostics but listing uses the submitted form; Discard restores effective state", async()=>{
     const s=await setup(),list=vi.spyOn(s.runtime,"listProviderModels").mockResolvedValue({ok:true,models:["synthetic"]});
-    await s.send("draft-changed",{dirty:true});await s.send("models");expect(list).not.toHaveBeenCalled();expect(s.latest().error).toContain("Apply or Discard");
-    await s.send("discard");await s.send("models");expect(list).toHaveBeenCalledTimes(1);expect(s.latest().models).toEqual(["synthetic"]);expect(s.latest().form.model).toBe("");
+    await s.send("draft-changed",{dirty:true});await s.send("diagnose");expect(list).not.toHaveBeenCalled();expect(s.latest().error).toContain("Apply or Discard");await s.send("models");expect(list).toHaveBeenCalledTimes(1);
+    await s.send("discard");await s.send("models");expect(list).toHaveBeenCalledTimes(2);expect(s.latest().models).toEqual(["synthetic"]);expect(s.latest().form.model).toBe("");
   });
   it("external settings changes preserve draft conflict and re-read actual effective settings",async()=>{
     const s=await setup(),revision=s.latest().revision;

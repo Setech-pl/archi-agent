@@ -4,7 +4,7 @@ exports.controlWebviews = (vscode, onState) => {
   vscode.window.createWebviewPanel = function (...args) {
     const actual = original.apply(this,args);
     let receive;
-    const entry={actual,viewType:args[0],latest:undefined,send:async(op,extra={})=>receive({op,revision:entry.latest?.revision??0,...extra}),dispose:()=>actual.dispose()};
+    const entry={actual,viewType:args[0],latest:undefined,send:async(op,extra={})=>receive({op,revision:entry.latest?.revision??0,...(op==='models'?{form:entry.latest?.form}:{}),...extra}),dispose:()=>actual.dispose()};
     panels.push(entry);
     const view = new Proxy(actual.webview,{get(target,key){
       if(key==='onDidReceiveMessage')return fn=>{receive=fn;queueMicrotask(()=>void entry.send('ready'));return {dispose(){}};};

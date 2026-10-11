@@ -10,8 +10,8 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 
 | Pole | Wartość |
 | --- | --- |
-| Data aktualizacji | 2026-10-09 |
-| Stan Git | UX4-FU1 w izolowanym worktree `/private/tmp/archi-ux4-fu1`, branch `fix/ux4-owner-findings-and-knowledge-browser`, baza UX4 `4dd62465a909020b415ae27698a0878508da438d`. Preflight clean/staging empty; implementacja i pełne bramki zakończone. Finalny niezależny review PASS0 HIGH/MEDIUM/LOW; lokalny checkpoint autoryzowany, jego tożsamość w final-manifest.json. Współdzielony checkout zachowany. Bez push/merge/tag/publikacji. |
+| Data aktualizacji | 2026-10-11 |
+| Stan Git | UX4-FU2 w izolowanym `/private/tmp/archi-ux4-fu2`, branch `fix/ux4-model-selection`, baza `d5fb95a4d060ef501566792d80b346e0fe1a79cb`. Preflight clean/staging empty; poprzednie worktree/profile/dowody zachowane. Finalny gauntlet294/294 PASS, root1702/extension546/focused509. Końcowy verdict niezależnego review i tożsamość autoryzowanego lokalnego checkpointu: final-manifest.json wskazany niżej. Staging przed checkpointem empty. Bez push/merge/tag/publikacji. |
 | Stan B1 | Implemented and verified; neutralny `StructuredChatClient`, lokalny adapter node i cienki generator sequence. Pełne bramki automatyczne B1 przeszły. |
 | Stan P1 | Implemented and verified; automatyczne bramki PASS oraz owner smoke Ollamy PASS na commit `50d7f47`. Profile LM Studio i Ollama, wspólny transport OpenAI-compatible oraz machine-scoped wybór profilu/modelu z trwałym bindingiem. |
 | Stan P2 | Implemented; Anthropic, OpenAI i OpenRouter przez stałą allowlistę HTTPS, klucze wyłącznie w VS Code `SecretStorage`, bounded model listing i dokładnie jeden request generacyjny bez retry/repair/fallbacku. Bieżące wyniki bramek są w sekcji „Weryfikacja”. |
@@ -34,11 +34,27 @@ Operacyjny stan projektu Archi Agent. Aktualizuje go wykonawca po istotnej zmian
 | Stan DOC1 | Completed — dokumentacja PL/EN, 10 renderów Mermaid, 3 rzeczywiste demonstracje UI, MIT i samowystarczalne README pakietu. Bramki i niezależny finalny re-review PASS; brak otwartych HIGH/MEDIUM/LOW. Autoryzowany lokalny checkpoint, OWNER_SMOKE: DEFERRED. |
 | Stan UX4 | Historyczne bramki272/272 PASS, root1670/extension514, review3 bez HIGH/MEDIUM. Owner smoke NOT_COMPLETED; właściciel zgłosił A–D dla SHA358c31ff… — osobne obserwacje w UX4-FU1, bez nadpisania historycznego formularza. |
 | Stan UX4-FU1 | Implemented and automatically verified; pełny profil289/289 PASS po kompletnych UI rerunach na identycznym VSIX, root1688/extension532, review0 HIGH/MEDIUM/LOW. Lokalny checkpoint autoryzowany; nowy owner smoke57 NOT_RUN, NOT_COMPLETED. |
-| Następny etap | Odbiór UX4-FU1 przez Marcina w nowym izolowanym owner smoke. STOP. DEMO-KP1, K4 i przygotowanie wydania nie rozpoczęte. |
+| Następny etap | Odbiór właścicielski UX4-FU2 na nowym izolowanym profilu; OWNER_SMOKE NOT_COMPLETED. STOP; bez DEMO-KP1/K4/przygotowania wydania. |
 | Bramka S1 | PASS — owner smoke 2026-09-23 na samowystarczalnym VSIX poza repozytorium; verified outcome, bez modalu unverified. Szczegóły w sekcji „Owner smoke S1”. |
 | Kolejność | Zrealizowana sekwencja do UX3: R2 → D1.2 → S1 → UX1 → D2 → CL1 → UX2 → OBS1 → UX3. Zatwierdzona dalsza sekwencja wiedzy: UX3 → K1 → K2 → K3. M1, C1 i D3–D5 pozostają odrębne; pozycja M1 względem K1–K3 nie została zatwierdzona. |
 | Checkpoint produktu | `v0.2.0-alpha.1` — implemented, automatically verified, owner smoke accepted (zob. „Checkpoint VSIX v0.2.0-alpha.1”) |
 | Wydanie | `v0.3.0-alpha.3` opublikowane po CL1. `v0.3.0-alpha.4` opublikowano 2026-10-03 na `31a6609cd0e8b083dbc09f3007a761e93a174b18`; OBS1 nie jest wydany. |
+
+## UX4-FU2 — verified candidate, owner handoff (2026-10-11)
+
+Branch `fix/ux4-model-selection`, isolated worktree `/private/tmp/archi-ux4-fu2`, base `d5fb95a4d060ef501566792d80b346e0fe1a79cb`. Shared checkout and FU1 worktree were clean and preserved; no automatic stash/reset or staging of other work. Local checkpoint identity and final independent-review verdict are recorded in `build/ux4-fu2/final-20261011-models-42d9/final-manifest.json`.
+
+Original owner FAIL applies only to FU1 VSIX `eae14988c3f8fc6ae9d8f985aaf00c9803a454db1d4c1b825822d8e85e917f4a`. Five reported HTTP200 requests alone did not establish a nonempty list; original bodies are unknown. Current local Ollama has five records including duplicate exact `gemma3:27b`, four unique IDs. Native baseline on the original VSIX shows disabled draft Refresh and empty datalist with `duplicate-model-id` after Apply/reopen. Append-only original-SHA observation and all reproductions are retained separately. [Contract and evidence](ux4-model-selection.md).
+
+Local parser deduplicates exact safe IDs only after validating every entry and raw limits. The visible select allows exact option choice; Refresh reads the draft profile/endpoint/timeout without writes. Model selection is persisted only by Apply with provider binding. Empty/invalid/error have separate EN+PL messages and explicit recovery; loading ends. Catalog invalidation and pre-dispatch cancellation protect changed profiles/endpoints/timeouts, Discard/settings/keys; unrelated publications and model-only edits retain current responses/catalogs. Reviewer identified and the implementation fixed a pre-dispatch race; four delayed-publication tests require zero stale requests.
+
+Final profile `npm run ux4:gauntlet -- --fu2`: **294/294 PASS**, 15/15 commands exit0; root1702/1702, extension546/546, focused509/509, both typechecks, build/package/verify, demo dry run, clean root/OCR installs, both audits0, documentation, whitespace and source/OCR package parity. Runtime outside repo: K1 16, UX3 27, K2 21, K3 15, ART1 14; DOCX source/package5+5. Actual Host99; native ART1 9, FU1 12, FU2 live4 and UX4/K3 28. Final full-run evidence remains immutable in `gauntlet-final/`. Earlier failed attempts remain in `earlier-attempts/`; no FAIL was rewritten or PASS transferred.
+
+Final VSIX `build/ux4-fu2/final-20261011-models-42d9/archi-agent-0.3.0-alpha.4.vsix`: **119876944 B**, SHA-256 `80d45ce387b8b2e78779806303940fcb9318b96f58a0a4b747aa082ec1fb3235`. Version unchanged. Exact final artifact/native live Ollama: dirty Refresh, four unique options, select choice before Apply with no saved model, Apply binding, reopen/Discard and real process restart PASS. Native automation operates installed DOM controls; select-keyboard attempts were not successful and are retained as harness diagnostics, not claimed keyboard PASS. No real generation/server start/model download/paid requests; synthetic gauntlet providers are separate from live listing.
+
+English HTML default verified in native UI, including restart; new listing messages EN+PL tested. Full EN | PL switch and chosen-language persistence are **NOT_IMPLEMENTED**; no broader localization claim. Prior scanned-PDF full knowledge build remains **NOT_CONFIRMED**, and original MD timeout remains unreproduced; FU2 did not retest these generations.
+
+Fresh owner handoff: `build/owner-smoke/ux4-fu2-20261011-models-42d9/`, 65 cases initially NOT_RUN, exact synthetic document paths, Finder helper, fresh profile with no copied provider/model/secrets/results. First step: Configuration → LLM Provider → Ollama → Refresh Models **before Apply** → Available models exact ID → Apply → reopen/restart. Environment installation/launch verification and owner results are separate. OWNER_SMOKE: NOT_COMPLETED. PUSH/MAIN_INTEGRATION/TAG/PUBLICATION: NOT_REQUESTED; publication held. STOP after checkpoint and preparation.
 
 ## UX4-FU1 — full gates verified, final handoff (2026-10-09)
 
