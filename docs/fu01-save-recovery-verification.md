@@ -39,7 +39,7 @@ Katalog dowodów: `build/fu01/run-2026-10-07T14-11-23Z/`.
 | Runtime poza repo, pusty PATH/NODE_PATH | K3 15/15, K2 17/17, K1 16/16, UX3 27/27; odpowiednie JSON w `candidate/`. DOCX source/package po 5/5 PASS. |
 | Extension Host, dokładny VSIX | UX3 12/12, K3 33/33 (w tym 18 nowych FU-01), `candidate/host-*.json`, `candidate/k3-host-*.json`. VS Code 1.140.0 / Node24.21.0, single-folder/multi-root/Global. |
 | Natywne UI K3 | Pełny celowany rerun 9/9 PASS na tym samym VSIX, `k3-ui-rerun/summary.json`; natywne pickery i widoczne kontrolki macOS. |
-| Pełny wymagany profil | `effective-report.json`: PASS168/168 scenariuszy i 13/13 komend. Liczby nie obejmują niezależnego review ani owner smoke. |
+| Pełny wymagany profil | `effective-report.json`: PASS168/168 scenariuszy i 13/13 komend. Liczby nie obejmują niezależnego review ani manual smoke. |
 
 Pełny profil wynika z `docs/knowledge-pack-review.md` i `docs/development-workflow.md`.
 Uruchomiono kopię lokalnego `scripts/k3-gauntlet.mjs` w katalogu dowodów: zmieniono wyłącznie
@@ -57,7 +57,7 @@ VSIX; `effective-report.json` wskazuje zastąpienie tylko kompletu UI i bramki j
 
 ## Kandydat i niezależny review
 
-Nowy kandydat do zbiorczego owner smoke:
+Nowy kandydat do zbiorczego manual smoke:
 `build/fu01/run-2026-10-07T14-11-23Z/candidate/archi-agent-0.3.0-alpha.4.vsix`.
 Pomiar rzeczywistego pliku: **119846838 B**, SHA-256
 `1416fd4b5b9654dabe44985c817a7746bf788cbca81ae4f9cde7b320a0b521ae`.
@@ -84,8 +84,8 @@ i kontrolowanych odpowiedzi edytora. Kolizja jest rzeczywistą operacją FS; bra
 i incomplete cleanup są celowanymi wstrzyknięciami błędu na `session.save` z klasą runtime.
 Nie stanowią nowego testu awarii writera ani rzeczywistych warunków niepełnego cleanupu.
 Transporty i dokumenty są syntetyczne, bez realnych providerów, kluczy czy oceny jakości LLM.
-Natywne UI jest osobnym automatycznym dowodem, nie ręcznym owner smoke.
+Natywne UI jest osobnym automatycznym dowodem, nie ręcznym manual smoke.
 
-OWNER_SMOKE: DEFERRED. PUSH / MAIN_INTEGRATION / TAG / PUBLICATION: NOT_REQUESTED.
+MANUAL_SMOKE: DEFERRED. PUSH / MAIN_INTEGRATION / TAG / PUBLICATION: NOT_REQUESTED.
 Lokalny checkpoint na gałęzi poprawki jest autoryzowany po bramkach i review; dokładny hash,
 parent i finalny stan drzewa/staging należy odczytać z Git i `final-manifest.json`. STOP.

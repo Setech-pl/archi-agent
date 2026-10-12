@@ -2,7 +2,7 @@
 
 [English](../en/architecture.md) · **Polski** · [Strona główna](../../README.pl.md)
 
-To architektura zaimplementowana w lokalnym kandydacie UX4, nie w publicznym pakiecie UX2. [Szczegółowa stabilna architektura](../architecture.md) zachowuje wyjaśnienia historyczne; [roadmapa](../product-roadmap.md) określa plany. Obecne pozyskiwanie używa lokalnych packów Markdown oraz jawnie wskazanych dokumentów do budowy nowego packa; nie ma adaptera pobierania EA/MCP. Sequence i Component mają osobne plany/walidatory/renderery. Context/Container/ArchiMate są planowane. Renderer zgodności sequence jest osobną starszą ścieżką.
+To architektura zaimplementowana w bieżącym buildzie gałęzi UX4-FU2, nie w publicznym pakiecie UX2. [Szczegółowa stabilna architektura](../architecture.md) opisuje bieżące granice; osobna historia zachowuje wcześniejsze wyjaśnienia; [roadmapa](../product-roadmap.md) określa plany. Obecne pozyskiwanie używa lokalnych packów Markdown oraz jawnie wskazanych dokumentów do budowy nowego packa; nie ma adaptera pobierania EA/MCP. Sequence i Component mają osobne plany/walidatory/renderery. Context/Container/ArchiMate są planowane. Renderer zgodności sequence jest osobną starszą ścieżką.
 
 Core jest deterministyczny, bez Node/VS Code I/O; orkiestracja wywołuje wstrzyknięte porty i adaptery Node. Runtime jest niezależny od hosta; edytor importuje tylko `src/runtime/index.ts`. Providerzy są wymiennymi adapterami StructuredChatClient. Dokumenty/odpowiedzi modeli są nieufnymi danymi. Do modelu trafiają ograniczone właściwe snapshoty diagramów lub ograniczony wybrany tekst ekstrakcji. Ustawienia i SecretStorage pozostają na granicy VS Code.
 
@@ -14,7 +14,7 @@ UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i po
 flowchart TB
   subgraph Host["Granica rozszerzenia VS Code"]
     direction TB
-    UI["Polecenia / pickery / edytory"] --> Settings["Ustawienia / SecretStorage"]
+    UI["Polecenia / webview Configuration-Review / Knowledge Browser / Help offline"] --> Settings["Ustawienia / SecretStorage"]
   end
   subgraph Runtime["Runtime niezależny od hosta"]
     direction TB
@@ -43,22 +43,21 @@ flowchart TB
 ## B. Dokumenty i zamrożone wejście
 
 ```mermaid
-sequenceDiagram
-  participant UI as UI rozszerzenia
-  participant K2 as Runtime
-  participant FS as System plików
-  participant CV as Konwerter / OCR
-  UI->>K2: Jawne ścieżki dokumentów + polityka OCR
-  K2->>FS: Odczyt deskryptora w limitach, przechwyć bajty
-  FS-->>K2: Dokładne bajty, prywatna kopia tymczasowa
-  K2->>K2: SHA-256 bajtów oryginału
-  opt PDF / DOCX / XLSX
-  K2->>CV: Konwertuj prywatną kopię, przekaż anulowanie
-  CV-->>K2: Tekst + pokrycie stron + ograniczenia, worker zamknięty
-  end
-  K2->>K2: UTF-8 / BOM / LF / NFC, digest tekstu, limity bundle
-  K2->>K2: Sortuj źródła, zamroź bundle i digest
-  Note over UI,K2: Błąd wejścia lub Cancel: zero żądań generacyjnych
+flowchart LR
+  Source["Dokumenty lokalne / aktywny bufor MD-TXT"] --> Capture["Odczyt bajtów lub bufora w limitach / hashe"]
+  Capture --> Convert["Konwersja / OCR offline / znormalizowany tekst"]
+  Convert --> Extract["JEDNO żądanie ekstrakcji / nieufni kandydaci"]
+  Extract --> Evidence["Deterministyczna walidacja schematu / dowodów / referencji"]
+  Evidence --> Review["Decyzje użytkownika / edycje / zwalidowany podgląd"]
+  Review --> Pack["NOWY Knowledge Pack pięciu plików / provenance"]
+  Pack --> Snapshot["Loader / snapshot K1 / deterministyczny grounding"]
+  Flow["Opis przepływu / jawne decyzje"] --> Snapshot
+  Snapshot --> Plan["JEDNO żądanie generatora / plan typu diagramu"]
+  Plan --> Local["Walidacja / deterministyczny renderer / kontrola podzbioru"]
+  Local --> Semantic["JEDNO żądanie review semantycznego / walidacja verdictu"]
+  Semantic --> Result["Oryginalny diagram i powiązany raport / zamrożony wynik ART1"]
+  Result --> Save["Jawne potwierdzenie / zapis exclusive / warunkowy cleanup"]
+  Pack --> Browser["Knowledge Browser tylko do odczytu"]
 ```
 
 ## C. Ekstrakcja, review i zapis nowego packa
@@ -177,3 +176,17 @@ Rejestr menu/palety ART1 przechowuje wyniki, gdy co najmniej jeden powiązany po
 | Provider transports / transporty | [local](../../src/node/llm/openai-compatible-local-chat-client.ts), [remote OpenAI-compatible](../../src/node/llm/openai-compatible-remote-chat-client.ts), [Anthropic](../../src/node/llm/anthropic-remote-chat-client.ts) |
 
 Sequence: [reviewed-sequence.ts](../../src/core/pipeline/reviewed-sequence.ts), [sequence-diagram-plan.ts](../../src/core/pipeline/sequence-diagram-plan.ts). Component: [generate-component-diagram.ts](../../src/core/pipeline/generate-component-diagram.ts), [component-diagram-plan.ts](../../src/core/pipeline/component-diagram-plan.ts).
+
+## Konfiguracja, limity i błędy
+
+Configuration oddziela widoczny draft od zastosowanych ustawień User. Refresh Models używa profilu/endpointu/timeoutu draftu, waliduje ograniczoną odpowiedź i nie zapisuje modelu. Available models zmienia Selected model; Apply zapisuje profil i binding modelu sekwencyjnie. Discard odtwarza zastosowane ustawienia i unieważnia katalog draftu. Zmiana zewnętrzna blokuje nieaktualny Apply; częściowy błąd zapisu powoduje odczyt rzeczywistego stanu. Check Provider Configuration używa zastosowanych ustawień. Profil/model/binding mają zakres machine, wybór packa — resource. Endpoint LM Studio i timeout mogą mieć efektywne nadpisania workspace, z ograniczeniami Workspace Trust. Lokalne URL wymagają dosłownego loopback; adaptery chmurowe używają stałych allowlist HTTPS.
+
+Klucze są oddzielnymi wpisami VS Code SecretStorage dla providerów. Wprowadza się je przez maskowane pola natywne; webview dostaje tylko obecność, nigdy sekret. Help korzysta z języka wyświetlania VS Code i bundlowanego Markdown; nie wysyła żądań do providera ani nie wprowadza przełącznika języka aplikacji. Browser czyta aktywny pack produkcyjnym loaderem; nawigacja używa linii packa i zamrożonego provenance dokumentów, sprawdzając digest przed otwarciem evidence w żywym edytorze.
+
+Konwersja przyjmuje jeden plik do 50 MiB i wynik do 8 MiB Markdown; deadline bez OCR to 120 sekund, OCR — 300 sekund i najwyżej 20 stron OCR. Builder przyjmuje osiem źródeł, po 10 MiB/20 MiB łącznie, 64 KiB tekstu na źródło/160 KiB serializowanego bundle, 256 KiB gotowego żądania i 128 kandydatów. Łączny deadline Buildera to 360 sekund; ekstrakcja ma limit 120 sekund albo krótszy timeout providera. AbortSignals docierają do żądań/workerów/zapisów; zamknięcie procesów i warunkowy cleanup mogą zakończyć się po deadline pracy. Progress pokazuje odczyt, konwersję/OCR, wybór providera, generację i walidację dowodów. Błędy zwracają ograniczone kody/etapy; bez częściowej konwersji/kandydatów ani automatycznego retry/repair/fallbacku. Pełne limity: [kontrakt dokumentów](../document-candidates.md).
+
+## Samowystarczalny build i pakiet
+
+`npm run extension:build` tworzy przez esbuild trzy sąsiednie bundle CommonJS: rozszerzenie, runtime niezależny od hosta i worker konwersji. Rozszerzenie externalizuje `vscode` i sąsiedni runtime; runtime — tylko moduły wbudowane Node. `npm run extension:package` przebudowuje bundle, używa jawnej allowlisty VSIX i dodaje przypięte zasoby OCR offline z manifestem licencji/hashów. Obie instrukcje trafiają jako `readme.md` i `README.pl.md`. Użytkownik korzysta z Node wbudowanego w VS Code; nie potrzebuje ścieżek repo, npm ani osobnej instalacji Node.
+
+`npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](../project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).

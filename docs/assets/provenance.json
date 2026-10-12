@@ -110,5 +110,5 @@
       "timing": "measured frame intervals sampled to 1 fps (up to 1 s rounding); no acceleration or reordered actions"
     }
   ],
-  "OWNER_SMOKE": "DEFERRED"
+  "MANUAL_SMOKE": "DEFERRED"
 }

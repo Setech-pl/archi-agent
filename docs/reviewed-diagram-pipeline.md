@@ -2,8 +2,8 @@
 
 Current local candidate also implements D2 Component and ART1. Historical milestone statements below retain their original context; see the [current bilingual architecture](en/architecture.md) and [Component profile](diagram-profiles.md). MCP, Context/Container and ArchiMate remain planned.
 
-Status: R2 accepted; D1.2 Sequence completed; S1 owner smoke PASS on 2026-09-23. The D1.1 code used
-`{ plantUml }`; it was superseded after failed S1 owner smoke. Its exact
+Status: R2 accepted; D1.2 Sequence completed; S1 manual smoke PASS on 2026-09-23. The D1.1 code used
+`{ plantUml }`; it was superseded after failed S1 manual smoke. Its exact
 implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md). ADR 0001 and the D1 ledger
 checkpoint remain historical records.
@@ -132,7 +132,7 @@ with four grounded and one user-stated step, four participants and an 11-line ca
 reviewer returned a verdict but was reported as `invalid-verdict`. A controlled reviewer-only
 reproduction returned `accepted: true` with confirmations for two source-confirmed facts and
 the one user-stated fact; the local exact confirmation rule rejected the extra references.
-The original raw owner-smoke verdict was not preserved. The reviewer prompt now asks for only
+The original raw manual-smoke verdict was not preserved. The reviewer prompt now asks for only
 user-stated confirmations and `reviewer.failed` records an allowlisted failure subcode.
-The subsequent owner smoke returned a verified outcome on 2026-09-23: S1 PASS. M1 and the
+The subsequent manual smoke returned a verified outcome on 2026-09-23: S1 PASS. M1 and the
 gauntlet are unlocked but remain unimplemented.

@@ -6,7 +6,7 @@
 
 Clone [Setech-pl/archi-agent](https://github.com/Setech-pl/archi-agent) into a development directory, then inspect Git before changing anything. The historical root package name remains `archground`. The root manifest requires Node.js `>=22.12.0`; use a supported installed Node/npm combination and the committed lockfiles. End users install a VSIX and do not run these commands.
 
-Read [AGENTS.md](../../AGENTS.md), [project state](../project-state.md), [workflow](../development-workflow.md), [roadmap](../product-roadmap.md), and the relevant contracts. Do not merge report-only audit branches into the product. Local checkpoints require authorization; push/merge/tag/publication are separate owner actions.
+Read [AGENTS.md](../../AGENTS.md), [project state](../project-state.md), [workflow](../development-workflow.md), [roadmap](../product-roadmap.md), and the relevant contracts. Do not merge report-only audit branches into the product. Local checkpoints require authorization; push/merge/tag/publication are separate separate authorized actions.
 
 ## Build and verification
 
@@ -36,4 +36,4 @@ The extension includes complete standalone English/Polish README files, MIT and 
 
 Core imports neither Node I/O nor VS Code. Runtime/Node adapters remain host-neutral; the extension reaches them through `src/runtime/index.ts`. Follow KISS/BUZI and avoid future abstractions. No product behavior changes are part of DOC1. Synthetic fixtures contain no client data or credentials.
 
-Before an authorized checkpoint check links/anchors, PL/EN scope and exact examples, UI names, public/local/planned distinctions, diagrams, recording provenance, licenses/notices and final package; run `git diff --check`. Independent read-only review is separate from the author. Required FAIL/NOT_RUN and open HIGH/MEDIUM block the checkpoint. `OWNER_SMOKE: DEFERRED` is not PASS. Update project-state and stop at the authorized boundary. Offline demo: `npm run demo:dry-run`; live demos are optional and may call providers.
+Before an authorized checkpoint check links/anchors, PL/EN scope and exact examples, UI names, public/local/planned distinctions, diagrams, recording provenance, licenses/notices and final package; run `git diff --check`. Independent read-only review is separate from the author. Required FAIL/NOT_RUN and open HIGH/MEDIUM block the checkpoint. `MANUAL_SMOKE: DEFERRED` is not PASS. Update project-state and stop at the authorized boundary. Offline demo: `npm run demo:dry-run`; live demos are optional and may call providers.

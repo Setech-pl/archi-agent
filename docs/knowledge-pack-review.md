@@ -1,6 +1,6 @@
 # Build a new Knowledge Pack from documents (K3)
 
-The owner decision is **new packs in new folders only**. The folder can be inside the
+The project decision is **new packs in new folders only**. The folder can be inside the
 current project or anywhere explicitly selected locally. A new project is not required.
 Existing packs are never updated, merged or migrated. There are no persistent drafts,
 acceptance history or automatic saves.
@@ -92,17 +92,17 @@ recovery system is claimed. The setting guard reuses UX3 serialization and snaps
 VS Code has no compare-and-swap setting API. Failed updates do not unconditionally restore
 settings over another writer's changes.
 
-## Verification and owner smoke
+## Verification and manual smoke
 
 `npm run k3:gauntlet` creates `build/k3/gauntlet-<UTC timestamp>-<pid>/` with clean installs,
 audits, full root/extension tests, typechecks, demo, build/package/verify, focused regressions,
 source/package byte matching, isolated packaged K3/K2/K1/UX3 runtime, real Extension Host and
 visible K3 UI including native pickers. Controlled Host picker answers are separate from native
 UI evidence. Manifest/report bind the base HEAD, sources, environment and exact VSIX SHA-256.
-Independent read-only review remains a separate required gate. Owner smoke is **DEFERRED**,
+Independent read-only review remains a separate required gate. Manual smoke is **DEFERRED**,
 never an automatic PASS. No push, main integration, tag or publication is authorized.
 
-For a later combined owner smoke: install the exact candidate in an isolated profile, select
+For a later combined manual smoke: install the exact candidate in an isolated profile, select
 synthetic or approved documents, inspect source/OCR limitations, group-accept/reject, edit a
 name/alias/reference, verify pending and dependency blocking, inspect all five previews, then
 Save to a new folder. Repeat with Save and use in the intended scope; verify configuration and

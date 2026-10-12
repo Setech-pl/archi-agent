@@ -1,6 +1,6 @@
 # Archi Agent VS Code extension
 
-Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the local UX4 candidate; the public UX2 package is distinct. This stable path remains a technical reference.
+Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the current UX4-FU2 branch build; the public UX2 package is distinct. This stable path remains a technical reference.
 
 The extension is the first self-contained host of the Archi Agent runtime. It packages the existing
 sequence compatibility path and the reviewed Sequence and Component pipelines (Knowledge Pack loading,
@@ -10,6 +10,8 @@ installed Node.js. P1 added local profile/model selection; P2 adds Anthropic, Op
 with credentials held by VS Code `SecretStorage`. This document describes
 the current extension; it is not published to any
 marketplace.
+
+Offline **Archi: Help** / **Archi: Open → Help** selects the bundled Polish README for display language `pl`, English otherwise; both language links stay within the VSIX. Current component/data-flow diagrams: [architecture](architecture.md). Historical technical results are identified by date/artifact, not current smoke acceptance.
 
 ## Architecture
 
@@ -128,7 +130,7 @@ review request. Verified success opens PlantUML and report v2. If review rejects
 fails after all local checks, one modal offers the unverified candidate. **Show unverified
 candidate** opens one untitled PlantUML document with a fixed warning header and no report;
 **Cancel** or dismissal opens nothing. User cancellation during review never offers a candidate.
-No retry, repair, fallback or third request occurs. The verified owner smoke on 2026-09-23 made
+No retry, repair, fallback or third request occurs. The verified manual smoke on 2026-09-23 made
 S1 PASS; earlier failed attempts remain historical.
 The three
 reserved types remain unsupported through direct runtime calls before any credential read or
@@ -345,7 +347,7 @@ The repository sample `samples/space-mission/architecture` works as a first pack
 path is configured. The pack directory must be a real directory reached without symbolic links or
 junctions.
 
-## Owner smoke flows (optional)
+## Manual smoke flows (optional)
 
 LM Studio flow: package and verify the VSIX, install it in a clean VS Code profile, configure the
 sample Knowledge Pack, select **LM Studio**, select a model, generate from the sample flow, and
@@ -377,7 +379,7 @@ The earlier LM Studio-only procedure remains useful for checking legacy migratio
 Steps 1 and 2 are for building the VSIX; the installed extension itself needs neither. Automated
 tests never contact LM Studio: they use a fake generator and a loopback server double.
 
-### CL1 `alpha.2` owner smoke
+### CL1 `alpha.2` manual smoke
 
 Install the exact `vscode-extension/build/cl1-candidate/archi-agent-0.3.0-alpha.2.vsix` in a
 fresh VS Code profile and separate extensions directory. Its SHA-256 is
@@ -395,16 +397,16 @@ open no editor. Cancel a conversion in progress and confirm that it opens no edi
 manual VS Code check; the script `node scripts/cl1-candidate-smoke.mjs <candidate.vsix>
 <fixture-directory>` separately checks the exact packaged runtime outside the repository.
 
-The owner reported PASS for large PDF, XLSX and Word conversion in that exact `alpha.2` VSIX;
+The manual test reported PASS for large PDF, XLSX and Word conversion in that exact `alpha.2` VSIX;
 no separate manual result was reported for Cancel or the input limit. The final `alpha.3` VSIX
 corrects the packaged README and has the same three executable bundles. Its path is
 `vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.
-Before publishing `alpha.3`, the owner installed this exact file in a fresh profile and
-confirmed its version, packaged README and conversion UI. Its owner smoke passed; see
+Before publishing `alpha.3`, this exact file was installed in a fresh profile. Its version,
+packaged README and conversion UI were checked. Manual smoke was recorded as PASS; see
 [`project-state.md`](project-state.md) for the released CL1 checkpoint.
 
-## UX2 phase 2 owner smoke (PASS, 2026-10-02)
+## UX2 phase 2 manual smoke (PASS, 2026-10-02)
 
 Install `build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix` in a fresh
 VS Code user profile and extensions directory. Its SHA-256 is
@@ -416,7 +418,7 @@ and `en-clean-200.pdf` with Auto OCR; `mixed.pdf` with Auto OCR and OCR all page
 without opening Markdown. Check page order and `(OCR)`/`(blank)` headings. Cancel a
 longer OCR conversion while the notification is visible, confirm no Markdown opens,
 then convert a scan again. Convert synthetic DOCX/XLSX without an OCR prompt. This
-was confirmed by the owner as PASS on 2026-10-02 in a clean VS Code profile on Mac
+was recorded as PASS on 2026-10-02 in a clean VS Code profile on Mac
 ARM, including Cancel with no partial document, a conversion after Cancel and the
 DOCX/XLSX regression. No host version details were supplied for this manual run.
 The automated extracted-VSIX smoke is

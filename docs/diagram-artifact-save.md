@@ -109,8 +109,8 @@ runtime from the exact VSIX outside the repo with empty PATH/NODE_PATH. Real Ext
 uses controlled picker answers and synthetic transport; native Mac ARM UI separately exercises
 visible QuickPick, native flow-file dialog, confirmation/Cancel, both diagram types, open-report,
 existing-target protection and repeated save. Synthetic transport confirms integration and call
-counts; it is no evidence of live-model quality. Independent review and owner smoke are separate
-statuses. Owner smoke remains DEFERRED until the owner reports it.
+counts; it is no evidence of live-model quality. Independent review and manual smoke are separate
+statuses. Manual smoke remains DEFERRED until the manual-test reports it.
 `ART1_AUDIT_FIXES=1 npm run art1:gauntlet` preserves the same required gates in a new
 `build/art1-audit-fixes/` directory, uses the audited product checkpoint as its base and adds
 model-identity assertions in both exact-VSIX diagram paths, shared-writer regressions and real

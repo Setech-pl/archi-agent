@@ -4,7 +4,7 @@
 
 [English user guide](../en/user-guide.md) · [Polska instrukcja](../pl/user-guide.md)
 
-Three short recordings show real desktop VS Code controls, including native file pickers and ART1 confirmation, on a synthetic Alpha/Beta project in an isolated profile. The UI stays in English. A controlled loopback transport returns synthetic extraction, generation and reviewer responses. These are agent UI demonstrations, not evidence of live LLM quality, performance or owner smoke. No personal profile, keys or client documents are used. / Trzy krótkie nagrania pokazują prawdziwe kontrolki desktopowego VS Code, natywne pickery i potwierdzenie ART1 na syntetycznym projekcie Alpha/Beta w izolowanym profilu. UI pozostaje angielskie. Kontrolowany loopback zwraca syntetyczne odpowiedzi ekstrakcji, generatora i reviewera. To demonstracje agenta, nie dowód jakości/wydajności żywego LLM ani owner smoke. Bez osobistego profilu, kluczy i dokumentów klienta.
+Three short recordings show real desktop VS Code controls, including native file pickers and ART1 confirmation, on a synthetic Alpha/Beta project in an isolated profile. The UI stays in English. A controlled loopback transport returns synthetic extraction, generation and reviewer responses. These are agent UI demonstrations, not evidence of live LLM quality, performance or manual smoke. No personal profile, keys or client documents are used. / Trzy krótkie nagrania pokazują prawdziwe kontrolki desktopowego VS Code, natywne pickery i potwierdzenie ART1 na syntetycznym projekcie Alpha/Beta w izolowanym profilu. UI pozostaje angielskie. Kontrolowany loopback zwraca syntetyczne odpowiedzi ekstrakcji, generatora i reviewera. To demonstracje agenta, nie dowód jakości/wydajności żywego LLM ani wyników ręcznych testów. Bez osobistego profilu, kluczy i dokumentów klienta.
 
 ## Choose a pack and generate / Wybierz pack i wygeneruj
 
@@ -38,7 +38,7 @@ Use [local tooling instructions](../../scripts/docs/README.md). Raw recordings, 
 
 Read the complete [EN](../en/user-guide.md) / [PL](../pl/user-guide.md) text instructions for limitations, errors, Cancel, dependencies and frozen originals. GIFs are supplements. / Pełne instrukcje tekstowe opisują ograniczenia, błędy, Cancel, zależności i zamrożone oryginały. GIF-y są dodatkiem.
 
-OWNER_SMOKE: DEFERRED
+MANUAL_SMOKE: DEFERRED
 
 Native picker frames are cropped to their actual content and action buttons, excluding the system sidebar with personal home/network labels. The crop uses local macOS Vision only to identify picker frames; no UI is redrawn and no OCR text is saved. Full owned-window capture is used for other frames. / Klatki natywnych pickerów są kadrowane do rzeczywistej zawartości i przycisków, bez systemowego paska z osobistymi etykietami katalogu domowego/sieci. Lokalny Vision tylko rozpoznaje klatki pickera; UI nie jest odrysowywane i tekst OCR nie jest zapisywany. Pozostałe klatki pokazują własne okno.
 

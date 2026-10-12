@@ -2,7 +2,6 @@
 
 - Status: **APPROVED**
 - Approval date: **2026-09-28**
-- Decision owner: project owner
 - Planning baseline: `4d3141be13d092bef532de1ff6beb996c4d28085` on
   `feature/reviewed-diagram-pipeline`
 - Implementation: **not started**; requires a separate `IMPLEMENTACJA` prompt.
@@ -212,11 +211,11 @@ facts to evidence, all call-budget and safety rules hold, Sequence behavior rema
 unchanged, and the required implementation gates pass. This approved document is
 the plan only; it does not authorize implementation.
 
-## Owner decisions recorded on 2026-09-28
+## Project decisions recorded on 2026-09-28
 
-The owner conditionally accepted the D2 direction and scope and required the explicit
+The D2 scope requires the explicit
 0/1/2 call matrix, a single reviewer call maximum, deterministic element and
 relationship mapping, no silent type generalization, a D2-specific evidence projection
-and digest separate from Sequence, and no D3–D5 metamodel. The owner authorized one
+and digest separate from Sequence, and no D3–D5 metamodel. The scope allows one
 exceptional fourth, limited read-only review of exactly those points plus Sequence
 nonregression; no high or medium finding may remain before finalizing this plan.

@@ -1,8 +1,6 @@
 # UX4 configuration and review workbench
 
-The local UX4 candidate starts at DOC1 `8375861582e64cd90e75843eb4c0fa66e50f7867`.
-It is not a release. The earlier DOC1 owner smoke is incomplete and its observations do not
-establish acceptance of this package. K4/MCP and release preparation are outside this task.
+Current behavior includes UX4-FU1/FU2 (`6863a30`) and PL/EN offline Help. It is a branch build, not a new release. Historical results below refer only to their original candidates. Current verification and next audit: [project state](project-state.md).
 
 ## Visible navigation
 
@@ -18,7 +16,7 @@ establish acceptance of this package. K4/MCP and release preparation are outside
 | Build Knowledge Pack from Documents | Native document selection, one K2 extraction, linked review panel |
 | Save Diagram and Report | Existing ART1 original-pair flow |
 | Convert to Markdown | Existing standalone local conversion and OCR |
-| Help | Packaged English user instructions |
+| Help | Bundled PL/EN instructions selected by VS Code display language; language links work offline |
 | Check Provider Configuration compatibility ID | Existing OBS1 applied-configuration check in Provider tab; hidden from palette |
 
 The old Sequence command ID is hidden and delegates to Create Diagram. The older runtime
@@ -87,11 +85,10 @@ packaged K1/K2/K3/UX3/DOCX/ART1 runtime; real UX3/K3/ART1/UX4 Extension Host; na
 review, pickers and ART1 UI. `npm run ux4:gauntlet` stores a unique `build/ux4/gauntlet-…/` with
 source fingerprints, exact VSIX bytes/SHA, command logs, per-case results and screenshots.
 Controlled Host messages are separate from native UI. Tests use synthetic sources/loopback
-transports, which establish no live LLM quality or owner acceptance.
+transports, which establish no live LLM quality or acceptance review.
 
 Independent read-only GPT-6.1 Sol/high review and no open HIGH/MEDIUM are required before the
-local checkpoint. Required FAIL/NOT_RUN also block it. Owner cases remain NOT_RUN on a new
-isolated exact-SHA installation until the owner reports results. OWNER_SMOKE: NOT_COMPLETED.
+local checkpoint. Required FAIL/NOT_RUN also block it. Historical test forms retain their original NOT_RUN observations.
 
 ## Verified local candidate (2026-10-09)
 
@@ -102,12 +99,12 @@ demo, packaged runtime regressions, real Host99 and native UI37. The exact candi
 Independent read-only GPT-6.1 Sol/high review round3: no HIGH/MEDIUM remain. Earlier rounds
 remain preserved and blocked; their Apply/lifetime findings are closed. Final manifest
 records only status-documentation changes after the gauntlet and reconfirms bundle parity.
-The new isolated owner handoff retains33 earlier cases and adds12 UX4, all NOT_RUN.
-Owner smoke NOT_COMPLETED; no live model quality inferred. No release/version change.
+The new isolated manual-test handoff retains33 earlier cases and adds12 UX4, all NOT_RUN.
+Manual smoke NOT_COMPLETED; no live model quality inferred. No release/version change.
 
 ## UX4-FU1 follow-up
 
-Current navigation, draft-profile keys, active-file input and native knowledge tree: [owner findings and contract](ux4-owner-findings.md). The verified candidate above remains historical evidence for its original SHA. The follow-up uses a fresh artifact and owner handoff; no PASS is transferred.
+Current navigation, draft-profile keys, active-file input and native knowledge tree: [reported findings and contract](ux4-owner-findings.md). The verified candidate above remains historical evidence for its original SHA. The follow-up uses a fresh artifact and manual-test handoff; no PASS is transferred.
 
 ## UX4-FU2 model-list follow-up
 

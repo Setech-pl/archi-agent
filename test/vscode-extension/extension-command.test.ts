@@ -271,6 +271,23 @@ afterAll(() => {
 });
 
 describe("activation", () => {
+  it.each([["pl", "README.pl.md"], ["pl-PL", "README.pl.md"], ["en", "readme.md"], ["de", "readme.md"]])("opens bundled help for display language %s", async (language, filename) => {
+    const context = { ...createExtensionContext(), extensionUri: vscodeDouble.Uri.file("/synthetic-extension") };
+    const previous = vscodeDouble.env.language;
+    try {
+      vscodeDouble.env.language = language;
+      activate(context as never);
+      await vscodeDouble.commands.executeCommand(commandIds.help);
+      const preview = state.executedCommands.find(entry => entry.command === "markdown.showPreview");
+      expect((preview?.args[0] as { fsPath: string }).fsPath).toBe(`/synthetic-extension/${filename}`);
+      expect(state.secretReads).toEqual([]);
+      expect(state.configurationUpdates).toEqual([]);
+    } finally {
+      vscodeDouble.env.language = previous;
+      context.subscriptions.forEach(subscription => subscription.dispose());
+    }
+  });
+
   it("registers exactly the command contributed by the manifest and owns its disposables", () => {
     const manifest = JSON.parse(readFileSync(new URL("../../vscode-extension/package.json", import.meta.url), "utf8")) as {
       contributes: { commands: { command: string }[]; configuration: { properties: Record<string, unknown> } };

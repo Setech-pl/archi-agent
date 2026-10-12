@@ -136,7 +136,7 @@ validation stage.
   that the renderer emits; it is a structural check, not a rendering test.
 - There is no editor integration and no packaged extension.
 
-## Owner decisions applied
+## Project decisions applied
 
 1. A rule enters the grounded context only when both endpoints are selected for the diagram.
 2. The author is part of the context and the artifact metadata but not of the grounding digest.

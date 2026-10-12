@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(commandIds.knowledgeBrowser, () => browser.reveal()),
     vscode.commands.registerCommand(commandIds.buildKnowledgePackFromActiveFile, () => buildKnowledgePackFromActiveFileCommand({ runtime, output, secrets: context.secrets })),
     vscode.commands.registerCommand(commandIds.configuration, () => configuration.open()),
-    vscode.commands.registerCommand(commandIds.help, () => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.joinPath(context.extensionUri, "readme.md"))),
+    vscode.commands.registerCommand(commandIds.help, () => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.joinPath(context.extensionUri, /^pl(?:-|$)/iu.test(vscode.env.language) ? "README.pl.md" : "readme.md"))),
     vscode.commands.registerCommand(commandIds.saveDiagramAndReport, () => saveDiagramAndReportCommand(results).catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: diagram and report save could not be completed. Retry Save Diagram and Report.");
     })),

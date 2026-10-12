@@ -1,9 +1,9 @@
 # UX4-FU2 model listing and selection
 
 Base checkpoint: `d5fb95a4d060ef501566792d80b346e0fe1a79cb`.
-Owner FAIL applies only to VSIX `eae14988c3f8fc6ae9d8f985aaf00c9803a454db1d4c1b825822d8e85e917f4a` (119875273 bytes).
-The owner reported five successful GET /v1/models requests and inability to choose a model. The original response bodies/control state are unknown; successful HTTP alone is not considered a populated list.
-Append-only observations and reproductions: `build/ux4-fu2/run-20261010-model-selection/`. Earlier owner profiles/forms/artifacts are unchanged. OWNER_SMOKE: NOT_COMPLETED.
+Reported FAIL applies only to VSIX `eae14988c3f8fc6ae9d8f985aaf00c9803a454db1d4c1b825822d8e85e917f4a` (119875273 bytes).
+The manual test reported five successful GET /v1/models requests and inability to choose a model. The original response bodies/control state are unknown; successful HTTP alone is not considered a populated list.
+Append-only observations and reproductions: `build/ux4-fu2/run-20261010-model-selection/`. Earlier test profiles/forms/artifacts are unchanged. MANUAL_SMOKE: NOT_COMPLETED.
 
 ## Observed reproduction
 
@@ -13,7 +13,7 @@ On the exact original VSIX in a fresh native VS Code profile:
 - Ollama Apply → Refresh: model input enabled, datalist empty, loading complete, diagnostic `duplicate-model-id`.
 - Closing/reopening: Ollama restored; explicit Refresh again yields the same empty list and safe failure code.
 
-The currently available local Ollama HTTP200 response has five records, including two identical `gemma3:27b` entries; there are four exact distinct IDs. The local parser previously rejected the entire list for that duplicate. It is not claimed that the owner's unrecorded earlier responses were identical. Native baseline3 screenshots/state and captured response establish the present reproduction; baseline1 premature assertion and baseline2 CDP startup failure remain preserved.
+The currently available local Ollama HTTP200 response has five records, including two identical `gemma3:27b` entries; there are four exact distinct IDs. The local parser previously rejected the entire list for that duplicate. It is not claimed that the unrecorded earlier responses were identical. Native baseline3 screenshots/state and captured response establish the present reproduction; baseline1 premature assertion and baseline2 CDP startup failure remain preserved.
 
 ## Updated contract
 
@@ -33,6 +33,6 @@ Focused102/102 regression PASS, including four pre-dispatch cancellation cases a
 
 Final artifact: `build/ux4-fu2/final-20261011-models-42d9/archi-agent-0.3.0-alpha.4.vsix`,119876944 bytes, SHA-256 `80d45ce387b8b2e78779806303940fcb9318b96f58a0a4b747aa082ec1fb3235`. `gauntlet-final/fu2-live/` contains actual GET body, native installed-control observations, selection-before-Apply screenshot, saved binding, reopen/Discard and restart. Native automation chooses the exact installed SELECT option by its normal DOM input/change events, not the extension service. Unsuccessful CDP keyboard diagnostics remain preserved; they are not reported as successful native keyboard use. All earlier full/harness failures are retained in `earlier-attempts/`, and no old report was overwritten.
 
-Post-gate changes are limited to unpackaged documentation status; final manifest records their hashes/delta. Source-package runtime byte parity remains identical. Local checkpoint identity and independent final review live beside that manifest. New owner environment `build/owner-smoke/ux4-fu2-20261011-models-42d9/` has65 initially NOT_RUN cases and a fresh profile. Configuration acceptance: Ollama draft → Refresh → Available models exact ID → Apply → reopen → actual restart. Results remain owner-controlled; automated PASS does not mean OWNER_SMOKE PASS.
+Post-gate changes are limited to unpackaged documentation status; final manifest records their hashes/delta. Source-package runtime byte parity remains identical. Local checkpoint identity and independent final review live beside that manifest. New manual-test environment `build/owner-smoke/ux4-fu2-20261011-models-42d9/` has65 initially NOT_RUN cases and a fresh profile. Configuration acceptance: Ollama draft → Refresh → Available models exact ID → Apply → reopen → actual restart. Results remain recorded separately; automated PASS does not mean MANUAL_SMOKE PASS.
 
-Live scanned-PDF knowledge extraction still has no confirmed full PASS. FU1's updated live PDF evidence locations passed, but a malformed model row was strictly rejected; the earlier owner MD timeout was not reproduced. FU2 does not claim to fix or retest those generations. No models downloaded, Ollama server started or paid cloud requests made.
+Live scanned-PDF knowledge extraction still has no confirmed full PASS. FU1's updated live PDF evidence locations passed, but a malformed model row was strictly rejected; the earlier MD timeout was not reproduced. FU2 does not claim to fix or retest those generations. No models downloaded, Ollama server started or paid cloud requests made.

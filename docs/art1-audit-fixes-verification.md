@@ -88,8 +88,8 @@ Generation policy/call count, grounding, snapshots, exclusive creation, symlink 
 foreign-data protection, operation atomicity and frozen-original Save semantics remain unchanged.
 Synthetic transport proves integration and request counts, not live-provider/model quality.
 Host and UI were verified on macOS arm64 only. Existing no-crash-recovery/fsync and non-race-free
-portable path-check limitations remain. Q-04 stays in owner smoke; other audit questions/suggestions
+portable path-check limitations remain. Q-04 stays in manual smoke; other audit questions/suggestions
 are not new scope. No history, run catalog, label additions or K4 work.
 
-OWNER_SMOKE: DEFERRED. PUSH: NOT_REQUESTED. MAIN_INTEGRATION: NOT_REQUESTED.
+MANUAL_SMOKE: DEFERRED. PUSH: NOT_REQUESTED. MAIN_INTEGRATION: NOT_REQUESTED.
 TAG: NOT_REQUESTED. PUBLICATION: NOT_REQUESTED. Remain on fix branch; STOP after local checkpoint.

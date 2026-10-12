@@ -2,11 +2,34 @@
 
 [English](../en/user-guide.md) · **Polski** · [Strona główna](../../README.pl.md)
 
+## Zacznij tutaj — pierwsze użycie
+
+1. Zainstaluj dostarczony VSIX przez **Extensions → … → Install from VSIX…**, przeładuj VS Code, jeśli o to poprosi, i otwórz lokalny folder projektu. Pakiet tej gałęzi różni się od starszego publicznego alpha.4 mimo identycznego numeru wersji.
+2. Uruchom **Archi: Configuration → LLM Provider**. Przygotuj LM Studio/Ollamę albo wybierz profil chmurowy. Dla chmury użyj **Set / Replace Key for <provider>** i wpisz klucz w natywnym maskowanym polu.
+3. Wybierz **Refresh Models** przed lub po Apply. Wskaż dokładne ID w **Available models / Dostępne modele**; pojawi się w **Selected model**. Wybierz **Apply**, potem **Check Provider Configuration**. Refresh niczego nie zapisuje; **Discard Changes** przywraca zastosowane pola. Wybrany jest jeden model, wspólny dla generatora i reviewera diagramu; nie ma listy wielu modeli „Selected Models”.
+4. W **Knowledge Management** użyj **Choose Existing Knowledge Pack** albo **Create Knowledge Pack** dla małego katalogu. Kompletny przykład Alpha/Beta poniżej nadaje się do pierwszego diagramu. Możesz też zbudować pack z dokumentów, rozstrzygnąć każdego kandydata, sprawdzić pięć podglądów i użyć **Save and use**, aby aktywować nowy pack.
+5. Uruchom **Archi: Knowledge Browser**, aby sprawdzić aktywny katalog. Wybierz **Archi: Create Diagram → Sequence** albo **Component** i wpisz `Alpha stores data in Beta.` przy aktywnym przykładowym packu.
+6. Przeczytaj oba edytory wyniku, następnie wybierz **Archi: Save Diagram and Report** i potwierdź nowy folder w projekcie. **Archi: Help** lub **Archi: Open → Help** otwiera tę instrukcję offline.
+
+Help otwiera polską instrukcję przy języku wyświetlania VS Code `pl` (także wariantach regionalnych), a w pozostałych przypadkach angielską. Odnośniki **English / Polski** otwierają drugą bundlowaną instrukcję. To wybór języka pomocy: większość kontrolek produktu zachowuje angielskie nazwy i nie ma trwałego przełącznika języka całej aplikacji.
+
+## Co oznaczają poszczególne artefakty
+
+| Artefakt | Przykład | Cel i następny krok |
+| --- | --- | --- |
+| Dokument źródłowy | `architecture.pdf` albo niezapisany edytor `source.md` | Fakty i kontekst wejściowy; rozszerzenie nie zmienia źródła. |
+| Wynik konwersji | Niezapisany Markdown z `## Page 1` i znacznikami OCR | Lokalnie wydobyty tekst, bez modelu. To jeszcze nie wiedza o architekturze; sprawdź tekst lub użyj źródła w Builderze. |
+| Kandydaci wiedzy | Proponowany serwis Alpha i relacja Alpha → Beta, jeszcze `pending` | Nieufne propozycje modelu z dowodami; zaakceptuj, odrzuć lub edytuj w Knowledge Pack Review. Cytat potwierdza lokalizację, nie interpretację. |
+| Zaakceptowany Knowledge Pack | Pięć tabel Markdown w nowym folderze | Twój przejrzany katalog odczytywany przez produkcyjny loader. Save go tworzy; Save and use dodatkowo aktywuje. |
+| Diagram i raport | `diagram.puml` oraz `report.json` | Wygenerowany widok przepływu i powiązany zapis dowodów/walidacji. Zapis nie tworzy ani nie aktualizuje packa. |
+
+PDF może więc stać się tekstem po konwersji, potem kandydatami i zaakceptowanym packiem. Późniejszy opis przepływu wraz z tym packiem daje diagram. Są to osobne operacje; konwersja nie uruchamia automatycznie ekstrakcji wiedzy ani generowania diagramu.
+
 ## Wersja i wymagania
 
-Instrukcja opisuje lokalnego kandydata UX4-FU2 z bazy UX4-FU1 `d5fb95a`. Publiczne pobranie `v0.3.0-alpha.4` zawiera UX2; późniejsze funkcje OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 wymagają wskazanego lokalnego kandydata. Zobacz [wybór pakietu i sumy kontrolne](../../README.pl.md#wybierz-właściwy-pakiet).
+Instrukcja opisuje bieżący checkpoint gałęzi UX4-FU2 na bazie `6863a30`. Publiczne pobranie `v0.3.0-alpha.4` zawiera UX2; późniejsze funkcje OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 wymagają wskazanego lokalnego kandydata. Zobacz [wybór pakietu i sumy kontrolne](../../README.pl.md#wybierz-właściwy-pakiet).
 
-Potrzebujesz desktopowego VS Code zgodnego z deklaracją `^1.91.0`, lokalnego systemu plików oraz providera modeli do ekstrakcji lub diagramów. VSIX zawiera bundle runtime Node, worker konwersji i zasoby OCR offline; osobne Node/npm nie są potrzebne. Celem 1.0 jest Mac ARM. Dotychczasowa weryfikacja natywnego UI odbyła się na macOS arm64 (VS Code 1.140.0); owner smoke UX4 jest nieukończony. Pakiet zawiera także bindingi Mac Intel, Linux x64/arm64 GNU i musl oraz Windows x64/arm64 — to pokrycie pakowania, nie weryfikacja natywnego UI tych systemów. Workspace zdalny lub wirtualny nie potwierdza obsługi zdalnych ścieżek dokumentów; używaj lokalnych folderów. W niezaufanym workspace ustawienia objęte ograniczeniami są odczytywane z ustawień użytkownika.
+Potrzebujesz desktopowego VS Code zgodnego z deklaracją `^1.91.0`, lokalnego systemu plików oraz providera modeli do ekstrakcji lub diagramów. VSIX zawiera bundle runtime Node, worker konwersji i zasoby OCR offline; osobne Node/npm nie są potrzebne. Celem 1.0 jest Mac ARM. Dotychczasowa weryfikacja natywnego UI odbyła się na macOS arm64 (VS Code 1.140.0). Pakiet zawiera także bindingi Mac Intel, Linux x64/arm64 GNU i musl oraz Windows x64/arm64 — to pokrycie pakowania, nie weryfikacja natywnego UI tych systemów. Workspace zdalny lub wirtualny nie potwierdza obsługi zdalnych ścieżek dokumentów; używaj lokalnych folderów. W niezaufanym workspace ustawienia objęte ograniczeniami są odczytywane z ustawień użytkownika.
 
 Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence** lub **Component** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje [instrukcja deweloperska](development.md).
 
@@ -20,9 +43,9 @@ Provider to usługa uruchamiająca model. Profil wybiera adapter i zasady endpoi
 | Ollama | `local-ollama` | `http://127.0.0.1:11434/v1` | brak |
 | Anthropic | `cloud-anthropic` | stały `https://api.anthropic.com` | SecretStorage |
 | OpenAI | `cloud-openai` | stały `https://api.openai.com` | SecretStorage |
-| OpenRouter | `cloud-openrouter` | stały `https://openrouter.ai` | SecretStorage |
+| OpenRouter | `cloud-openrouter` | stały `https://openrouter.ai/api/v1` | SecretStorage |
 
-Przygotuj lokalny serwer/model samodzielnie; rozszerzenie nie pobiera modeli. Otwórz **Archi: Configuration → LLM Provider**. Wybierz profil, uzupełnij właściwe pola endpointu/timeoutu/modelu i użyj **Apply**. **Discard Changes** przywraca zastosowane wartości. Niezapisane zmiany przetrwają przełączanie zakładek. Refresh Models czyta widoczny profil/adres bez zapisu ustawień; diagnostyka zastosowanej konfiguracji wymaga Apply lub Discard. Operacje klucza dotyczą widocznego profilu formularza i są dostępne także przed Apply. Zewnętrzna zmiana ustawień jest pokazywana bez utraty wpisanych wartości; przy konflikcie użyj Discard i wpisz zamierzone zmiany ponownie. Zmiana konfiguracji unieważnia diagnostykę. **Refresh Models** pobiera listę jednym ograniczonym żądaniem. Wybierz dokładne ID z **Available models** albo wpisz je w Selected model, następnie Apply. Pusta, niepoprawna i błędna odpowiedź mają odrębne komunikaty EN/PL oraz następne działanie. Identyczne powtórzone bezpieczne ID lokalnego dostawcy tworzą jeden wybór; niebezpieczne ID nadal odrzuca listę. Model nie jest wybierany automatycznie. Chmura wymaga **Set / Replace Key** (natywne zamaskowane pole); **Remove Key** prosi o potwierdzenie. Klucze pozostają w SecretStorage; ekran otrzymuje tylko informację o obecności. **Check Provider Configuration** testuje zastosowane ustawienia najwyżej jednym żądaniem listy, bez generacji. Pokazuje połączenie, listing, model i gotowość generacji oraz następne działanie. Listing nie dowodzi gotowości generacji, dostępu, rozliczeń ani quota. Jawne **Create Diagram** testuje generację przy zachowanej polityce żądań. Nie każdy provider ma owner smoke na żywo.
+Przygotuj lokalny serwer/model samodzielnie; rozszerzenie nie pobiera modeli. Otwórz **Archi: Configuration → LLM Provider**. Wybierz profil, uzupełnij właściwe pola endpointu/timeoutu/modelu i użyj **Apply**. **Discard Changes** przywraca zastosowane wartości. Niezapisane zmiany przetrwają przełączanie zakładek. Refresh Models czyta widoczny profil/adres bez zapisu ustawień; diagnostyka zastosowanej konfiguracji wymaga Apply lub Discard. Operacje klucza dotyczą widocznego profilu formularza i są dostępne także przed Apply. Zewnętrzna zmiana ustawień jest pokazywana bez utraty wpisanych wartości; przy konflikcie użyj Discard i wpisz zamierzone zmiany ponownie. Zmiana konfiguracji unieważnia diagnostykę. **Refresh Models** pobiera listę jednym ograniczonym żądaniem. Wybierz dokładne ID z **Available models** albo wpisz je w Selected model, następnie Apply. Pusta, niepoprawna i błędna odpowiedź mają odrębne komunikaty EN/PL oraz następne działanie. Identyczne powtórzone bezpieczne ID lokalnego dostawcy tworzą jeden wybór; niebezpieczne ID nadal odrzuca listę. Model nie jest wybierany automatycznie. Chmura wymaga **Set / Replace Key** (natywne zamaskowane pole); **Remove Key** prosi o potwierdzenie. Klucze pozostają w SecretStorage; ekran otrzymuje tylko informację o obecności. **Check Provider Configuration** testuje zastosowane ustawienia najwyżej jednym żądaniem listy, bez generacji. Pokazuje połączenie, listing, model i gotowość generacji oraz następne działanie. Listing nie dowodzi gotowości generacji, dostępu, rozliczeń ani quota. Jawne **Create Diagram** testuje generację przy zachowanej polityce żądań. Nie wszystkie profile providera mają wyniki testów na żywo.
 
 | Ustawienie | Znaczenie |
 | --- | --- |
@@ -51,7 +74,7 @@ Dla małego katalogu demonstracyjnego utwórz Alpha jako `service`, następnie d
 
 ### Kompletny syntetyczny pack z pięciu plików
 
-Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configure Knowledge Pack. To ręczny przykład, nie wynik Buildera z provenance.
+Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configuration → Knowledge Management → Choose Existing Knowledge Pack. To ręczny przykład, nie wynik Buildera z provenance.
 
 `systems.md`:
 
@@ -100,7 +123,7 @@ Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configure K
 5. **Accept selected**, **Reject selected**, **Return selected to pending** obsługują grupy; dostępne są też **Accept all pending** / **Reject remaining pending**. Sprawdź dowody przed akceptacją. Rozwiń **Edit proposed row**, zmień pola i wybierz **Apply row edit**; referencje wybierasz z encji. Nie dodaje propozycji ani nie zmienia ID, dowodów, basis i reasoning. Edytowany wiersz zachowuje oryginalny dowód i znacznik `editedByUser`; cytat nie jest przedstawiany jako dosłowne źródło Twojej zmiany. Niezastosowana edycja wiersza nie zmienia sesji.
 6. **Validate and preview** blokuje zapis, gdy wiersz jest pending, zaakceptowana relacja/alias/reguła nie ma zaakceptowanych końców, pozostają konflikty, aliasy kolidują lub zbiór nie ma systemu. Zależności nie są akceptowane automatycznie. Zmień decyzje/pola i waliduj ponownie. Każda zmiana unieważnia poprzedni niezmienny preview.
 7. Wybierz istniejący folder nadrzędny i jedną **nową nazwę folderu packa**. Rozwiń pięć podglądów tylko do odczytu na tym samym ekranie: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. Zamrożony podgląd to dokładna treść zapisu.
-8. **Save** tworzy nowy pack i zachowuje aktywne ustawienie. **Save and use** najpierw zapisuje/wczytuje, potem aktywuje w wybranym scope UX3 (Global bez projektu). **saved, not activated** oznacza zachowane poprawne pliki przy błędzie konfiguracji; wybierz je później przez Configure Knowledge Pack. Decyzje pozostają nad podglądami; **Cancel** lub zamknięcie panelu kończy przed zapisem. Po kolizji **Choose new pack folder** wybiera inny nowy cel bez ekstrakcji.
+8. **Save** tworzy nowy pack i zachowuje aktywne ustawienie. **Save and use** najpierw zapisuje/wczytuje, potem aktywuje w wybranym scope UX3 (Global bez projektu). **saved, not activated** oznacza zachowane poprawne pliki przy błędzie konfiguracji; wybierz je później przez Choose Existing Knowledge Pack. Decyzje pozostają nad podglądami; **Cancel** lub zamknięcie panelu kończy przed zapisem. Po kolizji **Choose new pack folder** wybiera inny nowy cel bez ekstrakcji.
 
 W jednym Extension Host działa jeden build. Cancel lub zamknięcie panelu review kończy build; ukończony zapis zwalnia blokadę builda. Nie ma trwałych draftów, autosave, aktualizacji/scalania packów ani historii akceptacji. Nowe polecenie to nowa ekstrakcja. Review/edycja/walidacja/preview/zapis/aktywacja używają **zera dodatkowych żądań LLM**, również po kolizji zapisu i powrocie do review.
 
@@ -114,6 +137,17 @@ Limity Buildera są mniejsze niż samodzielnej konwersji:
 | Deadline pracy | 360 sekund; generowanie 120 sekund ograniczone pozostałym czasem | 120 sekund bez OCR; deadline OCR 300 sekund |
 
 Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowanego canvas, 16 MP osadzonego obrazu; ZIP Office 1000 wpisów, 100 MiB po rozpakowaniu łącznie, 25 MiB na wpis, proporcja 100:1; XLSX 40 arkuszy, 20000 wierszy, 150 kolumn, 250000 komórek. PDF traci układ/strukturę tabel; DOCX pomija obrazy/zasoby zewnętrzne, złożony układ może stracić wierność; XLSX bierze zapisane wyniki formuł, bez przeliczania. DOC/XLS są nieobsługiwane. Modele OCR PL/EN są lokalne. Cancel/błąd nie zwraca częściowej konwersji ani kandydatów. Zamykanie workerów/cleanup może wykroczyć poza deadline pracy. Zobacz [pełne limity ekstrakcji](../document-candidates.md#limits-and-cancellation).
+
+## Aktywny plik i Knowledge Browser
+
+**Archi: Build Knowledge Pack from Active File** przechwytuje niezapisany Markdown/TXT (także untitled) przed ekstrakcją. Nie zapisuje edytora. Lokalny podgląd PDF/DOCX/XLSX musi udostępniać URI pliku; w przeciwnym razie wybierz obsługiwane źródło jawnie. Dalej dostępne są te same evidence, pięć podglądów, Save oraz Save and use.
+
+**Archi: Knowledge Browser** otwiera **Archi Agent — Knowledge** w Explorerze. Rozwiń projekt i aktywny pack, potem Systems, Relations, Rules, Sources/Evidence (jeśli dostępne) lub Files. System pokazuje aliasy i odwołania do relacji przychodzących/wychodzących. Rekord otwiera plik packa na właściwej linii; evidence bez lokalizacji oryginału otwiera lokalne szczegóły. Refresh i zapis plików odczytują walidację produkcyjną; błędna wiedza nie pozostaje aktualnym widokiem.
+
+W Configuration opis profilu i przyciski kluczy reagują na wybór formularza. Natywny input wskazuje profil docelowy i pozostaje z nim związany po zmianie wyboru. Effective configuration pokazuje zastosowane ustawienia do udanego Apply. Zmiana profilu czyści model formularza. Discard przywraca zapisane ustawienia. Progress ekstrakcji wskazuje odczyt/konwersję/wybór providera/generację/walidację, z Cancel. Generacja K2 ma limit 120 s albo krótszy timeout providera; po timeout wybierz szybszy model lub mniejsze wejście. Brak automatycznych retry.
+
+
+Drzewo zawiera także **Actors**. Po zewnętrznej edycji plików użyj **Refresh Knowledge** w tytule drzewa. Zapis pliku packa w VS Code, zmiana aktywnej ścieżki lub folderów workspace automatycznie odświeża widok. Evidence z aktywnego edytora otwiera go tylko przy zgodności digestu znormalizowanego tekstu z przechwyconym wejściem; w przeciwnym razie pokazuje zamrożone szczegóły. To przeglądarka tylko do odczytu, nie edytor wiedzy ani katalog packów.
 
 ## Generowanie i odczyt diagramu
 
@@ -155,6 +189,22 @@ Lista menu/palety przechowuje wyniki w bieżącym Extension Host, gdy co najmnie
 
 ## Błędy zapisu i rozwiązywanie problemów
 
+### Objaw → przyczyna → działanie
+
+| Objaw | Prawdopodobna przyczyna | Działanie użytkownika |
+| --- | --- | --- |
+| Available models jest puste | Brak odświeżenia, pusta odpowiedź albo błąd listowania | Przeczytaj status listy; uruchom serwer/model lokalny lub sprawdź klucz chmurowy, następnie jawnie Refresh Models. Sam HTTP 200 nie dowodzi poprawnej listy. |
+| Wybór modelu znika po Discard/reload | Wybór był tylko draftem | Wybierz ID ponownie i Apply; otwórz Configuration i sprawdź Effective configuration. |
+| Check jest zablokowany | Niezastosowane pola providera | Apply zapisuje zmiany; Discard Changes pozwala sprawdzić zapisany stan. Refresh Models może czytać draft. |
+| Apply zgłasza zmianę ustawień | Projekt/ustawienia zmieniły się podczas edycji | Discard Changes, sprawdź projekt i zastosowane wartości, wpisz zmiany ponownie i Apply. |
+| Klucz obecny, lecz błąd uwierzytelnienia | Obecność klucza nie dowodzi poprawności/uprawnień | Set / Replace Key dla widocznego profilu; sprawdź dostęp w konsoli providera, Apply właściwy profil/model i ponów Check. |
+| Knowledge Browser pokazuje brak packa/błąd | Brak ścieżki albo odrzucone tabele w zakresie projektu | Configuration → Knowledge Management: wybierz projekt, Validate / Refresh, napraw pięć tabel albo wybierz poprawny pack; odśwież drzewo. |
+| Build from Active File odrzuca kartę | Nieobsługiwany format, zdalne URI albo podgląd bez lokalnego URI pliku | Aktywuj edytor Markdown/TXT, także untitled, albo wybierz plik binarny przez Build Knowledge Pack from Documents. |
+| PDF zgłasza brak tekstu/limit OCR | Skan w No OCR albo ponad 20 stron OCR | Wybierz Auto OCR lub OCR all pages dla małego skanu; większy dokument podziel przed ponowieniem. |
+| Timeout ekstrakcji | Model przekroczył 120 sekund albo krótszy timeout providera | Wybierz szybszy model lub zmniejsz wejście. Timeout providera powyżej 120 nie podnosi limitu ekstrakcji. |
+| Evidence-location mismatch albo błędny wiersz modelu | Propozycja nie przeszła deterministycznych kontroli | Sprawdź bezpieczny kod błędu; wybierz model przestrzegający formatu i evidence slices, uruchom operację jawnie ponownie. Walidacja nie jest omijana. |
+| Cancel trwa dłużej | Kończy się zamykanie workera lub cleanup własnych plików tymczasowych | Poczekaj na zakończenie; częściowa konwersja/kandydaci nie są zwracani. |
+
 | Sytuacja | Działanie |
 | --- | --- |
 | Cel Buildera istnieje, nawet pusty | zachowaj go; wróć przez review/wybór miejsca i wybierz nowy folder; bez ponownej ekstrakcji |
@@ -162,7 +212,7 @@ Lista menu/palety przechowuje wyniki w bieżącym Extension Host, gdy co najmnie
 | Symlink, brak folderu nadrzędnego, rodzic nie jest katalogiem lub błąd containment | najpierw popraw wskazany lokalny projekt/ścieżkę; nowy bundle nie naprawi ścieżki |
 | Cancel podczas zapisu lub błąd zapisu/weryfikacji | poczekaj na cleanup; obejrzyj wskazaną lokalizację, jeśli cleanup jest niepełny |
 | Zachowana cudza edycja/podmiana/nieudowodniony częściowy zapis | zachowaj edycje, sprawdź dane, przenieś zachowane pliki lub wybierz inne miejsce przed ponowieniem |
-| Pack zapisany, aktywacja nieudana | zachowaj pliki, sprawdź ustawienia i aktywuj przez Configure Knowledge Pack |
+| Pack zapisany, aktywacja nieudana | zachowaj pliki, sprawdź ustawienia i aktywuj przez Choose Existing Knowledge Pack |
 | Brak modelu/klucza/połączenia lub błąd strukturalnej odpowiedzi | użyj Configuration i Check Provider Configuration; popraw konfigurację i jawnie uruchom nową operację |
 | Pending/brak zależności/konflikt | sprawdź problemy, rozstrzygnij wiersze, zaakceptuj wymagane encje lub odrzuć zależne wiersze; waliduj ponownie |
 | Brak ukończonego wyniku | pozostaw otwarte podglądy albo uruchom nową udaną generację; edytowane niezapisane pliki same nie są wynikami ART1 |
@@ -171,7 +221,7 @@ Sukces następuje po sprawdzeniu dokładnych bajtów/wczytania/własności i fin
 
 ## Demonstracje i licencja
 
-Powyższy tekst jest kompletny bez animacji. [Media i pochodzenie](../assets/README.md) opisują kontrolowany syntetyczny transport; nagrania pokazują wcześniejsze UI DOC1, a nie nowe ekrany UX4, jakość żywego LLM ani owner smoke. Dla UX4 stosuj aktualne instrukcje tekstowe.
+Powyższy tekst jest kompletny bez animacji. [Media i pochodzenie](../assets/README.md) opisują kontrolowany syntetyczny transport; nagrania pokazują wcześniejsze UI DOC1, a nie nowe ekrany UX4, jakość żywego LLM ani wyniki ręcznych testów. Dla UX4 stosuj aktualne instrukcje tekstowe.
 
 [Wybór packa i generowanie](../assets/choose-pack-generate.gif) — skonfiguruj istniejący pack Alpha/Beta, wybierz Sequence i przepływ, sprawdź wynik/raport. [Statyczny podgląd](../assets/choose-pack-generate.png).
 
@@ -186,11 +236,3 @@ Powyższy tekst jest kompletny bez animacji. [Media i pochodzenie](../assets/REA
 ![Prawdziwy VS Code: wybór oryginalnego wyniku, natywne potwierdzenie ART1 i zapisany raport](../assets/save-original-pair.gif)
 
 Własny kod/dokumentacja używa [MIT](../../LICENSE); cudze składniki zachowują [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) i [licencje OCR](../../experiments/ux2-ocr/TRIAL_NOTICES.md). MCP, pobieranie EA, Context/Container, ArchiMate, Chat oraz retry/repair są planowane. Wpisy roadmapy nie opisują obecnego UI.
-
-## Aktywny plik i Knowledge Browser
-
-**Archi: Build Knowledge Pack from Active File** przechwytuje niezapisany Markdown/TXT (także untitled) przed ekstrakcją. Nie zapisuje edytora. Lokalny podgląd PDF/DOCX/XLSX musi udostępniać URI pliku; w przeciwnym razie wybierz obsługiwane źródło jawnie. Dalej dostępne są te same evidence, pięć podglądów, Save oraz Save and use.
-
-**Archi: Knowledge Browser** otwiera **Archi Agent — Knowledge** w Explorerze. Rozwiń projekt i aktywny pack, potem Systems, Relations, Rules, Sources/Evidence (jeśli dostępne) lub Files. System pokazuje aliasy i odwołania do relacji przychodzących/wychodzących. Rekord otwiera plik packa na właściwej linii; evidence bez lokalizacji oryginału otwiera lokalne szczegóły. Refresh i zapis plików odczytują walidację produkcyjną; błędna wiedza nie pozostaje aktualnym widokiem.
-
-W Configuration opis profilu i przyciski kluczy reagują na wybór formularza. Natywny input wskazuje profil docelowy i pozostaje z nim związany po zmianie wyboru. Effective configuration pokazuje zastosowane ustawienia do udanego Apply. Zmiana profilu czyści model formularza. Discard przywraca zapisane ustawienia. Progress ekstrakcji wskazuje odczyt/konwersję/wybór providera/generację/walidację, z Cancel. Generacja K2 ma limit 120 s albo krótszy timeout providera; po timeout wybierz szybszy model lub mniejsze wejście. Brak automatycznych retry.

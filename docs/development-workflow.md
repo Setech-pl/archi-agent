@@ -5,24 +5,22 @@ w [`AGENTS.md`](../AGENTS.md); bieżący stan w [`project-state.md`](project-sta
 produktu w [`product-roadmap.md`](product-roadmap.md).
 
 ```text
-A. PLANOWANIE  →  B. weryfikacja planu  →  C. IMPLEMENTACJA  →  D. decyzja właściciela
-   (wykonawca)     (właściciel + przegląd    (wykonawca)           (commit / push / merge)
-                    zewnętrzny)
+A. PLANOWANIE → B. przegląd planu → C. IMPLEMENTACJA → D. checkpoint / publikacja
 ```
 
-Domyślnie każda faza to osobny prompt. Właściciel może jednym zadaniem zatwierdzić zakres,
-implementację i lokalne checkpointy kolejnych milestones; wtedy wykonawca kontynuuje w tych
+Domyślnie każda faza to osobne zadanie. Jedno zadanie może obejmować zatwierdzony zakres,
+implementację i lokalne checkpointy kolejnych milestones. Praca przebiega wtedy w tych
 granicach bez ponownego zatwierdzania rutynowych wyborów.
 
-## Pętla milestone — decyzja właściciela z 2026-10-06
+## Pętla milestone — decyzja projektowa z 2026-10-06
 
 Obowiązuje kolejność: uzgodniony zakres → implementacja → gauntlet → niezależny review
 → lokalny checkpoint → następny autoryzowany milestone. Istotne pytania produktowe,
-konflikty zakresu i zmiany architektury nadal wymagają decyzji właściciela.
+konflikty zakresu i zmiany architektury nadal wymagają decyzji projektowej.
 
-Owner smoke jest wykonywany zbiorczo po kilku milestones. Do zgłoszenia wyniku zapisuj
-`OWNER_SMOKE: DEFERRED`; brak smoke nie blokuje lokalnego checkpointu ani kolejnego etapu.
-To zastępuje wcześniejszą bramkę owner smoke przed każdym checkpointem, także w lokalnych
+Manual smoke jest wykonywany zbiorczo po kilku milestones. Do zgłoszenia wyniku zapisuj
+`MANUAL_SMOKE: DEFERRED`; brak smoke nie blokuje lokalnego checkpointu ani kolejnego etapu.
+To zastępuje wcześniejszą bramkę manual smoke przed każdym checkpointem, także w lokalnych
 instrukcjach gauntletu. Wymagane automatyczne FAIL/NOT_RUN i otwarte high/medium nadal blokują
 checkpoint. Niezależny review wykonuje osobny kontekst tylko do odczytu; własna kontrola
 wykonawcy go nie zastępuje.
@@ -44,7 +42,7 @@ Następnie przeczytaj `docs/project-state.md` i porównaj go z wynikami powyżej
 
 ## Faza A — planowanie
 
-1. Właściciel przekazuje zadanie oznaczone **PLANOWANIE**.
+1. Zadanie jest oznaczone **PLANOWANIE**.
 2. Wykonawca wykonuje preflight i czyta stan projektu.
 3. Analizuje kod i dokumentację istotne dla zadania.
 4. Przygotowuje plan **bez implementacji**: pliki, kontrakty, testy, ryzyka, non-goals, DoD.
@@ -55,7 +53,7 @@ o stanie repo.
 
 ## Faza B — weryfikacja planu
 
-- Właściciel przekazuje plan do przeglądu zewnętrznego (np. ChatGPT) i sam go ocenia.
+- Plan podlega osobnej ocenie i niezależnemu przeglądowi.
 - Wynik: plan zaakceptowany, poprawiony albo odrzucony.
 - Wpis w roadmapie lub w project-state nie oznacza akceptacji planu.
 
@@ -75,9 +73,9 @@ o stanie repo.
 6. Aktualizuje `docs/project-state.md`; roadmapę tylko przy zmianie zakresu lub stanu etapu.
 7. Kończy kompletnym raportem z markerem `IMPLEMENTATION READY FOR REVIEW`.
 
-## Faza D — decyzja właściciela
+## Faza D — decyzja projektowa
 
-- Właściciel przegląda diff i wyniki weryfikacji.
+- Przegląd obejmuje diff i wyniki weryfikacji.
 - Commit, push lub merge wymagają jawnej autoryzacji — lokalny checkpoint może być już
   autoryzowany w zadaniu. Pozostałe operacje nie wynikają ze zgody na checkpoint.
 
@@ -105,14 +103,14 @@ UI jest sterowane przez lokalny CDP i natywny helper Accessibility identyfikują
 bez komend testowych w produkcyjnym rozszerzeniu. Profile i syntetyczne projekty hosta są w krótkim,
 kanonicznym `/private/tmp`: fizyczny TMPDIR może przekroczyć limit długości socketu VS Code.
 Runtime nadal odrzuca dowiązania; świadomy test odrzucenia jest raportowany osobno.
-Domyślna ścieżka bez projektu jest tylko oglądana, bez zapisu w katalogu domowym właściciela.
+Domyślna ścieżka bez projektu jest tylko oglądana, bez zapisu w osobistym katalogu domowym.
 Testy nie używają rzeczywistych kluczy ani płatnych żądań; UI liczy żądania na syntetycznym loopbacku.
 
 `report.txt` i `report.json` zawierają PASS/FAIL/NOT_RUN, warstwę, oczekiwany i rzeczywisty wynik,
 bezpieczny kod błędu, pełny HEAD, stan Git, fingerprint źródeł oraz ścieżkę, rozmiar i SHA-256 VSIX.
 Obok są logi, raporty hosta i zrzuty własnego okna przy błędzie oraz dla każdego rodzaju systemu.
 Każdy niezaliczony lub niewykonany wymagany scenariusz daje kod wyjścia 1 i blokuje gotowość
-do odbioru. PASS tego przebiegu jest automatycznym smoke agenta; owner smoke pozostaje osobnym wynikiem.
+do odbioru. PASS tego przebiegu jest automatycznym smoke agenta; manual smoke pozostaje osobnym wynikiem.
 
 Runner sprawdza też CLI Mammoth i produkcyjną konwersję DOCX (struktura, Unicode, uszkodzenie,
 limity wejścia/wyjścia i zewnętrzny obraz) w źródłach i z rozpakowanego VSIX poza repo.
@@ -131,7 +129,7 @@ poza repo. Zachowuje wcześniejsze kandydaty i fingerprinty źródeł. Rzeczywis
 sprawdza integrację pakowania. Dla K1 UI ma zastosowanie N/A: brak zmian komend, ustawień
 i kontrolek; wyniki UI UX3 należą do jego checkpointu. Nie przenoś tego wyjątku na późniejsze
 zmiany zachowania rozszerzenia. Wymagany FAIL, NOT_RUN albo niezerowy kod komendy blokuje
-PASS; niezależny review finalnego kandydata i OWNER_SMOKE: DEFERRED pozostają osobnymi wynikami.
+PASS; niezależny review finalnego kandydata i MANUAL_SMOKE: DEFERRED pozostają osobnymi wynikami.
 
 ## Szablon raportu planowania
 
@@ -150,7 +148,7 @@ PASS; niezależny review finalnego kandydata i OWNER_SMOKE: DEFERRED pozostają 
 ### Testy
 (nowe testy, dotknięte testy, komendy weryfikacji)
 ### Ryzyka i otwarte decyzje
-(pytania do właściciela — bez rozstrzygania na domysłach)
+(otwarte decyzje — bez rozstrzygania na domysłach)
 ### Definition of Done
 
 PLAN READY FOR REVIEW
@@ -196,7 +194,7 @@ kontrolek; nowe przypadki real UI sterują widocznymi kontrolkami oraz natywnymi
 macOS przez CDP/Accessibility. Te warstwy są raportowane osobno. Brak real UI lub review
 nie może być N/A dla K3 i blokuje checkpoint jako NOT_RUN. Manifest wiąże bazę, fingerprint
 źródeł, środowisko, ścieżkę, rozmiar i SHA256 kandydata. Niezależny review oraz późniejszy
-owner smoke pozostają osobne. Wspólne pakowanie uruchamiaj sekwencyjnie.
+manual smoke pozostają osobne. Wspólne pakowanie uruchamiaj sekwencyjnie.
 
 ## Automatyczny gauntlet UX4
 
@@ -204,6 +202,6 @@ owner smoke pozostają osobne. Wspólne pakowanie uruchamiaj sekwencyjnie.
 protokół webview. Clean npm ci root/OCR, audity, oba zestawy testów i typechecki,
 build/package/verify, demo, spakowany runtime i regresje oraz rzeczywisty Host i natywny UI
 są wymagane na tym samym VSIX. Dowody: `build/ux4/gauntlet-…/`. Pakowanie jest sekwencyjne.
-Kontrolowane odpowiedzi Host nie są dowodem UI ani owner smoke. Niezależny review
+Kontrolowane odpowiedzi Host nie są dowodem UI ani manual smoke. Niezależny review
 i brak wymaganych FAIL/NOT_RUN oraz HIGH/MEDIUM warunkują lokalny checkpoint.
-Owner smoke UX4 jest NOT_COMPLETED aż do wyników właściciela na nowym SHA.
+Status ręcznej weryfikacji UX4 jest powiązany z konkretnym SHA i raportem testów.

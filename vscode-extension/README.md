@@ -1,14 +1,37 @@
-# Archi Agent
+# Archi Agent — Help
 
 **English** · [Polski](README.pl.md)
 
+## Start here — first use
+
+1. Install the supplied VSIX through **Extensions → … → Install from VSIX…**, reload VS Code if requested, and open a local project folder. This branch's package is distinct from the older public alpha.4 download even though the version number is the same.
+2. Run **Archi: Configuration → LLM Provider**. Prepare LM Studio/Ollama or choose a cloud profile. For cloud, use **Set / Replace Key for <provider>** and enter the key in the masked native input.
+3. Click **Refresh Models** before or after Apply. Choose an exact ID in **Available models / Dostępne modele**; it appears in **Selected model**. Click **Apply**, then **Check Provider Configuration**. Refresh does not save anything; **Discard Changes** restores applied fields. There is one selected model, shared by diagram generator and reviewer; there is no multi-model “Selected Models” list.
+4. In **Knowledge Management**, use **Choose Existing Knowledge Pack**, or **Create Knowledge Pack** for a small catalog. The complete Alpha/Beta example below is suitable for a first diagram. Alternatively build from documents, review every candidate, validate the five previews and use **Save and use** to activate the new pack.
+5. Run **Archi: Knowledge Browser** to check the active catalog. Run **Archi: Create Diagram → Sequence** or **Component**, and enter `Alpha stores data in Beta.` with the example pack.
+6. Read both result editors, then **Archi: Save Diagram and Report** and confirm the new project folder. Use **Archi: Help** or **Archi: Open → Help** for this offline instruction.
+
+Help opens Polish when the VS Code display language is `pl` (including regional variants), English otherwise. Its **English / Polski** links open the other bundled instruction. This changes the help language only: most product controls retain their English labels, and there is no persistent application language switch.
+
+## What each artifact means
+
+| Artifact | Example | Purpose and next step |
+| --- | --- | --- |
+| Source document | `architecture.pdf`, or a dirty `source.md` editor | Input facts and context; the extension does not change the source. |
+| Conversion result | Unsaved Markdown containing `## Page 1` and OCR markers | Local text extraction, without a model. It is not yet architecture knowledge; inspect it or use a source with Builder. |
+| Knowledge candidates | Proposed Alpha service and Alpha → Beta relationship, still `pending` | Untrusted model proposals with evidence; accept, reject or edit in Knowledge Pack Review. A literal quote verifies location, not interpretation. |
+| Accepted Knowledge Pack | Five Markdown tables in a new folder | Your reviewed catalog, read by the production loader. Save creates it; Save and use also activates it. |
+| Diagram and report | `diagram.puml` and `report.json` | A generated view of a flow and its linked evidence/validation record. Saving them does not create or update a pack. |
+
+A PDF can therefore become converted text, then candidates, then an accepted pack. A later flow description plus that pack produces a diagram. These are separate operations; converting a file does not automatically extract knowledge or generate a diagram.
+
 ## Build and requirements
 
-This guide describes the local UX4-FU2 candidate based on UX4-FU1 `d5fb95a`. The public `v0.3.0-alpha.4` download contains UX2; later OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 features require the identified local candidate. See build selection and checksums.
+This guide describes the current UX4-FU2 branch checkpoint based on `6863a30`. The public `v0.3.0-alpha.4` download contains UX2; later OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 features require the identified local candidate. See build selection and checksums.
 
-Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. The VSIX includes Node runtime bundles, conversion worker and offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Existing native UI verification ran on macOS arm64 (VS Code 1.140.0); owner smoke for UX4 is not completed. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
+Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. The VSIX includes Node runtime bundles, conversion worker and offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Existing native UI verification ran on macOS arm64 (VS Code 1.140.0). Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence** or **Component** before any generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in development.
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence** or **Component** before any generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in repository development documentation.
 
 ## Provider, profile and model
 
@@ -20,9 +43,9 @@ A provider is the service executing the model. A profile selects its adapter and
 | Ollama | `local-ollama` | `http://127.0.0.1:11434/v1` | none |
 | Anthropic | `cloud-anthropic` | fixed `https://api.anthropic.com` | SecretStorage |
 | OpenAI | `cloud-openai` | fixed `https://api.openai.com` | SecretStorage |
-| OpenRouter | `cloud-openrouter` | fixed `https://openrouter.ai` | SecretStorage |
+| OpenRouter | `cloud-openrouter` | fixed `https://openrouter.ai/api/v1` | SecretStorage |
 
-Prepare your local server/model yourself; the extension does not download models. Open **Archi: Configuration → LLM Provider**. Select a profile, edit the applicable endpoint/timeout/model fields, and use **Apply**. **Discard Changes** restores the applied values. Unapplied edits survive tab changes. Refresh Models reads the visible profile/endpoint without saving settings; applied-configuration checks require Apply or Discard; key operations target the displayed draft profile before or after Apply; external settings changes are shown without overwriting those edits. After such a conflict, Discard and re-enter the intended changes. Changing settings invalidates prior diagnostics. **Refresh Models** lists models in one bounded request. Choose the exact ID from **Available models** or enter it in Selected model, then Apply. Empty, invalid and failed lists have distinct EN/PL messages and a next action. Exact repeated safe IDs from local providers become one choice; unsafe IDs still reject the list. No model is selected automatically. Cloud profiles need **Set / Replace Key** (native password input); **Remove Key** asks for confirmation. Keys stay in provider-specific SecretStorage entries; the screen receives only presence. **Check Provider Configuration** tests applied settings with at most one list request and no generation. It shows connection, listing, selected-model and generation findings with a next action. Listing does not prove generation readiness, access, billing or quota. An explicit **Create Diagram** operation is the generation test and retains the existing request policy. Not every provider has live owner smoke.
+Prepare your local server/model yourself; the extension does not download models. Open **Archi: Configuration → LLM Provider**. Select a profile, edit the applicable endpoint/timeout/model fields, and use **Apply**. **Discard Changes** restores the applied values. Unapplied edits survive tab changes. Refresh Models reads the visible profile/endpoint without saving settings; applied-configuration checks require Apply or Discard; key operations target the displayed draft profile before or after Apply; external settings changes are shown without overwriting those edits. After such a conflict, Discard and re-enter the intended changes. Changing settings invalidates prior diagnostics. **Refresh Models** lists models in one bounded request. Choose the exact ID from **Available models** or enter it in Selected model, then Apply. Empty, invalid and failed lists have distinct EN/PL messages and a next action. Exact repeated safe IDs from local providers become one choice; unsafe IDs still reject the list. No model is selected automatically. Cloud profiles need **Set / Replace Key** (native password input); **Remove Key** asks for confirmation. Keys stay in provider-specific SecretStorage entries; the screen receives only presence. **Check Provider Configuration** tests applied settings with at most one list request and no generation. It shows connection, listing, selected-model and generation findings with a next action. Listing does not prove generation readiness, access, billing or quota. An explicit **Create Diagram** operation is the generation test and retains the existing request policy. Not every provider has live manual testing.
 
 | Setting | Meaning |
 | --- | --- |
@@ -51,7 +74,7 @@ For the small demo catalog, start Alpha as `service`, then add Beta as `database
 
 ### Complete synthetic five-file pack
 
-Create these five UTF-8 files in one folder, then choose it with Configure Knowledge Pack. These are manual example files, not Builder output with provenance.
+Create these five UTF-8 files in one folder, then choose it with Configuration → Knowledge Management → Choose Existing Knowledge Pack. These are manual example files, not Builder output with provenance.
 
 `systems.md`:
 
@@ -100,7 +123,7 @@ Create these five UTF-8 files in one folder, then choose it with Configure Knowl
 5. Use **Accept selected**, **Reject selected**, **Return selected to pending** for groups, or **Accept all pending** / **Reject remaining pending**. Check evidence before accepting. Expand **Edit proposed row**, change its fields and select **Apply row edit**; references use entity selection. It cannot add proposals or edit IDs, evidence, basis or reasoning. An edited row retains original evidence and an `editedByUser` marker; the quote is not claimed to state your edit verbatim. Unapplied row edits do not change the session.
 6. **Validate and preview** blocks while any row is pending, an accepted relationship/alias/rule lacks accepted endpoints, conflicts remain, aliases collide, or the accepted set has no system. Dependencies are not accepted automatically. Change decisions/fields and validate again. Every change invalidates the previous immutable preview.
 7. Choose an existing parent folder and one **new pack folder name**. Expand the five read-only previews on the same screen: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. The immutable preview is the exact content saved.
-8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Configure Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
+8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Choose Existing Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
 
 There is one active build per Extension Host. Cancel or closing the review panel ends the build; a completed save releases the build guard. There are no persistent drafts, autosave, existing-pack update/merge or acceptance history. A new command means a new extraction. Review/edit/validation/preview/save/activation use **zero additional LLM requests**, even after a save collision and return to review.
 
@@ -114,6 +137,17 @@ Builder limits are stricter than standalone conversion:
 | Work deadline | 360 seconds; generation 120 seconds capped by remaining time | 120 seconds without OCR; OCR deadline 300 seconds |
 
 Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas, 16 MP embedded image; Office ZIP 1000 entries, 100 MiB inflated total, 25 MiB per entry, 100:1 ratio; XLSX 40 sheets, 20000 rows, 150 columns, 250000 cells. PDF loses layout/table structure; DOCX excludes images/external resources and complex layout may lose fidelity; XLSX uses cached formula values, never recalculation. DOC/XLS are unsupported. PL/EN OCR models are bundled offline. Cancel/failure returns no partial conversion or candidates. Worker closure/cleanup can extend beyond the work deadline. See full extraction limits.
+
+## Active file and Knowledge Browser
+
+**Archi: Build Knowledge Pack from Active File** captures unsaved Markdown/TXT text (including untitled) before extraction. It never saves the editor. A local PDF/DOCX/XLSX custom preview must expose its file URI; otherwise open a supported source explicitly. The same evidence review, five previews, Save and Save and use follow.
+
+**Archi: Knowledge Browser** reveals **Archi Agent — Knowledge** in Explorer. Expand the project and active pack, then Systems, Relations, Rules, Sources/Evidence when available, or Files. Systems show aliases and incoming/outgoing references. Records open their pack file/line; source evidence without an original location opens local details. Refresh and pack-file saves reload production validation; invalid knowledge is not shown as current.
+
+In Configuration, the profile description and key buttons follow the form selection. Key input names its target profile and stays bound to it even if selection changes. Effective configuration remains applied until successful Apply. Changing profile clears the draft model. Discard restores saved settings. Extraction progress identifies read/conversion/provider selection/generation/validation, with Cancel. K2 generation is capped at 120s or the shorter provider timeout; use a faster model or smaller input after a timeout. No automatic retry occurs.
+
+
+The tree also includes **Actors**. Use **Refresh Knowledge** in the tree title after external file edits. Saving a pack file in VS Code, changing the active path or workspace folders refreshes the view automatically. Evidence from an active editor opens that editor only while its normalized text digest matches the captured input; otherwise frozen evidence details open. This is a read-only browser, not a knowledge editor or a pack catalog.
 
 ## Generate and inspect a diagram
 
@@ -155,6 +189,22 @@ The menu/palette lists results in the current Extension Host while at least one 
 
 ## Save failures and troubleshooting
 
+### Symptom → cause → action
+
+| Symptom | Likely cause | User action |
+| --- | --- | --- |
+| Available models is empty | No refresh yet, an empty response, or a listing error | Read the list status; start/load the local server/model or check the cloud key, then explicitly Refresh Models. HTTP 200 alone does not prove a usable list. |
+| Model choice disappears after Discard/reload | Selection was only a draft | Select the ID again and Apply; reopen Configuration and check Effective configuration. |
+| Check is disabled | Unapplied provider edits | Apply to save them, or Discard Changes to test the saved setup. Refresh Models can read the draft. |
+| Apply reports changed settings | Project/settings changed while editing | Discard Changes, verify the project and applied values, re-enter changes, Apply. |
+| Key present but authentication fails | Saved presence does not prove valid credentials/access | Set / Replace Key for the displayed provider; check access in its console, Apply the intended profile/model and Check again. |
+| Knowledge Browser shows no pack/unavailable | Missing path or rejected tables in that project's scope | Configuration → Knowledge Management: choose the project, Validate / Refresh, repair the five tables or choose another valid pack; refresh the tree. |
+| Active File build rejects the tab | Unsupported format, remote URI or preview without a local file URI | Activate a Markdown/TXT editor, including untitled, or select the binary file through Build Knowledge Pack from Documents. |
+| PDF reports no text / OCR limit | Scan in No OCR mode, or more than 20 OCR pages | Choose Auto OCR or OCR all pages for a small scan; split a larger document before retrying. |
+| Extraction times out | Model exceeded 120 seconds or the shorter provider timeout | Choose a faster model or reduce input. Increasing provider timeout beyond 120 does not increase extraction's cap. |
+| Evidence-location mismatch or invalid model row | Model proposal failed deterministic checks | Inspect the safe failure code; use a model that follows structured output/evidence slices and explicitly start again. Validation is not bypassed. |
+| Cancel appears to take time | Worker shutdown or owned temporary-file cleanup is finishing | Wait for completion; no partial conversion/candidates are returned. |
+
 | Situation | What to do |
 | --- | --- |
 | Builder target exists, even empty | keep it; return through review/location selection and choose another new folder; no re-extraction needed |
@@ -162,7 +212,7 @@ The menu/palette lists results in the current Extension Host while at least one 
 | Symbolic link, missing/non-directory parent or containment error | fix the indicated local project/path first; merely retrying a bundle cannot fix the path |
 | Cancel during write, or write/verification failure | wait for cleanup outcome; inspect the displayed location if cleanup is incomplete |
 | Foreign edit/replacement/unproven partial write retained | keep edits, inspect retained data, move preserved files or choose a new location before retrying |
-| Pack saved but activation failed | retain files, check settings and activate via Configure Knowledge Pack |
+| Pack saved but activation failed | retain files, check settings and activate via Choose Existing Knowledge Pack |
 | Missing model/key/connection or structured-output failure | use Configuration and Check Provider Configuration; correct setup and explicitly start a new operation |
 | Pending rows/dependency/conflict error | review the displayed issues, decide all rows, accept required entities or reject dependent rows; validate again |
 | No completed result available | keep result previews open or run a new successful generation; unsaved edited files alone are not ART1 results |
@@ -170,6 +220,4 @@ The menu/palette lists results in the current Extension Host while at least one 
 Save success follows exact-byte/load/ownership checks and a final cancellation check. Files can become visible incrementally. These are controlled operations with conditional rollback, **not atomic publication of a directory or two files**. Cleanup removes only resources proved owned and unchanged; uncertain data is preserved. There is no crash recovery or fsync durability guarantee, and portable path checks do not eliminate hostile races between system calls. Cancel after success does not undo saved data. Pack files and VS Code settings are separate operations.
 
 
-Own code / własny kod: [MIT](LICENSE.txt). Bundled components / składniki: [notices](THIRD_PARTY_NOTICES.md), OCR licenses in ux2-ocr. Repository: [Archi Agent](https://github.com/Setech-pl/archi-agent). UX4 is local, unpublished; identify the exact VSIX by its supplied SHA-256. Owner smoke is NOT_COMPLETED. Historical DOC1 GIFs show earlier screens and are excluded from the VSIX.
-
-Active-file builds use frozen dirty/untitled MD/TXT text. Knowledge Browser provides a native, validated tree per project. Configuration key buttons follow the draft profile; Apply saves it. Extraction shows stages/Cancel and retains the K2 120s generation cap.
+Own code / własny kod: [MIT](LICENSE.txt). Bundled components / składniki: [notices](THIRD_PARTY_NOTICES.md), OCR notices in ux2-ocr/TRIAL_NOTICES.md. [Repository](https://github.com/Setech-pl/archi-agent). Branch build, not a new release.

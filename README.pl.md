@@ -8,11 +8,13 @@ Archi Agent generuje w VS Code diagramy PlantUML **Sequence** i **Component** na
 
 Opublikowany prerelease to [v0.3.0-alpha.4](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.4), wydany 2026-10-03 z `31a6609cd0e8b083dbc09f3007a761e93a174b18`. Jego [VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.vsix) i [plik sumy kontrolnej](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.sha256) obejmują OCR UX2. SHA-256 publicznego VSIX to `4d30bb3b3b2108c8ecbba2748e7da537f5668460b717e2b3f2740060559e12b1` (119805952 bajty).
 
-Te instrukcje opisują **lokalnego kandydata UX4-FU2**, z bazy UX4-FU1 `d5fb95a4d060ef501566792d80b346e0fe1a79cb`. Obejmuje OBS1/UX3/K1–K3/ART1 oraz ekrany Configuration/Review, ekstrakcję z zamrożonego bufora aktywnego edytora i natywną przeglądarkę wiedzy. Dodatków nie ma w publicznym pobraniu UX2 powyżej. Wersja pozostaje `0.3.0-alpha.4`; identyfikuj dokładny pakiet przez dostarczony SHA-256. UX4-FU2 nie opublikowano, owner smoke jest **NOT_COMPLETED**. [Kontrakt i weryfikacja UX4](docs/configuration-workbench.md) oraz [zgłoszenia właściciela i naprawy](docs/ux4-owner-findings.md) opisują obecny ekran; [media DOC1](docs/assets/README.md) pokazują dawną nawigację.
+Instrukcje opisują **bieżący build gałęzi na bazie UX4-FU2 `6863a30`**: diagnostykę OBS1, onboarding packów UX3, pozyskiwanie/review wiedzy K1–K3, kontrolowany zapis ART1, Configuration, Knowledge Browser i jawny wybór modelu. Funkcji nie ma w starszym publicznym pobraniu UX2 powyżej. Wersja pakietu pozostaje `0.3.0-alpha.4`; identyfikuj VSIX gałęzi przez dostarczony SHA-256. Publikacja źródeł gałęzi jest osobna od wydania; to zadanie nie tworzy nowego release.
 
-## Szybki start — lokalny kandydat
+Kontrole techniczne i ograniczenia są w [stanie projektu](docs/project-state.md); wcześniejsze raporty checkpointów pozostają w historii technicznej.
 
-1. Uzyskaj wskazany lokalny VSIX i sprawdź sumę kontrolną. W VS Code użyj **Extensions → … → Install from VSIX…**. Nie potrzebujesz repozytorium, npm, osobnego Node.js ani backendu Archi Agent.
+## Zacznij tutaj
+
+1. Uzyskaj wskazany VSIX gałęzi i sprawdź sumę kontrolną. W VS Code użyj **Extensions → … → Install from VSIX…**. Nie potrzebujesz repozytorium, npm, osobnego Node.js ani backendu Archi Agent.
 2. Otwórz lokalny folder projektu. W palecie poleceń uruchom **Archi: Open**.
 3. Otwórz **Archi: Configuration → LLM Provider**. Wybierz profil, Refresh Models, wybierz dokładne ID z Available models i Apply. Odświeżanie czyta formularz bez jego zapisu. Przygotuj lokalnie LM Studio lub Ollamę albo wybierz Anthropic, OpenAI lub OpenRouter i użyj **Set / Replace Key**. Klucze trafiają do VS Code SecretStorage. Model musi obsługiwać strukturalny JSON.
 4. Otwórz **Knowledge Management**. **Choose Existing Knowledge Pack** wybiera folder z pięcioma plikami Markdown packa; **Create Knowledge Pack** tworzy mały pack z jednego rzeczywistego systemu. Walidacja poprzedza aktywację. Browse Knowledge otwiera to samo natywne drzewo Explorera co **Archi: Knowledge Browser**. **Build Knowledge Pack from Active File** przechwytuje bufor MD/TXT, także niezapisane zmiany; dokumenty binarne korzystają z lokalnej konwersji pliku.
@@ -21,18 +23,22 @@ Te instrukcje opisują **lokalnego kandydata UX4-FU2**, z bazy UX4-FU1 `d5fb95a4
 
 Syntetyczny przykład: Alpha (service), Beta (database) i synchroniczna relacja DB Alpha → Beta o nazwie Writer. Opis: `Alpha stores data in Beta.` [Instrukcja użytkownika](docs/pl/user-guide.md) wyjaśnia tworzenie packa, format pięciu plików, decyzje review, błędy i bezpieczny zapis; filmy nie są potrzebne do wykonania kroków.
 
-## Instrukcje i demonstracje
+
+**Pomoc offline:** uruchom **Archi: Help** lub **Archi: Open → Help**. Język wyświetlania VS Code wybiera PL/EN; instrukcja w pakiecie ma też odnośnik do drugiego języka. Zobacz [pierwsze użycie](docs/pl/user-guide.md#zacznij-tutaj--pierwsze-użycie) i troubleshooting.
+
+## Dokumentacja użytkownika
 
 - [Instrukcja użytkownika](docs/pl/user-guide.md) · [Architektura i pięć diagramów Mermaid](docs/pl/architecture.md) · [Praca deweloperska](docs/pl/development.md)
 - [Trzy demonstracje prawdziwego UI, podglądy i pochodzenie](docs/assets/README.md)
-- Stabilne kontrakty techniczne: [format Knowledge Pack](docs/knowledge-pack-format.md), [front matter](docs/front-matter.md), [generowanie z review](docs/reviewed-diagram-pipeline.md), [ekstrakcja dokumentów](docs/document-candidates.md), [review/zapis packa](docs/knowledge-pack-review.md), [ART1](docs/diagram-artifact-save.md)
-- [Roadmapa produktu](docs/product-roadmap.md) · [Stan projektu](docs/project-state.md) · [Proces pracy wykonawców](docs/development-workflow.md)
 
 Do wybranego modelu trafia tylko ograniczony kontekst potrzebny do zadania. Konwersja i OCR działają lokalnie. Ekstrakcja wysyła ograniczony tekst wybranych dokumentów; review/edycja/zapis nie dodają żądań do modelu. Generowanie diagramu używa najwyżej jednego żądania generatora i jednego reviewera, bez retry, repair i fallbacku. Wywołania chmurowe mogą być płatne.
 
 Celem wsparcia 1.0 jest Mac ARM. Obecne dowody natywnego UI dotyczą macOS arm64; dołączone bindingi innych platform nie potwierdzają równoważnego wsparcia end-to-end. MCP, pobieranie z Enterprise Architect, VS Code Chat, generowanie C4/ArchiMate oraz aktualizacja/scalanie istniejących packów są planowane albo wyłączone z zakresu, a nie dostępne obecnie.
 
 ## Rozwój w repozytorium
+
+- Stabilne kontrakty techniczne: [format Knowledge Pack](docs/knowledge-pack-format.md), [front matter](docs/front-matter.md), [generowanie z review](docs/reviewed-diagram-pipeline.md), [ekstrakcja dokumentów](docs/document-candidates.md), [review/zapis packa](docs/knowledge-pack-review.md), [ART1](docs/diagram-artifact-save.md)
+- [Roadmapa produktu](docs/product-roadmap.md) · [Stan projektu](docs/project-state.md) · [Proces pracy wykonawców](docs/development-workflow.md)
 
 W istniejącym CLI lokalnego modelu podaj identyfikator z `npm run local:models`:
 

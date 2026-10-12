@@ -1,17 +1,17 @@
-# UX4-FU1 owner findings and knowledge navigation
+# UX4-FU1 reported findings and knowledge navigation
 
-Base: `4dd62465a909020b415ae27698a0878508da438d`. Original owner observations apply only to
+Base: `4dd62465a909020b415ae27698a0878508da438d`. Original manual-test observations apply only to
 VSIX SHA-256 `358c31ffdd985b0612136b975cd80ea39b3d55304fc2ef2c3538003d2f573647` (119869441 bytes).
 Original handoff: `build/owner-smoke/ux4-20261009T123358Z-8b7d/`. Its historical forms and evidence
-remain unchanged. Owner reports map to B-01/UX4-10 (PDF location mismatch, MD timeout),
+remain unchanged. Manual-test reports map to B-01/UX4-10 (PDF location mismatch, MD timeout),
 UX4-06/08 (provider/key switching), UX4-01/11 (competing palette entries); no unreported PASS.
-OWNER_SMOKE: NOT_COMPLETED.
+MANUAL_SMOKE: NOT_COMPLETED.
 
 ## Reproductions and repairs
 
 Synthetic source supplied by the original smoke manifest: `workspace/project-main/documents/architecture-scan.pdf`,
 59751 bytes, SHA-256 `486020a312ab3dfbf09b7bd58aacd09938657d8dc9680edec95475c73df81dc7`.
-The original isolated profile's persisted opened-file history contains this exact PDF URI (no other PDF in that history). The source picker selection itself was not persisted separately; the owner's direct confirmation is still pending.
+The original isolated profile's persisted opened-file history contains this exact PDF URI (no other PDF in that history). The source picker selection itself was not persisted separately; the selected source is not independently confirmed.
 MD: `architecture.md`, 306 bytes, SHA-256 `008f7d17108967907598c0ac5f758b20271369d06628ba2b9a5a7e16fa4254c2`.
 Local baseline Ollama/gemma3:27b: MD 88.06s, PDF 54.89s; both rejected at evidence validation.
 The MD timeout itself did not recur in that run. With the revised prompt, MD succeeded in 77.171s (generation 77.157s); PDF conversion/OCR took 0.706s and generation 82.926s. All PDF evidence locations passed, but a row with trailing whitespace was still rejected as `candidate-semantic-conflict`. Thus PDF extraction with this live model is not claimed as an end-to-end PASS. Raw synthetic request/response and frozen OCR text
@@ -73,6 +73,6 @@ cases, focused buffer/OCR/provider/tree checks, all root/extension tests/typeche
 audits, demo, package/verify, byte parity, outside-repo runtime and real Extension Host. Build artifacts
 are sequential and uniquely retained under `build/ux4-fu1/`. Independent GPT-6.1 Sol/high read-only
 review and no required FAIL/NOT_RUN or HIGH/MEDIUM are required before the authorized local checkpoint.
-Owner smoke remains a separate NOT_COMPLETED handoff on the final exact SHA. No release actions.
+Manual smoke remains a separate NOT_COMPLETED handoff on the final exact SHA. No release actions.
 
-Final full-profile evidence: `build/ux4-fu1/final-20261009T1920Z/`, 289/289 PASS after complete ART1 and UX4/K3 native UI reruns on identical VSIX. Root1688, extension532, focused449; Host99; native ART1 9, UX4/K3 28, FU1 12. Earlier failures are preserved in the original report. VSIX119875273 bytes, SHA-256 `eae14988c3f8fc6ae9d8f985aaf00c9803a454db1d4c1b825822d8e85e917f4a`. Independent read-only GPT-6.1 Sol/high final review PASS with no HIGH/MEDIUM/LOW. Documentation and final source delta/parity checks PASS; authorized local checkpoint identity is recorded in final-manifest.json. Owner handoff has 57 fresh NOT_RUN cases.
+Final full-profile evidence: `build/ux4-fu1/final-20261009T1920Z/`, 289/289 PASS after complete ART1 and UX4/K3 native UI reruns on identical VSIX. Root1688, extension532, focused449; Host99; native ART1 9, UX4/K3 28, FU1 12. Earlier failures are preserved in the original report. VSIX119875273 bytes, SHA-256 `eae14988c3f8fc6ae9d8f985aaf00c9803a454db1d4c1b825822d8e85e917f4a`. Independent read-only GPT-6.1 Sol/high final review PASS with no HIGH/MEDIUM/LOW. Documentation and final source delta/parity checks PASS; authorized local checkpoint identity is recorded in final-manifest.json. Manual-test handoff has 57 fresh NOT_RUN cases.

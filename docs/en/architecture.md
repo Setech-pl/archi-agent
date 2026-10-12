@@ -2,7 +2,7 @@
 
 **English** · [Polski](../pl/architecture.md) · [Home](../../README.md)
 
-This is the implemented architecture at the local UX4 candidate, not the published UX2 package. [Detailed stable architecture](../architecture.md) retains historical explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
+This is the implemented architecture at the current UX4-FU2 branch build, not the published UX2 package. [Detailed stable architecture](../architecture.md) describes current boundaries; a separate history preserves earlier explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
 
 Core is deterministic and has no Node/VS Code I/O; orchestration calls injected ports and Node adapters. Runtime is host-neutral; the editor imports only `src/runtime/index.ts`. Providers are interchangeable adapters for StructuredChatClient. Documents/model responses are untrusted data. Only bounded relevant diagram snapshots or bounded selected extraction text reach a model. Settings and SecretStorage stay at the VS Code boundary.
 
@@ -14,7 +14,7 @@ UX4 adds a singleton Configuration editor with Knowledge Management / LLM Provid
 flowchart TB
   subgraph Host["VS Code extension boundary"]
     direction TB
-    UI["Commands / pickers / editors"] --> Settings["Settings / SecretStorage"]
+    UI["Commands / Configuration-Review webviews / Knowledge Browser / offline Help"] --> Settings["Settings / SecretStorage"]
   end
   subgraph Runtime["Host-neutral runtime"]
     direction TB
@@ -43,22 +43,21 @@ flowchart TB
 ## B. Documents and frozen input
 
 ```mermaid
-sequenceDiagram
-  participant UI as Extension UI
-  participant K2 as Runtime
-  participant FS as Filesystem
-  participant CV as Converter / OCR
-  UI->>K2: Explicit document paths + OCR policy
-  K2->>FS: Bounded descriptor read, capture bytes
-  FS-->>K2: Exact bytes, private temporary copy
-  K2->>K2: SHA-256 original bytes
-  opt PDF / DOCX / XLSX
-  K2->>CV: Convert private copy, propagate cancellation
-  CV-->>K2: Text + page coverage + limitations, worker closed
-  end
-  K2->>K2: UTF-8 / BOM / LF / NFC, text digest, bundle bounds
-  K2->>K2: Sort sources, freeze bundle and digest
-  Note over UI,K2: Input failure or Cancel: zero generation requests
+flowchart LR
+  Source["Local documents / active MD-TXT buffer"] --> Capture["Bounded bytes or buffer capture / hashes"]
+  Capture --> Convert["Conversion / offline OCR / normalized text"]
+  Convert --> Extract["ONE extraction request / untrusted candidates"]
+  Extract --> Evidence["Deterministic schema / evidence / references"]
+  Evidence --> Review["User decisions / edits / validated preview"]
+  Review --> Pack["NEW five-file Knowledge Pack / provenance"]
+  Pack --> Snapshot["Loader / K1 snapshot / deterministic grounding"]
+  Flow["Flow description / explicit decisions"] --> Snapshot
+  Snapshot --> Plan["ONE generator request / type-specific plan"]
+  Plan --> Local["Validation / deterministic rendering / subset checks"]
+  Local --> Semantic["ONE semantic review request / validated verdict"]
+  Semantic --> Result["Original diagram + linked report / frozen ART1 result"]
+  Result --> Save["Explicit confirmation / exclusive save / conditional cleanup"]
+  Pack --> Browser["Read-only Knowledge Browser"]
 ```
 
 ## C. Extraction, review and new-pack save
@@ -177,3 +176,17 @@ The ART1 menu/palette registry retains results while at least one linked preview
 | Provider transports / transporty | [local](../../src/node/llm/openai-compatible-local-chat-client.ts), [remote OpenAI-compatible](../../src/node/llm/openai-compatible-remote-chat-client.ts), [Anthropic](../../src/node/llm/anthropic-remote-chat-client.ts) |
 
 Sequence: [reviewed-sequence.ts](../../src/core/pipeline/reviewed-sequence.ts), [sequence-diagram-plan.ts](../../src/core/pipeline/sequence-diagram-plan.ts). Component: [generate-component-diagram.ts](../../src/core/pipeline/generate-component-diagram.ts), [component-diagram-plan.ts](../../src/core/pipeline/component-diagram-plan.ts).
+
+## Configuration, limits and failures
+
+Configuration keeps the visible draft separate from applied User settings. Refresh Models uses the draft profile/endpoint/timeout, validates the bounded response and never persists a model. Available models updates Selected model; Apply writes profile and model binding sequentially. Discard restores applied settings and invalidates the draft catalog. External changes make a stale Apply fail; a partial settings failure re-reads actual values. Check Provider Configuration uses applied settings. Profile/model/binding are machine scoped; pack selection is resource scoped. LM Studio endpoint/timeout can have effective workspace overrides, subject to Workspace Trust. Local URLs require literal loopback; cloud adapters use fixed HTTPS allowlists.
+
+Keys are provider-specific VS Code SecretStorage entries. Native masked inputs handle entry; webviews receive only presence, never the secret. Help uses VS Code's display language and bundled Markdown; it makes no provider request and does not introduce an application language switch. Browser reads only the active pack through the production loader; record navigation uses pack line locations and frozen document provenance, with digest checks before opening live editor evidence.
+
+Standalone conversion accepts one file up to 50 MiB and 8 MiB Markdown; non-OCR work has a 120-second deadline, OCR 300 seconds and at most 20 OCR pages. Builder accepts eight sources, 10 MiB each/20 MiB total, 64 KiB text per source/160 KiB serialized bundle, 256 KiB prepared request and 128 candidates. Builder's total work deadline is 360 seconds; extraction is capped at 120 seconds or the shorter provider timeout. AbortSignals propagate to requests/workers/writes; child closure and conditional cleanup may finish after the work deadline. Progress reports reading, conversion/OCR, provider selection, generation and evidence validation. Failures return bounded stage/code outcomes; no partial conversion/candidates or automatic retry/repair/fallback. Full limits: [document contract](../document-candidates.md).
+
+## Self-contained build and package
+
+`npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then appends pinned offline OCR resources with their license/hash manifest. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
+
+`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](../project-state-history.md); current checks and the auditor handoff are in [project state](../project-state.md).

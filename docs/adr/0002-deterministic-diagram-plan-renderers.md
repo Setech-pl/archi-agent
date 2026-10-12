@@ -1,12 +1,11 @@
 # ADR 0002 — DiagramPlan and deterministic diagram renderers
 
 - Status: Accepted (R2, 2026-09-22)
-- Decision owner: project owner
 - Supersedes: [ADR 0001](0001-reviewed-diagram-generation.md) as the active generation architecture
 
 ## Context
 
-D1.1 implemented the reviewed `{ plantUml }` path and passed automatic checks, but S1 owner
+D1.1 implemented the reviewed `{ plantUml }` path and passed automatic checks, but S1 manual
 smoke with Ollama `qwen3:30b` failed. Repeated real runs showed that the model did not reliably
 combine valid PlantUML syntax with the exact snapshot facts, even after the prompt supplied
 literal participant declarations and source-confirmed request/response signatures. S1 is not PASS.
@@ -49,7 +48,7 @@ The model is responsible for the semantic plan; code is responsible for notation
 and D1.1 are superseded as the active path, but remain in Git history and on the D1.1
 checkpoint branch. Their implementation is not silently rewritten by this documentation
 decision. D1.2 is the next implementation task, followed by S1; M1, D2 and the old gauntlet
-remain blocked until the new S1 passes. A change to this architecture requires a new owner
+remain blocked until the new S1 passes. A change to this architecture requires a new architecture
 decision.
 
 ## Rejected alternatives

@@ -152,6 +152,7 @@ export const ViewColumn = Object.freeze({ Active: -1, Beside: -2, One: 1, Two: 2
 export const ProgressLocation = Object.freeze({ SourceControl: 1, Window: 10, Notification: 15 });
 
 export const Uri = Object.freeze({
+  joinPath(base: DoubleUri, ...parts: string[]): DoubleUri { return Uri.file([base.fsPath, ...parts].join("/")); },
   file: (fsPath: string): DoubleUri => uriFromPath(fsPath),
   parse: (value: string): DoubleUri => uriFromPath(value, value.split(":")[0] ?? "file")
 });
@@ -410,3 +411,6 @@ Object.assign(window, {
     return panel;
   }
 });
+
+/** VS Code display language used by offline help. */
+export const env = { language: "en" };

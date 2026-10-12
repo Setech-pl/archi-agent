@@ -8,11 +8,13 @@ Archi Agent generates grounded **Sequence** and **Component** PlantUML diagrams 
 
 The published prerelease is [v0.3.0-alpha.4](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.4), released on 2026-10-03 from `31a6609cd0e8b083dbc09f3007a761e93a174b18`. Its [VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.vsix) and [checksum](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.sha256) contain UX2 OCR. The published VSIX SHA-256 is `4d30bb3b3b2108c8ecbba2748e7da537f5668460b717e2b3f2740060559e12b1` (119805952 bytes).
 
-These guides describe the **local UX4-FU2 candidate**, based on UX4-FU1 `d5fb95a4d060ef501566792d80b346e0fe1a79cb`. It includes OBS1/UX3/K1–K3/ART1 and the Configuration/Review workbench, extraction from a frozen active editor buffer and a native Knowledge Browser. These additions are not in the public UX2 download above. The version stays `0.3.0-alpha.4`; identify the exact package by its supplied SHA-256. UX4-FU2 is unpublished and owner smoke is **NOT_COMPLETED**. [UX4 behavior and verification](docs/configuration-workbench.md) and [owner findings and follow-up](docs/ux4-owner-findings.md) describe the current screen; [DOC1 media](docs/assets/README.md) show historical navigation.
+These guides describe the **current branch build based on UX4-FU2 `6863a30`**: OBS1 provider diagnostics, UX3 pack onboarding, K1–K3 knowledge acquisition/review, ART1 controlled saving, Configuration, Knowledge Browser and explicit model selection. These features are absent from the older public UX2 download above. The package version remains `0.3.0-alpha.4`; identify a branch VSIX by its supplied SHA-256. Source publication on this branch is separate from a release; no new release is created here.
 
-## Quick start — local candidate
+Technical checks and known limits are recorded in [project state](docs/project-state.md); earlier checkpoint reports remain in the technical history.
 
-1. Obtain the identified local VSIX and check its checksum. In VS Code use **Extensions → … → Install from VSIX…**. No repository, npm, separate Node.js or Archi Agent backend is needed.
+## Start here
+
+1. Obtain the identified branch VSIX and check its checksum. In VS Code use **Extensions → … → Install from VSIX…**. No repository, npm, separate Node.js or Archi Agent backend is needed.
 2. Open a local project folder. Run **Archi: Open** from the Command Palette.
 3. Open **Archi: Configuration → LLM Provider**. Choose a profile, Refresh Models, choose an exact ID from Available models and Apply. Refresh reads the visible form without saving it. Prepare LM Studio or Ollama locally, or use Anthropic, OpenAI or OpenRouter with **Set / Replace Key**. Keys are held in VS Code SecretStorage. Use a model supporting structured JSON output.
 4. Open **Knowledge Management**. **Choose Existing Knowledge Pack** selects the folder containing the five pack Markdown files; **Create Knowledge Pack** creates a small pack from one real system. The chosen pack is validated before activation. Browse Knowledge opens the same native Explorer tree as **Archi: Knowledge Browser**. **Build Knowledge Pack from Active File** captures MD/TXT buffers, including unsaved changes; binary documents use the local file conversion pipeline.
@@ -21,18 +23,22 @@ These guides describe the **local UX4-FU2 candidate**, based on UX4-FU1 `d5fb95a
 
 For a synthetic starting point use Alpha (service), Beta (database), and a synchronous DB relationship Alpha → Beta named Writer. Describe `Alpha stores data in Beta.` The [user guide](docs/en/user-guide.md) explains pack creation, the five-file format, review decisions, errors and safe saving without relying on videos.
 
-## Guides and demonstrations
+
+**Offline help:** run **Archi: Help** or **Archi: Open → Help**. VS Code display language selects PL/EN; the bundled instruction also links to the other language. See the [first-use walkthrough](docs/en/user-guide.md#start-here--first-use) and troubleshooting.
+
+## User documentation
 
 - [User guide](docs/en/user-guide.md) · [Architecture and five Mermaid diagrams](docs/en/architecture.md) · [Development](docs/en/development.md)
 - [Three real UI demonstrations, previews and provenance](docs/assets/README.md)
-- Stable technical references: [Knowledge Pack format](docs/knowledge-pack-format.md), [front matter](docs/front-matter.md), [reviewed generation](docs/reviewed-diagram-pipeline.md), [document extraction](docs/document-candidates.md), [pack review/save](docs/knowledge-pack-review.md), [ART1](docs/diagram-artifact-save.md)
-- [Product roadmap](docs/product-roadmap.md) · [Project state](docs/project-state.md) · [Contributor workflow](docs/development-workflow.md)
 
 Only bounded relevant context reaches the selected model. Document conversion and OCR are local. Extraction sends bounded selected document text; review/edit/save adds no model requests. Diagram generation uses at most one generator and one reviewer request, without retry, repair or fallback. Cloud requests can incur provider charges.
 
 The 1.0 support target is Mac ARM. Current native UI evidence is macOS arm64; bundled binaries for other platforms do not establish equivalent end-to-end support. MCP, Enterprise Architect acquisition, VS Code Chat, C4/ArchiMate diagram generation and existing-pack merge/update are planned or excluded, not current features.
 
 ## Repository development
+
+- Stable technical references: [Knowledge Pack format](docs/knowledge-pack-format.md), [front matter](docs/front-matter.md), [reviewed generation](docs/reviewed-diagram-pipeline.md), [document extraction](docs/document-candidates.md), [pack review/save](docs/knowledge-pack-review.md), [ART1](docs/diagram-artifact-save.md)
+- [Product roadmap](docs/product-roadmap.md) · [Project state](docs/project-state.md) · [Contributor workflow](docs/development-workflow.md)
 
 For the existing local-model CLI, use a model identifier reported by `npm run local:models`:
 
