@@ -7,7 +7,7 @@ the plan and renders PlantUML, then sends the plan, evidence, snapshot and rende
 independent reviewer using the same selected profile and model. A valid run uses two calls; local
 plan rejection uses one; blocked input uses zero. There is no retry, repair, fallback or streaming.
 `generateSequenceDiagram` and the CLI retain their one-call compatibility path and report v1.
-S1 owner smoke must be repeated on D1.2; earlier D1.1 smoke failed. See
+S1 manual smoke must be repeated on D1.2; earlier D1.1 smoke failed. See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md).
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
@@ -108,7 +108,7 @@ answer, not from the model.
 Each generation makes exactly one model request. There is no retry, no repair loop, no correction
 of the answer and no fallback to the scripted generator. When the answer is rejected, the run stops
 with the failing stage and stable issue codes; the raw answer is neither shown nor stored. Failures
-collected during owner acceptance testing (Phase 3G-B) will decide whether one bounded repair
+collected during manual acceptance testing (Phase 3G-B) will decide whether one bounded repair
 attempt is worth adding.
 
 ## Prerequisites

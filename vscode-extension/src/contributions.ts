@@ -4,12 +4,22 @@
  */
 
 export const commandIds = Object.freeze({
+  knowledgeBrowser: "archiAgent.knowledgeBrowser",
+  refreshKnowledge: "archiAgent.refreshKnowledge",
+  openKnowledgeRecord: "archiAgent.openKnowledgeRecord",
+  buildKnowledgePackFromActiveFile: "archiAgent.buildKnowledgePackFromActiveFile",
+  saveDiagramAndReport: "archiAgent.saveDiagramAndReport",
+  buildKnowledgePack: "archiAgent.buildKnowledgePack",
   open: "archiAgent.open",
+  configuration: "archiAgent.configuration",
+  help: "archiAgent.help",
   convertToMarkdown: "archiAgent.convertToMarkdown",
+  configureKnowledgePack: "archiAgent.configureKnowledgePack",
   generateDiagram: "archiAgent.generateDiagram",
   generateSequenceDiagram: "archiAgent.generateSequenceDiagram",
   selectProviderProfile: "archiAgent.selectProviderProfile",
   selectModel: "archiAgent.selectModel",
+  checkProviderConfiguration: "archiAgent.checkProviderConfiguration",
   setApiKey: "archiAgent.setApiKey",
   deleteApiKey: "archiAgent.deleteApiKey"
 });

@@ -1,7 +1,10 @@
+import { captureDiagramArtifact } from "./diagram-artifact.js";
+import { extractDocumentCandidates, type ExtractDocumentCandidatesRequest, type ExtractDocumentCandidatesOutcome, type DocumentExtractionOptions } from "./extract-document-candidates.js";
 import path from "node:path";
 import { parseFlowDocument, type FlowDocument } from "../core/grounding/grounded-context-builder.js";
 import type { AmbiguityReport } from "../core/grounding/grounded-context.js";
 import { loadKnowledgePack, type KnowledgePackLoadIssue } from "../core/knowledge-pack/knowledge-pack-loader.js";
+import { knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
 import { validateRelativePath } from "../core/knowledge-pack/knowledge-pack-source.js";
 import { KnowledgePackError, safeMessageFor } from "../core/knowledge-pack/source-errors.js";
 import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits } from "../core/knowledge-pack/source-limits.js";
@@ -85,6 +88,8 @@ export const runtimeLimits = Object.freeze({
 export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpoint) => SequenceModelGenerator;
 
 export interface ArchiAgentRuntimeOptions {
+  readonly extensionVersion?: string;
+  readonly documentExtraction?: DocumentExtractionOptions;
   readonly generatorFactory?: GeneratorFactory;
   /** Structured-chat seam for the D1 local path; remote adapters use remoteTransport. */
   readonly diagramClientFactory?: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
@@ -357,7 +362,7 @@ async function resolveKnowledgePack(config: KnowledgePackSourceConfig, signal: C
 
   return Object.freeze({
     ok: true,
-    knowledgePack: { pack: loaded.pack, indexes: loaded.indexes },
+    knowledgePack: { pack: loaded.pack, indexes: loaded.indexes, knowledge: knowledgeSnapshotFromPack(loaded.pack) },
     directoryName: logicalName(directoryName, defaultPackDirectoryName)
   });
 }
@@ -536,7 +541,17 @@ function mapOutcome(outcome: PipelineOutcome): GenerateSequenceDiagramResult {
   }
 }
 
+/** Freeze caller inputs before the first await, without mutating the host's settings. */
+function freezeGenerationRequest<T extends GenerateSequenceDiagramRequest>(request: T): T {
+  return { ...request, flow: { ...request.flow }, knowledgePack: { ...request.knowledgePack },
+    generator: { ...request.generator, ...("credential" in request.generator && request.generator.credential ? { credential: { ...request.generator.credential } } : {}) },
+    ...(request.selections ? { selections: { ...request.selections } } : {}),
+    ...(request.confirmedNewParticipants ? { confirmedNewParticipants: [...request.confirmedNewParticipants] } : {}) };
+}
+
 class NodeArchiAgentRuntime implements ArchiAgentRuntime {
+  readonly #extensionVersion: string | null;
+  readonly #documentExtraction: DocumentExtractionOptions;
   readonly #generatorFactory: GeneratorFactory;
   readonly #providerRegistry: ProviderRegistry;
   readonly #defaultBaseUrlForProfile: (profileId: string) => string | undefined;
@@ -544,6 +559,8 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #diagramClientFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
 
   public constructor(options: ArchiAgentRuntimeOptions) {
+    this.#extensionVersion = options.extensionVersion ?? null;
+    this.#documentExtraction = options.documentExtraction ?? {};
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
     this.#providerRegistry = options.providerRegistry ?? new ProviderRegistry([...localProviderProfiles, ...remoteProviderProfiles]);
     this.#defaultBaseUrlForProfile = options.defaultBaseUrlForProfile ?? defaultBaseUrlForLocalProfile;
@@ -551,7 +568,16 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     this.#diagramClientFactory = options.diagramClientFactory ?? ((config, endpoint) => new OpenAiCompatibleLocalChatClient({ endpoint, modelId: config.modelId, ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }) }));
   }
 
+  public async extractDocumentCandidates(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome> {
+    return extractDocumentCandidates(request, async (signal) => {
+      const generator = typeof request.generator === "function" ? await request.generator(signal) : request.generator;
+      if (!generator || signal.aborted) return { ok: false, issues: [{ code: "cancelled" }] };
+      return resolveDiagramClient(generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
+    }, this.#documentExtraction);
+  }
+
   public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {
+    request = freezeGenerationRequest(request);
     const diagnostics = new DiagnosticRun(request.diagnosticSink);
     diagnostics.emit("command.started", { diagramType: request.diagramType, flowSourceKind: request.flow.kind });
     const execute = async (): Promise<GenerateDiagramOutcome> => {
@@ -564,7 +590,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
       if (!resolved.ok) return failure("generator-configuration", resolved.issues);
       diagnostics.emit("provider.resolved", { profileId: "profileId" in request.generator ? request.generator.profileId : "local-lm-studio",
-        modelId: request.generator.modelId, generatorType: resolved.client.clientType });
+        generatorType: resolved.client.clientType });
       const outcome = await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
         client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
         diagnostics,
@@ -573,7 +599,9 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
         ...(request.selections === undefined ? {} : { selections: request.selections }),
         ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
         ...(request.signal === undefined ? {} : { signal: request.signal }) });
-      return outcome.status === "unverified" ? outcome : mapOutcome(outcome);
+      const result = outcome.status === "unverified" ? outcome : mapOutcome(outcome);
+      return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
+        pack.knowledgePack.knowledge!, request.diagramType as "sequence" | "component", diagnostics.runId, this.#extensionVersion) }) : result;
     };
     try {
       const result = await execute();
@@ -588,6 +616,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   }
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {
+    request = freezeGenerationRequest(request);
     const flow = await resolveFlow(request.flow);
 
     if (!flow.ok) {
@@ -623,7 +652,9 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       ...(request.signal === undefined ? {} : { signal: request.signal })
     });
 
-    return mapOutcome(outcome);
+    const result = mapOutcome(outcome);
+    return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
+      pack.knowledgePack.knowledge!, "sequence", null, this.#extensionVersion) }) : result;
   }
 
   public listProviderProfiles() {

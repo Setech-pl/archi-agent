@@ -7,7 +7,15 @@
  */
 
 export { createArchiAgentRuntime, deriveDiagramName, runtimeLimits } from "./archi-agent-runtime.js";
+export { createKnowledgeSnapshot, knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
+export type { KnowledgeSnapshot, KnowledgeSource, KnowledgeContribution, KnowledgeRecord, KnowledgeFact,
+  KnowledgeProvenance, KnowledgeGap, KnowledgeConflict } from "../core/knowledge-pack/knowledge-snapshot.js";
 export { convertDocument } from "./convert-document.js";
+export { createStarterKnowledgePack, cleanupStarterKnowledgePack, validateKnowledgePackDirectory, inspectKnowledgePackDirectory, defaultKnowledgePackPath } from "./knowledge-pack-onboarding.js";
+export { StarterPackCreateError } from "./knowledge-pack-onboarding.js";
+export { LocalPathError } from "../node/local-file-path.js";
+export type { StarterPackCreateCode } from "./knowledge-pack-onboarding.js";
+export type { FirstSystem, StarterPackReceipt } from "./knowledge-pack-onboarding.js";
 export { conversionLimits } from "../core/document-conversion/contract.js";
 export type { ConvertDocumentOptions, PdfOcrMode } from "./convert-document.js";
 export type { ConvertFormat, ConvertErrorCode, ConvertOutcome } from "../core/document-conversion/contract.js";
@@ -45,6 +53,8 @@ export type {
   RuntimeIssueSeverity
 } from "./runtime-types.js";
 export type { ProviderCapabilities, ProviderProfile } from "../core/llm/provider-profile.js";
+export { classifyProviderDiagnostic, providerDiagnosticCode } from "../core/llm/provider-diagnostic.js";
+export type { ProviderDiagnostic, DiagnosticExecution, DiagnosticFinding, DiagnosticOperation } from "../core/llm/provider-diagnostic.js";
 export { apiKeyLimits, validateApiKey } from "../core/llm/api-key.js";
 export type { ApiKeyValidationCode, ApiKeyValidationResult } from "../core/llm/api-key.js";
 export { ProviderRegistry, ProviderRegistryError, providerRegistryErrorCodes } from "../core/llm/provider-registry.js";
@@ -66,3 +76,15 @@ export {
 } from "../node/llm/remote-provider-profiles.js";
 export { isSafeModelId } from "../core/pipeline/sequence-model-generator.js";
 export { diagramTypes, isDiagramType, isSupportedDiagramType } from "../core/model/diagram-type.js";
+
+export { documentCandidateLimits, documentCandidateJsonSchema, normalizeDocumentText } from "../core/knowledge-pack/builder/document-candidates.js";
+export type { DocumentSource, DocumentSourceBundle, DocumentCandidateResult, VerifiedDocumentCandidate } from "../core/knowledge-pack/builder/document-candidates.js";
+export type { DocumentInput, ExtractDocumentCandidatesRequest, ExtractDocumentCandidatesOutcome, DocumentExtractionOptions } from "./extract-document-candidates.js";
+export { KnowledgePackReviewSession, PackReviewError, validateDocumentSelection } from "./knowledge-pack-review.js";
+export type { PackReviewState, PackPreview } from "./knowledge-pack-review.js";
+export type { CandidateDecision, KnowledgePackDraft, KnowledgePackCandidate } from "../core/knowledge-pack/builder/knowledge-pack-candidate.js";
+
+export { planDiagramBundle, saveDiagramBundle, isCompletedDiagramArtifact, serializeArtifactConfiguration } from "./diagram-artifact.js";
+export type { DiagramArtifact, DiagramBundlePlan } from "./diagram-artifact.js";
+
+export type { KnowledgePack, SourceLocation } from "../core/knowledge-pack/knowledge-pack.schema.js";

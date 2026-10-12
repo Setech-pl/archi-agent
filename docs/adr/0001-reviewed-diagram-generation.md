@@ -2,16 +2,15 @@
 
 - Status: Accepted
 - Date: 2026-09-21
-- Decision owner: project owner
 
 ## Context and problem
 
 The experimental D1 `generateDiagram` path asks one model to produce final PlantUML and a
 second representation, `messages`. The ledger repeats order, physical `lineNumber`, source,
 target, arrow semantics, `async`, `isResponse`, interface type and interface name. These two
-representations can disagree even when produced by the same model. Owner smoke with Ollama
+representations can disagree even when produced by the same model. Manual smoke with Ollama
 `qwen3:30b` exposed a missing final LF, an invalid participant declaration and later
-`sequence-arrow-ledger-mismatch`. D1 passed automatic verification but its owner smoke did not
+`sequence-arrow-ledger-mismatch`. D1 passed automatic verification but its manual smoke did not
 pass. More ledger diagnostics do not remove the duplicated contract.
 
 ## Decision
@@ -44,7 +43,7 @@ is not an automatic fallback.
 - The current D1 commit remains in Git history. The experimental implementation and two failed
   smoke findings are preserved on `checkpoint/d1-ledger-pipeline`.
 - The new active work starts from `4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, not from the
-  checkpoint. Owner smoke for D1.1 is a separate S1 gate and has not passed.
+  checkpoint. Manual smoke for D1.1 is a separate S1 gate and has not passed.
 
 ## MCP boundary
 

@@ -493,6 +493,8 @@ describe("D1.2 deterministic reviewed sequence", () => {
     expect(new Set(entries.map((entry) => entry.runId)).size).toBe(1);
     expect(lines.every((line) => line.length <= diagnosticLineLimit && !/[\u0000-\u001f\u007f-\u009f]/.test(line))).toBe(true);
     const all = lines.join("\n");
+    expect(entries.find((entry) => entry.event === "provider.resolved")).not.toHaveProperty("modelId");
+    expect(all).not.toContain("test-model");
     expect(all).not.toContain("stepTypes");
     for (const forbidden of [packPath, flow.text, "Registers frames", golden, "Authorization", "synthetic-secret", "sentinel-raw-response"])
       expect(all).not.toContain(forbidden);

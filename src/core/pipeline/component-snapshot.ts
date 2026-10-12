@@ -4,11 +4,13 @@ import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js
 import { allocateAliases } from "../render/alias-allocator.js";
 import { stableCompare } from "../util/ordering.js";
 import { canonicalSerialize, stableDigest, type CanonicalValue } from "../util/stable-digest.js";
+import { selectKnowledgeContext, type KnowledgeSnapshot, type SelectedKnowledgeContext } from "../knowledge-pack/knowledge-snapshot.js";
 
 export const componentSnapshotLimits = Object.freeze({ maxElements: 64, maxRelationships: 256, maxRules: 256, maxFlowLines: 256, maxJsonChars: 65_536 });
 export interface ComponentSnapshot {
   readonly domain: "archi-agent-component-snapshot/1";
   readonly digest: string;
+  readonly knowledge?: SelectedKnowledgeContext;
   readonly flowFile: string;
   readonly taskDescription: string;
   readonly metadata: GroundedContext["metadata"];
@@ -27,7 +29,7 @@ function freezeTree<T>(value: T): T {
 }
 
 /** Build only the locally resolved component slice. No Sequence operation catalog or digest participates. */
-export function buildComponentSnapshot(context: GroundedContext, flow: FlowDocument): ComponentSnapshot {
+export function buildComponentSnapshot(context: GroundedContext, flow: FlowDocument, knowledge?: KnowledgeSnapshot): ComponentSnapshot {
   const flowFile = flow.file ?? "flow";
   if (!validateRelativePath(flowFile).ok) throw new Error("component-snapshot-invalid-path");
   const known = [...context.actors, ...context.systems];
@@ -75,7 +77,8 @@ export function buildComponentSnapshot(context: GroundedContext, flow: FlowDocum
     if (!validateRelativePath(source.source.file).ok || !Number.isSafeInteger(source.source.line) || source.source.line < 1)
       throw new Error("component-snapshot-invalid-path");
   }
-  const payload = { domain: "archi-agent-component-snapshot/1" as const, flowFile, taskDescription: flow.body, metadata: { ...context.metadata },
+  const payload = { ...(knowledge === undefined ? {} : { knowledge: selectKnowledgeContext(knowledge, known.map((entry) => entry.id)) }),
+    domain: "archi-agent-component-snapshot/1" as const, flowFile, taskDescription: flow.body, metadata: { ...context.metadata },
     elements, relationships, rules, flowEvidence };
   if (JSON.stringify(payload).length > componentSnapshotLimits.maxJsonChars) throw new Error("component-snapshot-over-limit");
   return freezeTree({ ...payload, digest: stableDigest(payload as unknown as CanonicalValue) });

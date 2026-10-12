@@ -1,386 +1,191 @@
-# ArchGround architecture
+# Archi Agent architecture
 
-ArchGround turns a plain-language flow description into a sequence diagram that is grounded
-in an Architecture Knowledge Pack. This document distinguishes the historical code on base commit
-`4dbc65a2a698ea1ed7e3d00160c4a802c9a8083b`, the historical D1.1 sequence path, the implemented D1.2 path,
-and later extensions. All examples use the synthetic Space Mission sample. The experimental D1
-ledger diagnosis is preserved on `checkpoint/d1-ledger-pipeline`; its owner smoke did not pass.
+Current implemented architecture after UX4-FU2 (`6863a30`), with offline PL/EN Help added by this documentation checkpoint. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [Historical architecture and superseded pipelines](architecture-history.md) preserve prior decisions; [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
 
-## Layers and the core boundary
+`src/core` defines deterministic contracts, parsing, grounding, plan/evidence/verdict validators, renderers and reports; it has no filesystem or VS Code I/O. Pipeline orchestration calls injected provider ports. `src/node` implements bounded filesystem, exclusive writers and provider transports. `src/runtime` composes those adapters into host-neutral operations exported by `src/runtime/index.ts`. `vscode-extension/src` adapts commands, settings, SecretStorage, progress, editors and webviews; it reaches product code through that runtime entrypoint. Knowledge Browser is a read-only K1 loader projection; Help uses bundled Markdown and no model.
 
-| Layer | Location | Responsibility |
-| --- | --- | --- |
-| Core | `src/core` | Parsing, validation, indexing, grounding, digests, generation pipeline, rendering, report, output planning and neutral document-conversion contracts. Pure TypeScript. |
-| Node adapters | `src/node` | Bounded file reading, safe path resolution, the Node Knowledge Pack source, the Node artifact file system and isolated local document conversion. |
-| Demo | `src/demo` | The offline Space Mission demo and its deterministic scripted generator. |
-| Application runtime | `src/runtime` | Host-neutral `ArchiAgentRuntime` for diagram generation and a separate `convertDocument` function for local conversion. Imports no editor API. |
-| Editor layer | `vscode-extension/src` | The VS Code extension: settings, prompts, progress and editors. Reaches the repository only through `src/runtime/index.ts` and is bundled into a self-contained VSIX (see `docs/vscode-extension.md`). |
-| Later adapters | later | Further model providers, architecture sources and official renderer integrations. |
+Only bounded selected document text reaches extraction; only the relevant frozen architecture snapshot reaches diagram generation/review. Full architecture repositories and raw XML are not sent. Model outputs and imported sources are untrusted. Local schema/semantic checks remain fail-closed. Generator and semantic reviewer share the configured model but use separate requests and the same snapshot. No retry, repair, fallback or additional call is introduced.
 
-The core imports neither `node:*` modules nor the editor API. It performs no network or
-file access, runs no shell commands, reads no environment variables, evaluates no dynamic code
-and calls no language model. Everything that touches the outside world is an adapter behind a
-small port: `KnowledgePackSource` supplies pack files, `SequenceModelGenerator` produces an
-untrusted model and `ArtifactFileSystem` writes artifacts. An automated test checks the import
-boundary of every core module.
 
-## Knowledge Pack loading and indexing
+## A. Components and boundaries
 
-A pack is five strict Markdown tables: `systems.md`, `actors.md`, `relationships.md`,
-`aliases.md` and `rules.md` (see `docs/knowledge-pack-format.md`). The loader reads each
-file once, validates it, checks references across files and returns either a complete,
-frozen pack with read-only indexes or a sorted list of safe issues and no pack at all.
-
-The indexes answer lookups by identifier, canonical name, normalized name, alias,
-directed relationship and directed rule. They always return every candidate and never
-choose between them.
-
-## Flow documents
-
-A flow document starts with a restricted front matter block (`diagram_name`, `flow_name`,
-`author`, `language`) followed by plain text. `parseFlowDocument` parses the front matter
-and keeps the body and the line number where it starts, so every mention can be reported
-by document line and column.
-
-## Deterministic grounding
-
-Grounding recognises references to known actors and systems in the flow body. The terms
-are the identifiers, canonical names and declared aliases of the pack.
-
-Resolution precedence, highest first:
-
-| Rank | Match kind | Example text | Result |
-| --- | --- | --- | --- |
-| 1 | exact identifier | `mission-control` | `mission-control` |
-| 2 | exact canonical name | `Mission Control` | `mission-control` |
-| 3 | exact declared alias | `MCC` | `mission-control` |
-| 4 | normalized identifier | `Mission-Control` | `mission-control` |
-| 5 | normalized canonical name | `MISSION CONTROL` | `mission-control` |
-| 6 | normalized declared alias | `mcc` | `mission-control` |
-| - | several targets in the deciding rank | `control` | ambiguous |
-| - | no term matches | `Ground Station` | ignored |
-
-The first rank with any hit decides. One target resolves the mention; several targets
-make it ambiguous. Normalization is limited to Unicode NFKC, case folding, trimming and
-collapsing whitespace. There is no fuzzy, edit-distance, partial-word, semantic or
-model-assisted matching.
-
-Matching is boundary-aware: a term matches only as a whole word sequence, so
-`Mission Controls` and `MissionControl` do not refer to Mission Control. When mentions
-overlap, the longest span wins. A shorter alias inside an accepted longer name is not a
-separate mention: `Mission Control` never also counts as the ambiguous alias `control`.
-Repeated mentions of one element produce one participant with all its positions.
-
-## Ambiguity handling
-
-Every ambiguous mention appears in the ambiguity report with its normalized text, its
-positions in the flow, and each candidate's identifier, kind, canonical name and pack
-source line. Candidates are sorted by identifier, entries by mention.
-
-The caller resolves an ambiguity only by an explicit selection such as
-`{ "control": "flight-controller" }`. A selection is valid only if the identifier is one of
-the reported candidates. Without a valid selection the grounding result is blocked; the
-builder never picks the first or a "best" candidate.
-
-## Confirmed new participants
-
-A participant that is not in the pack must be written as `[NEW: Ground Station]` and
-confirmed explicitly by the caller. The rules:
-
-- only the exact `[NEW: Name]` form is recognised; other spellings are malformed;
-- names are at most 64 characters, start with a letter or digit, and contain only
-  letters, digits, spaces and `. _ ' ( ) -`, so markup and directives cannot appear;
-- a name that matches a known identifier, canonical name or alias is rejected;
-- an unconfirmed marker blocks grounding;
-- a confirmed participant is marked as new and receives no pack identifier.
-
-Unknown text and unresolved ambiguity never turn into new participants.
-
-## Minimal grounded context
-
-A successful result contains only:
-
-- the actors and systems the flow refers to, with canonical names from the pack;
-- confirmed new participants;
-- relationships whose two endpoints are both selected;
-- rules whose two endpoints are both selected;
-- pack source references (file name and line) and warnings.
-
-Unrelated elements, aliases, relationships and rules, whole pack tables, raw files,
-timestamps and machine paths are excluded. The context is validated against a strict
-schema and against the pack before it is returned.
-
-For the sample flow `samples/space-mission/flows/telemetry-command-flow.md` the context
-holds the flight controller, six systems, nine relationships and both rules, while the
-mission commander and its relationship are left out.
-
-## Stable digest
-
-Each grounded context has a SHA-256 digest of a canonical serialization of its semantic
-content: metadata (without the author), participants, confirmed new participants,
-relationships and rules. Arrays are sorted and object keys ordered before hashing, so the
-digest does not depend on insertion order, mention positions or pack line numbers. The
-SHA-256 implementation is part of the core and is synchronous; it needs no platform crypto
-module.
-
-## Generator port
-
-`SequenceModelGenerator` is a provider-neutral, asynchronous port. A generator receives the
-parsed flow document, the successful minimal grounded context and its digest, never the whole
-pack, and returns untrusted data. Nothing it returns is used before validation. A model-backed
-generator may declare safe `generationMetadata` (model identifier, temperature, seed, attempt
-count, structured output), which the pipeline checks and the grounding report records.
-
-Model-backed generators use the lower-level, provider-neutral `StructuredChatClient` port in
-`src/core/llm`. Its request contains only system/user messages, a schema name, JSON Schema, a
-bounded maximum token count and optional cancellation; its result contains the untrusted JSON
-object and the safe response-channel identifier. The port has no endpoint, host, HTTP, editor or
-secret-storage concepts. The sequence implementation is a thin layer that builds its existing
-prompt and schema, makes one structured-chat call and returns the value to the unchanged validation
-pipeline.
-
-Provider identity is also neutral in core. `ProviderProfile` contains only an identifier, provider
-kind, display name, credential requirement and immutable capability flags; `ProviderRegistry` validates, sorts and resolves
-profiles without I/O. Concrete LM Studio and Ollama names and loopback defaults live in
-`src/node/llm/local-provider-profiles.ts`. The runtime resolves a profile and capability before
-constructing the existing local adapter; it reports `unknown-provider-profile` or
-`provider-capability-unavailable` as controlled configuration failures.
-
-The VS Code host persists the explicit profile and model as machine-scoped global settings. A third
-machine-scoped, extension-managed setting binds the selected model to the exact profile identifier;
-the host ignores a model when that binding is absent, invalid or mismatched. Only absence of a global
-profile value enables the legacy LM Studio settings. A present unknown profile fails closed before
-the runtime can construct a transport.
-
-Provider transports exist in separate Node adapters:
-
-- `openai-compatible-local` (`src/node/llm`): LM Studio and Ollama profiles share this transport;
-  the model plans the diagram. The provider-neutral
-  prompt builder (`src/core/prompt`) presents the flow and the minimal grounded candidates. The
-  `OpenAiCompatibleLocalChatClient` node adapter maps the neutral request to the local HTTP API;
-  the response format is a strict JSON Schema derived from the Zod generated-model schema, and a
-  strict parser (`src/core/llm`) accepts exactly one JSON object. One request per generation,
-  loopback only, temperature 0 and seed 42, no retry, repair or provider fallback. See
-  `docs/local-model.md`.
-- `anthropic-remote`: native HTTPS Messages API with stable structured outputs and a projected wire
-  schema; its strict parser accepts exactly one text block ending with `end_turn`.
-- `openai-remote` and `openrouter-remote`: a shared HTTPS OpenAI-compatible adapter with distinct
-  fixed hosts, paths and request mappings. OpenRouter disables provider fallback and requires
-  structured-output parameter support. Remote profiles report `temperature: null` and `seed: null`
-  because neither field is sent. See `docs/cloud-models.md`.
-- `scripted-demo` (`src/demo`): a deterministic script used as an offline regression fixture,
-  smoke-test baseline and pipeline demonstration; it is not the production generation strategy.
-
-Deterministic code covers parsing, grounding, candidate selection, limits, the structured-output
-contract, validation, rendering and output safety. Message creation, wording, relationship choice,
-interaction semantics, fragments and level of detail belong to the model. Cloud credentials remain
-in the VS Code host's `SecretStorage` and are supplied to the host-neutral runtime only for an
-explicit operation.
-
-## Historical D1 generation pipeline on the base commit
-
-`generateDiagram({ diagramType: "sequence", ... })` is the D1 path. It grounds the flow first,
-then calls `StructuredChatClient.complete()` exactly once for a strict `{ plantUml, messages }`
-answer. The model supplies final PlantUML. A shared document validator checks markers, size,
-line endings, controls, directives and remote URLs. The closed sequence validator accepts only
-grounded declarations, arrows and balanced `alt`/`else`/`opt`/`loop`/`group` blocks. It checks
-every PlantUML arrow against the ledger's required 1-based physical `lineNumber` and continuous
-`order`. Every message includes `interfaceName` as a string or `null`. It then applies participant, relationship,
-mode and rule validation. It rejects unsupported interface names rather than editing the final
-PlantUML. The report uses the existing schema with normalization marked `not-applicable`.
-`component`, `c4-context`, `c4-container` and `archimate-hld` are identifiers only in D1;
-the runtime rejects them before source reads and provider construction. There is no retry,
-repair, fallback, streaming or second model call. This D1 path passed automatic checks but is
-an experimental checkpoint: owner smoke exposed a brittle duplicated ledger contract. It is
-not the approved architecture for further development.
-
-## Implemented D1.1 reviewed sequence pipeline (historical active path)
-
-D1.1 uses one minimal, validated `ArchitectureSnapshot` from a provider-neutral
-`ArchitectureContextProvider`; the first provider wraps the existing Knowledge Pack loader.
-The `sequence` profile makes one generator request for strict `{ plantUml }` only. A local parser
-derives `DiagramFacts` and physical line numbers, then deterministic checks validate document
-safety, syntax, aliases, grounding, relationships, directions, modes, interfaces, rules and
-evidence. The snapshot also references nonempty physical flow lines as `user-stated` evidence.
-A missing Knowledge Pack relationship leaves a fact pending for semantic review; an explicit
-pack prohibition still rejects it locally. The reviewer cites flow evidence for every pending
-fact, and local code verifies the references and coverage. If these pass, a separate LLM call reviews semantics. The final accept/reject decision
-is deterministic; neither stage repairs PlantUML. A successful reviewed run uses exactly two
-model calls, deterministic rejection after generation one, and invalid context or unsupported
-type none. There is no retry, repair or fallback.
-
-OpenAI and OpenRouter project strict wire schemas at their adapters while retaining local limits.
-Report v2 links every fact to selected evidence and its logical file and line.
-
-Generator and reviewer initially use the same configured profile/model but separate contexts
-and the same snapshot/digest. The old `Generate Sequence Diagram` command remains on its
-compatibility pipeline, never as an automatic fallback. See
-[`ADR 0001`](adr/0001-reviewed-diagram-generation.md) for the historical D1.1 contract.
-
-D1.1 is automatically verified but S1 owner smoke failed. Its final-PlantUML path is
-superseded as the active target by [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md);
-the exact code remains on `checkpoint/d1-final-plantuml-reviewed`.
-
-## Implemented D1.2 — semantic plan and deterministic rendering
-
-```text
-ArchitectureSnapshot + digest
-  → LLM generates type-specific DiagramPlan
-  → local plan validation
-  → deterministic renderer for the diagram type
-  → independent semantic reviewer
-  → local decision → result and report v2
+```mermaid
+flowchart TB
+  subgraph Host["VS Code extension boundary"]
+    direction TB
+    UI["Commands / Configuration-Review webviews / Knowledge Browser / offline Help"] --> Settings["Settings / SecretStorage"]
+  end
+  subgraph Runtime["Host-neutral runtime"]
+    direction TB
+    App["archi-agent-runtime / extract-document-candidates"] --> Review["knowledge-pack-review / diagram-artifact"]
+  end
+  subgraph Core["Deterministic core — no I/O"]
+    direction TB
+    Knowledge["Pack loader / K1 snapshot / grounding / KPB-A"] --> Pipeline["Plans / validators / renderers / report"]
+  end
+  subgraph Adapters["Node and packaged local adapters"]
+    direction TB
+    Pack["NodeKnowledgePackSource"] --> Files["Local filesystem: bounded reads / exclusive writes / cleanup"]
+    Conversion["Private input copies / conversion worker"] --> OCR["PDF.js / canvas / Tesseract WASM + PL/EN"]
+    Providers["LM Studio / Ollama / Anthropic / OpenAI / OpenRouter"]
+  end
+  UI -->|src/runtime/index.ts| App
+  App --> Knowledge
+  Review --> Knowledge
+  App --> Pack
+  App --> Conversion
+  Pipeline -->|StructuredChatClient| Providers
+  App -->|StructuredChatClient| Providers
+  Review -->|ART1 / K3 / UX3| Files
 ```
 
-The generator chooses grounded operations or user-stated interactions and their order. It returns no PlantUML.
-Local validation checks grounding, evidence, modes and type-specific constraints. The renderer
-controls PlantUML syntax, aliases, element kinds, arrows, interface names and escaping.
-The reviewer receives the same snapshot and digest, resolved plan, evidence and rendered candidate;
-it returns only `accepted`, `confirmedUserStatedFactIds` and closed `{ code, factId }` violations,
-without explanations, rendering or repair. Local code checks the entire verdict. Verified success
-returns PlantUML and report v2. After all local validations, a rejected or failed review yields a
-typed unverified candidate. VS Code offers it in one modal and, only on Show, opens one untitled
-PlantUML document with fixed warning comments. Cancellation offers nothing. No retry, repair,
-fallback or third request is used.
-The same configured provider and model serve both separate calls. Invalid input makes zero
-model calls; local rejection makes one; success makes exactly two. No retry, repair, fallback
-or third call. Report v2 contains no prompts or raw responses.
+## B. Documents and frozen input
 
-D1.2 implements `sequence` first. Wire Plan v3 has `version: 3` and separate required
-`groundedSteps` and `userStatedSteps` lists. Each step has a global `order`; the resolver
-rejects duplicates and gaps, then merges the lists without renumbering.
-For source-confirmed relationships, local code builds a deterministic catalog of opaque
-`operationId` values. The model chooses an operation and supplies only its label; a locally
-linked response operation requires its request to appear earlier. A separate user-stated step
-names known endpoints, request or asynchronous interaction, interface data and one physical
-`flowEvidenceId`. User-stated response is outside the D1.2 contract. The resolver derives
-participants in first-use order and assigns fact IDs, directions, modes, interfaces and evidence
-from the snapshot or the checked user-stated step. Reviewer confirmation is required for each
-user-stated fact. Reversing the same source-confirmed interface as user-stated is rejected locally;
-an independent reverse interface remains eligible. Labels pass the shared safe PlantUML text
-policy before rendering and are never silently rewritten. The renderer
-uses the shared canonical alias allocator and participant keywords, emits one bounded PlantUML
-document with terminal LF, and maps each fact to its physical line. Report v2 records those lines,
-operation or flow evidence IDs and evidence sources without prompts or raw responses.
+```mermaid
+flowchart LR
+  Source["Local documents / active MD-TXT buffer"] --> Capture["Bounded bytes or buffer capture / hashes"]
+  Capture --> Convert["Conversion / offline OCR / normalized text"]
+  Convert --> Extract["ONE extraction request / untrusted candidates"]
+  Extract --> Evidence["Deterministic schema / evidence / references"]
+  Evidence --> Review["User decisions / edits / validated preview"]
+  Review --> Pack["NEW five-file Knowledge Pack / provenance"]
+  Pack --> Snapshot["Loader / K1 snapshot / deterministic grounding"]
+  Flow["Flow description / explicit decisions"] --> Snapshot
+  Snapshot --> Plan["ONE generator request / type-specific plan"]
+  Plan --> Local["Validation / deterministic rendering / subset checks"]
+  Local --> Semantic["ONE semantic review request / validated verdict"]
+  Semantic --> Result["Original diagram + linked report / frozen ART1 result"]
+  Result --> Save["Explicit confirmation / exclusive save / conditional cleanup"]
+  Pack --> Browser["Read-only Knowledge Browser"]
+```
 
-The active VS Code command can send bounded JSON Lines diagnostics to the existing **Archi Agent**
-Output Channel when `archiAgent.diagnostics.verbose` is enabled. It is off by default and never
-records prompts, model responses, secrets, message labels, full PlantUML or absolute local paths.
-Its central identifier sanitizer redacts POSIX, Windows drive, UNC and all `file:` URI forms
-independently of the host platform.
-An earlier S1 attempt produced a locally valid candidate but the reviewer returned
-`truncated-output`; that unverified candidate did not count as acceptance. The subsequent
-owner smoke on 2026-09-23 returned a verified outcome, so S1 is PASS.
+## C. Extraction, review and new-pack save
 
-UX1 follows S1; then D2, M1 (MCP), C1, D3, D4 and D5
-follow the roadmap order. Each diagram type gets its own plan contract, validator and renderer,
-rather than a mega-schema. C4 and ArchiMate use no external includes or macro downloads.
-The old `generateSequenceDiagram` remains the separate compatibility path. See the
-[reviewed pipeline contract](reviewed-diagram-pipeline.md).
+```mermaid
+sequenceDiagram
+  participant UI as Extension UI
+  participant K2 as Runtime
+  participant Core as Local core
+  participant LLM as StructuredChatClient
+  participant W as Exclusive writer
+  UI->>K2: Frozen input, resolve model configuration
+  K2->>LLM: complete: exactly ONE extraction request
+  LLM-->>K2: Untrusted candidates
+  K2->>Core: Validate schema, references, literal evidence, conflicts
+  Core-->>K2: Frozen pending candidate result
+  K2-->>UI: Evidence, inferred basis, source limits
+  loop User review and edits — no LLM
+  UI->>K2: Accept / reject / pending / edit existing row
+  K2->>Core: KPB-A validation, frozen evidence retained
+  end
+  alt Pending, conflicts or missing accepted dependencies
+  K2-->>UI: Block preview/save, display issues
+  else Valid reviewed draft
+  K2->>W: Stage five files, production load and exact-byte checks
+  W-->>K2: Clean staging, immutable preview
+  K2-->>UI: Five file previews
+  UI->>K2: New folder, Save or Save and use
+  K2->>W: Exclusive create, final load and ownership checks
+  W-->>K2: Success or conditional cleanup/recovery
+  K2-->>UI: Saved, activation separately for Save and use
+  end
+  Note over UI,W: Review/edit/preview/save/activation: zero additional model calls
+```
 
-## UX1 local document conversion
+## D. Diagram generation and report
 
-`Archi Agent: Open` is a QuickPick navigation entry; the existing command IDs remain callable.
-`archiAgent.convertToMarkdown` is independent of the diagram pipeline. The editor selects a local
-PDF, DOCX or XLSX file and calls the exported `convertDocument`; it does not read settings,
-`SecretStorage`, a provider or Knowledge Pack. The runtime starts one bundled Node worker. The
-worker performs bounded read, checks ZIP containers for Office files, extracts content and returns
-a closed success/cancel/failure outcome. Only after success does VS Code open one untitled Markdown
-document. It never saves or modifies the source.
+```mermaid
+sequenceDiagram
+  participant UI as Extension UI
+  participant R as Runtime
+  participant Core as Local core
+  participant G as Generator
+  participant V as Reviewer
+  UI->>R: Type + flow + active pack + decisions
+  R->>Core: Load K1, ground, freeze selected diagram snapshot
+  alt Invalid input / context
+  Core-->>UI: Reject, zero generation calls
+  else Valid context
+  Core->>G: One type-specific plan request
+  G-->>Core: Untrusted Sequence v3 / Component v1 plan
+  Core->>Core: Validate, resolve, render, subset checks
+  alt Local rejection
+  Core-->>UI: Reject after one call, no review
+  else Locally valid rendered candidate
+  Core->>V: One review: same snapshot/model, exact candidate
+  V-->>Core: Untrusted verdict and fact references
+  Core->>Core: Validate complete verdict and confirmations
+  alt Verified acceptance
+  Core-->>R: Original PlantUML + grounding report v2
+  R->>R: Capture frozen ART1 result
+  R-->>UI: Two unsaved linked editors
+  else Review rejection/failure after local checks
+  R-->>UI: Offer marked unverified candidate, no report/artifact
+  end
+  end
+  end
+  Note over UI,V: At most two calls, no retry/repair/fallback<br/>Cancellation stops later calls
+```
 
-PDF text extraction preserves page order but not layout. The UX2 PDF choice adds local OCR:
-`none` uses the original bundled worker and returns `no-text-layer` for a scan; `auto` keeps
-readable text per page and renders pages without text; `all` renders every page. The OCR path
-uses a separate child process and bundled PDF.js, canvas, Tesseract WASM and PL/EN language data.
-The parent confirms child closure before returning a result or Cancel. OCR and blank pages are
-marked in Markdown. DOCX keeps basic headings, lists and tables, but images and external
-relationships are excluded. XLSX keeps cached values without evaluating formulas. DOC, XLS,
-MCP and knowledge-building remain outside this conversion path. Current CL1 limits are 50 MiB
-input, 8 MiB Markdown, 300 PDF pages and 120 seconds without OCR; UX2 allows at most 20 OCR
-pages and an absolute 300-second OCR deadline, with 10 MP canvas and 16 MP embedded-image limits.
+## E. ART1 original-pair save
 
-The earlier `generateSequenceDiagram` pipeline remains the compatibility path:
+```mermaid
+sequenceDiagram
+  participant UI as Extension UI
+  participant A as Frozen artifact
+  participant P as Path checks
+  participant W as Exclusive writer
+  participant FS as Filesystem
+  Note over UI,A: Original successful generation already captured in memory
+  UI->>A: Select result, select project if multi-root
+  A-->>UI: New bundle plan: folder, diagram.puml, report.json
+  UI->>UI: Native modal confirmation, Cancel writes nothing
+  UI->>P: Confirmed project + planned relative destination
+  P-->>A: Canonical, contained, link-free, no existing target
+  A->>A: Exact UTF-8 SHA-256, report envelope from captured data
+  A->>W: Frozen pair + cancellation signal
+  W->>FS: Exclusive mkdir and two wx+ files, incremental visibility
+  W->>FS: Verify bytes, identities, ancestry, final Cancel check
+  alt Verified success
+  W-->>UI: Receipt, offer Open Diagram / Open Report
+  else Error or Cancel before completion
+  W->>FS: Conditional rollback: unchanged owned resources only
+  W-->>UI: Safe error, inspect retained data if cleanup incomplete
+  end
+  Note over UI,FS: No LLM or source refresh, no atomic publication/crash recovery/fsync guarantee
+```
 
-`generateSequenceDiagram` owns the order of the stages:
+Acquisition staging is temporary; K2 awaits cleanup before returning candidates. The frozen bundle exists before extraction and remains the evidence source throughout review. Builder save validation includes a production load before immutable preview and after final writes. Activation is a separate setting operation.
 
-1. receive the validated flow and the loaded pack;
-2. build the grounded context and stop when grounding is blocked;
-3. call the injected generator;
-4. validate the result against the strict generated-model schema;
-5. normalize it;
-6. validate structure, fragments, text safety and participant grounding;
-7. validate relationships, directions and modes;
-8. apply the interface-name policy;
-9. render PlantUML;
-10. validate the emitted PlantUML subset;
-11. build the grounding report;
-12. return both artifacts in memory.
+Diagram review rejection can offer an unverified candidate only after local validation; user cancellation offers nothing. Generator/reviewer share the configured model but use separate contexts. Compatibility sequence uses one request and report v1.
 
-The pipeline never writes. Its outcome is a discriminated value: `success`,
-`grounding-blocked`, `invalid-generator-output`, `semantic-validation-failed` or
-`render-validation-failed`; writing adds `output-failed`. Issues after grounding use a sibling
-issue contract with fixed codes, severities and messages, carrying schema paths, identifiers and
-counts only.
+The ART1 menu/palette registry retains results while at least one linked preview remains open; closing both removes the list entry. A still-pending generation notification retains its own original and can invoke save directly after both previews close. Restart/reload removes in-memory results and notifications. Language changes do not count as actual closes. Two-file saving is incrementally visible and rollback is conditional; no atomic directory rename, crash recovery or fsync guarantee is claimed.
 
-### Strict model schema and normalization
+## Source map
 
-The generated model is the existing participant and message model plus optional combined
-fragments (`alt` with `else` branches, `opt`, `loop`, `group`) over ranges of message order
-numbers. Unknown keys are rejected, enums are closed, nothing is coerced, every text passes the
-PlantUML text policy, duplicates and undeclared endpoints are rejected, and fragments must nest
-strictly within a bounded depth. The text policy is applied by rendering context: a message label is
-emitted only after the renderer-controlled `<alias> <arrow> <alias> :` prefix on one physical line,
-so it may begin with a PlantUML statement keyword such as `return`, `alt` or `end`, which is plain
-text in that position; a fragment condition follows `alt` or `else` at the start of a line and may
-not. Every other rule of the policy applies to labels unchanged. Normalization only applies Unicode NFC, trims display text,
-turns empty optional values into absent ones and orders messages, participants and fragments
-deterministically. It never invents, removes or repairs anything.
+| Step / krok | Modules / moduły |
+| --- | --- |
+| UI navigation / nawigacja | [open-menu.ts](../vscode-extension/src/commands/open-menu.ts), [build-knowledge-pack.ts](../vscode-extension/src/commands/build-knowledge-pack.ts), [generate-sequence-diagram.ts](../vscode-extension/src/commands/generate-sequence-diagram.ts), [save-diagram-and-report.ts](../vscode-extension/src/commands/save-diagram-and-report.ts) |
+| Boundary / granica | [index.ts](../src/runtime/index.ts), [archi-agent-runtime.ts](../src/runtime/archi-agent-runtime.ts) |
+| Acquisition / przechwycenie | [extract-document-candidates.ts](../src/runtime/extract-document-candidates.ts), [convert-document.ts](../src/runtime/convert-document.ts), [convert.mjs](../experiments/ux2-ocr/convert.mjs), [ocr-parent.mjs](../experiments/ux2-ocr/ocr-parent.mjs), [ocr-child.mjs](../experiments/ux2-ocr/ocr-child.mjs) |
+| K1 / source / źródło | [knowledge-snapshot.ts](../src/core/knowledge-pack/knowledge-snapshot.ts), [node-knowledge-pack-source.ts](../src/node/node-knowledge-pack-source.ts) |
+| Extraction evidence / dowody | [document-candidates.ts](../src/core/knowledge-pack/builder/document-candidates.ts), [knowledge-pack-builder.ts](../src/core/knowledge-pack/builder/knowledge-pack-builder.ts) |
+| Review/save | [knowledge-pack-review.ts](../src/runtime/knowledge-pack-review.ts), [knowledge-pack-onboarding.ts](../src/runtime/knowledge-pack-onboarding.ts), [document-provenance.ts](../src/core/knowledge-pack/document-provenance.ts) |
+| ART1 | [diagram-artifact.ts](../src/runtime/diagram-artifact.ts), [local-file-path.ts](../src/node/local-file-path.ts) |
+| Provider transports / transporty | [local](../src/node/llm/openai-compatible-local-chat-client.ts), [remote OpenAI-compatible](../src/node/llm/openai-compatible-remote-chat-client.ts), [Anthropic](../src/node/llm/anthropic-remote-chat-client.ts) |
 
-### Grounding and relationship validation
+Sequence: [reviewed-sequence.ts](../src/core/pipeline/reviewed-sequence.ts), [sequence-diagram-plan.ts](../src/core/pipeline/sequence-diagram-plan.ts). Component: [generate-component-diagram.ts](../src/core/pipeline/generate-component-diagram.ts), [component-diagram-plan.ts](../src/core/pipeline/component-diagram-plan.ts).
 
-A known participant must use the element identifier, canonical name and kind of an element of
-the grounded context. A confirmed new participant must use its grounding key and the display
-name `[NEW] <name>`. A message between two different known participants needs a grounded
-relationship with the same direction (the opposite one for a response), interface type and mode.
-INTERNAL is an interface classification like the others: between two different participants it
-needs an explicit grounded INTERNAL relationship with the same direction and mode. A self-message
-is identified only by equal sender and receiver; it must use INTERNAL, needs no relationship and
-never authorizes an interaction between different participants. A non-INTERNAL interaction with a
-confirmed new participant is accepted with a warning and is never labelled as grounded; INTERNAL
-with a new participant cannot be grounded and is rejected. The generation summary counts
-synchronous, asynchronous and response messages by interaction behavior and reports
-`selfMessageCount` as a separate structural metric. A forbid rule blocks its interaction; a missing required
-interaction gives a warning.
+## Configuration, limits and failures
 
-### Interface-name policy
+Configuration keeps the visible draft separate from applied User settings. Refresh Models uses the draft profile/endpoint/timeout, validates the bounded response and never persists a model. Available models updates Selected model; Apply writes profile and model binding sequentially. Discard restores applied settings and invalidates the draft catalog. External changes make a stale Apply fail; a partial settings failure re-reads actual values. Check Provider Configuration uses applied settings. Profile/model/binding are machine scoped; pack selection is resource scoped. LM Studio endpoint/timeout can have effective workspace overrides, subject to Workspace Trust. Local URLs require literal loopback; cloud adapters use fixed HTTPS allowlists.
 
-An interface name is kept only when the applicable grounded relationship declares exactly that
-name. An absent name stays absent. Any other name is removed with a warning; the model is not
-rejected for this alone and no replacement is guessed.
+Keys are provider-specific VS Code SecretStorage entries. Native masked inputs handle entry; webviews receive only presence, never the secret. Help uses VS Code's display language and bundled Markdown; it makes no provider request and does not introduce an application language switch. Browser reads only the active pack through the production loader; record navigation uses pack line locations and frozen document provenance, with digest checks before opening live editor evidence.
 
-### Rendering and structural validation
+Standalone conversion accepts one file up to 50 MiB and 8 MiB Markdown; non-OCR work has a 120-second deadline, OCR 300 seconds and at most 20 OCR pages. Builder accepts eight sources, 10 MiB each/20 MiB total, 64 KiB text per source/160 KiB serialized bundle, 256 KiB prepared request and 128 candidates. Builder's total work deadline is 360 seconds; extraction is capped at 120 seconds or the shorter provider timeout. AbortSignals propagate to requests/workers/writes; child closure and conditional cleanup may finish after the work deadline. Progress reports reading, conversion/OCR, provider selection, generation and evidence validation. Failures return bounded stage/code outcomes; no partial conversion/candidates or automatic retry/repair/fallback. Full limits: [document contract](document-candidates.md).
 
-The renderer builds every line from fixed keywords, aliases derived from stable participant
-references and text that passed the text policy. Display names of known participants come from
-the grounded context. There are no includes, themes, skin parameters or other directives.
-Metadata comments carry the diagram name, flow name, author, language, grounding digest and
-generator type. A fixed local legend is emitted in English or, for language `pl`, in Polish.
+## Self-contained build and package
 
-The local PlantUML validator checks the exact subset the renderer emits: markers, comments,
-declarations, arrows, balanced fragments, the known legend and bounded size. It is a structural
-check, not an execution of the official PlantUML engine.
+`npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then appends pinned offline OCR resources with their license/hash manifest. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
 
-### Grounding report and output
-
-The grounding report records the evidence behind each diagram (see `docs/demo.md`). The output
-planner chooses one shared file-name base for the diagram and its report, with `-v2`, `-v3`
-versions instead of overwriting, and the artifact writer publishes both files only after both
-temporary files were written. The Node adapters enforce containment below the selected root and
-reject links and junctions.
-
-## Why grounding has no model or renderer
-
-Grounding decides which architecture elements a diagram may use. Keeping it deterministic
-and free of models and renderers makes that decision reproducible, testable and auditable:
-the same flow and pack always give the same context and the same digest, and any
-ambiguity is surfaced to a person instead of being resolved by a guess.
+`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](project-state-history.md); current checks and the auditor handoff are in [project state](project-state.md).

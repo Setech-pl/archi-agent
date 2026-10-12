@@ -269,3 +269,13 @@ control:
 | control | mission-control |
 | control | flight-controller |
 ```
+
+## Optional K3 document provenance
+
+K3-generated packs preserve source references, digests, quotes, normalized-text locators,
+explicit/inferred basis, user edits and conversion/OCR limitations inside the same five files.
+Each table is followed by one `ArchiAgent-Provenance-v1: ` line with percent-encoded canonical
+JSON. All five files carry the section when used. The production loader validates exact record
+bindings and cross-file consistency; legacy packs without it keep their existing contract.
+This metadata is structural provenance, not a signature or a verification of source authenticity.
+Full source texts and a separate evidence file are excluded. See [K3 format and workflow](knowledge-pack-review.md).

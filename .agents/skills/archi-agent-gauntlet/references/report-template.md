@@ -2,6 +2,12 @@
 
 Use concise entries; omit irrelevant fields rather than claiming work happened. Label **Commands**, **Reviewer**, **Owner report**, **Warnings/exceptions**, and **Deferred** separately.
 
+The current milestone-loop policy in `docs/development-workflow.md` supersedes the historical
+per-checkpoint smoke boundary below. For an authorized local checkpoint, report required gates,
+independent review, commit and parent, exact artifact and final tree/staging; record
+`OWNER_SMOKE: DEFERRED` until an owner result exists. Required FAIL/NOT_RUN or open high/medium
+block that checkpoint. Local checkpoint authorization does not permit publication operations.
+
 ## Preflight failure
 
 `PREFLIGHT FAILED — <task>`

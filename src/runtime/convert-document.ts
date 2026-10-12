@@ -31,13 +31,13 @@ export async function convertDocument(filePath: string, options: ConvertDocument
       const parentFile = options.ocrParentFile ?? path.join(__dirname, "..", "ux2-ocr", "ocr-parent.mjs");
       const module = await import(pathToFileURL(parentFile).href) as {
         convertPdfIsolated: (file: string, settings: { fullPage: boolean; signal?: AbortSignal; onStage?: (stage: string) => void }) =>
-          Promise<{ markdown: string; pages: readonly unknown[] }>;
+          Promise<{ markdown: string; pages: readonly { page: number; source: "text" | "ocr" | "blank" }[] }>;
       };
       if (options.signal?.aborted) return { status: "cancelled" };
       const result = await module.convertPdfIsolated(filePath, {
         fullPage: mode === "all", signal: options.signal, onStage: options.onProgress
       });
-      return { status: "success", format: "pdf", markdown: result.markdown, counts: { pages: result.pages.length } };
+      return { status: "success", format: "pdf", markdown: result.markdown, counts: { pages: result.pages.length }, coverage: { pages: result.pages.map(({ page, source }) => ({ page, source })), warnings: ["layout-not-preserved", "ocr-confidence-unavailable"] } };
     } catch (error) {
       if (options.signal?.aborted || (error instanceof Error && error.message === "cancelled")) return { status: "cancelled" };
       const code = error instanceof Error ? error.message : "";
@@ -63,8 +63,7 @@ export async function convertDocument(filePath: string, options: ConvertDocument
       settled = true;
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", cancel);
-      void worker.terminate();
-      resolve(outcome);
+      void worker.terminate().then(() => resolve(outcome), () => resolve({ status: "failed", code: "conversion-failed" }));
     };
     const cancel = (): void => finish({ status: "cancelled" });
     const timer = setTimeout(() => finish({ status: "failed", code: "timeout" }), timeoutMs);

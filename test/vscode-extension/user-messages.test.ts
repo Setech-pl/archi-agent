@@ -102,6 +102,26 @@ describe("describeFailure", () => {
     expect(describeFailure(failure("render-validation-failed", []), { baseUrl }).text).toContain("structural check");
   });
 
+  it.each(["invalid-envelope", "truncated-output", "response-refused"])("uses a provider diagnostic for %s in both diagram paths", (code) => {
+    for (const issueCode of ["generator-failed", "reviewer-failed"]) {
+      const message = describeFailure(failure("invalid-generator-output", [{ severity: "error", code: issueCode,
+        message: "The request failed.", details: { problem: code } }]), { profileId: "cloud-openai" });
+      expect(message.text).toContain(`(${code})`);
+      expect(message.details).toContain(`Execution: attempted; code: ${code}.`);
+      expect(message.text).toContain(issueCode === "reviewer-failed" ? "Semantic review" : "Generation");
+    }
+  });
+
+  it("does not echo an unknown generator code that resembles a model identifier", () => {
+    const suspicious = "model-secret-token";
+    const issue = { severity: "error" as const, code: "generator-failed", message: "The generator failed.", details: { problem: suspicious } };
+    for (const context of [{ profileId: "cloud-openai" }, { baseUrl }]) {
+      const message = describeFailure(failure("invalid-generator-output", [issue]), context);
+      expect(JSON.stringify(message)).not.toContain(suspicious);
+      expect(JSON.stringify(message)).toContain("provider-failed");
+    }
+  });
+
   it("distinguishes reviewer and PlantUML structure failures without exposing model data", () => {
     const secret = "synthetic-secret";
     const review = describeFailure(failure("semantic-validation-failed", [{ severity: "error", code: "review-rejected", message: "The semantic reviewer rejected the diagram.", details: { count: 1 } }]), { baseUrl });

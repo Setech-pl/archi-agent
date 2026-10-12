@@ -47,14 +47,16 @@ describe("safe pipeline diagnostics", () => {
         .map((key) => [key, candidate]));
       new DiagnosticRun((line) => lines.push(line)).emit("provider.resolved", fields);
       const entry = JSON.parse(lines[0]!);
-      for (const key of Object.keys(fields)) expect(entry[key]).toBe("<local-model-path-redacted>");
+      for (const key of Object.keys(fields).filter((key) => key !== "modelId")) expect(entry[key]).toBe("<local-model-path-redacted>");
+      expect(entry).not.toHaveProperty("modelId");
       expect(lines[0]).not.toContain("model.gguf");
       expect(lines[0]).not.toContain("Alice");
     }
     for (const modelId of ["qwen3:30b", "openai/gpt-4.1", "anthropic/claude-3.7"]) {
       const lines: string[] = [];
       new DiagnosticRun((line) => lines.push(line)).emit("provider.resolved", { modelId });
-      expect(JSON.parse(lines[0]!).modelId).toBe(modelId);
+      expect(JSON.parse(lines[0]!)).not.toHaveProperty("modelId");
+      expect(lines[0]).not.toContain(modelId);
     }
   });
 });

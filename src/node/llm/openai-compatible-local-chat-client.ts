@@ -369,9 +369,7 @@ export async function listLocalModels(endpoint: LoopbackEndpoint, options: ListL
     throw new LocalModelError("unsafe-listed-model-id");
   }
 
-  if (new Set(ids).size !== ids.length) {
-    throw new LocalModelError("duplicate-model-id");
-  }
-
-  return Object.freeze([...ids].sort(stableCompare));
+  // Ollama may advertise the same exact ID more than once. Validate every entry above,
+  // then expose one choice per identity; never trim, alias or accept an unsafe ID.
+  return Object.freeze([...new Set(ids)].sort(stableCompare));
 }

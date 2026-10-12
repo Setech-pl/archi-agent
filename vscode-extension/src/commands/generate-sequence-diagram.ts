@@ -1,18 +1,22 @@
+import { OpenDiagramResults, saveDiagramAction, saveDiagramAndReportCommand } from "./save-diagram-and-report.js";
 import path from "node:path";
 import * as vscode from "vscode";
 import type { AmbiguityChoice, ArchiAgentRuntime, CancellationSignal, DiagramType, FlowSource, GenerateDiagramUnverified, GenerateSequenceDiagramSuccess } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
 import { readApiKey } from "../api-key-storage.js";
+import { classifyProviderDiagnostic } from "../../../src/runtime/index.js";
 import { readArchiAgentSettings, type ArchiAgentSettings } from "../settings.js";
 import {
   describeCancellation,
   describeFailure,
+  describeProviderDiagnostic,
   describeSettingsProblems,
   describeSuccess,
   type UserMessage
 } from "../user-messages.js";
 import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPrompts } from "./sequence-generation-session.js";
 import { selectLocalModel } from "./local-provider-selection.js";
+import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -24,6 +28,7 @@ import { selectLocalModel } from "./local-provider-selection.js";
 export interface GenerateCommandDependencies {
   readonly runtime: ArchiAgentRuntime;
   readonly output: vscode.OutputChannel;
+  readonly results?: OpenDiagramResults;
   readonly secrets?: vscode.SecretStorage;
 }
 
@@ -207,7 +212,7 @@ function resolutionPrompts(): ResolutionPrompts {
   };
 }
 
-async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): Promise<void> {
+async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess, results?: OpenDiagramResults): Promise<void> {
   const languages = await vscode.languages.getLanguages();
   const diagram = await vscode.workspace.openTextDocument({
     language: languages.includes("plantuml") ? "plantuml" : "plaintext",
@@ -215,6 +220,7 @@ async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess): P
   });
   await vscode.window.showTextDocument(diagram, { viewColumn: vscode.ViewColumn.Active, preview: false });
   const report = await vscode.workspace.openTextDocument({ language: "json", content: result.groundingReport });
+  results?.remember(result.artifact, [diagram, report]);
   await vscode.window.showTextDocument(report, { viewColumn: vscode.ViewColumn.Beside, preview: false, preserveFocus: true });
 }
 
@@ -231,8 +237,13 @@ function unverifiedDocument(result: GenerateDiagramUnverified, reason: string): 
   return result.plantUmlCandidate.replace(/^@startuml\r?\n/u, `@startuml\n${header.join("\n")}\n`);
 }
 
-async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, output: vscode.OutputChannel, verbose: boolean): Promise<void> {
+async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, output: vscode.OutputChannel, verbose: boolean, profileId: string): Promise<void> {
   const reason = safeUnverifiedReason(result);
+  const diagnostic = describeProviderDiagnostic(classifyProviderDiagnostic({ profileId, operation: "review",
+    credentialRequired: profileId.startsWith("cloud-"), outcome: "failure",
+    code: result.review.status === "failed" ? reason : "review-rejected" }));
+  output.appendLine(diagnostic.text);
+  for (const detail of diagnostic.details) output.appendLine(`  ${detail}`);
   const lead = result.review.status === "failed" ? "Semantic review did not complete" : "Semantic review rejected the candidate";
   const message = `${lead} (${reason}). The diagram passed local structural and grounding checks but remains unverified. Do you want to inspect the candidate?`;
   if (verbose) output.appendLine(JSON.stringify({ event: "unverified-candidate.offered", code: reason }));
@@ -262,7 +273,9 @@ export async function generateSequenceDiagramCommand(dependencies: GenerateComma
 
 async function runGenerateCommand(dependencies: GenerateCommandDependencies, diagramType?: DiagramType): Promise<void> {
   const { runtime, output, secrets } = dependencies;
-  const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection));
+  const pack = await ensureKnowledgePack();
+  if (pack.status !== "ready") return;
+  const settingsResult = readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection, pack.resource));
 
   if (!settingsResult.ok) {
     await show(output, describeSettingsProblems(settingsResult.problems));
@@ -343,15 +356,27 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   if (outcome.result.status === "failed") {
-    await show(output, describeFailure(outcome.result, { providerName: profile.displayName, baseUrl: settings.localModel.baseUrl }));
+    if (outcome.result.issues.some((entry) => entry.code === "generation-cancelled")) {
+      await show(output, describeCancellation());
+      return;
+    }
+    await show(output, describeFailure(outcome.result, { profileId: profile.profileId, providerName: profile.displayName, baseUrl: settings.localModel.baseUrl }));
     return;
   }
 
   if (outcome.result.status === "unverified") {
-    await offerUnverifiedCandidate(outcome.result, output, vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") === true);
+    await offerUnverifiedCandidate(outcome.result, output, vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") === true, profile.profileId);
     return;
   }
 
-  await openGeneratedDocuments(outcome.result);
-  await show(output, describeSuccess(outcome.result, diagramType === "component" ? "component" : "sequence"));
+  await openGeneratedDocuments(outcome.result, dependencies.results);
+  const message = describeSuccess(outcome.result, diagramType === "component" ? "component" : "sequence");
+  if (dependencies.results && outcome.result.artifact) {
+    output.appendLine(message.text);
+    for (const detail of message.details) output.appendLine(`  ${detail}`);
+    const notify = message.level === "warning" ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
+    const action = await notify(message.text, saveDiagramAction, showDetailsAction);
+    if (action === saveDiagramAction) await saveDiagramAndReportCommand(dependencies.results, outcome.result.artifact);
+    if (action === showDetailsAction) output.show(true);
+  } else await show(output, message);
 }

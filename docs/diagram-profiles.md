@@ -128,7 +128,7 @@ universal mega-schema or renderer framework.
 ## Status
 
 **Current code:** the reviewed D1.2 `sequence` plan and renderer path and the separate validated compatibility
-pipeline. D1 passed automatic checks but failed owner smoke. Its findings
+pipeline. D1 passed automatic checks but failed manual smoke. Its findings
 are archived on `checkpoint/d1-ledger-pipeline`.
 
 The experimental D1 path receives final PlantUML and a strict message ledger in one structured-chat
@@ -138,7 +138,7 @@ The compatibility renderer and its golden outputs remain unchanged.
 
 **Historical D1.1:** the generator returned strict `{ plantUml }` only; the parser computed facts and physical
 line numbers locally, validates them, then calls a separate semantic reviewer. Successful
-reviewed generation makes exactly two model calls. Automatic checks passed, but S1 owner smoke
+reviewed generation makes exactly two model calls. Automatic checks passed, but S1 manual smoke
 failed. This implementation is preserved on `checkpoint/d1-final-plantuml-reviewed`; D1.2 now owns the active path. See
 [`reviewed-diagram-pipeline.md`](reviewed-diagram-pipeline.md).
 

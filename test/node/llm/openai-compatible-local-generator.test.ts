@@ -279,6 +279,12 @@ describe("listLocalModels", () => {
     expect(Object.keys(double.requests[0]?.headers ?? {})).not.toContain("authorization");
   });
 
+  it("exposes one exact choice for repeated safe IDs from Ollama", async () => {
+    const { double, endpoint } = await serve({ models: ["gemma3:27b", "qwen3:30b", "gemma3:27b"] });
+    expect(await listLocalModels(endpoint)).toEqual(["gemma3:27b", "qwen3:30b"]);
+    expect(double.requests).toHaveLength(1);
+  });
+
   it("returns an empty list when the server reports no model", async () => {
     const { endpoint } = await serve({ models: [] });
 
@@ -286,7 +292,6 @@ describe("listLocalModels", () => {
   });
 
   it.each([
-    ["a duplicate identifier", { models: ["model-a", "model-a"] }, "duplicate-model-id"],
     ["an empty identifier", { models: [""] }, "unsafe-listed-model-id"],
     ["an identifier with spaces", { models: ["model a"] }, "unsafe-listed-model-id"],
     ["a missing identifier", { models: [{ object: "model" }] }, "unsafe-listed-model-id"],

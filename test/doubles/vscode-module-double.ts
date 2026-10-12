@@ -33,6 +33,7 @@ export interface RecordedShownDocument {
 type QuickPickAnswer = (items: readonly unknown[], options: unknown) => unknown;
 
 export interface DoubleState {
+  workspaceFolders: { name: string; uri: DoubleUri; index: number }[] | undefined;
   configuration: Map<string, unknown>;
   configurationInspect: Map<
     string,
@@ -41,6 +42,7 @@ export interface DoubleState {
   configurationUpdateFailures: Set<string>;
   /** One-based update call numbers that reject before mutating configuration. */
   configurationUpdateFailureCalls: Set<number>;
+  configurationUpdateHook?: (key: string, value: unknown, target: unknown) => void;
   configurationUpdates: { key: string; value: unknown; target: unknown }[];
   secrets: Map<string, string>;
   secretReads: string[];
@@ -51,6 +53,7 @@ export interface DoubleState {
   quickPicks: { items: readonly unknown[]; options: unknown }[];
   inputBoxAnswers: (string | undefined)[];
   inputBoxes: unknown[];
+  inputBoxHook?: (options: unknown, call: number) => void;
   openDialogAnswers: (DoubleUri[] | undefined)[];
   messageAnswers: (string | undefined)[];
   messages: RecordedMessage[];
@@ -64,15 +67,18 @@ export interface DoubleState {
   languages: string[];
   progressTitles: string[];
   progressCancelOnStart: boolean;
+  cancelProgress?: () => void;
   untitledCounter: number;
 }
 
 function freshState(): DoubleState {
   return {
+    workspaceFolders: undefined,
     configuration: new Map(),
     configurationInspect: new Map(),
     configurationUpdateFailures: new Set(),
     configurationUpdateFailureCalls: new Set(),
+    configurationUpdateHook: undefined,
     configurationUpdates: [],
     secrets: new Map(),
     secretReads: [],
@@ -83,6 +89,7 @@ function freshState(): DoubleState {
     quickPicks: [],
     inputBoxAnswers: [],
     inputBoxes: [],
+    inputBoxHook: undefined,
     openDialogAnswers: [],
     messageAnswers: [],
     messages: [],
@@ -103,11 +110,13 @@ function freshState(): DoubleState {
 export const state: DoubleState = freshState();
 
 export function resetDouble(): void {
-  Object.assign(state, freshState());
+  panels.splice(0).forEach((p) => p.dispose());
+  webviewDrivers.splice(0); configListeners.clear(); folderListeners.clear(); saveListeners.clear(); treeViews.splice(0);
+  Object.assign(state, freshState()); window.tabGroups.activeTabGroup.activeTab = undefined;
 }
 
 function uriFromPath(fsPath: string, scheme = "file"): DoubleUri {
-  return Object.freeze({ scheme, fsPath, path: fsPath.split("\\").join("/") });
+  return Object.freeze({ scheme, fsPath, path: fsPath.split("\\").join("/"), toString: () => scheme + ":" + fsPath });
 }
 
 export function makeDocument(text: string, options: { fileName?: string; languageId?: string } = {}): DoubleDocument {
@@ -143,11 +152,28 @@ export const ViewColumn = Object.freeze({ Active: -1, Beside: -2, One: 1, Two: 2
 export const ProgressLocation = Object.freeze({ SourceControl: 1, Window: 10, Notification: 15 });
 
 export const Uri = Object.freeze({
+  joinPath(base: DoubleUri, ...parts: string[]): DoubleUri { return Uri.file([base.fsPath, ...parts].join("/")); },
   file: (fsPath: string): DoubleUri => uriFromPath(fsPath),
   parse: (value: string): DoubleUri => uriFromPath(value, value.split(":")[0] ?? "file")
 });
 
+export const treeViews: { id: string; provider: any }[] = [];
+export class EventEmitter<T> {
+  private listeners = new Set<(value: T) => void>();
+  readonly event = (fn: (value: T) => void) => { this.listeners.add(fn); return { dispose: () => this.listeners.delete(fn) }; };
+  fire(value: T): void { for (const listener of this.listeners) listener(value); }
+  dispose(): void { this.listeners.clear(); }
+}
+export class TreeItem { constructor(public label: string, public collapsibleState: number) {} }
+export const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
+export class Range { constructor(public startLine: number, public startCharacter: number, public endLine: number, public endCharacter: number) {} }
+export class TabInputText { constructor(public uri: DoubleUri) {} }
+export class TabInputCustom { constructor(public uri: DoubleUri) {} }
+const saveListeners = new Set<(doc: DoubleDocument) => void>();
+export function documentSaved(doc: DoubleDocument): void { for (const listener of saveListeners) listener(doc); }
 export const window = {
+  tabGroups: { activeTabGroup: { activeTab: undefined as { input: unknown } | undefined } },
+  createTreeView(id: string, options: { treeDataProvider: any }) { treeViews.push({ id, provider: options.treeDataProvider }); return { dispose() {} }; },
   get activeTextEditor(): { document: DoubleDocument } | undefined {
     return state.activeTextEditor;
   },
@@ -178,6 +204,7 @@ export const window = {
   },
   showInputBox(options: unknown): Promise<string | undefined> {
     state.inputBoxes.push(options);
+    state.inputBoxHook?.(options, state.inputBoxes.length);
     return Promise.resolve(state.inputBoxAnswers.shift());
   },
   showOpenDialog(): Promise<DoubleUri[] | undefined> {
@@ -195,11 +222,14 @@ export const window = {
   },
   withProgress<T>(options: { title?: string }, task: (progress: { report(): void }, token: unknown) => Thenable<T>): Thenable<T> {
     state.progressTitles.push(options.title ?? "");
+    const listeners = new Set<() => void>();
     const token = { isCancellationRequested: state.progressCancelOnStart, onCancellationRequested: (listener: () => void) => {
+      listeners.add(listener);
       if (state.progressCancelOnStart) queueMicrotask(listener);
-      return new Disposable();
+      return { dispose: () => { listeners.delete(listener); } };
     } };
-    return task({ report: () => undefined }, token);
+    state.cancelProgress = () => { token.isCancellationRequested = true; for (const listener of listeners) listener(); };
+    return Promise.resolve(task({ report: () => undefined }, token)).finally(() => { state.cancelProgress = undefined; });
   },
   showTextDocument(document: DoubleDocument, options?: unknown): Promise<{ document: DoubleDocument }> {
     state.shownDocuments.push({ document, options });
@@ -208,35 +238,42 @@ export const window = {
 };
 
 export const workspace = {
-  getConfiguration(section: string) {
+  get textDocuments() { return [...state.openedDocuments, ...(state.activeTextEditor ? [state.activeTextEditor.document] : [])]; },
+  onDidSaveTextDocument(listener: (doc: DoubleDocument) => void) { saveListeners.add(listener); return { dispose: () => saveListeners.delete(listener) }; },
+  get workspaceFolders() { return state.workspaceFolders; },
+  getConfiguration(section: string, resource?: DoubleUri) {
     const fullKey = (key: string): string => `${section}.${key}`;
+    const folderKey = (key: string): string => `${section}.${key}@${resource?.fsPath ?? ""}`;
     const effectiveValue = (key: string): unknown => {
-      const inspected = state.configurationInspect.get(fullKey(key));
+      const inspected = resource === undefined ? state.configurationInspect.get(fullKey(key)) : state.configurationInspect.get(folderKey(key));
+      const global = state.configurationInspect.get(fullKey(key));
 
       if (inspected !== undefined) {
-        return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? inspected.globalValue ?? inspected.defaultValue;
+        return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? global?.workspaceValue ?? global?.globalValue ?? global?.defaultValue;
       }
 
-      return state.configuration.get(fullKey(key));
+      return global?.workspaceValue ?? global?.globalValue ?? state.configuration.get(fullKey(key));
     };
 
     return {
       get: (key: string): unknown => effectiveValue(key),
       inspect: (key: string) => {
-        const inspected = state.configurationInspect.get(fullKey(key));
+        const inspected = resource === undefined ? state.configurationInspect.get(fullKey(key)) : state.configurationInspect.get(folderKey(key));
+        const global = state.configurationInspect.get(fullKey(key));
         return inspected === undefined
-          ? { globalValue: state.configuration.get(fullKey(key)) }
-          : Object.freeze({ ...inspected });
+          ? Object.freeze({ ...global, globalValue: global?.globalValue ?? state.configuration.get(fullKey(key)) })
+          : Object.freeze({ ...inspected, globalValue: global?.globalValue ?? state.configuration.get(fullKey(key)) });
       },
       update: (key: string, value: unknown, target: unknown): Promise<void> => {
         const qualified = fullKey(key);
         state.configurationUpdates.push({ key: qualified, value, target });
+        state.configurationUpdateHook?.(qualified, value, target);
 
         if (state.configurationUpdateFailures.has(qualified) || state.configurationUpdateFailureCalls.has(state.configurationUpdates.length)) {
           return Promise.reject(new Error("synthetic configuration update failure"));
         }
 
-        const inspected = state.configurationInspect.get(qualified) ?? {};
+        const inspected = state.configurationInspect.get(target === ConfigurationTarget.WorkspaceFolder && resource !== undefined ? folderKey(key) : qualified) ?? {};
 
         if (target === ConfigurationTarget.Global) {
           const next = { ...inspected };
@@ -248,6 +285,14 @@ export const workspace = {
           }
 
           state.configurationInspect.set(qualified, next);
+        }
+
+        if (target === ConfigurationTarget.WorkspaceFolder && resource !== undefined) {
+          const next = { ...inspected };
+          if (value === undefined) delete next.workspaceFolderValue;
+          else next.workspaceFolderValue = value;
+          state.configurationInspect.set(folderKey(key), next);
+          return Promise.resolve();
         }
 
         if (value === undefined) {
@@ -322,3 +367,50 @@ export const secretStorage = {
 export function createExtensionContext(): { subscriptions: { dispose(): unknown }[]; secrets: typeof secretStorage } {
   return { subscriptions: [], secrets: secretStorage };
 }
+
+export interface DoublePanel {
+  viewType: string;
+  title: string;
+  options: unknown;
+  revealed: number;
+  disposed: boolean;
+  webview: { html: string; messages: any[]; postMessage(value: unknown): Promise<boolean>; onDidReceiveMessage(fn: (v: unknown) => unknown): Disposable };
+  receive(value: unknown): Promise<void>;
+  reveal(): void;
+  onDidDispose(fn: () => void): Disposable;
+  dispose(): void;
+}
+export const panels: DoublePanel[] = [];
+export const webviewDrivers: ((panel: DoublePanel, state: any) => unknown)[] = [];
+const configListeners = new Set<(event: {affectsConfiguration(s: string): boolean}) => void>();
+const folderListeners = new Set<() => void>();
+export function configurationChanged(): void { configListeners.forEach((fn) => fn({ affectsConfiguration: () => true })); }
+export function workspaceChanged(): void { folderListeners.forEach((fn) => fn()); }
+Object.assign(workspace, {
+  isTrusted: true,
+  onDidChangeConfiguration: (fn: any) => { configListeners.add(fn); return new Disposable(() => configListeners.delete(fn)); },
+  onDidChangeWorkspaceFolders: (fn: any) => { folderListeners.add(fn); return new Disposable(() => folderListeners.delete(fn)); }
+});
+Object.assign(window, {
+  createWebviewPanel: (viewType: string, title: string, _column: unknown, options: unknown) => {
+    const listeners = new Set<(v: unknown) => unknown>(), disposeListeners = new Set<() => void>();
+    const driver = webviewDrivers.shift();
+    const panel: DoublePanel = { viewType, title, options, revealed: 0, disposed: false,
+      webview: { html: "", messages: [], postMessage: async (v: any) => {
+        panel.webview.messages.push(v);
+        if (v.type === "state" && !v.busy && driver) queueMicrotask(() => { void driver(panel,v); });
+        return true;
+      }, onDidReceiveMessage: (fn) => { listeners.add(fn); return new Disposable(() => listeners.delete(fn)); } },
+      receive: async (value) => { for (const fn of listeners) await fn(value); },
+      reveal: () => { panel.revealed++; },
+      onDidDispose: (fn) => { disposeListeners.add(fn); return new Disposable(() => disposeListeners.delete(fn)); },
+      dispose: () => { if (panel.disposed) return; panel.disposed = true; [...disposeListeners].forEach((fn) => fn()); }
+    };
+    panels.push(panel);
+    queueMicrotask(() => { void panel.receive({ op: "ready", revision: 0 }); });
+    return panel;
+  }
+});
+
+/** VS Code display language used by offline help. */
+export const env = { language: "en" };

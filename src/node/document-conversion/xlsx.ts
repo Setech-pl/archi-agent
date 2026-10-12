@@ -31,7 +31,7 @@ export async function convertXlsx(bytes: Buffer): Promise<Extract<ConvertOutcome
         markdown.append(`| ${values.join(" | ")} |\n`);
       }
     }
-    return { status: "success", format: "xlsx", markdown: markdown.finish(), counts: { sheets: sheets.length, rows, cells } };
+    return { status: "success", format: "xlsx", markdown: markdown.finish(), counts: { sheets: sheets.length, rows, cells }, coverage: { warnings: ["cached-values-only", "original-row-locations-unavailable"] } };
   } catch (error) {
     if (error instanceof ConversionFailure) throw error;
     throw new ConversionFailure("corrupt-document");

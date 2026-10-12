@@ -76,7 +76,7 @@ describe("bundles", () => {
     const text = readFileSync(bundles.extensionFile, "utf8");
     const specifiers = [...text.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g)].map((match) => match[1]);
 
-    expect(new Set(specifiers)).toEqual(new Set(["vscode", "node:path", `./${buildModule.bundleFileNames.runtime}`]));
+    expect(new Set(specifiers)).toEqual(new Set(["vscode", "node:path", "node:crypto", `./${buildModule.bundleFileNames.runtime}`]));
     expect(text).not.toContain("src/runtime/index");
   });
 

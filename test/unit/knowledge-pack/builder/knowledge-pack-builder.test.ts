@@ -503,7 +503,7 @@ describe("knowledge-pack builder boundary", () => {
     const coreDir = new URL("../../../../src/core/knowledge-pack/", import.meta.url);
     const builderFiles = readdirSync(new URL("builder/", coreDir)).filter((file) => file.endsWith(".ts"));
 
-    expect(builderFiles.sort()).toEqual(["knowledge-pack-builder.ts", "knowledge-pack-candidate.ts", "knowledge-pack-renderer.ts"]);
+    expect(builderFiles.sort()).toEqual(["document-candidates.ts", "knowledge-pack-builder.ts", "knowledge-pack-candidate.ts", "knowledge-pack-renderer.ts"]);
 
     for (const file of [...builderFiles.map((name) => "builder/" + name), "in-memory-knowledge-pack-source.ts"]) {
       const text = readFileSync(new URL(file, coreDir), "utf8");

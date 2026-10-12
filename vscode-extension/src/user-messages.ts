@@ -5,6 +5,8 @@ import type {
   RuntimeIssueDetailValue
 } from "../../src/runtime/index.js";
 import type { SettingsProblem } from "./settings.js";
+import type { ProviderDiagnostic } from "../../src/runtime/index.js";
+import { classifyProviderDiagnostic, providerDiagnosticCode } from "../../src/runtime/index.js";
 
 /**
  * Maps runtime results to text a person can act on. Every string is built from stable codes,
@@ -56,7 +58,8 @@ export function describeIssue(issue: RuntimeIssue): string {
   const parts: string[] = [];
 
   for (const key of describedKeys) {
-    const value = details[key];
+    const value = key === "problem" && (issue.code === "generator-failed" || issue.code === "reviewer-failed")
+      ? providerDiagnosticCode(details[key]) : details[key];
 
     if (value !== undefined) {
       parts.push(`${key} ${detailText(value)}`);
@@ -84,7 +87,7 @@ function boundedLines(lines: readonly string[]): readonly string[] {
 function generatorProblem(failure: GenerateSequenceDiagramFailure): string | undefined {
   const generatorIssue = failure.issues.find((issue) => issue.code === "generator-failed" || issue.code === "reviewer-failed");
   const problem = generatorIssue?.details?.["problem"];
-  return typeof problem === "string" ? problem : generatorIssue === undefined ? undefined : "generator-failed";
+  return generatorIssue === undefined ? undefined : providerDiagnosticCode(problem);
 }
 
 const transportProblems = new Set([
@@ -96,19 +99,38 @@ const transportProblems = new Set([
   "cancelled",
   "authentication-failed",
   "rate-limited",
+  "model-unavailable",
+  "request-rejected",
   "provider-unavailable",
   "response-too-large",
-  "response-truncated"
+  "response-truncated",
+  "invalid-encoding"
 ]);
 
 export interface FailureContext {
   /** Loopback base URL is safe for local profiles; remote profiles expose only their display name. */
   readonly baseUrl?: string;
   readonly providerName?: string;
+  readonly profileId?: string;
 }
 
 export function describeFailure(failure: GenerateSequenceDiagramFailure, context: FailureContext): UserMessage {
   const details = boundedLines(failure.issues.map(describeIssue));
+  if (context.profileId !== undefined && failure.stage === "generator-configuration") {
+    const code = failure.issues[0]?.code ?? "generator-failed";
+    const diagnostic = classifyProviderDiagnostic({ profileId: context.profileId, operation: "generation",
+      credentialRequired: context.profileId.startsWith("cloud-"), outcome: "failure", code });
+    const message = describeProviderDiagnostic(diagnostic);
+    return Object.freeze({ ...message, details: boundedLines([...message.details, ...details]) });
+  }
+  const providerProblem = generatorProblem(failure);
+  if (context.profileId !== undefined && failure.stage === "invalid-generator-output" && providerProblem !== undefined) {
+    const diagnostic = classifyProviderDiagnostic({ profileId: context.profileId,
+      operation: failure.issues.some((entry) => entry.code === "reviewer-failed") ? "review" : "generation",
+      credentialRequired: context.profileId.startsWith("cloud-"), outcome: providerProblem === "cancelled" ? "cancelled" : "failure", code: providerProblem });
+    const message = describeProviderDiagnostic(diagnostic);
+    return Object.freeze({ ...message, details: boundedLines([...message.details, ...details]) });
+  }
   let text: string;
   let suggestSettings = false;
 
@@ -200,4 +222,40 @@ export function describeModelListFailure(code: string, provider: string): UserMe
 
 export function describeCancellation(): UserMessage {
   return Object.freeze({ level: "info", text: "Archi Agent: generation cancelled. Nothing was generated.", details: Object.freeze([]), suggestSettings: false });
+}
+
+/** Fixed wording only. Provider output, configured URLs, model IDs and credentials never enter this message. */
+export function describeProviderDiagnostic(diagnostic: ProviderDiagnostic): UserMessage {
+  const names: Record<ProviderDiagnostic["profileId"], string> = {
+    "local-lm-studio": "LM Studio", "local-ollama": "Ollama", "cloud-anthropic": "Anthropic",
+    "cloud-openai": "OpenAI", "cloud-openrouter": "OpenRouter", unknown: "the selected provider"
+  };
+  const actions: Record<ProviderDiagnostic["nextAction"], string> = {
+    none: "No configuration change is indicated by this check.",
+    settings: "Check the provider profile, loopback URL and timeout in Archi Agent settings.",
+    "api-key": "Set or update the API key with Archi Agent: Set or Update API Key.",
+    server: "Start the local model server and check its loopback address.",
+    "retry-later": "Try again later; check provider status or account limits if the problem continues.",
+    "provider-account": "Check the provider account, key access and selected model in its console.",
+    "select-model": "Check the selected model in the provider console or run Archi Agent: Select Model.",
+    "inspect-output": "Check the Archi Agent output for the safe failure code.",
+    "inspect-candidate": "Inspect the marked candidate only if you need to diagnose the review result."
+  };
+  const operation = diagnostic.operation === "listing" ? "Model listing" : diagnostic.operation === "review" ? "Semantic review" : "Generation";
+  const result = diagnostic.execution === "cancelled" ? "cancelled" : diagnostic.code === "ok" ? "completed" :
+    diagnostic.execution === "not-attempted" ? "blocked before a request" : "could not be confirmed";
+  const details = [
+    `Execution: ${diagnostic.execution}; code: ${diagnostic.code}.`,
+    `Configuration: ${diagnostic.configuration}; credential: ${diagnostic.credential}; connection: ${diagnostic.connection}.`,
+    `Listing: ${diagnostic.listing}; selected model on returned list: ${diagnostic.selectedModel}.`,
+    `Generation: ${diagnostic.generation}; review: ${diagnostic.review}; billing: ${diagnostic.billing}; quota: ${diagnostic.quota}.`,
+    "A saved key or successful listing does not prove key validation. Listing does not establish billing, quota or generation readiness.",
+    "A model missing from a returned list does not establish lack of access; lists may be filtered or incomplete."
+  ];
+  return Object.freeze({
+    level: diagnostic.execution === "cancelled" || diagnostic.code === "ok" ? "info" : "error",
+    text: `Archi Agent: ${operation} for ${names[diagnostic.profileId]} ${result} (${diagnostic.code}). ${actions[diagnostic.nextAction]}`,
+    details: Object.freeze(details),
+    suggestSettings: diagnostic.nextAction === "settings"
+  });
 }

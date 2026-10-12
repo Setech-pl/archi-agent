@@ -1,7 +1,11 @@
+import { KnowledgeBrowser } from "./knowledge-browser.js";
+import { ConfigurationWorkbench } from "./workbench/configuration.js";
+import { OpenDiagramResults, saveDiagramAndReportCommand } from "./commands/save-diagram-and-report.js";
+import { buildKnowledgePackCommand, buildKnowledgePackFromActiveFileCommand } from "./commands/build-knowledge-pack.js";
 import * as vscode from "vscode";
-import { generateDiagramCommand, generateSequenceDiagramCommand } from "./commands/generate-sequence-diagram.js";
+import { generateDiagramCommand } from "./commands/generate-sequence-diagram.js";
 import { removeApiKey, setApiKey } from "./commands/api-key-management.js";
-import { selectModel, selectProviderProfile } from "./commands/local-provider-selection.js";
+import { checkProviderConfiguration } from "./commands/check-provider-configuration.js";
 import { commandIds, legacyCommandIds, outputChannelName } from "./contributions.js";
 import { openArchiAgentMenu } from "./commands/open-menu.js";
 import { convertToMarkdownCommand } from "./commands/convert-to-markdown.js";
@@ -19,38 +23,49 @@ function errorName(error: unknown): string {
 
 export function activate(context: vscode.ExtensionContext): void {
   const output = vscode.window.createOutputChannel(outputChannelName);
-  const runtime = createPackagedRuntime();
+  const runtime = createPackagedRuntime(context.extension?.packageJSON.version);
+  const results = new OpenDiagramResults();
+  const browser = new KnowledgeBrowser();
+  context.subscriptions.push(browser);
+  const configuration = new ConfigurationWorkbench(runtime, output, context.secrets);
+  context.subscriptions.push(configuration);
+  if (vscode.workspace.onDidCloseTextDocument) context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => results.close(doc)));
 
   context.subscriptions.push(output);
   context.subscriptions.push(
+    vscode.commands.registerCommand(commandIds.knowledgeBrowser, () => browser.reveal()),
+    vscode.commands.registerCommand(commandIds.buildKnowledgePackFromActiveFile, () => buildKnowledgePackFromActiveFileCommand({ runtime, output, secrets: context.secrets })),
+    vscode.commands.registerCommand(commandIds.configuration, () => configuration.open()),
+    vscode.commands.registerCommand(commandIds.help, () => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.joinPath(context.extensionUri, /^pl(?:-|$)/iu.test(vscode.env.language) ? "README.pl.md" : "readme.md"))),
+    vscode.commands.registerCommand(commandIds.saveDiagramAndReport, () => saveDiagramAndReportCommand(results).catch(() => {
+      void vscode.window.showErrorMessage("Archi Agent: diagram and report save could not be completed. Retry Save Diagram and Report.");
+    })),
+    vscode.commands.registerCommand(commandIds.buildKnowledgePack, () => buildKnowledgePackCommand({ runtime, output, secrets: context.secrets })),
     vscode.commands.registerCommand(commandIds.open, () => openArchiAgentMenu().catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: navigation could not be opened.");
     })),
     vscode.commands.registerCommand(commandIds.convertToMarkdown, () => convertToMarkdownCommand().catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: conversion could not be completed.");
     })),
+    vscode.commands.registerCommand(commandIds.configureKnowledgePack, () => configuration.open("knowledge")),
     vscode.commands.registerCommand(commandIds.generateDiagram, () =>
-      generateDiagramCommand({ runtime, output, secrets: context.secrets }).catch((error: unknown) => {
+      generateDiagramCommand({ runtime, output, results, secrets: context.secrets }).catch((error: unknown) => {
         output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
     ),
     vscode.commands.registerCommand(commandIds.generateSequenceDiagram, () =>
-      generateSequenceDiagramCommand({ runtime, output, secrets: context.secrets }).catch((error: unknown) => {
+      generateDiagramCommand({ runtime, output, results, secrets: context.secrets }).catch((error: unknown) => {
         output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.selectProviderProfile, () =>
-      selectProviderProfile(runtime, output).catch((error: unknown) => {
-        output.appendLine(`The provider profile command failed unexpectedly (${errorName(error)}).`);
-        void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
-      })
-    ),
-    vscode.commands.registerCommand(commandIds.selectModel, () =>
-      selectModel(runtime, output, context.secrets).catch((error: unknown) => {
-        output.appendLine(`The model selection command failed unexpectedly (${errorName(error)}).`);
-        void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
+    vscode.commands.registerCommand(commandIds.selectProviderProfile, () => configuration.open("provider")),
+    vscode.commands.registerCommand(commandIds.selectModel, () => configuration.open("provider")),
+    vscode.commands.registerCommand(commandIds.checkProviderConfiguration, () =>
+      checkProviderConfiguration(runtime, output, context.secrets).catch(() => {
+        output.appendLine("The provider configuration check failed unexpectedly.");
+        void vscode.window.showErrorMessage("Archi Agent: the provider configuration check could not be completed.");
       })
     ),
     vscode.commands.registerCommand(commandIds.setApiKey, () =>

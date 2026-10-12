@@ -1,6 +1,6 @@
 # Finalization protocol
 
-Require both an explicit owner report of milestone smoke **PASS** and a separate explicit instruction to finalize, commit and push. An invocation, a reviewer approval, or passing automated gates alone is insufficient. If smoke fails, return to implementation and review.
+Apply the current owner policy in `docs/development-workflow.md`. Local checkpoints require explicit authorization plus passing required gates and independent review with no open high/medium; `OWNER_SMOKE: DEFERRED` does not block them. Commit permission never grants push, integration, tagging or publication. For separately authorized publication, follow the steps below only to the extent authorized. If a reported smoke fails, resume approved implementation and review.
 
 1. Confirm branch, base/expected parent, upstream, tracking and remote refs, status and staged state. Stop if the remote moved or preconditions changed; never repair history automatically.
 2. Update final project documentation/status only for the approved milestone. Rerun final relevant gates sequentially and record exact results, warnings and narrow exceptions. Ensure final artifact evidence refers to the final build.

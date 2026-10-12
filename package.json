@@ -3,7 +3,7 @@
   "displayName": "ArchGround",
   "version": "0.1.0-private.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "publisher": "setech-pl",
   "type": "module",
   "engines": {
@@ -24,7 +24,13 @@
     "extension:build": "node vscode-extension/scripts/build.mjs",
     "extension:package": "node vscode-extension/scripts/package-vsix.mjs",
     "extension:verify": "node vscode-extension/scripts/verify-vsix.mjs",
-    "extension:test": "vitest run test/runtime test/vscode-extension"
+    "extension:test": "vitest run test/runtime test/vscode-extension",
+    "ux3:gauntlet": "node scripts/ux3-gauntlet.mjs",
+    "k1:gauntlet": "node scripts/k1-gauntlet.mjs",
+    "k2:gauntlet": "node scripts/k2-gauntlet.mjs",
+    "k3:gauntlet": "node scripts/k3-gauntlet.mjs",
+    "art1:gauntlet": "node scripts/art1-gauntlet.mjs",
+    "ux4:gauntlet": "node scripts/ux4-gauntlet.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.8.15",
@@ -37,6 +43,11 @@
     "unpdf": "1.7.0",
     "yauzl": "3.4.0",
     "zod": "4.6.5"
+  },
+  "overrides": {
+    "mammoth": {
+      "argparse": "2.0.1"
+    }
   },
   "devDependencies": {
     "@types/node": "22.20.2",

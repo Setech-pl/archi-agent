@@ -1,51 +1,54 @@
 # Archi Agent
 
-Archi Agent is a VS Code extension for generating grounded PlantUML architecture diagrams from a flow description and a local Architecture Knowledge Pack. Version **0.3.0-alpha.3** is published; **0.3.0-alpha.4** is the UX2 release candidate.
+**English** · [Polski](README.pl.md)
 
-The extension generates **Sequence** and **Component** diagrams. A model proposes a bounded plan; local code validates the plan and renders PlantUML; a separate model call reviews the candidate. Verified results open as unsaved PlantUML and grounding-report editors. **Generate Sequence Diagram** remains a separate compatibility command with its earlier report format.
+Archi Agent generates grounded **Sequence** and **Component** PlantUML diagrams in VS Code from a flow description and a local Architecture Knowledge Pack. Grounding resolves names, aliases and evidence locally. A model proposes a bounded plan; local validation and rendering precede a separate semantic review.
 
-## Install the prerelease
+## Choose the right build
 
-For the published prerelease, download [archi-agent-0.3.0-alpha.3.vsix](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.3/archi-agent-0.3.0-alpha.3.vsix) and its [SHA-256 file](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.3/archi-agent-0.3.0-alpha.3.sha256) from the [v0.3.0-alpha.3 prerelease page](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.3). Verify the downloaded VSIX against the checksum. In VS Code, open **Extensions → … → Install from VSIX…** and select the file. The `alpha.4` candidate is local and has not been published.
+The published prerelease is [v0.3.0-alpha.4](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.4), released on 2026-10-03 from `31a6609cd0e8b083dbc09f3007a761e93a174b18`. Its [VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.vsix) and [checksum](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.sha256) contain UX2 OCR. The published VSIX SHA-256 is `4d30bb3b3b2108c8ecbba2748e7da537f5668460b717e2b3f2740060559e12b1` (119805952 bytes).
 
-The VSIX contains its runtime and conversion worker. End users do not need to clone this repository, install npm or Node.js separately, or run an Archi Agent backend. Diagram generation still needs a configured model provider and Knowledge Pack; document conversion needs neither.
+These guides describe the **current branch build based on UX4-FU2 `6863a30`**: OBS1 provider diagnostics, UX3 pack onboarding, K1–K3 knowledge acquisition/review, ART1 controlled saving, Configuration, Knowledge Browser and explicit model selection. These features are absent from the older public UX2 download above. The package version remains `0.3.0-alpha.4`; identify a branch VSIX by its supplied SHA-256. Source publication on this branch is separate from a release; no new release is created here.
 
-## First run
+Technical checks and known limits are recorded in [project state](docs/project-state.md); earlier checkpoint reports remain in the technical history.
 
-1. Run **Archi Agent: Open** from the Command Palette. Its four sections are **Generate Diagram**, **Configuration**, **Knowledge Management**, and **Convert to Markdown**.
-2. For diagrams, create a local [Architecture Knowledge Pack](docs/knowledge-pack-format.md): one directory with systems.md, actors.md, relationships.md, aliases.md, and rules.md. Set its absolute path through **Knowledge Management → Configure Knowledge Pack Path** or the **archiAgent.knowledgePackPath** setting. The pack is not included in the VSIX.
-3. Under **Configuration**, run **Select Provider Profile**, then **Select Model**. Local profiles use LM Studio or Ollama through loopback OpenAI-compatible endpoints. Cloud profiles use Anthropic, OpenAI, or OpenRouter; also run **Set or Update API Key**. Choose a model capable of structured JSON output. Cloud calls may incur provider charges.
-4. Choose **Generate Diagram → Sequence** or **Component**. Supply the active flow document, a local flow file, or a typed description. A flow document needs the required [front matter](docs/front-matter.md). Resolve ambiguous names and confirm explicit **[NEW: Name]** elements when prompted.
-5. Inspect the PlantUML and grounding report. Save the untitled editors yourself if you want files. If semantic review rejects or fails after local validation, the extension may offer a clearly marked **unverified candidate** without a report; cancelling opens no result.
+## Start here
 
-**Archi Agent: Convert to Markdown** can also be run directly. Select one local PDF, DOCX, or XLSX; for PDF choose Auto OCR, No OCR, or OCR all pages. Offline Polish and English OCR handles scanned pages and marks OCR and blank pages in the Markdown result. Conversion opens one unsaved editor after success. It does not edit the source, use a model, read a Knowledge Pack, or make a network request. Progress and Cancel are shown during conversion; Cancel or failure opens no partial document.
+1. Obtain the identified branch VSIX and check its checksum. In VS Code use **Extensions → … → Install from VSIX…**. No repository, npm, separate Node.js or Archi Agent backend is needed.
+2. Open a local project folder. Run **Archi: Open** from the Command Palette.
+3. Open **Archi: Configuration → LLM Provider**. Choose a profile, Refresh Models, choose an exact ID from Available models and Apply. Refresh reads the visible form without saving it. Prepare LM Studio or Ollama locally, or use Anthropic, OpenAI or OpenRouter with **Set / Replace Key**. Keys are held in VS Code SecretStorage. Use a model supporting structured JSON output.
+4. Open **Knowledge Management**. **Choose Existing Knowledge Pack** selects the folder containing the five pack Markdown files; **Create Knowledge Pack** creates a small pack from one real system. The chosen pack is validated before activation. Browse Knowledge opens the same native Explorer tree as **Archi: Knowledge Browser**. **Build Knowledge Pack from Active File** captures MD/TXT buffers, including unsaved changes; binary documents use the local file conversion pipeline.
+5. Choose **Create Diagram → Sequence** or **Component**. Supply a flow document or a description using the pack's canonical names; resolve ambiguities and confirm explicit `[NEW: Name]` elements when prompted.
+6. Read the PlantUML editor and linked grounding-report editor. **Save Diagram and Report** saves the frozen original pair into a new project result folder. A rendered PlantUML preview requires separate editor support.
 
-## Grounding, providers, and privacy
+For a synthetic starting point use Alpha (service), Beta (database), and a synchronous DB relationship Alpha → Beta named Writer. Describe `Alpha stores data in Beta.` The [user guide](docs/en/user-guide.md) explains pack creation, the five-file format, review decisions, errors and safe saving without relying on videos.
 
-The Knowledge Pack is parsed and indexed locally. Canonical names, aliases, ambiguity decisions, explicit new elements, rules, and source evidence constrain the plan. Source-confirmed relationships remain distinct from user-stated ones; absence from the pack does not prove absence in the architecture. Only bounded context relevant to the request is sent to the selected model, never the complete pack. Generator output and reviewer verdicts are validated locally. Reviewed generation uses at most one generator call and one independent reviewer call, without automatic retry or repair.
 
-Implemented provider profiles are **LM Studio**, **Ollama**, **Anthropic**, **OpenAI**, and **OpenRouter**. Local endpoints are restricted to loopback. Cloud profiles use fixed HTTPS endpoints and API keys stored in VS Code SecretStorage; keys are not ordinary settings or packaged with the VSIX. Profile and model selections are machine scoped. Selecting a cloud profile does not itself send a request; explicit model listing and generation do. See [local models](docs/local-model.md), [cloud models](docs/cloud-models.md), and the [extension guide](docs/vscode-extension.md).
+**Offline help:** run **Archi: Help** or **Archi: Open → Help**. VS Code display language selects PL/EN; the bundled instruction also links to the other language. See the [first-use walkthrough](docs/en/user-guide.md#start-here--first-use) and troubleshooting.
 
-Automated tests cover the provider adapters and reviewed pipelines with controlled transports and synthetic data. Packaged-runtime smoke has exercised an extracted VSIX outside the repository. Historical owner smoke passed for the self-contained extension, reviewed Sequence with Ollama, UX1 navigation and conversion, and D2 Component. The owner reported **PASS** for the integration candidate after checking installation, navigation, conversion, diagram generation, cancellation, provider and model selection, cloud-key UI, and standalone README instructions. The five profiles have not all received live owner smoke; no paid cloud smoke is claimed.
+## User documentation
 
-## Current limits and deferred work
+- [User guide](docs/en/user-guide.md) · [Architecture and five Mermaid diagrams](docs/en/architecture.md) · [Development](docs/en/development.md)
+- [Three real UI demonstrations, previews and provenance](docs/assets/README.md)
 
-- One local Knowledge Pack directory is supported. Diagram output is untitled; the extension does not persist or version artifacts. A PlantUML preview requires separate editor support.
-- PDF conversion has no layout reconstruction. DOCX complex layout and merged cells may lose fidelity. XLSX uses saved formula results and does not recalculate formulas. Input, output, archive, page, sheet, cell, OCR image, and time limits apply; see [known limitations](docs/vscode-extension.md#known-limitations).
-- DOC, XLS, Enterprise Architect integration, MCP (M1), VS Code Chat (C1), C4 and ArchiMate diagram types (D3–D5), Knowledge Pack Builder extraction and evidence verification (K2), and its UI and write flow (K3) are planned or deferred, **not implemented in this candidate**. An internal deterministic Builder Stage A core exists, but the VSIX does not expose it. Conversion does not automatically build a Knowledge Pack or feed documents into diagram grounding.
+Only bounded relevant context reaches the selected model. Document conversion and OCR are local. Extraction sends bounded selected document text; review/edit/save adds no model requests. Diagram generation uses at most one generator and one reviewer request, without retry, repair or fallback. Cloud requests can incur provider charges.
 
-## Documentation and development
+The 1.0 support target is Mac ARM. Current native UI evidence is macOS arm64; bundled binaries for other platforms do not establish equivalent end-to-end support. MCP, Enterprise Architect acquisition, VS Code Chat, C4/ArchiMate diagram generation and existing-pack merge/update are planned or excluded, not current features.
 
-- [Published CL1 release notes](docs/releases/v0.3.0-alpha.3.md), [UX2 release candidate notes](docs/releases/v0.3.0-alpha.4.md), and [extension guide](docs/vscode-extension.md)
-- [Knowledge Pack format](docs/knowledge-pack-format.md), [flow front matter](docs/front-matter.md), and [reviewed pipeline](docs/reviewed-diagram-pipeline.md)
-- [Architecture](docs/architecture.md), [product roadmap](docs/product-roadmap.md), and [project state](docs/project-state.md)
-- [Development workflow](docs/development-workflow.md), [contributor instructions](AGENTS.md), and [offline demo](docs/demo.md)
+## Repository development
 
-Contributors can install locked dependencies with **npm ci**, run **npm test**, and use the scripts in the root [package manifest](package.json) to typecheck, build, package, and verify the extension. Those tools are for development, not VSIX users.
+- Stable technical references: [Knowledge Pack format](docs/knowledge-pack-format.md), [front matter](docs/front-matter.md), [reviewed generation](docs/reviewed-diagram-pipeline.md), [document extraction](docs/document-candidates.md), [pack review/save](docs/knowledge-pack-review.md), [ART1](docs/diagram-artifact-save.md)
+- [Product roadmap](docs/product-roadmap.md) · [Project state](docs/project-state.md) · [Contributor workflow](docs/development-workflow.md)
 
-The [local-model demo](docs/local-model.md) is also a contributor workflow. With an LM Studio server running, list models with **npm run local:models** and provide an explicit model ID:
+For the existing local-model CLI, use a model identifier reported by `npm run local:models`:
 
-```bash
+```sh
 npm run demo:llm:dry-run -- "<model-id>"
 npm run demo:llm -- "<model-id>"
 ```
+
+The second command performs live generation. See [local-model CLI](docs/local-model.md) for prerequisites and [development](docs/en/development.md) for checks.
+
+## License
+
+Archi Agent's own code and documentation use the [MIT License](LICENSE), with the canonical English text from the [Open Source Initiative](https://opensource.org/license/mit). Bundled third-party code, OCR models, native libraries and WASM retain their own licenses: [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR notices](experiments/ux2-ocr/TRIAL_NOTICES.md).

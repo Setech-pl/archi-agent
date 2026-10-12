@@ -1,5 +1,6 @@
 import { parseFrontMatter, type FlowMetadata } from "../knowledge-pack/front-matter.js";
 import type { KnowledgePackIndexes } from "../knowledge-pack/knowledge-pack-loader.js";
+import type { KnowledgeSnapshot } from "../knowledge-pack/knowledge-snapshot.js";
 import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
 import type { KnowledgePack } from "../knowledge-pack/knowledge-pack.schema.js";
 import { countUnicodeCharacters, knowledgePackLimits } from "../knowledge-pack/source-limits.js";
@@ -102,6 +103,7 @@ export function parseFlowDocument(text: string, options: ParseFlowDocumentOption
 export interface GroundingKnowledgePack {
   readonly pack: KnowledgePack;
   readonly indexes: KnowledgePackIndexes;
+  readonly knowledge?: KnowledgeSnapshot;
 }
 
 export interface GroundingRequest {

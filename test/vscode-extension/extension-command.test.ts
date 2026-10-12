@@ -14,6 +14,7 @@ import { readLocalModelSettings } from "../../vscode-extension/src/settings.js";
 import { ContextEchoGenerator } from "../doubles/context-echo-generator.js";
 import { basePackRows, buildPackFiles } from "../doubles/knowledge-pack-fixture.js";
 import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-double.js";
+import { OpenAiCompatibleServerDouble } from "../doubles/openai-compatible-server-double.js";
 import * as vscodeDouble from "../doubles/vscode-module-double.js";
 
 const packagedRuntime = vi.hoisted(() => ({ current: undefined as ArchiAgentRuntime | undefined }));
@@ -76,9 +77,9 @@ function readAfterRestart() {
   return readLocalModelSettings(vscodeDouble.workspace.getConfiguration(settingsSection));
 }
 
-async function invokeReviewed(outcome: GenerateDiagramOutcome): Promise<void> {
+async function invokeReviewed(outcome: GenerateDiagramOutcome, verbose = true): Promise<void> {
   configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model",
-    [settingKeys.diagnosticsVerbose]: true });
+    [settingKeys.diagnosticsVerbose]: verbose });
   state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
   const inner = echoRuntime();
   packagedRuntime.current = {
@@ -210,6 +211,15 @@ describe("Generate Diagram unverified candidate UX", () => {
     expect(state.openedDocuments[0]?.getText()).not.toContain("reportSchemaVersion");
   });
 
+  it("shows safe review diagnosis with verbose disabled", async () => {
+    await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
+      review: { status: "failed", problemCode: "timeout" } }, false);
+    expect(state.messages).toHaveLength(1);
+    expect(state.outputLines.join("\n")).toContain("Semantic review for LM Studio could not be confirmed (timeout)");
+    expect(state.outputLines.join("\n")).toContain("Generation: positive; review: indeterminate");
+    expect(state.outputLines.join("\n")).not.toContain("@startuml");
+  });
+
   it.each(["Cancel", undefined])("dismisses the modal with %s without opening or writing anything", async (answer) => {
     state.messageAnswers.push(answer);
     await invokeReviewed({ status: "unverified", plantUmlCandidate: candidate,
@@ -230,6 +240,7 @@ describe("Generate Diagram unverified candidate UX", () => {
       await invokeReviewed({ status: "failed", stage, issues: [{ severity: "error", code, message: "Safe failure." }],
         ambiguities: [], unconfirmedNewParticipants: [] });
       expect(state.messages.every((message) => !message.text.includes("unverified"))).toBe(true);
+      if (code === "generation-cancelled") expect(state.messages[0]?.text).toContain("generation cancelled");
       expect(state.openedDocuments).toEqual([]);
       resetDouble();
     }
@@ -260,6 +271,23 @@ afterAll(() => {
 });
 
 describe("activation", () => {
+  it.each([["pl", "README.pl.md"], ["pl-PL", "README.pl.md"], ["en", "readme.md"], ["de", "readme.md"]])("opens bundled help for display language %s", async (language, filename) => {
+    const context = { ...createExtensionContext(), extensionUri: vscodeDouble.Uri.file("/synthetic-extension") };
+    const previous = vscodeDouble.env.language;
+    try {
+      vscodeDouble.env.language = language;
+      activate(context as never);
+      await vscodeDouble.commands.executeCommand(commandIds.help);
+      const preview = state.executedCommands.find(entry => entry.command === "markdown.showPreview");
+      expect((preview?.args[0] as { fsPath: string }).fsPath).toBe(`/synthetic-extension/${filename}`);
+      expect(state.secretReads).toEqual([]);
+      expect(state.configurationUpdates).toEqual([]);
+    } finally {
+      vscodeDouble.env.language = previous;
+      context.subscriptions.forEach(subscription => subscription.dispose());
+    }
+  });
+
   it("registers exactly the command contributed by the manifest and owns its disposables", () => {
     const manifest = JSON.parse(readFileSync(new URL("../../vscode-extension/package.json", import.meta.url), "utf8")) as {
       contributes: { commands: { command: string }[]; configuration: { properties: Record<string, unknown> } };
@@ -269,16 +297,16 @@ describe("activation", () => {
 
     activate(context as never);
 
-    expect([...state.registeredCommands.keys()]).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)]);
-    expect(manifest.contributes.commands.map((entry) => entry.command)).toEqual(Object.values(commandIds));
-    expect(manifest.activationEvents).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`));
+    expect([...state.registeredCommands.keys()].sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].sort());
+    expect(manifest.contributes.commands.map((entry) => entry.command).sort()).toEqual(Object.values(commandIds).sort());
+    expect(manifest.activationEvents.sort()).toEqual([...Object.values(commandIds), ...Object.values(legacyCommandIds)].map((command) => `onCommand:${command}`).concat("onView:archiAgent.knowledge").sort());
     expect(Object.keys(manifest.contributes.configuration.properties).sort()).toEqual(
       Object.values(settingKeys)
         .map((key) => `${settingsSection}.${key}`)
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(11);
+    expect(context.subscriptions.length).toBe(21);
     deactivate();
   });
 
@@ -344,6 +372,26 @@ describe("activation", () => {
     expect(state.secretReads).toEqual([]);
   });
 
+  it.each(["Sequence", "Component"])("sends exactly one actual generation POST for a rejected %s answer", async (diagramType) => {
+    const server = await OpenAiCompatibleServerDouble.start({ scenario: "invalid-envelope" });
+    try {
+      configureGlobal({ [settingKeys.localModelProfile]: "local-lm-studio",
+        [settingKeys.localModelSelectedModel]: "synthetic-model",
+        [settingKeys.localModelSelectedModelProfile]: "local-lm-studio" });
+      configure({ [settingKeys.knowledgePackPath]: packDirectory,
+        [settingKeys.localModelBaseUrl]: server.baseUrl });
+      state.activeTextEditor = { document: makeDocument(flowDocument(["Telescope Scheduler registers frames in Image Archive."])) };
+      packagedRuntime.current = createArchiAgentRuntime();
+      state.quickPickAnswers.push(pickByLabel(diagramType), pickByLabel("active editor"));
+      activate(createExtensionContext() as never);
+      await state.registeredCommands.get(commandIds.generateDiagram)?.();
+      expect(server.requests.map(({ method, path }) => [method, path])).toEqual([["POST", "/v1/chat/completions"]]);
+      expect(state.outputLines.join("\n")).toContain("invalid-envelope");
+    } finally {
+      await server.close();
+    }
+  });
+
   it("connects machine-scoped verbose to the existing Archi Agent output channel", async () => {
     configure({ [settingKeys.knowledgePackPath]: packDirectory, [settingKeys.localModelId]: "test-model",
       [settingKeys.diagnosticsVerbose]: true });
@@ -365,17 +413,25 @@ describe("activation", () => {
     expect(state.outputLines).toContain('{"event":"command.started"}');
   });
 
-  it("reports missing settings through the registered command without any runtime call", async () => {
+  it("hidden Sequence ID delegates to the common type picker, Cancel performs no onboarding or I/O", async () => {
+    activate(createExtensionContext() as never);
+    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"}]);
+    expect(state.quickPicks).toHaveLength(1); expect(state.configurationUpdates).toEqual([]);
+    expect(state.secretReads).toEqual([]); expect(state.openedDocuments).toEqual([]);
+  });
+
+  it("offers onboarding for a missing pack and lets Escape stop before any runtime call", async () => {
     const context = createExtensionContext();
     activate(context as never);
 
-    const handler = state.registeredCommands.get(commandIds.generateSequenceDiagram);
+    const handler = () => generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
     await handler?.();
 
-    expect(state.messages).toEqual([
-      expect.objectContaining({ level: "error", text: "archiAgent.knowledgePackPath: Set the absolute path of the Architecture Knowledge Pack directory." })
+    expect(state.quickPicks[0]?.items).toMatchObject([
+      { label: "Create Knowledge Pack" }, { label: "Choose Existing" }, { label: "Cancel" }
     ]);
-    expect(state.messages[0]?.actions).toContain("Open Settings");
+    expect(state.messages).toEqual([]);
     expect(state.openedDocuments).toEqual([]);
   });
 
@@ -399,8 +455,8 @@ describe("activation", () => {
     await state.registeredCommands.get(legacyCommandIds.selectLocalModel)?.();
 
     expect(state.executedCommands.map((entry) => entry.command)).toEqual([commandIds.selectProviderProfile, commandIds.selectModel]);
-    expect(calls.listings).toBe(1);
-    expect(state.quickPicks).toHaveLength(2);
+    expect(calls.listings).toBe(0);
+    expect(state.quickPicks).toHaveLength(0);
   });
 
   it("waits for the real Generate command before listing after a manual profile change and does not generate when model picking is cancelled", async () => {
@@ -444,7 +500,7 @@ describe("activation", () => {
     });
 
     state.quickPickAnswers.push(pickByLabel("active editor"));
-    const handler = state.registeredCommands.get(commandIds.generateSequenceDiagram);
+    const handler = () => generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
     await handler?.();
 
     expect(calls).toEqual({ listings: 1, generations: 0, requests: [] });
@@ -480,7 +536,7 @@ describe("generate command", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
 
     expect(state.secretReads).toEqual([secretId]);
     expect(transport.requests.map((request) => request.endpoint)).toEqual(["openai-models"]);
@@ -491,7 +547,7 @@ describe("generate command", () => {
     expect(state.quickPicks).toHaveLength(2);
   });
 
-  it("runs cloud generation through the registered command and reads its secret only after the flow picker", async () => {
+  it("runs cloud generation through the retained compatibility adapter and reads its secret only after the flow picker", async () => {
     configure({ [settingKeys.knowledgePackPath]: packDirectory });
     configureGlobal({
       [settingKeys.localModelProfile]: "cloud-openai",
@@ -518,7 +574,7 @@ describe("generate command", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
 
     expect(state.secretReads).toEqual([secretId]);
     expect(requests).toHaveLength(1);
@@ -555,7 +611,7 @@ describe("generate command", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
 
     expect(state.secretReads).toEqual([]);
     expect(state.secretWrites).toEqual([]);
@@ -600,7 +656,7 @@ describe("generate command", () => {
 
     state.activeTextEditor = { document: makeDocument(flowDocument(groundedLines)) };
     state.quickPickAnswers.push(pickByLabel("active editor"));
-    await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
+    await generateSequenceDiagramCommand({ runtime: packagedRuntime.current!, output: output(), secrets: createExtensionContext().secrets as never });
     expect(calls.generations).toBe(0);
     expect(state.messages.at(-1)?.text).toContain("no valid API key");
   });
@@ -761,9 +817,9 @@ describe("generate command", () => {
 
     await generateSequenceDiagramCommand({ runtime: echoRuntime(), output: output() });
 
-    expect(state.messages[0]?.text).toContain("Knowledge Pack could not be loaded");
-    expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: [settingsSection] }]);
-    expect(state.outputLines.some((line) => line.includes("[missing-file]"))).toBe(true);
+    expect(state.messages[0]?.text).toContain("[missing-file]");
+    expect(state.executedCommands).toEqual([{ command: "workbench.action.openSettings", args: [`${settingsSection}.${settingKeys.knowledgePackPath}`] }]);
+    expect(state.secretReads).toEqual([]);
   });
 
   it("shows the output channel when the user asks for details of a rejected model answer", async () => {
@@ -904,7 +960,7 @@ describe("local provider and model selection", () => {
     };
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(state.secretReads).toEqual([secretId]);
     expect(transport.requests.map((request) => request.endpoint)).toEqual(["openai-models"]);
@@ -1102,7 +1158,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([
@@ -1140,7 +1196,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([
@@ -1179,7 +1235,7 @@ describe("local provider and model selection", () => {
     state.quickPickAnswers.push((items) => items[0]);
     activate(createExtensionContext() as never);
 
-    await state.registeredCommands.get(commandIds.selectModel)?.();
+    await selectLocalModel(packagedRuntime.current!, output(), createExtensionContext().secrets as never);
 
     expect(calls).toEqual({ listings: 1, generations: 0 });
     expect(state.configurationUpdates).toEqual([

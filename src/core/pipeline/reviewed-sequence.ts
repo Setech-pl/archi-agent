@@ -1,13 +1,15 @@
 import { buildGroundedContext, type FlowDocument, type GroundingKnowledgePack, type GroundingRequest } from "../grounding/grounded-context-builder.js";
 import type { GroundedContext, GroundingOutcome } from "../grounding/grounded-context.js";
 import { allocateAliases } from "../render/alias-allocator.js";
-import { stableDigest } from "../util/stable-digest.js";
+import { stableDigest, type CanonicalValue } from "../util/stable-digest.js";
 import { stableCompare } from "../util/ordering.js";
 import { participantKindOf } from "../validation/grounding-validator.js";
+import { knowledgeSnapshotFromPack, selectKnowledgeContext, type SelectedKnowledgeContext } from "../knowledge-pack/knowledge-snapshot.js";
 
 export interface ArchitectureSnapshot {
   readonly snapshotId: string;
   readonly digest: string;
+  readonly knowledge: SelectedKnowledgeContext;
   readonly flowFile: string;
   readonly metadata: GroundedContext["metadata"];
   readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: string; readonly elementKind: string; readonly names: readonly string[]; readonly description: string; readonly source: { readonly file: string; readonly line: number } }[];
@@ -47,12 +49,13 @@ export function buildArchitectureSnapshot(context: GroundedContext, pack: Ground
     ...relationships.map((entry) => ({ id: entry.evidenceId, file: entry.source.file, line: entry.source.line, evidenceClass: "source-confirmed" as const })),
     ...rules.map((entry) => ({ id: entry.evidenceId, file: entry.source.file, line: entry.source.line, evidenceClass: "source-confirmed" as const })),
     ...flowEvidence.map((entry) => ({ id: entry.flowEvidenceId, file: flow.file ?? "flow", line: entry.line, evidenceClass: "user-stated" as const }))];
-  const payload = { flowFile: flow.file ?? "flow", metadata: { ...context.metadata },
+  const knowledge = selectKnowledgeContext(pack.knowledge ?? knowledgeSnapshotFromPack(pack.pack), known.map((entry) => entry.id));
+  const payload = { knowledge, flowFile: flow.file ?? "flow", metadata: { ...context.metadata },
     elements: Object.freeze(elements.map((entry) => Object.freeze({ ...entry, source: Object.freeze({ ...entry.source }) }))),
     relationships: Object.freeze(relationships.map((entry) => Object.freeze({ ...entry, source: Object.freeze({ ...entry.source }) }))),
     rules: Object.freeze(rules.map((entry) => Object.freeze({ ...entry, source: Object.freeze({ ...entry.source }) }))),
     flowEvidence: Object.freeze(flowEvidence.map((entry) => Object.freeze(entry))),
     sources: Object.freeze(sources.map((entry) => Object.freeze(entry))) };
-  const digest = stableDigest(payload);
+  const digest = stableDigest(payload as unknown as CanonicalValue);
   return Object.freeze({ snapshotId: `snapshot-${digest.slice(0, 16)}`, digest, ...payload });
 }

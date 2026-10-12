@@ -5,6 +5,8 @@ import { readApiKey } from "../api-key-storage.js";
 import { settingKeys, settingsSection } from "../contributions.js";
 import { readLocalModelSettings, type LocalModelSettings, type SettingsProblem } from "../settings.js";
 import { describeModelListFailure, describeSettingsProblems } from "../user-messages.js";
+import { classifyProviderDiagnostic } from "../../../src/runtime/index.js";
+import { describeProviderDiagnostic } from "../user-messages.js";
 
 interface ProviderItem extends vscode.QuickPickItem {
   readonly profile: ProviderProfile;
@@ -22,7 +24,7 @@ export type LocalSelectionOutcome =
 const openSettingsAction = "Open Settings";
 const showDetailsAction = "Show Details";
 
-function cancellationSignal(token: vscode.CancellationToken): CancellationSignal {
+export function cancellationSignal(token: vscode.CancellationToken): CancellationSignal {
   const subscriptions = new Map<() => void, vscode.Disposable>();
 
   return {
@@ -47,7 +49,7 @@ function currentSettings() {
   return readLocalModelSettings(vscode.workspace.getConfiguration(settingsSection));
 }
 
-function profileSelection(
+export function profileSelection(
   settings: LocalModelSettings,
   apiKey?: string
 ): { readonly profileId: string; readonly timeoutMs: number; readonly baseUrl?: string; readonly credential?: { readonly type: "api-key"; readonly value: string } } {
@@ -71,8 +73,13 @@ async function notifySettingsFailure(output: vscode.OutputChannel, problems: rea
   await vscode.window.showErrorMessage(message.text);
 }
 
-async function showModelListFailure(output: vscode.OutputChannel, code: string, baseUrl: string): Promise<void> {
-  const message = describeModelListFailure(code, baseUrl);
+async function showModelListFailure(output: vscode.OutputChannel, code: string, baseUrl: string, profileId?: string, credentialRequired = false): Promise<void> {
+  const diagnosticMessage = profileId === undefined ? undefined : describeProviderDiagnostic(classifyProviderDiagnostic({
+    profileId, operation: "listing", credentialRequired, outcome: code === "cancelled" ? "cancelled" : "failure", code
+  }));
+  const message = diagnosticMessage === undefined ? describeModelListFailure(code, baseUrl) :
+    code === "connection-failed" && profileId?.startsWith("local-") ? Object.freeze({ ...diagnosticMessage,
+      text: `The local model server at ${baseUrl} did not answer (connection-failed). Is the server running with the model loaded?` }) : diagnosticMessage;
   output.appendLine(message.text);
   for (const detail of message.details) output.appendLine(`  ${detail}`);
   const chosen = await vscode.window.showErrorMessage(message.text, showDetailsAction, openSettingsAction);
@@ -149,8 +156,11 @@ export async function selectProviderProfile(
 export async function selectModel(
   runtime: ArchiAgentRuntime,
   output: vscode.OutputChannel,
-  secrets?: vscode.SecretStorage
+  secrets?: vscode.SecretStorage,
+  parentToken?: vscode.CancellationToken
 ): Promise<LocalSelectionOutcome> {
+  const cancelled = () => parentToken?.isCancellationRequested === true;
+  if (cancelled()) return { status: "cancelled" };
   const currentResult = currentSettings();
 
   if (!currentResult.ok) {
@@ -161,33 +171,43 @@ export async function selectModel(
   const current = currentResult.settings;
   const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === current.profileId);
   if (profile === undefined) {
-    await showModelListFailure(output, "unknown-provider-profile", current.baseUrl ?? "selected provider");
+    await showModelListFailure(output, "unknown-provider-profile", current.baseUrl ?? "selected provider", current.profileId);
     return Object.freeze({ status: "failed" });
   }
   let apiKey: string | undefined;
   try {
     apiKey = secrets === undefined ? undefined : await readApiKey(secrets, profile);
   } catch {
-    await showModelListFailure(output, "secret-storage-read-failed", profile.displayName);
+    await showModelListFailure(output, "secret-storage-read-failed", profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
     return Object.freeze({ status: "failed" });
   }
+  if (cancelled()) return { status: "cancelled" };
   if (profile.credentialRequirement === "api-key" && apiKey === undefined) {
-    await showModelListFailure(output, "credential-required", profile.displayName);
+    await showModelListFailure(output, "credential-required", profile.displayName, profile.profileId, true);
     return Object.freeze({ status: "failed" });
   }
 
   const listed = await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: `Archi Agent: listing ${profile.displayName} models`, cancellable: true },
-    (_progress, token) => runtime.listProviderModels(profileSelection(current, apiKey), { signal: cancellationSignal(token) })
+    async (_progress, token) => {
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      const subscriptions = [token.onCancellationRequested(stop), parentToken?.onCancellationRequested(stop)];
+      if (token.isCancellationRequested || cancelled()) stop();
+      try { return await runtime.listProviderModels(profileSelection(current, apiKey), { signal: controller.signal }); }
+      finally { subscriptions.forEach((subscription) => subscription?.dispose()); }
+    }
   );
 
+  if (cancelled()) return { status: "cancelled" };
   if (!listed.ok) {
-    await showModelListFailure(output, listed.code, current.baseUrl ?? profile.displayName);
+    if (listed.code === "cancelled") return Object.freeze({ status: "cancelled" });
+    await showModelListFailure(output, listed.code, current.baseUrl ?? profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
     return Object.freeze({ status: "failed" });
   }
 
   if (listed.models.length === 0) {
-    await showModelListFailure(output, "no-models", current.baseUrl ?? profile.displayName);
+    await showModelListFailure(output, "no-models", current.baseUrl ?? profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
     return Object.freeze({ status: "failed" });
   }
 
@@ -200,9 +220,9 @@ export async function selectModel(
     title: "Archi Agent: select the model",
     placeHolder: `Models reported by ${profile.displayName}`,
     ignoreFocusOut: true
-  });
+  }, parentToken);
 
-  if (picked === undefined) {
+  if (cancelled() || picked === undefined) {
     return Object.freeze({ status: "cancelled" });
   }
 
@@ -210,6 +230,7 @@ export async function selectModel(
 
   if (current.selectionMode === "legacy") {
     try {
+      if (cancelled()) return { status: "cancelled" };
       await configuration.update(settingKeys.localModelSelectedModel, picked.modelId, vscode.ConfigurationTarget.Global);
     } catch {
       await notifyWriteFailure(output, "Archi Agent: the selected model could not be stored in the local user settings.");
@@ -217,6 +238,7 @@ export async function selectModel(
     }
 
     try {
+      if (cancelled()) return { status: "cancelled" };
       await configuration.update(settingKeys.localModelSelectedModelProfile, current.profileId, vscode.ConfigurationTarget.Global);
     } catch {
       await notifyWriteFailure(output, "Archi Agent: the selected model binding could not be stored in the local user settings.");
@@ -224,6 +246,7 @@ export async function selectModel(
     }
 
     try {
+      if (cancelled()) return { status: "cancelled" };
       await configuration.update(settingKeys.localModelProfile, current.profileId, vscode.ConfigurationTarget.Global);
     } catch {
       await notifyWriteFailure(output, "Archi Agent: the provider profile could not be stored in the local user settings.");
@@ -231,6 +254,7 @@ export async function selectModel(
     }
   } else {
     try {
+      if (cancelled()) return { status: "cancelled" };
       await configuration.update(settingKeys.localModelSelectedModelProfile, undefined, vscode.ConfigurationTarget.Global);
     } catch {
       await notifyWriteFailure(output, "Archi Agent: the previous selected model binding could not be cleared.");
@@ -238,6 +262,7 @@ export async function selectModel(
     }
 
     try {
+      if (cancelled()) return { status: "cancelled" };
       await configuration.update(settingKeys.localModelSelectedModel, picked.modelId, vscode.ConfigurationTarget.Global);
     } catch {
       await notifyWriteFailure(output, "Archi Agent: the selected model could not be stored in the local user settings.");
@@ -245,6 +270,7 @@ export async function selectModel(
     }
 
     try {
+      if (cancelled()) return { status: "cancelled" };
       await configuration.update(settingKeys.localModelSelectedModelProfile, current.profileId, vscode.ConfigurationTarget.Global);
     } catch {
       await notifyWriteFailure(output, "Archi Agent: the selected model binding could not be stored in the local user settings.");

@@ -186,7 +186,7 @@ Listing additionally uses `invalid-model-list`, `model-list-truncated`, `too-man
 No provider error body or raw model response is returned to the user. There is no retry, repair,
 streaming, provider/model fallback or automatic key test.
 
-## Optional owner smoke flows
+## Optional manual smoke flows
 
 These are manual and excluded from automatic Definition of Done. **Each successful generation may
 incur provider cost.** Use a disposable synthetic flow/Knowledge Pack when possible and inspect the

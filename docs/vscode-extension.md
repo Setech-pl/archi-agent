@@ -1,5 +1,7 @@
 # Archi Agent VS Code extension
 
+Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the current UX4-FU2 branch build; the public UX2 package is distinct. This stable path remains a technical reference.
+
 The extension is the first self-contained host of the Archi Agent runtime. It packages the existing
 sequence compatibility path and the reviewed Sequence and Component pipelines (Knowledge Pack loading,
 deterministic grounding, plan validation, PlantUML rendering and grounding reports) into a VSIX that runs without the
@@ -9,13 +11,15 @@ with credentials held by VS Code `SecretStorage`. This document describes
 the current extension; it is not published to any
 marketplace.
 
+Offline **Archi: Help** / **Archi: Open → Help** selects the bundled Polish README for display language `pl`, English otherwise; both language links stay within the VSIX. Current component/data-flow diagrams: [architecture](architecture.md). Historical technical results are identified by date/artifact, not current smoke acceptance.
+
 ## Architecture
 
 ```text
 VS Code UI  (quick picks, input boxes, progress, editors, settings)
     |
     v
-vscode-extension/src            editor layer: QuickPick navigation, generation, conversion, settings
+vscode-extension/src            editor layer: configuration/review webviews, QuickPick diagram selection, generation, conversion, settings
     |
     v  createPackagedRuntime()
 src/runtime                     application runtime: ArchiAgentRuntime + convertDocument
@@ -62,12 +66,17 @@ flow and the bare directory name of the pack.
 
 ## Commands
 
-`Archi Agent: Open` (`archiAgent.open`) displays four QuickPick sections: Generate Diagram,
-Configuration, Knowledge Management and Convert to Markdown. Generate Diagram calls the existing
-`archiAgent.generateDiagram`; Configuration routes to the existing provider, model and API-key
-commands or opens the relevant VS Code setting; Knowledge Management currently offers only
-Knowledge Pack Path. Back returns to the first picker, and Escape closes it. Existing public
-command IDs remain registered even when their direct Command Palette entries are hidden.
+`Archi Agent: Open` has Create Diagram, Save Diagram and Report, Configuration,
+Knowledge Management (same screen shortcut), Convert to Markdown and Help.
+`Archi: Create Diagram` asks for Sequence / Component before generation; Cancel does nothing.
+`Archi: Configuration` reveals one editor panel with Knowledge Management and LLM Provider.
+Configure Knowledge Pack and provider/model shortcuts reveal the corresponding tab.
+The old Sequence ID is hidden and delegates to the same diagram selection.
+See [UX4](configuration-workbench.md) for fields, Apply/Discard, scopes, secrets and protocol.
+
+Build Knowledge Pack from Documents uses native document selection and the linked review
+webview backed by the existing KnowledgePackReviewSession. Its five previews and Save/Save and
+use retain [K3 contracts](knowledge-pack-review.md). There is no separate configuration tree.
 
 `Archi Agent: Convert to Markdown` (`archiAgent.convertToMarkdown`) is also directly callable.
 It selects one local PDF, DOCX or XLSX file and opens a single unsaved Markdown editor after full
@@ -97,7 +106,23 @@ is required to construct the picker, so dismissing an already displayed cloud mo
 after one `SecretStorage.get` and one model-list GET. That cancellation writes no model or binding
 and does not start generation.
 
-`Archi Agent: Generate Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
+`Archi Agent: Check Provider Configuration` checks the selected profile without changing any
+setting or producing a diagram. Local settings or a missing cloud key block the check before
+network I/O. Otherwise it makes at most one bounded model-list request through the existing
+transport, with no retry or pagination. It does not send a generation or review request. The
+notification and Archi Agent output show a safe `ProviderDiagnostic` even when
+`archiAgent.diagnostics.verbose` is false. The result separates execution (`not-attempted`,
+`attempted`, `cancelled`) from findings (`positive`, `negative`, `unchecked`, `indeterminate`,
+`not-applicable`) for configuration, credentials, connection, listing, selected model, generation,
+review, billing and quota. A saved key by itself does not prove validity. A successful list leaves
+credential validation unchecked because the response does not prove the server verified the key.
+It proves only that listing worked; it does not establish billing, quota or generation readiness. A selected
+model missing from the returned list remains indeterminate because provider lists may be filtered
+or incomplete. Cancellation stays cancellation. Diagnostics contain closed codes and fixed text,
+never keys, model IDs, response bodies, prompts or local paths. Existing Select Model and Generate
+Diagram request counts and pipeline decisions are unchanged.
+
+`Archi: Create Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
 The picker offers Sequence and Component. Sequence runs the D1.2 Wire Plan v3 path;
 Component runs the D2 component plan and renderer. Each uses one strict plan request,
 local validation and deterministic PlantUML rendering, then one independent semantic
@@ -105,7 +130,7 @@ review request. Verified success opens PlantUML and report v2. If review rejects
 fails after all local checks, one modal offers the unverified candidate. **Show unverified
 candidate** opens one untitled PlantUML document with a fixed warning header and no report;
 **Cancel** or dismissal opens nothing. User cancellation during review never offers a candidate.
-No retry, repair, fallback or third request occurs. The verified owner smoke on 2026-09-23 made
+No retry, repair, fallback or third request occurs. The verified manual smoke on 2026-09-23 made
 S1 PASS; earlier failed attempts remain historical.
 The three
 reserved types remain unsupported through direct runtime calls before any credential read or
@@ -146,7 +171,7 @@ the existing artifact writer is a later checkpoint.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `archiAgent.knowledgePackPath` | (empty) | Absolute path of the Knowledge Pack directory holding the five pack files. Relative paths are rejected; nothing is resolved against a workspace or the working directory. |
+| `archiAgent.knowledgePackPath` | (empty) | Absolute path of the Knowledge Pack directory holding the five pack files. An explicit value takes precedence. The onboarding flow saves a project pack in the selected workspace folder's resource scope, or in user scope without a project. Relative paths are rejected. |
 | `archiAgent.localModel.profile` | `local-lm-studio` | Explicit local or cloud profile. Scope `machine`: not synchronized and not overridable by workspace settings. The manifest default is not an explicit migration. |
 | `archiAgent.localModel.selectedModel` | (empty) | Model for the explicit profile. Scope `machine`; written through `ConfigurationTarget.Global`. Cloud IDs may contain a namespace slash. |
 | `archiAgent.localModel.selectedModelProfile` | (empty) | Extension-managed binding of `selectedModel` to its profile. Scope `machine`; written through `ConfigurationTarget.Global`. |
@@ -289,14 +314,40 @@ failure policy and cost-warning smoke flows are in [`cloud-models.md`](cloud-mod
 
 ## Knowledge Pack configuration
 
-Set `archiAgent.knowledgePackPath` to the absolute path of a directory holding `systems.md`,
+Generate Diagram validates the configured directory through the production loader before selecting a model
+or reading an API key. A missing or invalid pack displays a safe cause and actions to open Settings,
+create a pack, choose an existing pack or cancel. An empty directory is invalid. You can also run
+**Configure Knowledge Pack** from Configuration, Knowledge Management or the Command Palette; this
+opens the Knowledge Management screen even when the current pack is valid. Cancel
+keeps the existing setting. In a multi-root workspace, first choose the project folder. **Create**
+shows the proposed absolute location and lets you change it before asking for one real system's
+identifier, name, kind and description. It then creates
+`systems.md`, `actors.md`, `relationships.md`, `aliases.md` and `rules.md`. The other four tables start
+empty; no relationship is invented. The default directory is `.archi-agent/knowledge` in the selected
+project, or `Documents/ArchiAgent/knowledge` in the user home directory when no project is open.
+An explicit valid `archiAgent.knowledgePackPath` takes precedence during generation. **Choose Existing** validates a selected
+local directory. Both paths are checked with the production Knowledge Pack loader before the setting
+is saved. Create accepts a new or existing empty destination. A nonempty directory reports a collision
+and offers another location. Missing parent directories are created without following links. Failures
+show a closed cause code and a next action. Existing files are never overwritten. On a failed creation or setting write, cleanup removes
+only unchanged files created by that attempt and directories that are both empty and still the ones created by it.
+The wizard checks the selected settings scope before prompting and again before saving; a detected
+change ends in a conflict. Its own operations for one folder are serialized. VS Code's configuration
+API has no atomic compare-and-swap, so an external change in the final read/write window cannot be
+fully excluded. If a write rejects after applying, the extension leaves the current setting alone
+instead of risking an overwrite during rollback. A pack still referenced by the current setting is
+kept. File cleanup also uses identity and content checks but is not an atomic filesystem transaction.
+Once the path is saved,
+later model cancellation or provider/generation failure leaves the pack and setting in place.
+
+You can also set `archiAgent.knowledgePackPath` to the absolute path of a directory holding `systems.md`,
 `actors.md`, `relationships.md`, `aliases.md` and `rules.md` (see `docs/knowledge-pack-format.md`).
 The directory may be anywhere; it is not part of the VSIX and not resolved relative to a workspace.
 The repository sample `samples/space-mission/architecture` works as a first pack when its absolute
 path is configured. The pack directory must be a real directory reached without symbolic links or
 junctions.
 
-## Owner smoke flows (optional)
+## Manual smoke flows (optional)
 
 LM Studio flow: package and verify the VSIX, install it in a clean VS Code profile, configure the
 sample Knowledge Pack, select **LM Studio**, select a model, generate from the sample flow, and
@@ -328,7 +379,7 @@ The earlier LM Studio-only procedure remains useful for checking legacy migratio
 Steps 1 and 2 are for building the VSIX; the installed extension itself needs neither. Automated
 tests never contact LM Studio: they use a fake generator and a loopback server double.
 
-### CL1 `alpha.2` owner smoke
+### CL1 `alpha.2` manual smoke
 
 Install the exact `vscode-extension/build/cl1-candidate/archi-agent-0.3.0-alpha.2.vsix` in a
 fresh VS Code profile and separate extensions directory. Its SHA-256 is
@@ -346,16 +397,16 @@ open no editor. Cancel a conversion in progress and confirm that it opens no edi
 manual VS Code check; the script `node scripts/cl1-candidate-smoke.mjs <candidate.vsix>
 <fixture-directory>` separately checks the exact packaged runtime outside the repository.
 
-The owner reported PASS for large PDF, XLSX and Word conversion in that exact `alpha.2` VSIX;
+The manual test reported PASS for large PDF, XLSX and Word conversion in that exact `alpha.2` VSIX;
 no separate manual result was reported for Cancel or the input limit. The final `alpha.3` VSIX
 corrects the packaged README and has the same three executable bundles. Its path is
 `vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
 `7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.
-Before publishing `alpha.3`, the owner installed this exact file in a fresh profile and
-confirmed its version, packaged README and conversion UI. Its owner smoke passed; see
+Before publishing `alpha.3`, this exact file was installed in a fresh profile. Its version,
+packaged README and conversion UI were checked. Manual smoke was recorded as PASS; see
 [`project-state.md`](project-state.md) for the released CL1 checkpoint.
 
-## UX2 phase 2 owner smoke (PASS, 2026-10-02)
+## UX2 phase 2 manual smoke (PASS, 2026-10-02)
 
 Install `build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix` in a fresh
 VS Code user profile and extensions directory. Its SHA-256 is
@@ -367,7 +418,7 @@ and `en-clean-200.pdf` with Auto OCR; `mixed.pdf` with Auto OCR and OCR all page
 without opening Markdown. Check page order and `(OCR)`/`(blank)` headings. Cancel a
 longer OCR conversion while the notification is visible, confirm no Markdown opens,
 then convert a scan again. Convert synthetic DOCX/XLSX without an OCR prompt. This
-was confirmed by the owner as PASS on 2026-10-02 in a clean VS Code profile on Mac
+was recorded as PASS on 2026-10-02 in a clean VS Code profile on Mac
 ARM, including Cancel with no partial document, a conversion after Cancel and the
 DOCX/XLSX regression. No host version details were supplied for this manual run.
 The automated extracted-VSIX smoke is
@@ -419,3 +470,10 @@ The automated extracted-VSIX smoke is
   Google Drive, OneDrive and SharePoint, C4 and ArchiMate profiles,
   the repair loop and marketplace publishing. Semantic review is implemented for D1.2 Sequence
   and D2 Component.
+
+## ART1 controlled save
+
+The separate save command consumes the original completed runtime artifact associated with open
+result previews. It does not read settings, buffers, secrets or architecture sources. It saves two
+files in a new project subdirectory only after explicit confirmation; multi-root chooses a project.
+See [format, digests and conditional rollback](diagram-artifact-save.md).

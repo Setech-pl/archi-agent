@@ -6,6 +6,7 @@ import { isSafeGeneratorType } from "../render/metadata-header.js";
 import { createModelIssue } from "../validation/model-validator.js";
 import { validateComponentSubset } from "../validation/component-plantuml-validator.js";
 import { buildComponentSnapshot } from "./component-snapshot.js";
+import { knowledgeSnapshotFromPack } from "../knowledge-pack/knowledge-snapshot.js";
 import { componentPlanResponseSchema, componentReviewResponseSchema, createComponentDependencyCatalog, renderComponentPlan, validateComponentPlan,
   validateComponentReview } from "./component-diagram-plan.js";
 import { envelopeTooLarge, type GenerateDiagramRequest, type ReviewedDiagramOutcome, type ReviewProblemCode } from "./generate-diagram.js";
@@ -37,7 +38,8 @@ export async function generateComponentDiagram(request: GenerateDiagramRequest):
   if (!isSafeGeneratorType(request.client.clientType) || !isSafeModelGenerationMetadata(request.client.generationMetadata) ||
       request.client.generationMetadata.attemptCount !== 1) return invalid("schema-violation", "client-invalid");
   let snapshot;
-  try { snapshot = buildComponentSnapshot(grounding.context, request.flow); }
+  try { snapshot = buildComponentSnapshot(grounding.context, request.flow,
+    request.knowledgePack.knowledge ?? knowledgeSnapshotFromPack(request.knowledgePack.pack)); }
   catch { return invalid("schema-violation", "snapshot-invalid"); }
   diagnostics?.emit("grounding.completed", { digest: snapshot.digest, participantCount: snapshot.elements.length,
     relationshipCount: snapshot.relationships.length, ruleCount: snapshot.rules.length, flowEvidenceCount: snapshot.flowEvidence.length });

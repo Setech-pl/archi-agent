@@ -16,6 +16,7 @@ export async function convertPdf(bytes: Buffer): Promise<Extract<ConvertOutcome,
     });
     if (document.numPages > conversionLimits.pages) throw new ConversionFailure("too-many-pages");
     let foundText = false;
+    const pages: { page: number; source: "text" | "blank" }[] = [];
     const markdown = new MarkdownBuilder();
     for (let number = 1; number <= document.numPages; number += 1) {
       const page = await document.getPage(number);
@@ -36,6 +37,7 @@ export async function convertPdf(bytes: Buffer): Promise<Extract<ConvertOutcome,
           }
         }
         if (line.trim()) lines.push(line);
+        pages.push({ page: number, source: lines.some((line) => line.trim()) ? "text" : "blank" });
         const pageText = lines.map((value) => escapeMarkdown(value.trim())).join("\n");
         markdown.append(`${number === 1 ? "" : "\n\n"}## Page ${number}\n\n${pageText}`);
       } finally {
@@ -43,7 +45,7 @@ export async function convertPdf(bytes: Buffer): Promise<Extract<ConvertOutcome,
       }
     }
     if (!foundText) throw new ConversionFailure("no-text-layer");
-    return { status: "success", format: "pdf", markdown: markdown.finish(), counts: { pages: document.numPages } };
+    return { status: "success", format: "pdf", markdown: markdown.finish(), counts: { pages: document.numPages }, coverage: { pages, warnings: ["layout-not-preserved"] } };
   } catch (error) {
     if (error instanceof ConversionFailure) throw error;
     if (error instanceof Error && error.name === "PasswordException") throw new ConversionFailure("encrypted-document");
