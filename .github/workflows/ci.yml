@@ -1,0 +1,72 @@
+name: Clean-clone CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.platform }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+            os: Linux
+          - runner: macos-15
+            platform: darwin
+            arch: arm64
+            os: macOS
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '22.12.0'
+          package-manager-cache: false
+      - name: Verify environment and record tested revision
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          EXPECTED_OS: ${{ matrix.os }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node --version
+          npm --version
+          uname -a
+          git rev-parse HEAD
+          echo "PR head SHA: ${PR_HEAD_SHA:-not a PR}"
+          test "$RUNNER_OS" = "$EXPECTED_OS"
+          node -e 'console.log(process.platform, process.arch); if (process.version !== "v22.12.0" || process.platform !== process.env.EXPECTED_PLATFORM || process.arch !== process.env.EXPECTED_ARCH || process.getuid() === 0) process.exit(1)'
+          command -v zip
+          command -v tar
+          command -v patch
+      - run: npm ci
+      - run: npm ci --prefix experiments/ux2-ocr
+      - run: node scripts/prepare-ci-ocr.mjs
+      - run: npm run typecheck
+      - run: npm run extension:typecheck
+      # Packaging tests mutate dist/ and the OCR stage; keep both suites and steps sequential.
+      - run: npm test -- --no-file-parallelism
+      - run: npm run extension:test -- --no-file-parallelism
+      - run: npm run extension:package
+      - run: npm run extension:verify
+      - name: Verify lockfiles and tracked files remain unchanged
+        if: always()
+        run: |
+          git diff --exit-code HEAD -- package-lock.json experiments/ux2-ocr/package-lock.json
+          git diff --exit-code HEAD
+          git diff --check

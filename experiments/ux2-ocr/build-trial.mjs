@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openVsix } from '../../vscode-extension/scripts/vsix-zip.mjs';
+import { canvasBindings, canvasPlatforms, verifyCanvasTarball } from '../../scripts/prepare-ci-ocr.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -20,6 +21,11 @@ const patchFile = path.join(here, 'patches/pdfjs-dist-4.10.38-operator-list-erro
 const originalPdfHash = '081d3b6f426d38a8029766f8839f505e9cbf2c81a71d62c26eada142e6c21ae4';
 const originalWorkerHash = '5e9f76bd5e65fbd1602b29fc50e50490aeeacd34a715b2282b73f7e8029242e0';
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const bindings = canvasBindings(root);
+// Direct packaging calls must also reject missing/corrupt inputs before clearing the stage.
+for (const binding of bindings) {
+  verifyCanvasTarball(path.join(build, 'platform-tarballs', binding.filename), binding);
+}
 if (!productAssets && hash(readFileSync(baseline)) !== '7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056') throw new Error('baseline-hash-mismatch');
 const alpha = productAssets ? undefined : openVsix(baseline);
 rmSync(stage, { recursive: true, force: true });
@@ -37,7 +43,8 @@ const copyPackage = (name, pieces) => {
   mkdirSync(dest, { recursive: true });
   for (const piece of pieces) {
     const from = path.join(src, piece);
-    if (existsSync(from)) cpSync(from, path.join(dest, piece), { recursive: true });
+    if (!existsSync(from)) throw new Error(`ocr-resource-missing: ${name}/${piece}`);
+    cpSync(from, path.join(dest, piece), { recursive: true });
   }
 };
 copyPackage('pdfjs-dist', ['package.json', 'LICENSE', 'cmaps', 'standard_fonts', 'legacy/build/pdf.mjs', 'legacy/build/pdf.worker.mjs']);
@@ -53,7 +60,6 @@ const patchedPdfHash = hash(readFileSync(pdfFile));
 if (patchedPdfHash === originalPdfHash) throw new Error('pdfjs-patch-no-change');
 copyPackage('unpdf', ['package.json', 'LICENSE', 'dist']);
 copyPackage('@napi-rs/canvas', ['package.json', 'LICENSE', 'index.js', 'js-binding.js', 'geometry.js', 'load-image.js', 'node-canvas.js']);
-copyPackage('@napi-rs/canvas-darwin-arm64', ['package.json', 'README.md', 'skia.darwin-arm64.node']);
 copyPackage('tesseract.js', ['package.json', 'LICENSE.md', 'src']);
 copyPackage('tesseract.js-core', ['package.json', 'LICENSE', 'index.js',
   'tesseract-core.js', 'tesseract-core.wasm.js', 'tesseract-core.wasm',
@@ -64,10 +70,30 @@ for (const name of ['bmp-js', 'idb-keyval', 'is-url', 'node-fetch', 'regenerator
   'wasm-feature-detect', 'zlibjs', 'whatwg-url', 'tr46', 'webidl-conversions']) {
   cpSync(path.join(sourceModules, name), path.join(targetModules, name), { recursive: true });
 }
-for (const platform of ['darwin-x64', 'linux-x64-gnu', 'linux-arm64-gnu', 'linux-x64-musl', 'linux-arm64-musl', 'win32-x64-msvc', 'win32-arm64-msvc']) {
-  const dest = path.join(targetModules, `@napi-rs/canvas-${platform}`);
+for (const binding of bindings) {
+  const dest = path.join(targetModules, binding.name);
   mkdirSync(dest, { recursive: true });
-  execFileSync('tar', ['-xzf', path.join(build, 'platform-tarballs', `napi-rs-canvas-${platform}-0.1.97.tgz`), '-C', dest, '--strip-components=1']);
+  execFileSync('tar', ['-xzf', path.join(build, 'platform-tarballs', binding.filename), '-C', dest, '--strip-components=1']);
+  const pkg = JSON.parse(readFileSync(path.join(dest, 'package.json'), 'utf8'));
+  if (pkg.name !== binding.name || pkg.version !== binding.version) throw new Error(`canvas-package-mismatch: ${binding.name}`);
+  if (!Array.isArray(pkg.files) || !pkg.files.includes(`skia.${binding.platform}.node`)) {
+    throw new Error(`canvas-binding-not-declared: ${binding.name}`);
+  }
+  for (const resource of ['README.md', ...pkg.files]) {
+    if (typeof resource !== 'string' || path.basename(resource) !== resource ||
+        !statSync(path.join(dest, resource)).isFile() || statSync(path.join(dest, resource)).size === 0) {
+      throw new Error(`canvas-resource-missing: ${binding.name}/${resource}`);
+    }
+  }
+}
+
+for (const [name, version] of Object.entries({ 'pdfjs-dist': '4.10.38', 'tesseract.js': '6.0.1',
+  'tesseract.js-core': '6.1.2', '@napi-rs/canvas': '0.1.97', unpdf: '1.7.0' })) {
+  const pkg = JSON.parse(readFileSync(path.join(targetModules, name, 'package.json'), 'utf8'));
+  if (pkg.name !== name || pkg.version !== version) throw new Error(`ocr-package-mismatch: ${name}`);
+}
+for (const resource of ['assets/lang/pol.traineddata', 'assets/lang/eng.traineddata', 'assets/lang/LICENSE-tessdata-fast']) {
+  if (statSync(path.join(trial, resource)).size === 0) throw new Error(`ocr-resource-empty: ${resource}`);
 }
 
 function filesUnder(dir, prefix = '') {
@@ -88,7 +114,7 @@ const manifest = {
     workerSha256: originalWorkerHash },
   baselineEntries: alpha?.entries.map((entry) => ({ path: entry.name, bytes: alpha.read(entry.name).length, sha256: hash(alpha.read(entry.name)) })) ?? [],
   versions: { 'pdfjs-dist': '4.10.38', 'tesseract.js': '6.0.1', 'tesseract.js-core': '6.1.2', '@napi-rs/canvas': '0.1.97', unpdf: '1.7.0', tessdata_fast: '4.1.0' },
-  platforms: ['darwin-arm64', 'darwin-x64', 'linux-x64-gnu', 'linux-arm64-gnu', 'linux-x64-musl', 'linux-arm64-musl', 'win32-x64-msvc', 'win32-arm64-msvc'],
+  platforms: canvasPlatforms,
   files
 };
 mkdirSync(path.dirname(externalManifest), { recursive: true });
