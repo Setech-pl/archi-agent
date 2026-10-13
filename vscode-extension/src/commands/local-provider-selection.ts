@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { ArchiAgentRuntime, CancellationSignal, ProviderProfile } from "../../../src/runtime/index.js";
 import { localLmStudioProfileId } from "../../../src/runtime/index.js";
+import { captureProviderConfiguration, providerConfigurationIsCurrent, publishProviderConfiguration, ProviderConfigurationConflict } from "../provider-configuration.js";
 import { readApiKey } from "../api-key-storage.js";
 import { settingKeys, settingsSection } from "../contributions.js";
 import { readLocalModelSettings, type LocalModelSettings, type SettingsProblem } from "../settings.js";
@@ -45,8 +46,8 @@ export function cancellationSignal(token: vscode.CancellationToken): Cancellatio
   } as CancellationSignal;
 }
 
-function currentSettings() {
-  return readLocalModelSettings(vscode.workspace.getConfiguration(settingsSection));
+function currentSettings(resource?: vscode.Uri) {
+  return readLocalModelSettings(vscode.workspace.getConfiguration(settingsSection, resource));
 }
 
 export function profileSelection(
@@ -96,60 +97,53 @@ export async function selectProviderProfile(
   runtime: ArchiAgentRuntime,
   output: vscode.OutputChannel
 ): Promise<LocalSelectionOutcome> {
-  const currentResult = currentSettings();
-
-  if (!currentResult.ok) {
-    await notifySettingsFailure(output, currentResult.problems);
-    return Object.freeze({ status: "failed" });
-  }
-
-  const current = currentResult.settings;
-
-  const items: ProviderItem[] = runtime.listProviderProfiles().map((profile) => ({
-    label: profile.displayName,
-    description: profile.profileId === current.profileId ? "$(check) Current profile" : profile.profileId,
-    detail: `${profile.providerKind}${profile.credentialRequirement === "api-key" ? "; API key managed separately" : "; no API key"}`,
-    profile
-  }));
-  const picked = await vscode.window.showQuickPick(items, {
-    title: "Archi Agent: select the provider profile",
-    placeHolder: "Selecting a profile does not contact its provider",
-    ignoreFocusOut: true
-  });
-
-  if (picked === undefined) {
-    return Object.freeze({ status: "cancelled" });
-  }
-
-  if (current.selectionMode === "profile" && picked.profile.profileId === current.profileId) {
-    return Object.freeze({ status: "selected", settings: current });
-  }
-
-  const configuration = vscode.workspace.getConfiguration(settingsSection);
-
+  const snapshot = captureProviderConfiguration();
   try {
-    await configuration.update(settingKeys.localModelSelectedModel, undefined, vscode.ConfigurationTarget.Global);
-  } catch {
-    await notifyWriteFailure(output, "Archi Agent: the selected model could not be cleared, so the provider profile was not changed.");
-    return Object.freeze({ status: "failed" });
-  }
+    const currentResult = currentSettings();
 
-  try {
-    await configuration.update(settingKeys.localModelSelectedModelProfile, undefined, vscode.ConfigurationTarget.Global);
-  } catch {
-    await notifyWriteFailure(output, "Archi Agent: the selected model binding could not be cleared, so the provider profile was not changed.");
-    return Object.freeze({ status: "failed" });
-  }
+    if (!currentResult.ok) {
+      await notifySettingsFailure(output, currentResult.problems);
+      return Object.freeze({ status: "failed" });
+    }
 
-  try {
-    await configuration.update(settingKeys.localModelProfile, picked.profile.profileId, vscode.ConfigurationTarget.Global);
-  } catch {
-    await notifyWriteFailure(output, "Archi Agent: the provider profile could not be stored in the local user settings.");
-    return Object.freeze({ status: "failed" });
-  }
+    const current = currentResult.settings;
 
-  const updated = currentSettings();
-  return updated.ok ? Object.freeze({ status: "selected", settings: updated.settings }) : Object.freeze({ status: "failed" });
+    const items: ProviderItem[] = runtime.listProviderProfiles().map((profile) => ({
+      label: profile.displayName,
+      description: profile.profileId === current.profileId ? "$(check) Current profile" : profile.profileId,
+      detail: `${profile.providerKind}${profile.credentialRequirement === "api-key" ? "; API key managed separately" : "; no API key"}`,
+      profile
+    }));
+    const picked = await vscode.window.showQuickPick(items, {
+      title: "Archi Agent: select the provider profile",
+      placeHolder: "Selecting a profile does not contact its provider",
+      ignoreFocusOut: true
+    });
+
+    if (picked === undefined) {
+      return Object.freeze({ status: "cancelled" });
+    }
+
+    if (!providerConfigurationIsCurrent(snapshot)) return { status: "cancelled" };
+    if (current.selectionMode === "profile" && picked.profile.profileId === current.profileId) {
+      return Object.freeze({ status: "selected", settings: current });
+    }
+
+    try {
+      const published = await publishProviderConfiguration(snapshot, [
+        [settingKeys.localModelSelectedModel, undefined],
+        [settingKeys.localModelSelectedModelProfile, undefined],
+        [settingKeys.localModelProfile, picked.profile.profileId]
+      ]);
+      if (!providerConfigurationIsCurrent(published)) return { status: "cancelled" };
+    } catch (error) {
+      await notifyWriteFailure(output, error instanceof ProviderConfigurationConflict ? error.message : "Archi Agent: the provider profile could not be stored in the local user settings.");
+      return Object.freeze({ status: "failed" });
+    }
+
+    const updated = currentSettings();
+    return updated.ok ? Object.freeze({ status: "selected", settings: updated.settings }) : Object.freeze({ status: "failed" });
+  } finally { snapshot.dispose(); }
 }
 
 /** Performs one explicit model-list request, then stores a choice in machine-scoped global settings. */
@@ -157,129 +151,102 @@ export async function selectModel(
   runtime: ArchiAgentRuntime,
   output: vscode.OutputChannel,
   secrets?: vscode.SecretStorage,
-  parentToken?: vscode.CancellationToken
+  parentToken?: vscode.CancellationToken,
+  resource?: vscode.Uri
 ): Promise<LocalSelectionOutcome> {
   const cancelled = () => parentToken?.isCancellationRequested === true;
   if (cancelled()) return { status: "cancelled" };
-  const currentResult = currentSettings();
-
-  if (!currentResult.ok) {
-    await notifySettingsFailure(output, currentResult.problems);
-    return Object.freeze({ status: "failed" });
-  }
-
-  const current = currentResult.settings;
-  const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === current.profileId);
-  if (profile === undefined) {
-    await showModelListFailure(output, "unknown-provider-profile", current.baseUrl ?? "selected provider", current.profileId);
-    return Object.freeze({ status: "failed" });
-  }
-  let apiKey: string | undefined;
+  const snapshot = captureProviderConfiguration(resource);
   try {
-    apiKey = secrets === undefined ? undefined : await readApiKey(secrets, profile);
-  } catch {
-    await showModelListFailure(output, "secret-storage-read-failed", profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
-    return Object.freeze({ status: "failed" });
-  }
-  if (cancelled()) return { status: "cancelled" };
-  if (profile.credentialRequirement === "api-key" && apiKey === undefined) {
-    await showModelListFailure(output, "credential-required", profile.displayName, profile.profileId, true);
-    return Object.freeze({ status: "failed" });
-  }
+    const currentResult = currentSettings(resource);
 
-  const listed = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: `Archi Agent: listing ${profile.displayName} models`, cancellable: true },
-    async (_progress, token) => {
-      const controller = new AbortController();
-      const stop = () => controller.abort();
-      const subscriptions = [token.onCancellationRequested(stop), parentToken?.onCancellationRequested(stop)];
-      if (token.isCancellationRequested || cancelled()) stop();
-      try { return await runtime.listProviderModels(profileSelection(current, apiKey), { signal: controller.signal }); }
-      finally { subscriptions.forEach((subscription) => subscription?.dispose()); }
+    if (!currentResult.ok) {
+      await notifySettingsFailure(output, currentResult.problems);
+      return Object.freeze({ status: "failed" });
     }
-  );
 
-  if (cancelled()) return { status: "cancelled" };
-  if (!listed.ok) {
-    if (listed.code === "cancelled") return Object.freeze({ status: "cancelled" });
-    await showModelListFailure(output, listed.code, current.baseUrl ?? profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
-    return Object.freeze({ status: "failed" });
-  }
-
-  if (listed.models.length === 0) {
-    await showModelListFailure(output, "no-models", current.baseUrl ?? profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
-    return Object.freeze({ status: "failed" });
-  }
-
-  const items: ModelItem[] = listed.models.map((modelId) => ({
-    label: modelId,
-    description: modelId === current.modelId ? "$(check) Current model" : undefined,
-    modelId
-  }));
-  const picked = await vscode.window.showQuickPick(items, {
-    title: "Archi Agent: select the model",
-    placeHolder: `Models reported by ${profile.displayName}`,
-    ignoreFocusOut: true
-  }, parentToken);
-
-  if (cancelled() || picked === undefined) {
-    return Object.freeze({ status: "cancelled" });
-  }
-
-  const configuration = vscode.workspace.getConfiguration(settingsSection);
-
-  if (current.selectionMode === "legacy") {
+    const current = currentResult.settings;
+    const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === current.profileId);
+    if (profile === undefined) {
+      await showModelListFailure(output, "unknown-provider-profile", current.baseUrl ?? "selected provider", current.profileId);
+      return Object.freeze({ status: "failed" });
+    }
+    let apiKey: string | undefined;
     try {
-      if (cancelled()) return { status: "cancelled" };
-      await configuration.update(settingKeys.localModelSelectedModel, picked.modelId, vscode.ConfigurationTarget.Global);
+      apiKey = secrets === undefined ? undefined : await readApiKey(secrets, profile);
     } catch {
+      await showModelListFailure(output, "secret-storage-read-failed", profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
+      return Object.freeze({ status: "failed" });
+    }
+    if (cancelled() || !providerConfigurationIsCurrent(snapshot)) return { status: "cancelled" };
+    if (profile.credentialRequirement === "api-key" && apiKey === undefined) {
+      await showModelListFailure(output, "credential-required", profile.displayName, profile.profileId, true);
+      return Object.freeze({ status: "failed" });
+    }
+
+    let listingCancelled = false;
+    const listed = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `Archi Agent: listing ${profile.displayName} models`, cancellable: true },
+      async (_progress, token) => {
+        const controller = new AbortController();
+        const stop = () => controller.abort();
+        const subscriptions = [token.onCancellationRequested(stop), parentToken?.onCancellationRequested(stop)];
+        if (token.isCancellationRequested || cancelled()) stop();
+        try { return await runtime.listProviderModels(profileSelection(current, apiKey), { signal: controller.signal }); }
+        finally { listingCancelled = controller.signal.aborted; subscriptions.forEach((subscription) => subscription?.dispose()); }
+      }
+    );
+
+    if (cancelled() || listingCancelled || !providerConfigurationIsCurrent(snapshot)) return { status: "cancelled" };
+    if (!listed.ok) {
+      if (listed.code === "cancelled") return Object.freeze({ status: "cancelled" });
+      await showModelListFailure(output, listed.code, current.baseUrl ?? profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
+      return Object.freeze({ status: "failed" });
+    }
+
+    if (listed.models.length === 0) {
+      await showModelListFailure(output, "no-models", current.baseUrl ?? profile.displayName, profile.profileId, profile.credentialRequirement === "api-key");
+      return Object.freeze({ status: "failed" });
+    }
+
+    const items: ModelItem[] = listed.models.map((modelId) => ({
+      label: modelId,
+      description: modelId === current.modelId ? "$(check) Current model" : undefined,
+      modelId
+    }));
+    const picked = await vscode.window.showQuickPick(items, {
+      title: "Archi Agent: select the model",
+      placeHolder: `Models reported by ${profile.displayName}`,
+      ignoreFocusOut: true
+    }, parentToken);
+
+    if (cancelled() || picked === undefined) {
+      return Object.freeze({ status: "cancelled" });
+    }
+
+    if (!providerConfigurationIsCurrent(snapshot)) return { status: "cancelled" };
+    const updates: (readonly [string, unknown])[] = current.selectionMode === "legacy" ? [
+      [settingKeys.localModelSelectedModel, picked.modelId],
+      [settingKeys.localModelSelectedModelProfile, current.profileId],
+      [settingKeys.localModelProfile, current.profileId]
+    ] : [
+      [settingKeys.localModelSelectedModelProfile, undefined],
+      [settingKeys.localModelSelectedModel, picked.modelId],
+      [settingKeys.localModelSelectedModelProfile, current.profileId]
+    ];
+    try {
+      const published = await publishProviderConfiguration(snapshot, updates, cancelled);
+      if (cancelled() || !providerConfigurationIsCurrent(published)) return { status: "cancelled" };
+    } catch (error) {
+      if (cancelled() || error instanceof ProviderConfigurationConflict) return { status: "cancelled" };
       await notifyWriteFailure(output, "Archi Agent: the selected model could not be stored in the local user settings.");
-      return Object.freeze({ status: "failed" });
+      return { status: "failed" };
     }
-
-    try {
-      if (cancelled()) return { status: "cancelled" };
-      await configuration.update(settingKeys.localModelSelectedModelProfile, current.profileId, vscode.ConfigurationTarget.Global);
-    } catch {
-      await notifyWriteFailure(output, "Archi Agent: the selected model binding could not be stored in the local user settings.");
-      return Object.freeze({ status: "failed" });
-    }
-
-    try {
-      if (cancelled()) return { status: "cancelled" };
-      await configuration.update(settingKeys.localModelProfile, current.profileId, vscode.ConfigurationTarget.Global);
-    } catch {
-      await notifyWriteFailure(output, "Archi Agent: the provider profile could not be stored in the local user settings.");
-      return Object.freeze({ status: "failed" });
-    }
-  } else {
-    try {
-      if (cancelled()) return { status: "cancelled" };
-      await configuration.update(settingKeys.localModelSelectedModelProfile, undefined, vscode.ConfigurationTarget.Global);
-    } catch {
-      await notifyWriteFailure(output, "Archi Agent: the previous selected model binding could not be cleared.");
-      return Object.freeze({ status: "failed" });
-    }
-
-    try {
-      if (cancelled()) return { status: "cancelled" };
-      await configuration.update(settingKeys.localModelSelectedModel, picked.modelId, vscode.ConfigurationTarget.Global);
-    } catch {
-      await notifyWriteFailure(output, "Archi Agent: the selected model could not be stored in the local user settings.");
-      return Object.freeze({ status: "failed" });
-    }
-
-    try {
-      if (cancelled()) return { status: "cancelled" };
-      await configuration.update(settingKeys.localModelSelectedModelProfile, current.profileId, vscode.ConfigurationTarget.Global);
-    } catch {
-      await notifyWriteFailure(output, "Archi Agent: the selected model binding could not be stored in the local user settings.");
-      return Object.freeze({ status: "failed" });
-    }
-  }
-
-  const updated = currentSettings();
-  return updated.ok ? Object.freeze({ status: "selected", settings: updated.settings }) : Object.freeze({ status: "failed" });
+    const updated = currentSettings(resource);
+    return updated.ok && updated.settings.profileId === current.profileId && updated.settings.modelId === picked.modelId &&
+      updated.settings.baseUrl === current.baseUrl && updated.settings.timeoutMs === current.timeoutMs
+      ? Object.freeze({ status: "selected", settings: updated.settings }) : Object.freeze({ status: "failed" });
+  } finally { snapshot.dispose(); }
 }
 
 /** Backward-compatible command helpers retained for existing callers and tests. */

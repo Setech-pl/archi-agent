@@ -51,7 +51,7 @@ export async function buildKnowledgePackCommand({ runtime, output, secrets }: Ge
       let settings = readLocalModelSettings(vscode.workspace.getConfiguration(settingsSection, scope?.folder?.uri));
       if (!settings.ok) { await vscode.window.showErrorMessage(`Archi Agent: ${settings.problems.map((p) => p.message).join(" ")}`); return undefined; }
       if (!settings.settings.modelId) {
-        const selection = await selectLocalModel(runtime, output, secrets, token);
+        const selection = await selectLocalModel(runtime, output, secrets, token, scope?.folder?.uri);
         if (signal.aborted || selection.status !== "selected") return undefined;
         settings = { ok: true, settings: selection.settings };
       }

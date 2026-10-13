@@ -283,16 +283,6 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   let settings = settingsResult.settings;
-  const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === settings.localModel.profileId);
-  if (profile === undefined) {
-    await show(output, {
-      level: "error",
-      text: "Archi Agent: the selected provider profile is not registered.",
-      details: Object.freeze(["[unknown-provider-profile] provider configuration failed"]),
-      suggestSettings: true
-    });
-    return;
-  }
   const flow = await pickFlowSource(settings);
 
   if (flow === undefined) {
@@ -300,7 +290,7 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   if (settings.localModel.modelId === undefined) {
-    const selection = await selectLocalModel(runtime, output, secrets);
+    const selection = await selectLocalModel(runtime, output, secrets, undefined, pack.resource);
 
     if (selection.status !== "selected" || selection.settings.modelId === undefined) {
       return;
@@ -315,6 +305,16 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
     return;
   }
 
+  const profile = runtime.listProviderProfiles().find((candidate) => candidate.profileId === settings.localModel.profileId);
+  if (profile === undefined) {
+    await show(output, {
+      level: "error",
+      text: "Archi Agent: the selected provider profile is not registered.",
+      details: Object.freeze(["[unknown-provider-profile] provider configuration failed"]),
+      suggestSettings: true
+    });
+    return;
+  }
   let apiKey: string | undefined;
   try {
     apiKey = secrets === undefined ? undefined : await readApiKey(secrets, profile);
