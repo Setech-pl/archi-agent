@@ -21,15 +21,16 @@ This branch is published with a draft PR to main. Independent architecture/code 
 ## Backlog and approved direction
 
 The owner's current direction is **SRC1 → VER1 → MCP1**. The clean-clone CI gate
-is implemented locally; Linux x64 and macOS ARM64 GitHub jobs remain unconfirmed until
-actual runs. SRC1 entry remains OPEN. AUD-001/002 are closed in the local reviewed fix;
+has a local candidate; clean-clone validation is blocked by a missing declared asset in
+the pinned canvas Windows ARM64 package. Linux x64 and macOS ARM64 GitHub jobs remain
+unconfirmed until actual runs. SRC1 entry remains OPEN. AUD-001/002 are closed in the local reviewed fix;
 AUD-003–006 remain OPEN. This does not establish M1 or release readiness.
 Earlier audit/PR and technical evidence above is historical; publication and validation
 of both CI jobs require a separate task.
 
 | Step | Status / scope |
 | --- | --- |
-| CI | Local implementation; clean-clone local validation recorded in project state. Both GitHub jobs NOT_RUN; gate not closed. |
+| CI | Local candidate; clean-clone gate FAIL before full tests/package due to missing canvas Windows ARM64 icudtl.dat. Both GitHub jobs NOT_RUN; gate not closed. |
 | SRC1 → VER1 → MCP1 | Active approved order; separate implementation tasks. No stage is implemented by this CI task. |
 | M1 | Historical MCP milestone; not resumed or declared ready. Active MCP work follows SRC1 and VER1 as MCP1. |
 | C1 | Deferred VS Code Chat participant; no current Chat integration or authorization to resume. |

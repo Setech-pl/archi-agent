@@ -47,7 +47,7 @@ canvas **0.1.97** bindings are prepared: `darwin-arm64`, `darwin-x64`, `linux-x6
 Existing tarballs are verified on every invocation; corrupt inputs fail rather than
 being reused. After all eight pass, it invokes `build-trial.mjs --product-assets`.
 The builder verifies the tarballs again and extracts every binding identically,
-checking package names, versions and declared native resources. The PDF.js patch,
+checking package names, versions and all resources declared by the platform packages. The PDF.js patch,
 WASM variants, PL/EN models, licenses and resource hash manifest remain required.
 
 No prior VSIX, generated fixture, copied `build/` or foreign-platform installation is
@@ -57,6 +57,16 @@ parallel: packaging writes shared `vscode-extension/dist` and `build/ux2-ocr/pha
 Both existing test suites are retained, including their runtime/host overlap.
 The output is `vscode-extension/build/archi-agent-0.3.0-alpha.4.vsix` (ignored by Git).
 Local Mac results do not confirm Linux or either GitHub job; see `docs/project-state.md`.
+
+The current pinned `@napi-rs/canvas-win32-arm64-msvc@0.1.97` tarball passes its locked
+SRI but omits `icudtl.dat`, which its package declares. The completeness check therefore
+stops the builder, including on Mac/Linux hosts packaging all eight bindings. This is a
+known upstream defect ([upstream fix #1278](https://github.com/Brooooooklyn/canvas/pull/1278),
+released in canvas 1.0.1); upstream reports a Windows ARM64 segfault without this file.
+The clean-clone gate is currently **blocked**, before the full tests and VSIX package.
+No version change, cross-binding asset substitution or relaxed completeness check is
+applied by this CI task. The repeated command verifies existing tarballs again and
+reports the same missing asset; it does not repair the upstream archive.
 
 ## Historical phase 1 trial
 
