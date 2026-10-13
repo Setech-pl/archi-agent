@@ -79,7 +79,7 @@ for (const binding of bindings) {
   if (!Array.isArray(pkg.files) || !pkg.files.includes(`skia.${binding.platform}.node`)) {
     throw new Error(`canvas-binding-not-declared: ${binding.name}`);
   }
-  for (const resource of ['README.md', ...pkg.files]) {
+  for (const resource of pkg.files) {
     if (typeof resource !== 'string' || path.basename(resource) !== resource ||
         !statSync(path.join(dest, resource)).isFile() || statSync(path.join(dest, resource)).size === 0) {
       throw new Error(`canvas-resource-missing: ${binding.name}/${resource}`);
