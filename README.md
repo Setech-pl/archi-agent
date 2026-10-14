@@ -4,9 +4,11 @@
 
 Turn a flow description and your architecture knowledge into a Sequence or Component diagram with a report showing how names and relationships were grounded.
 
-Archi Agent helps architects and analysts document service interactions, explain system dependencies and review proposed knowledge from documents inside VS Code. A shared catalog of names and aliases reduces repeated naming work; the report helps you inspect the evidence behind a diagram before sharing it.
+![Sequence diagram in PlantUML with its linked provenance report](docs/assets/screenshots/08-sequence.png)
 
-![Provider and model configuration in the current Archi Agent UI](docs/assets/screenshots/02-provider.png)
+Review the flow and its grounding report side by side before sharing the result. The screen shows PlantUML source.
+
+Archi Agent helps architects and analysts document service interactions, explain system dependencies and review proposed knowledge from documents inside VS Code. A shared catalog of names and aliases reduces repeated naming work; the report helps you inspect the evidence behind a diagram before sharing it.
 
 ## Download and run
 
@@ -38,19 +40,25 @@ The package includes the runtime, local document conversion and offline PL/EN OC
 
 The [user guide](docs/en/user-guide.md#complete-synthetic-five-file-pack) includes the complete five-file synthetic pack for this example.
 
-## See the workflow
+## See it in action
 
-![Review knowledge proposals with their evidence](docs/assets/screenshots/05-review.png)
+![Choose a provider and model in Configuration](docs/assets/screenshots/02-provider.png)
 
-Review proposed knowledge before accepting it.
+Choose an exact model ID and apply one configuration for diagram generation and review.
 
-![Sequence diagram and grounding report](docs/assets/screenshots/08-sequence.png)
+![Review architecture knowledge candidates](docs/assets/screenshots/05-review.png)
 
-Inspect the PlantUML and linked report side by side.
+Inspect supporting evidence and decide which proposals become your architecture knowledge.
 
-![Confirm the original diagram and report save](docs/assets/screenshots/10-save.png)
+![Knowledge Browser with systems and their relationships](docs/assets/readme/knowledge-browser.png)
 
-Confirm the original result and destination before saving. [Full gallery and capture provenance PL/EN](docs/assets/screenshots/README.md).
+Find systems and follow incoming and outgoing relationships in one place.
+
+![Component diagram in PlantUML with its linked report](docs/assets/readme/component-report.png)
+
+Explain service and database dependencies alongside their provenance report. The screen shows PlantUML source.
+
+[Full screenshot gallery and capture provenance PL/EN](docs/assets/screenshots/README.md) · [README crop provenance](docs/assets/readme/provenance.json)
 
 ## Help
 
