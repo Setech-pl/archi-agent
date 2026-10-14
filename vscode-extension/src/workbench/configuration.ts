@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import path from "node:path";
 import { inspectKnowledgePackDirectory, classifyProviderDiagnostic, defaultLocalModelBaseUrl, type ArchiAgentRuntime } from "../../../src/runtime/index.js";
+import { captureProviderConfiguration, providerConfigurationIsCurrent, publishProviderConfiguration, ProviderConfigurationConflict } from "../provider-configuration.js";
 import { readApiKey } from "../api-key-storage.js";
 import { commandIds, settingKeys, settingsSection } from "../contributions.js";
 import { readLocalModelSettings } from "../settings.js";
@@ -143,18 +144,19 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       if (m.project !== "" && !folder) return;
       this.folder = folder; this.projectSelected = !!folder || folders.length < 2; this.invalidate(); await this.publish("Project changed. Provider edits are retained; Apply requires Discard after this change."); return;
     }
+    const providerSnapshot = captureProviderConfiguration(this.folder?.uri);
     const lifetime = this.lifetime, operationEpoch = this.epoch, operationRevision = this.revision;
     if (m.op === "models" && validForm(m.form)) this.draftKey = modelListKey(m.form);
     this.busy = m.op === "apply" ? "Applying settings…" : m.op === "models" ? "Reading models for this form…" : m.op === "diagnose" ? "Checking applied provider configuration…" : "Working…";
     if (m.op === "models") { this.models = []; this.modelsFor = ""; this.modelMessage = modelListMessage("loading"); }
-    await this.publish();
-    if (this.disposed || !this.panel || lifetime !== this.lifetime) return;
     try {
+      await this.publish();
+      if (this.disposed || !this.panel || lifetime !== this.lifetime) return;
       if (m.op === "models" && (operationEpoch !== this.epoch || operationRevision !== this.revision)) {
         this.busy = ""; await this.publish(); return;
       }
       if (m.op === "refresh") { this.invalidate(); }
-      else if (m.op === "apply") await this.apply(m);
+      else if (m.op === "apply") await this.apply(m, providerSnapshot);
       else if (["models", "diagnose", "set-key", "delete-key"].includes(m.op)) {
         if (this.dirty && m.op === "diagnose") throw new Error("Apply or Discard Changes before using the applied provider configuration.");
         if (m.op === "models" || m.op === "diagnose") await this.listModels(m.op, m.form);
@@ -187,10 +189,11 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       const message = error instanceof WorkbenchError ? error.message : error instanceof Error && ["Apply or Discard Changes before using the applied provider configuration.", "Select a current local project first.", "Choose a local project folder.", "Validate the active pack before opening its files."].includes(error.message) ? error.message : "Operation failed. Current settings have been re-read; check them before retrying.";
       await this.publish("", message);
     } finally {
+      providerSnapshot.dispose();
       if (m.op === "apply" && lifetime === this.lifetime) await this.panel?.webview.postMessage({ type: "apply-finished" });
     }
   }
-  private async apply(m: Record<string, unknown>): Promise<void> {
+  private async apply(m: Record<string, unknown>, snapshot: ReturnType<typeof captureProviderConfiguration>): Promise<void> {
     if (!validForm(m.form) || m.baseRevision !== this.revision) throw new WorkbenchError("Settings changed since editing began. Discard Changes and re-enter the intended values.");
     const f = m.form;
     const values: Record<string, unknown> = { [settingKeys.localModelProfile]: f.profile, [settingKeys.localModelBaseUrl]: f.endpoint,
@@ -198,17 +201,15 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     const valid = readLocalModelSettings({ get: (key) => values[key], inspect: (key) => ({ globalValue: values[key] }) });
     if (!valid.ok) throw new WorkbenchError(valid.problems.map((p) => `${p.setting}: ${p.message}`).join("\n"));
     this.invalidate();
-    const configuration = vscode.workspace.getConfiguration(settingsSection);
-    // Existing fail-closed model binding order; multiple VS Code updates are not atomic.
-    await configuration.update(settingKeys.localModelSelectedModel, undefined, vscode.ConfigurationTarget.Global);
-    await configuration.update(settingKeys.localModelSelectedModelProfile, undefined, vscode.ConfigurationTarget.Global);
-    await configuration.update(settingKeys.localModelProfile, f.profile, vscode.ConfigurationTarget.Global);
-    if (f.profile === "local-lm-studio") await configuration.update(settingKeys.localModelBaseUrl, f.endpoint, vscode.ConfigurationTarget.Global);
-    await configuration.update(settingKeys.localModelTimeoutSeconds, f.timeout, vscode.ConfigurationTarget.Global);
-    if (f.model) {
-      await configuration.update(settingKeys.localModelSelectedModel, f.model, vscode.ConfigurationTarget.Global);
-      await configuration.update(settingKeys.localModelSelectedModelProfile, f.profile, vscode.ConfigurationTarget.Global);
-    }
+    const published = await publishProviderConfiguration(snapshot, [
+      [settingKeys.localModelSelectedModel, undefined],
+      [settingKeys.localModelSelectedModelProfile, undefined],
+      [settingKeys.localModelProfile, f.profile],
+      ...(f.profile === "local-lm-studio" ? [[settingKeys.localModelBaseUrl, f.endpoint] as const] : []),
+      [settingKeys.localModelTimeoutSeconds, f.timeout],
+      ...(f.model ? [[settingKeys.localModelSelectedModel, f.model] as const, [settingKeys.localModelSelectedModelProfile, f.profile] as const] : [])
+    ], () => this.disposed || snapshot.resource?.toString() !== this.folder?.uri.toString());
+    if (!providerConfigurationIsCurrent(published)) throw new ProviderConfigurationConflict();
     this.dirty = false;
   }
   private async listModels(operation: "models" | "diagnose", form?: unknown): Promise<void> {

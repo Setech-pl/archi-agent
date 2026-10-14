@@ -5,8 +5,70 @@ Phase 2 now packages the reviewed OCR assets and process backend into the public
 for phase 1. The phase 2 artifact, verification and owner smoke are recorded
 in `docs/project-state.md` and `docs/vscode-extension.md`. The owner confirmed the
 exact phase 2 candidate's Mac ARM smoke as PASS on 2026-10-02. Building the product VSIX
-requires the experiment's pinned `npm ci` dependencies and the seven platform tarballs
-described below; installed VSIX users need neither npm nor those build inputs.
+requires the experiment's pinned `npm ci` dependencies and eight verified platform
+tarballs; installed VSIX users need neither npm nor those build inputs.
+
+## Current product: reproduce from a clean clone
+
+Use Node **22.12.0** and its npm, as in `.github/workflows/ci.yml`. The build host needs
+`zip`, `tar` and `patch` on PATH; run the gates as a normal user. CI targets Linux x64
+(`ubuntu-24.04`) and macOS ARM64 (`macos-15`). The extension bundles still target `node20`.
+From a fresh clone of `https://github.com/Setech-pl/archi-agent.git`, check out the revision
+to validate, enter the repository root and run these commands **sequentially**:
+
+```bash
+node --version
+npm --version
+uname -a
+node -p 'process.platform + "/" + process.arch'
+git rev-parse HEAD
+command -v zip
+command -v tar
+command -v patch
+npm ci
+npm ci --prefix experiments/ux2-ocr
+node scripts/prepare-ci-ocr.mjs
+npm run typecheck
+npm run extension:typecheck
+npm test -- --no-file-parallelism
+npm run extension:test -- --no-file-parallelism
+npm run extension:package
+npm run extension:verify
+git diff --exit-code HEAD -- package-lock.json experiments/ux2-ocr/package-lock.json
+git diff --exit-code HEAD
+git diff --check
+```
+
+`prepare-ci-ocr.mjs` takes version, resolved URL and SHA-512 SRI exclusively from
+`experiments/ux2-ocr/package-lock.json`. It downloads with `npm pack` and verifies the
+actual bytes before placing them in `build/ux2-ocr/platform-tarballs`. Exactly these
+canvas **0.1.97** bindings are prepared: `darwin-arm64`, `darwin-x64`, `linux-x64-gnu`,
+`linux-arm64-gnu`, `linux-x64-musl`, `linux-arm64-musl`, `win32-x64-msvc`, `win32-arm64-msvc`.
+Existing tarballs are verified on every invocation; corrupt inputs fail rather than
+being reused. After all eight pass, it invokes `build-trial.mjs --product-assets`.
+The builder verifies the tarballs again and extracts every binding identically,
+checking package names, versions and all resources declared by the platform packages. The PDF.js patch,
+WASM variants, PL/EN models, licenses and resource hash manifest remain required.
+
+No prior VSIX, generated fixture, copied `build/` or foreign-platform installation is
+needed. Models and licenses are tracked in this repository. Downloads need registry
+access; no credentials or live LLM calls are used. Do not run tests or packaging in
+parallel: packaging writes shared `vscode-extension/dist` and `build/ux2-ocr/phase2/stage`.
+Both existing test suites are retained, including their runtime/host overlap.
+The output is `vscode-extension/build/archi-agent-0.3.0-alpha.4.vsix` (ignored by Git).
+Local Mac results do not confirm Linux or either GitHub job; see `docs/project-state.md`.
+
+The current pinned `@napi-rs/canvas-win32-arm64-msvc@0.1.97` tarball passes its locked
+SRI but omits `icudtl.dat`, which its package declares. The completeness check therefore
+stops the builder, including on Mac/Linux hosts packaging all eight bindings. This is a
+known upstream defect ([upstream fix #1278](https://github.com/Brooooooklyn/canvas/pull/1278),
+released in canvas 1.0.1); upstream reports a Windows ARM64 segfault without this file.
+The clean-clone gate is currently **blocked**, before the full tests and VSIX package.
+No version change, cross-binding asset substitution or relaxed completeness check is
+applied by this CI task. The repeated command verifies existing tarballs again and
+reports the same missing asset; it does not repair the upstream archive.
+
+## Historical phase 1 trial
 
 This is a separate, non-product prototype. It does not add a VS Code command, UX2 public
 contract or production OCR path. `build-trial.mjs` copies the published alpha.3 VSIX and
@@ -28,9 +90,8 @@ To rebuild the current review-findings candidate, place the published alpha.3
 VSIX at the path above and verify its hash.
 From the repository root, run `npm ci`; then run `npm ci` in `experiments/ux2-ocr`.
 The two traineddata files and their license are retained under `assets/lang`.
-Create `build/ux2-ocr/platform-tarballs` and use `npm pack` for
-`@napi-rs/canvas-{darwin-x64,linux-x64-gnu,linux-arm64-gnu,linux-x64-musl,linux-arm64-musl,win32-x64-msvc,win32-arm64-msvc}@0.1.97`
-with `--pack-destination build/ux2-ocr/platform-tarballs`. Then run
+Run `node scripts/prepare-ci-ocr.mjs` to prepare all eight verified tarballs and current
+product assets. For this historical trial only, then run
 `node experiments/ux2-ocr/make-fixtures.mjs build/fixtures` and
 `node experiments/ux2-ocr/build-trial.mjs`. Finally run
 `npm run extension:verify -- --ux2-trial build/ux2-ocr/review-findings/archi-agent-0.3.0-alpha.3-ux2-review-findings.vsix --manifest experiments/ux2-ocr/trial-manifest.json`.

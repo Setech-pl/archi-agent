@@ -382,9 +382,9 @@ export interface DoublePanel {
 }
 export const panels: DoublePanel[] = [];
 export const webviewDrivers: ((panel: DoublePanel, state: any) => unknown)[] = [];
-const configListeners = new Set<(event: {affectsConfiguration(s: string): boolean}) => void>();
+const configListeners = new Set<(event: {affectsConfiguration(s: string, resource?: DoubleUri | { languageId: string }): boolean}) => void>();
 const folderListeners = new Set<() => void>();
-export function configurationChanged(): void { configListeners.forEach((fn) => fn({ affectsConfiguration: () => true })); }
+export function configurationChanged(event: { affectsConfiguration(s: string, resource?: DoubleUri | { languageId: string }): boolean } = { affectsConfiguration: () => true }): void { configListeners.forEach((fn) => fn(event)); }
 export function workspaceChanged(): void { folderListeners.forEach((fn) => fn()); }
 Object.assign(workspace, {
   isTrusted: true,
