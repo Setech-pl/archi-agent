@@ -2,6 +2,13 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## Kontynuacja publikacji — GNU patch / main, 2026-10-14
+
+- Alpha.5 opublikowana: [release](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.5), commit/tag `6b96ff629c33cf6deea65a329cf2b36b54a6539d`. VSIX i checksum pobrane do osobnego katalogu; cmp obu plików PASS, SHA256 zgodne.
+- PR #6: Linux x64 FAIL w przygotowaniu OCR (GNU patch, hunki 1/4); macOS ARM64 PASS. Podczas przerwy konto Setech-pl zintegrowało PR do main `640a336022ba66998fc71e1b5d970d7f1d6169e0` (2026-10-14 08:05 UTC); wykonawca nie wykonał tego merge. [CI main](https://github.com/Setech-pl/archi-agent/actions/runs/38532682679) FAIL. Nie cofano integracji ani historii.
+- Nowy branch `docs/test-release-pl-en` z aktualnego main. Minimalna poprawka przenośności istniejącego patcha: pełne trzy linie kontekstu unified diff, bez zmiany wynikowych bajtów PDF.js. GNU patch 2.8: pierwotny patch reprodukuje FAIL dwóch hunków, poprawiony PASS z `--fuzz=0`; wynikowy SHA256 nadal `e68d6587c64fde70d1a9e324b8c4823e2be11a756b0771841807758797e163b7`. Pełne przygotowanie OCR z GNU patch PASS. Dowody `/private/tmp/archi-gnu-patch-rjmf08q_/report.json`, `/private/tmp/archi-gnu-prepare.log`.
+- Bez zmiany runtime, dependency, lockfile'ów ani walidacji. Kolejny PR obejmie tę poprawkę oraz README, aktualne screenshoty/help; merge dopiero po obu zielonych jobach finalnego SHA. Owner smoke i Windows ARM64 runtime nadal NOT_RUN; SRC1 OPEN.
+
 ## Publikacja testowa i dokumentacja PL/EN — aktywne zadanie, 2026-10-14
 
 - Właściciel autoryzował commit/push/PR/tag/prerelease oraz merge po zielonych jobach Linux x64 i macOS ARM64. Bez Marketplace i deklaracji M1/produkcji; SRC1 ENTRY GATE OPEN, AUD-003–006 OPEN.
