@@ -2,9 +2,37 @@
 
 **English** · [Polski](../pl/user-guide.md) · [Home](../../README.md)
 
+## Installation on Mac and Windows
+
+Download the VSIX and `.sha256` from [the same release](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6). Compare the displayed hash with the checksum file before installation.
+
+Mac:
+
+```bash
+shasum -a 256 <file.vsix>
+```
+
+Windows PowerShell:
+
+```powershell
+Get-FileHash <file.vsix> -Algorithm SHA256
+```
+
+In VS Code, open **Extensions → … → Install from VSIX…**, select the file and reload if requested. Check the version in **Archi Agent** extension details. No repository, npm or separate Node.js installation is needed. If an older version is installed, use the same command to install this identified prerelease.
+
+This guide covers **0.3.0-alpha.6**. Earlier alpha.4 screenshots and downloads represent an older product. [Owner test checklist PL/EN](../testing/owner-smoke.md) records checks separately from the release's automated results.
+
+### Requirements and first launch
+
+Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. The VSIX includes Node runtime bundles, conversion worker and offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
+
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence** or **Component** before any generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
+
 ## Start here — first use
 
-1. Install the supplied VSIX through **Extensions → … → Install from VSIX…**, reload VS Code if requested, and open a local project folder. This branch's package is distinct from the older public alpha.4 download even though the version number is the same.
+![Archi: Open task menu](../assets/screenshots/01-open.png)
+
+1. Download the [test prerelease 0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6), verify its checksum, install through **Extensions → … → Install from VSIX…**, reload if requested and open a local project folder. Confirm **0.3.0-alpha.6** in the extension details.
 2. Run **Archi: Configuration → LLM Provider**. Prepare LM Studio/Ollama or choose a cloud profile. For cloud, use **Set / Replace Key for <provider>** and enter the key in the masked native input.
 3. Click **Refresh Models** before or after Apply. Choose an exact ID in **Available models / Dostępne modele**; it appears in **Selected model**. Click **Apply**, then **Check Provider Configuration**. Refresh does not save anything; **Discard Changes** restores applied fields. There is one selected model, shared by diagram generator and reviewer; there is no multi-model “Selected Models” list.
 4. In **Knowledge Management**, use **Choose Existing Knowledge Pack**, or **Create Knowledge Pack** for a small catalog. The complete Alpha/Beta example below is suitable for a first diagram. Alternatively build from documents, review every candidate, validate the five previews and use **Save and use** to activate the new pack.
@@ -25,15 +53,9 @@ Help opens Polish when the VS Code display language is `pl` (including regional 
 
 A PDF can therefore become converted text, then candidates, then an accepted pack. A later flow description plus that pack produces a diagram. These are separate operations; converting a file does not automatically extract knowledge or generate a diagram.
 
-## Build and requirements
-
-This guide describes the current UX4-FU2 branch checkpoint based on `6863a30`. The public `v0.3.0-alpha.4` download contains UX2; later OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 features require the identified local candidate. See [build selection and checksums](../../README.md#choose-the-right-build).
-
-Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. The VSIX includes Node runtime bundles, conversion worker and offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Existing native UI verification ran on macOS arm64 (VS Code 1.140.0). Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
-
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence** or **Component** before any generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
-
 ## Provider, profile and model
+
+![Provider and model selection](../assets/screenshots/02-provider.png)
 
 A provider is the service executing the model. A profile selects its adapter and endpoint policy; the model ID selects one model at that provider.
 
@@ -62,6 +84,8 @@ Prepare your local server/model yourself; the extension does not download models
 Machine-scoped profile/model selections are not synchronized by Settings Sync or overridden by a workspace. After changing profile, select a model again; stale bindings are inactive. Prefer the UI to editing model settings. Local URLs accept literal `127.0.0.1` or `[::1]` with `/v1`; `localhost`, remote hosts, redirects and credential-bearing URLs are rejected. Details: [local adapters](../local-model.md), [cloud adapters](../cloud-models.md).
 
 ## Choose or create the active Knowledge Pack
+
+![Active Knowledge Pack management](../assets/screenshots/03-knowledge.png)
 
 A Knowledge Pack is a local architecture catalog: systems, actors, relationships, aliases and rules. Grounding matches canonical names and aliases to this catalog before model generation.
 
@@ -114,7 +138,17 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 | --- | --- | --- | --- |
 ```
 
+## Local document conversion and OCR
+
+Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or **OCR all pages**. Auto retains text pages and OCRs pages without usable text. Bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
+
+![Choose a PDF OCR mode](../assets/screenshots/13-ocr.png)
+
+![Local conversion result](../assets/screenshots/11-conversion.png)
+
 ## Documents to a new pack
+
+![Review proposed knowledge](../assets/screenshots/05-review.png)
 
 1. Run **Build Knowledge Pack from Documents** from the palette or the **Build Knowledge Pack from Documents** button in **Configuration → Knowledge Management**. Select explicit local `.md`, `.txt`, `.pdf`, `.docx`, `.xlsx` files. No directory scan or URL retrieval occurs. An existing pack is not needed.
 2. For PDFs the Builder's **PDF OCR mode** picker uses **none**, **auto**, **all**. `auto` keeps text pages and OCRs pages without text; `all` OCRs every page; `none` requires usable text. The separate **Convert to Markdown** command labels these choices **No OCR**, **Auto OCR**, **OCR all pages** and opens one unsaved Markdown editor. It needs neither provider nor pack and makes no network request.
@@ -124,6 +158,10 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 6. **Validate and preview** blocks while any row is pending, an accepted relationship/alias/rule lacks accepted endpoints, conflicts remain, aliases collide, or the accepted set has no system. Dependencies are not accepted automatically. Change decisions/fields and validate again. Every change invalidates the previous immutable preview.
 7. Choose an existing parent folder and one **new pack folder name**. Expand the five read-only previews on the same screen: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. The immutable preview is the exact content saved.
 8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Choose Existing Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
+
+![Edit a proposed row](../assets/screenshots/06-edit.png)
+
+![Five-file preview and destination](../assets/screenshots/07-pack-preview.png)
 
 There is one active build per Extension Host. Cancel or closing the review panel ends the build; a completed save releases the build guard. There are no persistent drafts, autosave, existing-pack update/merge or acceptance history. A new command means a new extraction. Review/edit/validation/preview/save/activation use **zero additional LLM requests**, even after a save collision and return to review.
 
@@ -140,6 +178,8 @@ Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas,
 
 ## Active file and Knowledge Browser
 
+![Browse the active knowledge](../assets/screenshots/04-browser.png)
+
 **Archi: Build Knowledge Pack from Active File** captures unsaved Markdown/TXT text (including untitled) before extraction. It never saves the editor. A local PDF/DOCX/XLSX custom preview must expose its file URI; otherwise open a supported source explicitly. The same evidence review, five previews, Save and Save and use follow.
 
 **Archi: Knowledge Browser** reveals **Archi Agent — Knowledge** in Explorer. Expand the project and active pack, then Systems, Relations, Rules, Sources/Evidence when available, or Files. Systems show aliases and incoming/outgoing references. Records open their pack file/line; source evidence without an original location opens local details. Refresh and pack-file saves reload production validation; invalid knowledge is not shown as current.
@@ -150,6 +190,8 @@ In Configuration, the profile description and key buttons follow the form select
 The tree also includes **Actors**. Use **Refresh Knowledge** in the tree title after external file edits. Saving a pack file in VS Code, changing the active path or workspace folders refreshes the view automatically. Evidence from an active editor opens that editor only while its normalized text digest matches the captured input; otherwise frozen evidence details open. This is a read-only browser, not a knowledge editor or a pack catalog.
 
 ## Generate and inspect a diagram
+
+![Sequence and grounding report](../assets/screenshots/08-sequence.png)
 
 Choose **Create Diagram → Sequence** (ordered interactions) or **Component** (components and dependencies). Select the active flow document, **Choose a flow file**, or type a description. A file needs restricted front matter; a typed description supplies metadata through UI. Use the same synthetic file in either language:
 
@@ -169,7 +211,11 @@ Invalid input/grounding makes zero generation calls; generator/local rejection o
 
 If semantic review rejects/fails after local checks, **Show unverified candidate** may open a marked candidate without a report; Cancel opens nothing. It is not a completed ART1 result. User cancellation does not offer an unverified candidate. The old `archiAgent.generateSequenceDiagram` command ID is an invisible delegate to **Create Diagram**. The older one-call runtime compatibility API remains available internally; it is not a separate user entry or fallback.
 
+![Component diagram and report](../assets/screenshots/09-component.png)
+
 ## Save the original diagram and report
+
+![Confirm the original diagram and report pair](../assets/screenshots/10-save.png)
 
 Use the generation notification's **Save Diagram and Report**, the palette's **Archi: Save Diagram and Report**, or the Open menu. The menu/palette selects an original result by diagram type, UTC creation time and result UUID. With one local project it is the target; multi-root explicitly asks for the destination project. Without a project, open a local folder first. Confirm the displayed original result, full new folder, `diagram.puml` and `report.json` in the modal. Cancel before save creates nothing.
 
@@ -219,20 +265,12 @@ The menu/palette lists results in the current Extension Host while at least one 
 
 Save success follows exact-byte/load/ownership checks and a final cancellation check. Files can become visible incrementally. These are controlled operations with conditional rollback, **not atomic publication of a directory or two files**. Cleanup removes only resources proved owned and unchanged; uncertain data is preserved. There is no crash recovery or fsync durability guarantee, and portable path checks do not eliminate hostile races between system calls. Cancel after success does not undo saved data. Pack files and VS Code settings are separate operations.
 
-## Demonstrations and license
+On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlled pack saving rejects the symbolic path. Choose a regular parent folder outside that alias (for example a local project folder); do not bypass the path check.
 
-The text above is complete without animation. [Media and provenance](../assets/README.md) explain the controlled synthetic transport; recordings demonstrate the earlier DOC1 UI, not the new UX4 screens, live LLM quality or manual test results. Follow the current text instructions for UX4.
+## Screenshots, Help and license
 
-[Choose a pack and generate](../assets/choose-pack-generate.gif) — configure Alpha/Beta's existing pack, choose Sequence and a flow, inspect the result/report. [Static preview](../assets/choose-pack-generate.png).
+![Bundled offline Help](../assets/screenshots/12-help.png)
 
-![Actual VS Code selection of an existing Knowledge Pack, followed by Sequence generation and its report](../assets/choose-pack-generate.gif)
+**Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](../assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-[Documents to review to save](../assets/documents-review-save.gif) — select `source.md`, inspect proposals, edit Beta's description, accept, preview, save in a new folder. [Static preview](../assets/documents-review-save.png).
-
-![Actual VS Code document picker, candidate review and new Knowledge Pack save](../assets/documents-review-save.gif)
-
-[Save the original pair](../assets/save-original-pair.gif) — select the completed Sequence result, confirm the new folder, save and open its report. [Static preview](../assets/save-original-pair.png).
-
-![Actual VS Code original result selection, ART1 native confirmation and saved report](../assets/save-original-pair.gif)
-
-Own code/docs use [MIT](../../LICENSE); bundled components retain [their notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR licenses](../../experiments/ux2-ocr/TRIAL_NOTICES.md). MCP, EA acquisition, Context/Container, ArchiMate, Chat and retry/repair remain planned. Do not use roadmap entries as instructions for current UI.
+Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](../product-roadmap.md), [technical state](../project-state.md). Existing-model verification (SRC1 → VER1 → MCP1) is planned; those features are not available in this prerelease.

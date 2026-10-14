@@ -37,3 +37,13 @@ Rozszerzenie zawiera kompletne samodzielne README EN/PL, MIT oraz notices zależ
 Core nie importuje Node I/O ani VS Code. Runtime/adaptery Node są niezależne od hosta; rozszerzenie sięga do nich przez `src/runtime/index.ts`. Stosuj KISS/BUZI i unikaj abstrakcji na przyszłość. DOC1 nie zmienia zachowania produktu. Syntetyczne fixture nie zawierają danych klienta ani credentiali.
 
 Przed autoryzowanym checkpointem sprawdź linki/kotwice, zakres PL/EN i identyczne przykłady, nazwy UI, rozróżnienie publiczne/lokalne/planowane, diagramy, pochodzenie nagrań, licencje/notices i finalny pakiet; uruchom `git diff --check`. Osobny read-only reviewer jest niezależny od autora. Wymagane FAIL/NOT_RUN i otwarte HIGH/MEDIUM blokują checkpoint. `MANUAL_SMOKE: DEFERRED` nie jest PASS. Zaktualizuj project-state i zatrzymaj się na zatwierdzonej granicy. Demo offline: `npm run demo:dry-run`; demo na żywo jest opcjonalne i może wywołać providera.
+
+## CLI model demo
+
+Demo wykonawcy przyjmuje jeden pozycyjny ID modelu. Przygotuj lokalne LM Studio; dry run nie zapisuje plików. To narzędzie wykonawcy; użytkownicy VSIX korzystają z instrukcji użytkownika.
+
+```bash
+npm run local:models
+npm run demo:llm:dry-run -- qwen/qwen3-14b
+npm run demo:llm -- qwen/qwen3-14b
+```

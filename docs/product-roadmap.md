@@ -6,7 +6,7 @@ The current branch includes OBS1 diagnostics, UX3 onboarding, K1 shared knowledg
 
 The latest technical baseline is `6863a30`; its full automatic profile passed 294/294 and independent review found no open HIGH/MEDIUM. These are historical technical results for that exact candidate, reused only where source fingerprints and package bytes agree. Current documentation/help checks are recorded separately in [project state](project-state.md).
 
-This branch is published with a draft PR to main. Independent architecture/code audit follows in a separate session; further functional work follows evaluation of that audit. PR merge and VSIX release require separate tasks. The earlier public alpha.4 download remains the UX2 release; a branch build with the same version is a different artifact.
+The implemented product is available as a GitHub test prerelease: [downloads](https://github.com/Setech-pl/archi-agent/releases), [README](../README.md) and [PL/EN owner tests](testing/owner-smoke.md). AUD-001/002 fixes and clean-clone CI are integrated; publication status and exact validation evidence are maintained in [project state](project-state.md). The earlier public alpha.4 remains the UX2 artifact. Release publication does not establish M1, production readiness or close SRC1; AUD-003–006 remain OPEN.
 
 ## Known limits
 

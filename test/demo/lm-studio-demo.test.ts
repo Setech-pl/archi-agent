@@ -277,7 +277,8 @@ describe("parseLmStudioArguments - npm positional model", () => {
   });
 
   it("keeps every documented npm command and the usage examples working", () => {
-    const documented = [readFileSync(new URL("../../README.md", import.meta.url), "utf8"), readFileSync(new URL("../../docs/local-model.md", import.meta.url), "utf8")]
+    const documented = ["../../README.md", "../../README.pl.md", "../../docs/en/development.md", "../../docs/pl/development.md", "../../docs/local-model.md"]
+      .map((file) => readFileSync(new URL(file, import.meta.url), "utf8"))
       .flatMap((text) => text.split("\n"))
       .map((line) => line.trim())
       .filter((line) => line.startsWith("npm run demo:llm"));

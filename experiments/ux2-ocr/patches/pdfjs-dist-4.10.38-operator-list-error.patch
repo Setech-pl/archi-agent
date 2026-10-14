@@ -1,6 +1,6 @@
 --- a/pdf.mjs
 +++ b/pdf.mjs
-@@ -12689,4 +12689,15 @@
+@@ -12689,6 +12689,17 @@
      }
      return fallback;
    }
@@ -16,6 +16,8 @@
 +    return image;
 +  }
    beginDrawing({
+     transform,
+     viewport,
 @@ -14004,7 +14015,7 @@
      if (!this.contentVisible) {
        return;
@@ -34,8 +36,7 @@
      if (!imgData) {
        warn("Dependent image isn't ready yet");
        return;
-@@ -17192,18 +17203,22 @@
-         if (this._transport.destroyed) {
+@@ -17198,17 +17209,21 @@
            return;
          }
          if (intentState.operatorList) {

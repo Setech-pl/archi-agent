@@ -1,4 +1,8 @@
 // DOC1 documentation harness. Drives actual installed VSIX UI; transport alone is synthetic.
+if (process.argv.includes('--screenshots')) {
+ await import('./capture-current-ui.mjs');
+ process.exit(process.exitCode ?? 0);
+}
 import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
 import {createServer} from 'node:http';

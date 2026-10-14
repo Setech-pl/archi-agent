@@ -1,54 +1,71 @@
-# Archi Agent
-
 [English](README.md) · **Polski**
 
-Archi Agent generuje w VS Code diagramy PlantUML **Sequence** i **Component** na podstawie opisu przepływu oraz lokalnego Architecture Knowledge Pack. Grounding rozpoznaje nazwy, aliasy i dowody lokalnie. Model proponuje ograniczony plan; po lokalnej walidacji i renderowaniu osobne wywołanie ocenia zgodność znaczenia.
+# Archi Agent
 
-## Wybierz właściwy pakiet
+Zamień opis przepływu i wiedzę o architekturze w diagram Sequence lub Component z raportem pokazującym rozpoznane nazwy i pochodzenie relacji.
 
-Opublikowany prerelease to [v0.3.0-alpha.4](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.4), wydany 2026-10-03 z `31a6609cd0e8b083dbc09f3007a761e93a174b18`. Jego [VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.vsix) i [plik sumy kontrolnej](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.4/archi-agent-0.3.0-alpha.4.sha256) obejmują OCR UX2. SHA-256 publicznego VSIX to `4d30bb3b3b2108c8ecbba2748e7da537f5668460b717e2b3f2740060559e12b1` (119805952 bajty).
+Archi Agent pomaga architektom i analitykom dokumentować interakcje usług, wyjaśniać zależności systemów i przeglądać wiedzę proponowaną z dokumentów w VS Code. Wspólny katalog nazw i aliasów ogranicza powtarzanie pracy nad nazewnictwem; raport pomaga sprawdzić podstawy diagramu przed jego udostępnieniem.
 
-Instrukcje opisują **bieżący build gałęzi na bazie UX4-FU2 `6863a30`**: diagnostykę OBS1, onboarding packów UX3, pozyskiwanie/review wiedzy K1–K3, kontrolowany zapis ART1, Configuration, Knowledge Browser i jawny wybór modelu. Funkcji nie ma w starszym publicznym pobraniu UX2 powyżej. Wersja pakietu pozostaje `0.3.0-alpha.4`; identyfikuj VSIX gałęzi przez dostarczony SHA-256. Publikacja źródeł gałęzi jest osobna od wydania; to zadanie nie tworzy nowego release.
+![Konfiguracja dostawcy i modelu w aktualnym UI Archi Agent](docs/assets/screenshots/02-provider.png)
 
-Kontrole techniczne i ograniczenia są w [stanie projektu](docs/project-state.md); wcześniejsze raporty checkpointów pozostają w historii technicznej.
+## Pobierz i uruchom
 
-## Zacznij tutaj
+[Pobierz testowy VSIX — 0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.6/archi-agent-0.3.0-alpha.6.vsix) · [SHA-256](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.6/archi-agent-0.3.0-alpha.6.vsix.sha256) · [Release notes](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6)
 
-1. Uzyskaj wskazany VSIX gałęzi i sprawdź sumę kontrolną. W VS Code użyj **Extensions → … → Install from VSIX…**. Nie potrzebujesz repozytorium, npm, osobnego Node.js ani backendu Archi Agent.
-2. Otwórz lokalny folder projektu. W palecie poleceń uruchom **Archi: Open**.
-3. Otwórz **Archi: Configuration → LLM Provider**. Wybierz profil, Refresh Models, wybierz dokładne ID z Available models i Apply. Odświeżanie czyta formularz bez jego zapisu. Przygotuj lokalnie LM Studio lub Ollamę albo wybierz Anthropic, OpenAI lub OpenRouter i użyj **Set / Replace Key**. Klucze trafiają do VS Code SecretStorage. Model musi obsługiwać strukturalny JSON.
-4. Otwórz **Knowledge Management**. **Choose Existing Knowledge Pack** wybiera folder z pięcioma plikami Markdown packa; **Create Knowledge Pack** tworzy mały pack z jednego rzeczywistego systemu. Walidacja poprzedza aktywację. Browse Knowledge otwiera to samo natywne drzewo Explorera co **Archi: Knowledge Browser**. **Build Knowledge Pack from Active File** przechwytuje bufor MD/TXT, także niezapisane zmiany; dokumenty binarne korzystają z lokalnej konwersji pliku.
-5. Wybierz **Create Diagram → Sequence** lub **Component**. Podaj dokument przepływu albo opis z nazwami kanonicznymi packa; rozstrzygnij niejednoznaczności i potwierdź jawne elementy `[NEW: Name]`, jeśli pojawi się pytanie.
-6. Przeczytaj edytor PlantUML i powiązany raport groundingu. **Save Diagram and Report** zapisuje zamrożoną oryginalną parę w nowym folderze wyników projektu. Graficzny podgląd PlantUML wymaga osobnej obsługi w edytorze.
+1. Pobierz VSIX i sprawdź checksumę według [instrukcji Mac/Windows](docs/testing/owner-smoke.md).
+2. W desktop VS Code wybierz **Extensions → … → Install from VSIX…**, wskaż plik i przeładuj okno, jeśli jest to wymagane. Potwierdź wersję w szczegółach rozszerzenia.
+3. Otwórz lokalny projekt i uruchom **Archi: Open**. W **Configuration** skonfiguruj dostawcę/model i wybierz Knowledge Pack.
 
-Syntetyczny przykład: Alpha (service), Beta (database) i synchroniczna relacja DB Alpha → Beta o nazwie Writer. Opis: `Alpha stores data in Beta.` [Instrukcja użytkownika](docs/pl/user-guide.md) wyjaśnia tworzenie packa, format pięciu plików, decyzje review, błędy i bezpieczny zapis; filmy nie są potrzebne do wykonania kroków.
+Pakiet zawiera runtime, lokalną konwersję dokumentów i OCR PL/EN offline. Użytkownik nie potrzebuje repozytorium, npm ani osobnej instalacji Node.js. Diagramy i ekstrakcja wiedzy wymagają dostawcy modelu. To **testowy prerelease**; owner smoke Mac/Windows i Windows ARM64 runtime pozostają **NOT_RUN** do otrzymania raportu. [Help pierwszego użycia](docs/pl/user-guide.md).
 
+## Dostępne funkcje
 
-**Pomoc offline:** uruchom **Archi: Help** lub **Archi: Open → Help**. Język wyświetlania VS Code wybiera PL/EN; instrukcja w pakiecie ma też odnośnik do drugiego języka. Zobacz [pierwsze użycie](docs/pl/user-guide.md#zacznij-tutaj--pierwsze-użycie) i troubleshooting.
+- **Przygotowanie diagramów Sequence i Component** z pliku przepływu lub wpisanego opisu. Obejrzyj tekst PlantUML i powiązany raport grounding.
+- **Uporządkowana wiedza architektoniczna**: systemy, aktorzy, relacje, aliasy i reguły w lokalnym Markdown Knowledge Pack.
+- **Spójne nazwy** przez dopasowanie nazw kanonicznych i aliasów, jawne rozstrzyganie niejednoznaczności i świadome potwierdzanie nowych elementów.
+- **Ślad grounding** przez odwołania do źródeł i raport odróżniający relacje potwierdzone w źródle od relacji podanych w opisie przepływu.
+- **Review propozycji z dokumentów**: evidence, decyzje accept/reject, edycja wierszy i podgląd pięciu plików przed utworzeniem nowego Knowledge Pack. Bez aktualizacji istniejącego packa.
+- **Zapis oryginalnej pary diagram/raport** w nowym katalogu projektu po potwierdzeniu lokalizacji.
+- **Dostawcy lokalni i chmurowi**: LM Studio, Ollama, Anthropic, OpenAI i OpenRouter. Klucze chmurowe pozostają w SecretStorage VS Code; modele lokalne przygotowujesz osobno.
+- **Lokalna konwersja dokumentów i OCR**: PDF, DOCX i XLSX (oraz wejście MD/TXT do ekstrakcji wiedzy); OCR PDF korzysta z modeli polskich/angielskich w paczce bez żądania do dostawcy.
 
-## Dokumentacja użytkownika
+## Krótki przykład pracy
 
-- [Instrukcja użytkownika](docs/pl/user-guide.md) · [Architektura i pięć diagramów Mermaid](docs/pl/architecture.md) · [Praca deweloperska](docs/pl/development.md)
-- [Trzy demonstracje prawdziwego UI, podglądy i pochodzenie](docs/assets/README.md)
+1. **Wiedza:** pack identyfikuje Alpha jako usługę, Beta jako bazę danych i Alpha → Beta jako interfejs Writer.
+2. **Przepływ:** wpisz `Alpha stores data in Beta.` i wybierz **Sequence** lub **Component**.
+3. **Diagram i raport:** sprawdź interakcje/zależności, evidence, ostrzeżenia i wynik walidacji. Cytat źródłowy ani review modelu nie gwarantują prawdziwości architektonicznej.
+4. **Zapis:** wybierz **Save Diagram and Report** i potwierdź lokalizację; rozszerzenie zapisze `diagram.puml` i `report.json` w nowym katalogu wyniku.
 
-Do wybranego modelu trafia tylko ograniczony kontekst potrzebny do zadania. Konwersja i OCR działają lokalnie. Ekstrakcja wysyła ograniczony tekst wybranych dokumentów; review/edycja/zapis nie dodają żądań do modelu. Generowanie diagramu używa najwyżej jednego żądania generatora i jednego reviewera, bez retry, repair i fallbacku. Wywołania chmurowe mogą być płatne.
+[Instrukcja](docs/pl/user-guide.md#kompletny-syntetyczny-pack-z-pięciu-plików) zawiera kompletny syntetyczny pack pięciu plików do tego przykładu.
 
-Celem wsparcia 1.0 jest Mac ARM. Obecne dowody natywnego UI dotyczą macOS arm64; dołączone bindingi innych platform nie potwierdzają równoważnego wsparcia end-to-end. MCP, pobieranie z Enterprise Architect, VS Code Chat, generowanie C4/ArchiMate oraz aktualizacja/scalanie istniejących packów są planowane albo wyłączone z zakresu, a nie dostępne obecnie.
+## Zobacz przebieg pracy
 
-## Rozwój w repozytorium
+![Przegląd propozycji wiedzy i evidence](docs/assets/screenshots/05-review.png)
 
-- Stabilne kontrakty techniczne: [format Knowledge Pack](docs/knowledge-pack-format.md), [front matter](docs/front-matter.md), [generowanie z review](docs/reviewed-diagram-pipeline.md), [ekstrakcja dokumentów](docs/document-candidates.md), [review/zapis packa](docs/knowledge-pack-review.md), [ART1](docs/diagram-artifact-save.md)
-- [Roadmapa produktu](docs/product-roadmap.md) · [Stan projektu](docs/project-state.md) · [Proces pracy wykonawców](docs/development-workflow.md)
+Sprawdź proponowaną wiedzę przed akceptacją.
 
-W istniejącym CLI lokalnego modelu podaj identyfikator z `npm run local:models`:
+![Diagram Sequence i raport grounding](docs/assets/screenshots/08-sequence.png)
 
-```sh
-npm run demo:llm:dry-run -- "<model-id>"
-npm run demo:llm -- "<model-id>"
-```
+Obejrzyj PlantUML i powiązany raport obok siebie.
 
-Drugie polecenie uruchamia generację na żywo. Wymagania opisuje [CLI lokalnego modelu](docs/local-model.md), a kontrole [instrukcja deweloperska](docs/pl/development.md).
+![Potwierdzenie zapisu oryginalnego diagramu i raportu](docs/assets/screenshots/10-save.png)
 
-## Licencja
+Potwierdź oryginalny wynik i lokalizację przed zapisem. [Pełna galeria i pochodzenie capture PL/EN](docs/assets/screenshots/README.md).
 
-Własny kod i dokumentacja Archi Agent są objęte [licencją MIT](LICENSE), z kanonicznym angielskim tekstem pochodzącym z [Open Source Initiative](https://opensource.org/license/mit). Ten opis nie jest drugą licencją. Cudzy kod, modele OCR, biblioteki natywne i WASM zachowują własne licencje: [notices zależności](vscode-extension/THIRD_PARTY_NOTICES.md) i [notices OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).
+## Help
+
+[Polska instrukcja](docs/pl/user-guide.md) · [English user guide](docs/en/user-guide.md) · [Lista testów Mac/Windows PL/EN](docs/testing/owner-smoke.md)
+
+W VS Code użyj **Archi: Help**. Te same instrukcje i screenshoty są w VSIX. Help uwzględnia język wyświetlania VS Code, a przełącznik **English / Polski** działa offline. Większość kontrolek produktu ma angielskie etykiety.
+
+## Ograniczenia i kierunek
+
+Sprawdzaj wygenerowane fakty i evidence dokumentów. Walidacja lokalna obejmuje określony podzbiór PlantUML; podgląd graficzny wymaga osobnej obsługi PlantUML. Zapis wiedzy tworzy nowe katalogi, wyniki pozostają w pamięci do zapisu, a zapis pary nie gwarantuje atomowej publikacji ani odtworzenia po awarii. Zasoby platform są w paczce, ale pokrycie pakowania nie potwierdza równoważnego wsparcia natywnego runtime. [Ograniczenia i stan techniczny](docs/project-state.md).
+
+Następny kierunek to weryfikacja względem istniejących modeli architektury, następnie szersza weryfikacja i integracja MCP. **SRC1, VER1 i MCP1 są planowane, nie są dostępnymi funkcjami.** [Roadmapa](docs/product-roadmap.md). Prerelease nie potwierdza M1 ani gotowości produkcyjnej.
+
+## Informacje techniczne i licencja
+
+[Architektura](docs/architecture.md) · [Development](docs/pl/development.md) · [Format Knowledge Pack](docs/knowledge-pack-format.md) · [Dowody CI](docs/ci-clean-clone-icu.md) · [Stan techniczny](docs/project-state.md)
+
+Kod Archi Agent jest na licencji [MIT](LICENSE). Składniki mają własne [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) i [notices OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).
