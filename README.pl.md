@@ -4,9 +4,11 @@
 
 Zamień opis przepływu i wiedzę o architekturze w diagram Sequence lub Component z raportem pokazującym rozpoznane nazwy i pochodzenie relacji.
 
-Archi Agent pomaga architektom i analitykom dokumentować interakcje usług, wyjaśniać zależności systemów i przeglądać wiedzę proponowaną z dokumentów w VS Code. Wspólny katalog nazw i aliasów ogranicza powtarzanie pracy nad nazewnictwem; raport pomaga sprawdzić podstawy diagramu przed jego udostępnieniem.
+![Diagram Sequence w PlantUML z powiązanym raportem pochodzenia](docs/assets/screenshots/08-sequence.png)
 
-![Konfiguracja dostawcy i modelu w aktualnym UI Archi Agent](docs/assets/screenshots/02-provider.png)
+Sprawdź przepływ i raport grounding obok siebie przed udostępnieniem wyniku. Ekran pokazuje tekst PlantUML.
+
+Archi Agent pomaga architektom i analitykom dokumentować interakcje usług, wyjaśniać zależności systemów i przeglądać wiedzę proponowaną z dokumentów w VS Code. Wspólny katalog nazw i aliasów ogranicza powtarzanie pracy nad nazewnictwem; raport pomaga sprawdzić podstawy diagramu przed jego udostępnieniem.
 
 ## Pobierz i uruchom
 
@@ -38,19 +40,25 @@ Pakiet zawiera runtime, lokalną konwersję dokumentów i OCR PL/EN offline. Uż
 
 [Instrukcja](docs/pl/user-guide.md#kompletny-syntetyczny-pack-z-pięciu-plików) zawiera kompletny syntetyczny pack pięciu plików do tego przykładu.
 
-## Zobacz przebieg pracy
+## Zobacz w działaniu
 
-![Przegląd propozycji wiedzy i evidence](docs/assets/screenshots/05-review.png)
+![Wybór dostawcy i modelu w Configuration](docs/assets/screenshots/02-provider.png)
 
-Sprawdź proponowaną wiedzę przed akceptacją.
+Wybierz dokładny ID modelu i zastosuj jedną konfigurację dla generowania diagramów i review.
 
-![Diagram Sequence i raport grounding](docs/assets/screenshots/08-sequence.png)
+![Przegląd kandydatów wiedzy architektonicznej](docs/assets/screenshots/05-review.png)
 
-Obejrzyj PlantUML i powiązany raport obok siebie.
+Sprawdź dowody źródłowe i zdecyduj, które propozycje staną się Twoją wiedzą o architekturze.
 
-![Potwierdzenie zapisu oryginalnego diagramu i raportu](docs/assets/screenshots/10-save.png)
+![Knowledge Browser z systemami i ich relacjami](docs/assets/readme/knowledge-browser.png)
 
-Potwierdź oryginalny wynik i lokalizację przed zapisem. [Pełna galeria i pochodzenie capture PL/EN](docs/assets/screenshots/README.md).
+Znajdź systemy i prześledź relacje przychodzące i wychodzące w jednym miejscu.
+
+![Diagram Component w PlantUML z powiązanym raportem](docs/assets/readme/component-report.png)
+
+Wyjaśnij zależności usług i baz danych wraz z raportem ich pochodzenia. Ekran pokazuje tekst PlantUML.
+
+[Pełna galeria screenshotów i pochodzenie capture PL/EN](docs/assets/screenshots/README.md) · [Pochodzenie kadrów README](docs/assets/readme/provenance.json)
 
 ## Help
 

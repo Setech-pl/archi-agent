@@ -2,6 +2,12 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## Wizytówka README — pięć osadzonych ekranów PL/EN, 2026-10-14
+
+- Korekta właściciela: pierwszy obraz bezpośrednio po wartości produktu to Sequence i raport; sekcja See it in action / Zobacz w działaniu pokazuje dostawcę/model, review kandydatów, Knowledge Browser i Component. Oba README mają pięć identycznych ścieżek obrazów i równoważne podpisy korzyści użytkownika. Diagramy opisane jako tekst PlantUML; screenshoty nie korzystają z dodatkowego rozszerzenia do podglądu graficznego.
+- Dwa kadry wyłącznie dla README w `docs/assets/readme/`: Browser bez pustego edytora oraz Component bez zasłaniających raport powiadomień. Tylko crop, bez skalowania/odrysowania; provenance zapisuje źródło, commit/hash VSIX, prostokąt i SHA256. Obejrzano wszystkie pięć ujęć; dekodowane piksele cropów są identyczne z odpowiednimi fragmentami oryginałów. Oryginalna galeria 14 PNG, spakowany Help i wydanie alpha.6 pozostają bez zmian.
+- Bieżąca bramka dokumentacji PASS: checker linków/kotwic/PL-EN/provenance/online-offline i dotychczasowej paczki, kontrola pięciu obrazów/kolejności/położenia hero, hashe źródeł i cropów, git diff --check. Bez ponawiania lokalnego gauntletu i pakowania dla niepakowanych README/cropów. CI i integrację tej korekty odczytaj z Git/Actions; historia wydania poniżej zachowana.
+
 ## Publikacja do testów i README/Help PL/EN — ukończone, 2026-10-14
 
 - Dostępne niezmienne prerelease: [alpha.5](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.5) opublikowana najpierw do testów, następnie [alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6) z finalnym helpem i obrazami. Nie podmieniano assetów ani tagów; bez Marketplace i deklaracji M1/produkcji.

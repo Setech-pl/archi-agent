@@ -1,0 +1,51 @@
+{
+  "purpose": "README-only crops of actual current UI captures. Original screenshots and packaged Help assets remain unchanged.",
+  "images": [
+    {
+      "file": "knowledge-browser.png",
+      "sha256": "9fcec4f2d839ca0adf2f480eaccc45ef40dde03f78b98b774afe261a5eead379",
+      "source": "../screenshots/04-browser.png",
+      "sourceSha256": "119d06b7993ab8c425445e0f4fb8f769715b52d26b63c07401454ed79d65c156",
+      "sourceCommit": "6b96ff629c33cf6deea65a329cf2b36b54a6539d",
+      "version": "0.3.0-alpha.5",
+      "vsixSha256": "69ff84de019fcda4c9b539e22a743fcab9fcb3fb606e218a1724b6592442810c",
+      "platform": "darwin",
+      "arch": "arm64",
+      "syntheticTransport": true,
+      "transformation": {
+        "tool": "ffmpeg crop filter; PNG output, no rescaling",
+        "cropPixels": {
+          "x": 0,
+          "y": 272,
+          "width": 304,
+          "height": 488
+        },
+        "redrawn": false,
+        "rescaled": false
+      }
+    },
+    {
+      "file": "component-report.png",
+      "sha256": "b7ff1a31052b9838c8d130e25e4fe959a6d43ac1deb096d3818b7676c4197b4f",
+      "source": "../screenshots/09-component.png",
+      "sourceSha256": "c14d27f0705f55bde2b6a7ee78ae89a88ad13f4c8af58c9eba8f4cd66409ef7b",
+      "sourceCommit": "6b96ff629c33cf6deea65a329cf2b36b54a6539d",
+      "version": "0.3.0-alpha.5",
+      "vsixSha256": "69ff84de019fcda4c9b539e22a743fcab9fcb3fb606e218a1724b6592442810c",
+      "platform": "darwin",
+      "arch": "arm64",
+      "syntheticTransport": true,
+      "transformation": {
+        "tool": "ffmpeg crop filter; PNG output, no rescaling",
+        "cropPixels": {
+          "x": 0,
+          "y": 0,
+          "width": 1120,
+          "height": 390
+        },
+        "redrawn": false,
+        "rescaled": false
+      }
+    }
+  ]
+}
