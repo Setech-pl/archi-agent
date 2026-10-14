@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -269,10 +269,31 @@ describe("VSIX", () => {
       "extension/ux2-ocr/ocr-parent.mjs", "extension/ux2-ocr/ocr-child.mjs",
       "extension/ux2-ocr/assets/lang/pol.traineddata", "extension/ux2-ocr/assets/lang/eng.traineddata",
       "extension/ux2-ocr/node_modules/tesseract.js-core/tesseract-core-simd.wasm",
+      "extension/ux2-ocr/node_modules/@napi-rs/canvas-win32-x64-msvc/icudtl.dat",
+      "extension/ux2-ocr/node_modules/@napi-rs/canvas-win32-arm64-msvc/icudtl.dat",
       "extension/ux2-ocr/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node"]) {
       expect(result.entries).toContain(entry);
     }
     expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.4.vsix");
+  });
+
+  it.each(["win32-x64-msvc", "win32-arm64-msvc"])("rejects a VSIX missing %s ICU even if removed from its manifest", async (platform) => {
+    const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };
+    const directory = temporaryDirectory("archi-agent-missing-icu-");
+    const archive = path.join(directory, "missing-icu.vsix");
+    copyFileSync(vsixPath, archive);
+    const resource = `node_modules/@napi-rs/canvas-${platform}/icudtl.dat`;
+    expect(spawnSync("zip", ["-q", "-d", archive, `extension/ux2-ocr/${resource}`]).status).toBe(0);
+    expect(verifyModule.verifyVsix(archive).ok).toBe(false);
+    const manifestEntry = "extension/ux2-ocr/resource-manifest.json";
+    const manifest = JSON.parse(openVsix(archive).read(manifestEntry).toString("utf8"));
+    manifest.files = manifest.files.filter((file: { path: string }) => file.path !== resource);
+    mkdirSync(path.join(directory, "extension/ux2-ocr"), { recursive: true });
+    writeFileSync(path.join(directory, manifestEntry), JSON.stringify(manifest));
+    expect(spawnSync("zip", ["-q", archive, manifestEntry], { cwd: directory }).status).toBe(0);
+    const result = verifyModule.verifyVsix(archive);
+    expect(result.ok).toBe(false);
+    expect(result.violations).toContain(`trial-resource-missing: ${resource}`);
   });
 
   it("packages the corrected D1.2 plan-validation mapping in the runtime bundle", async () => {

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openVsix } from '../../vscode-extension/scripts/vsix-zip.mjs';
-import { canvasBindings, canvasPlatforms, verifyCanvasTarball } from '../../scripts/prepare-ci-ocr.mjs';
+import { canvasBindings, canvasPlatforms, supplementWindowsArm64Icu, verifyCanvasTarball } from '../../scripts/prepare-ci-ocr.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -79,6 +79,13 @@ for (const binding of bindings) {
   if (!Array.isArray(pkg.files) || !pkg.files.includes(`skia.${binding.platform}.node`)) {
     throw new Error(`canvas-binding-not-declared: ${binding.name}`);
   }
+}
+const canvasResourceSupplements = productAssets
+  ? supplementWindowsArm64Icu(targetModules, path.join(build, 'platform-tarballs'), bindings) : [];
+// The single approved repair must precede the unchanged completeness check for all platforms.
+for (const binding of bindings) {
+  const dest = path.join(targetModules, binding.name);
+  const pkg = JSON.parse(readFileSync(path.join(dest, 'package.json'), 'utf8'));
   for (const resource of pkg.files) {
     if (typeof resource !== 'string' || path.basename(resource) !== resource ||
         !statSync(path.join(dest, resource)).isFile() || statSync(path.join(dest, resource)).size === 0) {
@@ -115,6 +122,7 @@ const manifest = {
   baselineEntries: alpha?.entries.map((entry) => ({ path: entry.name, bytes: alpha.read(entry.name).length, sha256: hash(alpha.read(entry.name)) })) ?? [],
   versions: { 'pdfjs-dist': '4.10.38', 'tesseract.js': '6.0.1', 'tesseract.js-core': '6.1.2', '@napi-rs/canvas': '0.1.97', unpdf: '1.7.0', tessdata_fast: '4.1.0' },
   platforms: canvasPlatforms,
+  canvasResourceSupplements,
   files
 };
 mkdirSync(path.dirname(externalManifest), { recursive: true });

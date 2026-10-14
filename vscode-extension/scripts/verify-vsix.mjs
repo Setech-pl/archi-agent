@@ -17,6 +17,7 @@ import { builtinModules } from "node:module";
 import { createHash } from "node:crypto";
 import { bundleFileNames, extensionRoot, projectRoot } from "./build.mjs";
 import { openVsix } from "./vsix-zip.mjs";
+import { canvasBindings } from "../../scripts/prepare-ci-ocr.mjs";
 
 const manifestEntry = "extension/package.json";
 const extensionBundleEntry = `extension/dist/${bundleFileNames.extension}`;
@@ -143,6 +144,31 @@ export function verifyVsix(filePath, options = {}) {
       for (const platform of manifest.platforms) {
         if (!manifest.files.some((file) => file.path.startsWith(`node_modules/@napi-rs/canvas-${platform}/`) && file.path.endsWith(".node")))
           violations.push(`trial-platform-missing: ${platform}`);
+      }
+      if (productOcr) {
+        const icuPaths = ["win32-x64-msvc", "win32-arm64-msvc"].map((platform) => `node_modules/@napi-rs/canvas-${platform}/icudtl.dat`);
+        for (const resource of icuPaths) {
+          if (!manifest.files.some((file) => file.path === resource && file.bytes > 0))
+            violations.push(`trial-resource-missing: ${resource}`);
+        }
+        const source = archive.read(`${ocrPrefix}${icuPaths[0]}`);
+        const target = archive.read(`${ocrPrefix}${icuPaths[1]}`);
+        if (!source.equals(target)) violations.push("canvas-icu-bytes-mismatch");
+        const donor = canvasBindings(projectRoot).find((binding) => binding.platform === "win32-x64-msvc");
+        const supplements = manifest.canvasResourceSupplements;
+        const supplement = supplements?.[0];
+        const sha256 = createHash("sha256").update(source).digest("hex");
+        if (!Array.isArray(supplements) || supplements.length !== 1 ||
+          supplement?.reason !== "missing-declared-windows-arm64-icu" ||
+          supplement.upstream !== "https://github.com/Brooooooklyn/canvas/pull/1278" ||
+          supplement.upstreamCommit !== "e1a75d1aa888dcdf44467875829d58ea19c6cdd7" ||
+          supplement.source?.package !== donor.name || supplement.source.version !== donor.version ||
+          supplement.source.resolved !== donor.resolved || supplement.source.integrity !== donor.integrity ||
+          supplement.source.tarball !== donor.filename || supplement.source.entry !== "package/icudtl.dat" ||
+          supplement.source.path !== icuPaths[0] || supplement.target?.path !== icuPaths[1] ||
+          supplement.target.package !== "@napi-rs/canvas-win32-arm64-msvc" || supplement.target.version !== "0.1.97" ||
+          supplement.bytes !== source.length || supplement.sourceSha256 !== sha256 || supplement.targetSha256 !== sha256)
+          violations.push("canvas-icu-provenance-mismatch");
       }
       for (const resource of ["convert.mjs", "TRIAL_NOTICES.md", "licenses/SKIA-LICENSE", "assets/lang/LICENSE-tessdata-fast",
         "assets/lang/pol.traineddata", "assets/lang/eng.traineddata",

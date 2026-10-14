@@ -2,7 +2,16 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
-## CI po czystym klonie — kandydat lokalny, bramka FAIL, 2026-10-13
+## CI — zatwierdzona naprawa ICU, kandydat do izolowanej walidacji, 2026-10-14
+
+- Preflight: branch `ci/clean-clone-linux-macos`, HEAD `ba34379bd0a75e9415cf433120e8c48e30242210`, working tree clean, staging empty. Naprawy ICU nie było; wcześniejszy FAIL poniżej i dowody w `/private/tmp/archi-clean-clone-ci-wh910gqd/` zachowane.
+- Zakres właściciela: canvas **0.1.97**, oba lockfile'y i osiem platform bez zmian. Wyłącznie product-assets uzupełnia brakujące Windows ARM64 `icudtl.dat` z tarballa Windows x64 tej samej wersji po weryfikacji SHA512 SRI z lockfile'a OCR. Oryginalne tarballe i `.node` pozostają bez zmian. Inne braki nadal przerywają przygotowanie.
+- [Upstream #1278](https://github.com/Brooooooklyn/canvas/pull/1278), commit `e1a75d1aa888dcdf44467875829d58ea19c6cdd7`: `scripts/release-skia-binary.mjs` kopiuje ten sam pobrany plik do obu paczek Windows (linie 128–140). Dowody źródła zapisane w `/private/tmp/archi-ci-icu-g2u9jxx5/`. Przy uzupełnieniu sprawdzane są identyczne bajty i SHA256; manifest zapisuje pakiety, wersje, resolved, SRI, entry tarballa, ścieżki, liczbę bajtów i oba SHA256. Verifier wymaga obu ICU niezależnie od deklaracji manifestu oraz zgodnego pochodzenia.
+- Bieżące kontrole na Node **22.12.0**: oba typechecki PASS; testy celowane **22/22 PASS** (helper 6, packaging 16). Scenariusze: poprawny donor, brak źródłowego ICU, corrupt donor odrzucony przed użyciem, brak każdego Windows ICU w VSIX z zachowanym/usuniętym wpisem manifestu. Log: `/private/tmp/archi-ci-icu-g2u9jxx5/targeted-tests.log`. Pierwsze próby zapisu do domyślnego cache npm oraz pobrania upstream w sandboxie nie powiodły się; właściwe przygotowanie z osobnym cache i dostępem sieciowym PASS.
+- Następny krok w tym autoryzowanym zadaniu: lokalny commit kandydata, `git clone --no-local` bez kopiowanych zasobów, pusty cache npm i dokładna sekwencja dziewięciu bramek. Pełna bramka nowego kandydata: **PENDING**, bez deklaracji PASS do zakończenia.
+- **GITHUB LINUX CI: NOT_RUN; GITHUB MACOS CI: NOT_RUN; WINDOWS ARM64 RUNTIME: NOT_RUN; SRC1 ENTRY GATE: OPEN.** Bez push/PR/merge/tag/publikacji i bez rozszerzenia na SRC1/Core/Full lub pozostałe ustalenia audytu.
+
+## CI po czystym klonie — historyczny kandydat lokalny, bramka FAIL, 2026-10-13
 
 - Autoryzowane zadanie: implementacja CI, izolowana walidacja i lokalny checkpoint; bez push/PR/merge/tag/publikacji. Preflight zgodny: `fix/audit-provider-configuration-consistency`, pełne HEAD/baza `4b12417877b6254e6f050e73ebcb57747670d418`, tracked/untracked clean, staging empty, diff-check PASS. Utworzono nowy branch `ci/clean-clone-linux-macos`; branch napraw AUD-001/002 zachowany.
 - Workflow: PR do main i push na main, contents read, osobne ubuntu-24.04 linux/x64 i macos-15 darwin/arm64, fail-fast false, timeout 30 minut. Node dokładnie 22.12.0, bundle nadal node20. Zweryfikowane upstream checkout v6.0.2 i setup-node v6.3.0 przypięte pełnymi SHA; bez cache. Log środowiska, merge/test SHA i osobnego PR head SHA; kontrola platformy, architektury, zwykłego użytkownika, zip/tar/patch oraz niezmienionych tracked files/obu lockfile'ów.
