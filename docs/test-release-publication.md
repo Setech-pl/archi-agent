@@ -7,9 +7,11 @@
 | Version | Release | Commit | Bytes | SHA256 |
 | --- | --- | --- | --- | --- |
 | 0.3.0-alpha.5 | [v0.3.0-alpha.5](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.5) | `6b96ff629c33cf6deea65a329cf2b36b54a6539d` | 124478869 | `69ff84de019fcda4c9b539e22a743fcab9fcb3fb606e218a1724b6592442810c` |
-| 0.3.0-alpha.6 | [v0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6) | Exact release commit is recorded by the annotated tag and release notes. | 127228325 | `460336177f814c17418def98a228628a24fc7bc43586b8e2805f9a880c84107a` |
+| 0.3.0-alpha.6 | [v0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6) | `8325c6904efe271012ab8cc07304fb700526daef` | 127228325 | `460336177f814c17418def98a228628a24fc7bc43586b8e2805f9a880c84107a` |
 
 Alpha.5 was published first, before the documentation work. Downloaded VSIX and checksum were compared byte-for-byte with the locally verified files: PASS. Its manifest/tag identify the release commit; its local full clean-clone evidence belongs to `d9370b6fa719785cc8e3ef1d177b89206a9d3c01`, as detailed in [the original report](ci-clean-clone-icu.md). The following documentation checkpoint changed only three documents. Publication did not rerun that full local gate.
+
+Alpha.6 was published and its downloaded VSIX/checksum were compared byte-for-byte with the verified local files: PASS.
 
 Alpha.6 updates help/documentation and packaging metadata; no diagram, grounding, provider, conversion or OCR runtime behavior changes. Historical alpha.4 descriptions and release assets remain intact. Both lockfiles and all eight canvas 0.1.97 platforms are unchanged.
 
@@ -41,6 +43,10 @@ Final package parity differences: version manifests, `[Content_Types].xml` (PNG 
 [PR #6](https://github.com/Setech-pl/archi-agent/pull/6): [Linux x64 FAIL](https://github.com/Setech-pl/archi-agent/actions/runs/38531151198/job/115743084321) in OCR preparation, [macOS ARM64 PASS](https://github.com/Setech-pl/archi-agent/actions/runs/38531151198/job/115743083910). The Setech-pl account merged it during the interrupted session to `640a336022ba66998fc71e1b5d970d7f1d6169e0`; the agent did not perform that merge. [That main run](https://github.com/Setech-pl/archi-agent/actions/runs/38532682679) also failed. No history was reverted.
 
 [PR #7](https://github.com/Setech-pl/archi-agent/pull/7) continues from that main and fixes patch portability. Intermediate `2ae190fccb8ac3d008277050773b88f645a8fa5d`: [Linux x64 PASS](https://github.com/Setech-pl/archi-agent/actions/runs/38551088484/job/115808935967), [macOS ARM64 PASS](https://github.com/Setech-pl/archi-agent/actions/runs/38551088484/job/115808935747). Head `2bc6cd8680055dad2fa72bbcad1dab37f9e8fc91` then failed on both platforms: root 1823/1824, one documentation-example test still reading the old README CLI location. Examples moved into both development guides; the existing test includes both guides and README languages without reducing its ≥4 requirement or parser assertions. Extension/package/verify steps were skipped in that failed CI run. These are intermediate results; final-candidate and integrated-main results are recorded separately in [project state](project-state.md) and the release notes. Workflow `contents: read` is preserved; releases use local gh.
+
+Final PR head **`8325c6904efe271012ab8cc07304fb700526daef`**, tested merge checkout **`7509f81c4c9f7d9da2e00d291439c34486d0bf75`**: [Linux x64 PASS](https://github.com/Setech-pl/archi-agent/actions/runs/38575012822/job/115889701196), [macOS ARM64 PASS](https://github.com/Setech-pl/archi-agent/actions/runs/38575012822/job/115889700436). Both jobs ran 1824 root / 662 extension tests, both installs/typechecks, preparation, package/verify and unchanged-file checks. The existing CLI test now reads moved examples without weaker assertions; local 23/23 PASS outside the sandbox (an earlier sandbox listen EPERM is retained separately).
+
+After publication, PR #7 merged normally to **`4d325b235605966b40a9cbfaced349d748263a92`**. [Integrated-main CI PASS](https://github.com/Setech-pl/archi-agent/actions/runs/38577340888): [Linux x64](https://github.com/Setech-pl/archi-agent/actions/runs/38577340888/job/115897816798), [macOS ARM64](https://github.com/Setech-pl/archi-agent/actions/runs/38577340888/job/115897817107). GitHub's default main README blobs match Git (EN `0a0298fbc9cade72699d7dc4c401221ac0b3e7b9`, PL `abf487f1b48aea31376ebb35c46540440d77b8c9`). This final operational handoff changes only unbundled technical documentation; it does not change the released VSIX.
 
 ## Screenshots and observed limits
 
