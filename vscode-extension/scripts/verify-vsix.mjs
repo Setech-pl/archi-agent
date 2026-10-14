@@ -30,7 +30,8 @@ const productManifestEntry = "extension/ux2-ocr/resource-manifest.json";
 export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Content_Types].xml", manifestEntry, extensionBundleEntry, runtimeBundleEntry, converterWorkerEntry, noticesEntry]);
 
 /** Optional entries that vsce adds from the allow-listed files; their names may be lower-cased by vsce. */
-const optionalEntryPatterns = Object.freeze([/^extension\/readme(?:\.pl)?\.md$/i, /^extension\/changelog\.md$/i, /^extension\/licen[cs]e(?:\.md|\.txt)?$/i]);
+const optionalEntryPatterns = Object.freeze([/^extension\/readme(?:\.pl)?\.md$/i, /^extension\/changelog\.md$/i, /^extension\/licen[cs]e(?:\.md|\.txt)?$/i,
+  /^extension\/help-assets\/(?:01-open|02-provider|03-knowledge|04-browser|05-review|06-edit|07-pack-preview|08-sequence|09-component|10-save|11-conversion|12-help|13-ocr|14-help-pl)\.png$/]);
 
 /** Explicit rejections, reported with their own rule identifier even though the allow-list would reject them anyway. */
 export const prohibitedEntryRules = Object.freeze([

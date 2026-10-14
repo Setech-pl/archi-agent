@@ -73,7 +73,7 @@ key(36)
 let button = wait("enabled picker confirmation button") {
     tree(app).first {
         attribute($0, kAXRoleAttribute) as? String == kAXButtonRole &&
-        ["Use flow file", "Use documents", "Choose parent folder", "Use Knowledge Pack", "Open", "Otwórz", "Select Folder"].contains(attribute($0, kAXTitleAttribute) as? String ?? "") &&
+        ["Use flow file", "Use documents", "Choose parent folder", "Use Knowledge Pack", "Convert to Markdown", "Open", "Otwórz", "Select Folder"].contains(attribute($0, kAXTitleAttribute) as? String ?? "") &&
         attribute($0, kAXEnabledAttribute) as? Bool == true &&
         !tree(app).contains { attribute($0, kAXRoleAttribute) as? String == kAXTextFieldRole && attribute($0, kAXFocusedAttribute) as? Bool == true }
     }

@@ -1,3 +1,5 @@
+[Aktualne screenshoty UX4 PL/EN / Current UX4 screenshots](screenshots/README.md). Poniższe media to historia DOC1. / The media below are historical DOC1.
+
 # Historical DOC1 UI demonstrations / Historyczne demonstracje UI DOC1
 
 **These preserved recordings show DOC1 picker screens, not the new UX4 Configuration/Review screens. Follow the updated user guides. / Zachowane nagrania pokazują pickery DOC1, nie nowe ekrany Configuration/Review UX4. Używaj aktualnych instrukcji.**

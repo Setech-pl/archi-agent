@@ -2,6 +2,16 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## Finalna dokumentacja i alpha.6 — kandydat PR #7, 2026-10-14
+
+- [Alpha.5 jest dostępna](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.5); pobrane assety identyczne z lokalnymi (cmp PASS). [PR #7](https://github.com/Setech-pl/archi-agent/pull/7) kontynuuje pracę z main po integracji #6 przez konto właściciela. Po poprawce GNU patch oba pośrednie joby PASS; finalny head z dokumentacją wymaga odrębnego CI.
+- README EN/PL jako wizytówka; aktualny online/offline Help PL/EN; 14 rzeczywistych PNG z podpisami i provenance. Aktualne [screenshoty](assets/screenshots/README.md) zastępują historyczny DOC1 jako materiał bieżący. Wszystkie obrazy obejrzane. [Raport publikacji](test-release-publication.md) rozróżnia nieudane próby capture, syntetyczny transport i ograniczenia.
+- Bieżące kontrole: 22/22 celowane helper/packaging, 4/4 dispatch języka Help, oba typechecki, package/verify (546 wpisów), checker dokumentacji/linków/PL-EN/provenance/online-offline PASS. Rzeczywisty Host otwiera EN i PL; UI przełącza EN→PL→EN i ładuje wszystkie lokalne obrazy. Automatic PL dispatch: unit-test PASS; Host harness raportuje en (jawne ograniczenie). Pełny lokalny gauntlet nie był powtarzany.
+- Alpha.6 final: `build/publication/alpha6-final/archi-agent-0.3.0-alpha.6.vsix`, **127228325 B**, SHA256 **`460336177f814c17418def98a228628a24fc7bc43586b8e2805f9a880c84107a`**. Dokładne trzy bundle i zasoby OCR równe alpha.5; różnice: dwa manifesty wersji, PNG content type, Help PL/EN, 14 PNG oraz wyłącznie hash źródłowego patcha w manifeście OCR. Wynikowy PDF.js bez zmian. Oba lockfile'y/canvas 0.1.97/osiem platform zachowane.
+- Zaobserwowane ograniczenie: natywny picker macOS czasem zwraca symboliczną ścieżkę /tmp; zapis packa ją odrzuca. Nie obchodzono kontroli; instrukcja zaleca zwykły lokalny katalog nadrzędny. Nie naprawiano produktu poza zakresem publikacji/CI/dokumentacji.
+- Owner smoke Mac/Windows oraz Windows ARM64 runtime **NOT_RUN**. AUD-003–006 **OPEN**, SRC1 ENTRY GATE **OPEN**. Bez Marketplace, M1 ani deklaracji produkcji. [Instrukcja testów PL/EN](testing/owner-smoke.md).
+- Następne w tym samym zadaniu: push finalnego head; oba joby CI muszą PASS; nowy prerelease alpha.6 (bez podmiany alpha.5), weryfikacja pobranego assetu; merge #7 i CI main. Dokładny release commit zapisują tag i release notes.
+
 ## Kontynuacja publikacji — GNU patch / main, 2026-10-14
 
 - Alpha.5 opublikowana: [release](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.5), commit/tag `6b96ff629c33cf6deea65a329cf2b36b54a6539d`. VSIX i checksum pobrane do osobnego katalogu; cmp obu plików PASS, SHA256 zgodne.

@@ -5,6 +5,7 @@ node_modules/
 dist/
 out/
 build/
+vscode-extension/help-assets/
 coverage/
 .vitest/
 *.tsbuildinfo

@@ -8,7 +8,7 @@
 // node_modules directory inside the extension folder; the bundles already contain everything.
 // Nothing is published: this script never contacts a marketplace.
 
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createVSIX } from "@vscode/vsce";
@@ -21,6 +21,13 @@ export async function packageExtension(options = {}) {
   const packagePath = path.join(outDir, `${manifest.name}-${manifest.version}.vsix`);
 
   await buildExtensionBundles(options.bundleDir === undefined ? {} : { outDir: options.bundleDir });
+  // Offline Help uses the same real screenshots as the repository guides.
+  const helpImages = new Set(["README.md", "README.pl.md"].flatMap((name) =>
+    [...readFileSync(path.join(extensionRoot, name), "utf8").matchAll(/help-assets\/([a-z0-9-]+\.png)/g)].map((match) => match[1])));
+  const helpAssets = path.join(extensionRoot, "help-assets");
+  rmSync(helpAssets, { recursive: true, force: true });
+  mkdirSync(helpAssets, { recursive: true });
+  for (const name of helpImages) copyFileSync(path.join(projectRoot, "docs/assets/screenshots", name), path.join(helpAssets, name));
   mkdirSync(outDir, { recursive: true });
   rmSync(packagePath, { force: true });
 
