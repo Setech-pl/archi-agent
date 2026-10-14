@@ -274,7 +274,8 @@ describe("VSIX", () => {
       "extension/ux2-ocr/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node"]) {
       expect(result.entries).toContain(entry);
     }
-    expect(path.basename(vsixPath)).toBe("archi-agent-0.3.0-alpha.4.vsix");
+    const manifest = JSON.parse(readFileSync(path.join(extensionRoot, "package.json"), "utf8"));
+    expect(path.basename(vsixPath)).toBe(`${manifest.name}-${manifest.version}.vsix`);
   });
 
   it.each(["win32-x64-msvc", "win32-arm64-msvc"])("rejects a VSIX missing %s ICU even if removed from its manifest", async (platform) => {

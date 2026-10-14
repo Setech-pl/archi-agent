@@ -2,6 +2,15 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## Publikacja testowa i dokumentacja PL/EN — aktywne zadanie, 2026-10-14
+
+- Właściciel autoryzował commit/push/PR/tag/prerelease oraz merge po zielonych jobach Linux x64 i macOS ARM64. Bez Marketplace i deklaracji M1/produkcji; SRC1 ENTRY GATE OPEN, AUD-003–006 OPEN.
+- Preflight: `ci/clean-clone-linux-macos`, `efa8bbf12d8dc9aa6c18ad9141f6234c0adf1c14`, working tree clean, staging empty; remote main `20a1acb54e3ac40dff19194563846a3ded33c088`. Różnica checkpointu względem testowanego `d9370b6fa719785cc8e3ef1d177b89206a9d3c01`: wyłącznie trzy dokumenty.
+- Alpha.5: zmiana manifestu i test nazwy VSIX wyprowadzanej z manifestu. Bieżące Node 22.12.0: przygotowanie OCR/SRI 8/8, testy celowane 22/22, package/verify PASS. Pełna lokalna bramka pozostaje dowodem historycznym dla d9370b6 (1824 root / 662 extension), nie była powtarzana.
+- VSIX `build/publication/alpha5/archi-agent-0.3.0-alpha.5.vsix`: 124478869 B, SHA256 `69ff84de019fcda4c9b539e22a743fcab9fcb3fb606e218a1724b6592442810c`. Porównanie wszystkich wpisów z clean-clone PASS: różne wyłącznie `extension/package.json` i `extension.vsixmanifest`; wszystkie bundle i OCR identyczne. Lockfile'y zachowane. Dowody `build/publication/alpha5/parity.json`, logi `/private/tmp/archi-alpha5-*.log`.
+- GitHub CI na moment przygotowania: NOT_RUN. Mac/Windows owner smoke i Windows ARM64 runtime: NOT_RUN. [Instrukcja właściciela PL/EN](testing/owner-smoke.md).
+- Następne kroki w tym samym zadaniu: opublikować alpha.5, podać linki i zweryfikować pobrane bajty; następnie aktualne screenshoty, README/help PL/EN i kolejny prerelease, jeśli help zmieni paczkę; finalne CI PR i main.
+
 ## CI — naprawa ICU i lokalna bramka clean-clone PASS, 2026-10-14
 
 - Preflight: branch `ci/clean-clone-linux-macos`, HEAD `ba34379bd0a75e9415cf433120e8c48e30242210`, working tree clean, staging empty. Naprawy ICU nie było; wcześniejszy FAIL poniżej i dowody w `/private/tmp/archi-clean-clone-ci-wh910gqd/` zachowane.
