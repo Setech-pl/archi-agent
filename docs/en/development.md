@@ -37,3 +37,13 @@ The extension includes complete standalone English/Polish README files, MIT and 
 Core imports neither Node I/O nor VS Code. Runtime/Node adapters remain host-neutral; the extension reaches them through `src/runtime/index.ts`. Follow KISS/BUZI and avoid future abstractions. No product behavior changes are part of DOC1. Synthetic fixtures contain no client data or credentials.
 
 Before an authorized checkpoint check links/anchors, PL/EN scope and exact examples, UI names, public/local/planned distinctions, diagrams, recording provenance, licenses/notices and final package; run `git diff --check`. Independent read-only review is separate from the author. Required FAIL/NOT_RUN and open HIGH/MEDIUM block the checkpoint. `MANUAL_SMOKE: DEFERRED` is not PASS. Update project-state and stop at the authorized boundary. Offline demo: `npm run demo:dry-run`; live demos are optional and may call providers.
+
+## CLI model demo
+
+The developer demo accepts one positional model ID. With LM Studio prepared locally, use these commands; the dry run writes no files. This is a contributor tool; VSIX users follow the user guide.
+
+```bash
+npm run local:models
+npm run demo:llm:dry-run -- qwen/qwen3-14b
+npm run demo:llm -- qwen/qwen3-14b
+```

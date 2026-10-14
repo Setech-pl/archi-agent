@@ -2,6 +2,11 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## Korekta bramki dokumentacji CLI — 2026-10-14
+
+- Finalny head dokumentacji `2bc6cd8680055dad2fa72bbcad1dab37f9e8fc91`: [CI](https://github.com/Setech-pl/archi-agent/actions/runs/38566886749) FAIL na obu platformach, root **1823/1824 PASS**. Jedyny FAIL: test przykładów CLI oczekiwał ≥4 komend w README/local-model, a biznesowe README usunęło dwa techniczne przykłady. Oba npm ci, przygotowanie OCR i typechecki PASS; dalsze extension/package/verify w CI NOT_RUN. Nie ignorowano FAIL i nie scalono #7.
+- Przykłady CLI przeniesione do obu przewodników development; istniejący test rozszerza odczyt o README PL i oba development, zachowując ≥4, walidację każdej komendy, modelu i dry-run oraz zakaz błędnego --model. Bez zmiany runtime lub paczki alpha.6. Kolejny head wymaga obu zielonych jobów.
+
 ## Finalna dokumentacja i alpha.6 — kandydat PR #7, 2026-10-14
 
 - [Alpha.5 jest dostępna](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.5); pobrane assety identyczne z lokalnymi (cmp PASS). [PR #7](https://github.com/Setech-pl/archi-agent/pull/7) kontynuuje pracę z main po integracji #6 przez konto właściciela. Po poprawce GNU patch oba pośrednie joby PASS; finalny head z dokumentacją wymaga odrębnego CI.
