@@ -10,6 +10,26 @@ Sprawdź przepływ i raport grounding obok siebie przed udostępnieniem wyniku. 
 
 Archi Agent pomaga architektom i analitykom dokumentować interakcje usług, wyjaśniać zależności systemów i przeglądać wiedzę proponowaną z dokumentów w VS Code. Wspólny katalog nazw i aliasów ogranicza powtarzanie pracy nad nazewnictwem; raport pomaga sprawdzić podstawy diagramu przed jego udostępnieniem.
 
+## Zobacz w działaniu
+
+![Wybór dostawcy i modelu w Configuration](docs/assets/screenshots/02-provider.png)
+
+Wybierz dokładny ID modelu i zastosuj jedną konfigurację dla generowania diagramów i review.
+
+![Przegląd kandydatów wiedzy architektonicznej](docs/assets/screenshots/05-review.png)
+
+Sprawdź dowody źródłowe i zdecyduj, które propozycje staną się Twoją wiedzą o architekturze.
+
+![Knowledge Browser z systemami i ich relacjami](docs/assets/readme/knowledge-browser.png)
+
+Znajdź systemy i prześledź relacje przychodzące i wychodzące w jednym miejscu.
+
+![Diagram Component w PlantUML z powiązanym raportem](docs/assets/readme/component-report.png)
+
+Wyjaśnij zależności usług i baz danych wraz z raportem ich pochodzenia. Ekran pokazuje tekst PlantUML.
+
+[Pełna galeria screenshotów i pochodzenie capture PL/EN](docs/assets/screenshots/README.md) · [Pochodzenie kadrów README](docs/assets/readme/provenance.json)
+
 ## Pobierz i uruchom
 
 [Pobierz testowy VSIX — 0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.6/archi-agent-0.3.0-alpha.6.vsix) · [SHA-256](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.6/archi-agent-0.3.0-alpha.6.vsix.sha256) · [Release notes](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6)
@@ -39,26 +59,6 @@ Pakiet zawiera runtime, lokalną konwersję dokumentów i OCR PL/EN offline. Uż
 4. **Zapis:** wybierz **Save Diagram and Report** i potwierdź lokalizację; rozszerzenie zapisze `diagram.puml` i `report.json` w nowym katalogu wyniku.
 
 [Instrukcja](docs/pl/user-guide.md#kompletny-syntetyczny-pack-z-pięciu-plików) zawiera kompletny syntetyczny pack pięciu plików do tego przykładu.
-
-## Zobacz w działaniu
-
-![Wybór dostawcy i modelu w Configuration](docs/assets/screenshots/02-provider.png)
-
-Wybierz dokładny ID modelu i zastosuj jedną konfigurację dla generowania diagramów i review.
-
-![Przegląd kandydatów wiedzy architektonicznej](docs/assets/screenshots/05-review.png)
-
-Sprawdź dowody źródłowe i zdecyduj, które propozycje staną się Twoją wiedzą o architekturze.
-
-![Knowledge Browser z systemami i ich relacjami](docs/assets/readme/knowledge-browser.png)
-
-Znajdź systemy i prześledź relacje przychodzące i wychodzące w jednym miejscu.
-
-![Diagram Component w PlantUML z powiązanym raportem](docs/assets/readme/component-report.png)
-
-Wyjaśnij zależności usług i baz danych wraz z raportem ich pochodzenia. Ekran pokazuje tekst PlantUML.
-
-[Pełna galeria screenshotów i pochodzenie capture PL/EN](docs/assets/screenshots/README.md) · [Pochodzenie kadrów README](docs/assets/readme/provenance.json)
 
 ## Help
 

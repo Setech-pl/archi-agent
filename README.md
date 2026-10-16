@@ -10,6 +10,26 @@ Review the flow and its grounding report side by side before sharing the result.
 
 Archi Agent helps architects and analysts document service interactions, explain system dependencies and review proposed knowledge from documents inside VS Code. A shared catalog of names and aliases reduces repeated naming work; the report helps you inspect the evidence behind a diagram before sharing it.
 
+## See it in action
+
+![Choose a provider and model in Configuration](docs/assets/screenshots/02-provider.png)
+
+Choose an exact model ID and apply one configuration for diagram generation and review.
+
+![Review architecture knowledge candidates](docs/assets/screenshots/05-review.png)
+
+Inspect supporting evidence and decide which proposals become your architecture knowledge.
+
+![Knowledge Browser with systems and their relationships](docs/assets/readme/knowledge-browser.png)
+
+Find systems and follow incoming and outgoing relationships in one place.
+
+![Component diagram in PlantUML with its linked report](docs/assets/readme/component-report.png)
+
+Explain service and database dependencies alongside their provenance report. The screen shows PlantUML source.
+
+[Full screenshot gallery and capture provenance PL/EN](docs/assets/screenshots/README.md) · [README crop provenance](docs/assets/readme/provenance.json)
+
 ## Download and run
 
 [Download the test VSIX — 0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.6/archi-agent-0.3.0-alpha.6.vsix) · [SHA-256](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.6/archi-agent-0.3.0-alpha.6.vsix.sha256) · [Release notes](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6)
@@ -39,26 +59,6 @@ The package includes the runtime, local document conversion and offline PL/EN OC
 4. **Save:** choose **Save Diagram and Report**. Confirm the destination; the extension creates `diagram.puml` and `report.json` together in a new result folder.
 
 The [user guide](docs/en/user-guide.md#complete-synthetic-five-file-pack) includes the complete five-file synthetic pack for this example.
-
-## See it in action
-
-![Choose a provider and model in Configuration](docs/assets/screenshots/02-provider.png)
-
-Choose an exact model ID and apply one configuration for diagram generation and review.
-
-![Review architecture knowledge candidates](docs/assets/screenshots/05-review.png)
-
-Inspect supporting evidence and decide which proposals become your architecture knowledge.
-
-![Knowledge Browser with systems and their relationships](docs/assets/readme/knowledge-browser.png)
-
-Find systems and follow incoming and outgoing relationships in one place.
-
-![Component diagram in PlantUML with its linked report](docs/assets/readme/component-report.png)
-
-Explain service and database dependencies alongside their provenance report. The screen shows PlantUML source.
-
-[Full screenshot gallery and capture provenance PL/EN](docs/assets/screenshots/README.md) · [README crop provenance](docs/assets/readme/provenance.json)
 
 ## Help
 
