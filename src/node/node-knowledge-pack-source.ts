@@ -102,7 +102,7 @@ export class NodeKnowledgePackSource implements KnowledgePackSource {
     const maxBytes = Math.min(options?.maxBytes ?? knowledgePackLimits.maxFileBytes, knowledgePackLimits.maxFileBytes);
 
     try {
-      const file = await readBoundedTextFile(this.#root, `${this.#directory}/${relativePath}`, { maxBytes });
+      const file = await readBoundedTextFile(this.#root, `${this.#directory}/${relativePath}`, { maxBytes, ...(options?.signal ? { signal: options.signal } : {}) });
       throwIfCancelled(options?.signal);
       return file.text;
     } catch (error) {

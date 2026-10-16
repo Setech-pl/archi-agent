@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { flowLanguages } from "../knowledge-pack/front-matter.js";
-import { knowledgePackFileNames } from "../knowledge-pack/knowledge-pack-source.js";
+import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
 import {
   actorKinds,
   interactionModes,
@@ -65,7 +65,7 @@ export const flowReferenceSchema = z.strictObject({
 });
 
 export const packSourceReferenceSchema = z.strictObject({
-  file: z.enum(knowledgePackFileNames),
+  file: z.string().refine(v => validateRelativePath(v).ok, "invalid-source-path"),
   line: positiveInteger
 });
 

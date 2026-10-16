@@ -2,7 +2,7 @@
 
 ## Current implemented product
 
-The current branch includes OBS1 diagnostics, UX3 onboarding, K1 shared knowledge/provenance, K2 bounded document extraction, K3 user review/new-pack saving, ART1 controlled original diagram/report saving, DOC1 bilingual documentation, UX4 Configuration and its FU1/FU2 corrections. Sequence and Component are implemented. Local profiles are LM Studio/Ollama; cloud profiles are Anthropic/OpenAI/OpenRouter with SecretStorage keys. Offline conversion/OCR and PL/EN help are bundled. Knowledge Browser and active-buffer extraction are available; one model is selected explicitly with Apply/Discard.
+The current branch includes the locally verified SRC1 Structurizr JSON source with an ID-bound Markdown overlay, plus OBS1 diagnostics, UX3 onboarding, K1 shared knowledge/provenance, K2 bounded document extraction, K3 user review/new-pack saving, ART1 controlled original diagram/report saving, DOC1 bilingual documentation, UX4 Configuration and its FU1/FU2 corrections. Sequence and Component are implemented. Local profiles are LM Studio/Ollama; cloud profiles are Anthropic/OpenAI/OpenRouter with SecretStorage keys. Offline conversion/OCR and PL/EN help are bundled. Knowledge Browser and active-buffer extraction are available; one model is selected explicitly with Apply/Discard.
 
 The latest technical baseline is `6863a30`; its full automatic profile passed 294/294 and independent review found no open HIGH/MEDIUM. These are historical technical results for that exact candidate, reused only where source fingerprints and package bytes agree. Current documentation/help checks are recorded separately in [project state](project-state.md).
 
@@ -24,15 +24,16 @@ The owner's current direction is **SRC1 → VER1 → MCP1**. The clean-clone CI 
 has a local checkpoint with clean-clone validation PASS on macOS ARM64 / Node 22.12.0.
 The approved packaging repair supplies the missing Windows ARM64 ICU from the SRI-verified
 Windows x64 canvas 0.1.97 tarball, retaining both lockfiles and all eight platforms.
-Linux x64 and macOS ARM64 GitHub jobs remain
-unconfirmed until actual runs. SRC1 entry remains OPEN. AUD-001/002 are closed in the local reviewed fix;
-AUD-003–006 remain OPEN. This does not establish M1 or release readiness.
-Earlier audit/PR and technical evidence above is historical; publication and validation
-of both CI jobs require a separate task.
+Linux x64 and macOS ARM64 GitHub jobs passed for main `152542f35c839c06a9bd0eed05a8a7e8e2523752`
+([run 38611666025](https://github.com/Setech-pl/archi-agent/actions/runs/38611666025)).
+This satisfies the CI prerequisite for SRC1; it is not evidence for the SRC1 implementation.
+SRC1 is locally implemented and verified under the [approved corrected contract](src1-structurizr-source.md); [verification](src1-verification.md) is separate from base CI and from the unchanged published alpha.6. VER1 and MCP1 remain planned.
+AUD-001/002 remain closed; AUD-003–006 remain OPEN. Windows ARM64 runtime is NOT_RUN.
+This does not establish M1 or production readiness.
 
 | Step | Status / scope |
 | --- | --- |
-| CI | Local clean-clone PASS after the approved ICU packaging repair: 1824 root tests, 662 extension tests, package/verify 532 entries. Both GitHub jobs and Windows ARM64 runtime NOT_RUN; SRC1 entry OPEN. |
+| CI | Local clean-clone PASS after the approved ICU packaging repair: 1824 root tests, 662 extension tests, package/verify 532 entries. GitHub Linux/macOS PASS for main 152542f (run 38611666025); Windows ARM64 runtime NOT_RUN. |
 | SRC1 → VER1 → MCP1 | Active approved order; separate implementation tasks. No stage is implemented by this CI task. |
 | M1 | Historical MCP milestone; not resumed or declared ready. Active MCP work follows SRC1 and VER1 as MCP1. |
 | C1 | Deferred VS Code Chat participant; no current Chat integration or authorization to resume. |

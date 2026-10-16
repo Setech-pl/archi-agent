@@ -46,7 +46,7 @@ export interface FlowReference {
 
 /** Declaration of an element, relationship or rule in the pack. */
 export interface PackSourceReference {
-  readonly file: KnowledgePackFileName;
+  readonly file: string;
   readonly line: number;
 }
 

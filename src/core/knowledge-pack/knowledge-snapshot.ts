@@ -1,7 +1,7 @@
 import type { DocumentProvenance } from "./document-provenance.js";
 import {
   actorRowSchema, aliasRowSchema, knowledgePackTables, relationshipRowSchema, ruleRowSchema, systemRowSchema,
-  type KnowledgePack, type KnowledgePackTableKind, type RecordByTable, type SourceLocation
+  type KnowledgePack, type KnowledgePackTableKind, type RecordByTable, type SourceLocation, type RecordProvenance
 } from "./knowledge-pack.schema.js";
 import { validateRelativePath } from "./knowledge-pack-source.js";
 import { containsControlCharacter, knowledgePackLimits } from "./source-limits.js";
@@ -19,20 +19,18 @@ export interface KnowledgeSource {
   readonly kind: string;
   /** Omitted categories are not provided. Complete describes this source's scope, not the world. */
   readonly scope: Readonly<Partial<Record<KnowledgePackTableKind, "partial" | "complete">>>;
+  readonly files?: readonly { readonly file: string; readonly sha256: string }[];
+  readonly omissions?: readonly { readonly kind: string; readonly count: number }[];
 }
 export type KnowledgeContribution = {
   readonly source: KnowledgeSource;
   readonly records: { readonly [K in KnowledgePackTableKind]?: readonly KnowledgeRecord<K>[] };
 };
-export interface KnowledgeProvenance {
-  readonly sourceId: string;
-  /** Only present when supplied by the source. Absence never creates a synthetic file/line. */
-  readonly location?: SourceLocation;
-}
+export type KnowledgeProvenance = RecordProvenance;
 export type KnowledgeFact = { [K in KnowledgePackTableKind]: {
   readonly id: string;
   readonly table: K;
-  readonly value: Omit<RecordByTable[K], "location">;
+  readonly value: Omit<RecordByTable[K], "location" | "provenance">;
   readonly provenance: readonly KnowledgeProvenance[];
 } }[KnowledgePackTableKind];
 export interface KnowledgeGap {
@@ -74,7 +72,7 @@ function sortedUnique<T>(values: readonly T[]): T[] {
 
 /** Apply the original row validators without introducing a second set of semantic rules. */
 function semanticRecord(table: KnowledgePackTableKind, record: KnowledgeRecord<KnowledgePackTableKind>) {
-  const { location: _location, ...value } = record;
+  const { location: _location, provenance: _provenance, ...value } = record;
   const columns: Record<string, string> = { canonicalName: "canonical_name", fromId: "from_id", toId: "to_id",
     interfaceType: "interface_type", interfaceName: "interface_name", targetId: "target_id" };
   const row = Object.fromEntries(Object.entries(value).map(([key, entry]) => [columns[key] ?? key, entry]));
@@ -121,7 +119,15 @@ export function createKnowledgeSnapshot(contributions: readonly KnowledgeContrib
         sources.some((entry) => entry.id === source.id) || Object.keys(source.scope).some((key) => !tables.includes(key as KnowledgePackTableKind)) ||
         Object.keys(records).some((key) => !tables.includes(key as KnowledgePackTableKind))) throw new Error("knowledge-source-invalid");
     sources.push({ id: source.id, kind: source.kind, scope: Object.fromEntries(tables.flatMap((table) =>
-      source.scope[table] === undefined ? [] : [[table, source.scope[table]]])) });
+      source.scope[table] === undefined ? [] : [[table, source.scope[table]]])),
+      ...(suppliedSource.files ? { files: suppliedSource.files.map((f: { file: string; sha256: string }) => {
+        if (!validateRelativePath(f.file).ok || !/^[a-f0-9]{64}$/.test(f.sha256)) throw new Error("knowledge-source-invalid");
+        return { file: f.file, sha256: f.sha256 };
+      }) } : {}),
+      ...(suppliedSource.omissions ? { omissions: suppliedSource.omissions.map((o: { kind: string; count: number }) => {
+        if (!/^[a-z-]{1,64}$/.test(o.kind) || !Number.isSafeInteger(o.count) || o.count < 0) throw new Error("knowledge-source-invalid");
+        return { kind: o.kind, count: o.count };
+      }) } : {}) });
     for (const table of tables) {
       const scope = source.scope[table];
       if (scope !== undefined && scope !== "partial" && scope !== "complete") throw new Error("knowledge-scope-invalid");
@@ -139,9 +145,18 @@ export function createKnowledgeSnapshot(contributions: readonly KnowledgeContrib
         if (location !== undefined && (!validateRelativePath(location.file).ok || !Number.isSafeInteger(location.line) || location.line < 1))
           throw new Error("knowledge-provenance-invalid");
         const provenance = { sourceId: source.id, ...(location === undefined ? {} : { location: { file: location.file, line: location.line } }) };
+        const proofs = record.provenance === undefined ? [provenance] : record.provenance.map((p: KnowledgeProvenance) => {
+          if (!contributions.some(c => c.source.id === p.sourceId) ||
+              p.location && (!validateRelativePath(p.location.file).ok || !Number.isSafeInteger(p.location.line) || p.location.line < 1) ||
+              p.fields && p.fields.some(f => !(f in value)) ||
+              [p.externalId, p.originalName, p.externalKind, p.parentId].some(v => v !== undefined && (typeof v !== "string" || v.length > 256 || containsControlCharacter(v))))
+            throw new Error("knowledge-provenance-invalid");
+          return { ...p, ...(p.location ? { location: { ...p.location } } : {}), ...(p.fields ? { fields: [...p.fields] } : {}) };
+        });
+        if (!proofs.length) throw new Error("knowledge-provenance-invalid");
         const existing = claims.get(id);
-        if (existing === undefined) claims.set(id, { id, table, value, provenance: [provenance] });
-        else existing.provenance.push(provenance);
+        if (existing === undefined) claims.set(id, { id, table, value, provenance: [...proofs] });
+        else existing.provenance.push(...proofs);
         if (location === undefined) gaps.push({ code: "locator-unavailable", sourceId: source.id, factId: id });
       }
     }

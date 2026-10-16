@@ -274,3 +274,23 @@ Na macOS natywny picker może zwrócić `/tmp` zamiast `/private/tmp`. Kontrolow
 **Archi: Help** otwiera tę instrukcję z zainstalowanej paczki. Przełącznik **English / Polski** i screenshoty są w VSIX i działają offline. Dodatkowe linki do repozytorium, wydań i dokumentacji technicznej potrzebują sieci. [Galeria aktualnych ekranów PL/EN](../assets/screenshots/README.md) podaje czynności i pochodzenie. Syntetyczne odpowiedzi pokazują UI, nie jakość żywego modelu ani wynik owner smoke.
 
 Własny kod: [MIT](../../LICENSE). Składniki: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) i notices OCR. Ograniczenia i kierunek weryfikacji: [roadmapa](../product-roadmap.md), [stan techniczny](../project-state.md). Weryfikacja względem istniejących modeli (SRC1 → VER1 → MCP1) jest planowana; te funkcje nie są dostępne w tym prerelease.
+## Lokalne źródło Structurizr — kandydat SRC1
+
+Ta sekcja dotyczy lokalnego kandydata SRC1, nie pobieranej wersji alpha.6.
+Skonfiguruj lokalny workspace JSON i nakładkę Knowledge Pack z trzech plików w ustawieniach
+User lub projektu VS Code. Configuration → Knowledge Management pokazuje walidację i pominięcia.
+Source Settings otwiera User JSON; dla projektu użyj `.vscode/settings.json`.
+
+```json
+{"archiAgent.architectureSource":{"kind":"structurizr-json","sourceId":"big-bank","modelPath":"/project/architecture/workspace.json","overlayPath":"/project/architecture/overlay"}}
+```
+
+Nakładka zawiera aliases.md, rules.md i relationships.md. Metadane relacji wiążą oryginalne
+ID relacji i oczekiwane from_id/to_id. interface_type jest jawne. interactionStyle modelu
+wyznacza mode; przy jego braku tryb musi podać nakładka. Konflikt blokuje generowanie.
+Nazwy kontenerów mają format `System / Container`; oryginalne ID pozostają stabilne po zmianie nazwy.
+Komponenty źródłowe i deployment są pomijane; wynikowe diagramy Sequence i Component są obsługiwane.
+Każda operacja odczytuje źródła ponownie. Zapis wyniku zachowuje jego oryginalny snapshot.
+
+Ustaw `archiAgent.architectureSource` na null, aby wrócić do knowledgePackPath. K3 Save and use
+robi to automatycznie w wybranym zakresie; tworzy samodzielny pack, nie nakładkę.

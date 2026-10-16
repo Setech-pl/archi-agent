@@ -35,6 +35,7 @@ export const settingsSection = "archiAgent";
 /** Setting keys relative to the archiAgent section. */
 export const settingKeys = Object.freeze({
   knowledgePackPath: "knowledgePackPath",
+  architectureSource: "architectureSource",
   localModelBaseUrl: "localModel.baseUrl",
   localModelId: "localModel.model",
   localModelProfile: "localModel.profile",

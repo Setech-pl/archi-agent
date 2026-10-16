@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
-import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { createStarterKnowledgePack, createArchiAgentRuntime, KnowledgePackReviewSession } from "../../src/runtime/index.js";
@@ -49,4 +49,14 @@ describe("native production knowledge tree",()=>{
     state.activeTextEditor={document:makeDocument("Changed source.")};await state.registeredCommands.get("archiAgent.openKnowledgeRecord")?.(...item.command!.arguments!);expect(state.shownDocuments.at(-1)?.document.getText()).toContain('"excerpt": "Alpha frozen."');expect(state.shownDocuments.at(-1)?.options).toEqual({preview:true});
   });
   it("reports absence without choosing a different project's pack",async()=>{browser=new KnowledgeBrowser();const roots=await browser.getChildren();expect((await browser.getChildren(roots[0]))[0]?.label).toBe("No active Knowledge Pack");expect(state.configurationUpdates).toEqual([]);});
+});
+
+it("browses Structurizr field origins, omissions and invalidates stale source navigation",async()=>{
+ const fixture=path.join(root,"fixture");await cp("test/fixtures/structurizr/big-bank-plc",fixture,{recursive:true});
+ const config={kind:"structurizr-json",sourceId:"big-bank",modelPath:path.join(fixture,"workspace.json"),overlayPath:path.join(fixture,"overlay")};
+ state.configuration.set("archiAgent.architectureSource",config);browser=new KnowledgeBrowser();
+ const projects=await browser.getChildren(),sources=await browser.getChildren(projects[0]);expect(sources[0]!.label).toContain("Active Structurizr");
+ const facts=await browser.getChildren(sources[0]);const systems=await browser.getChildren(facts.find(f=>f.label==="Systems (9)"));expect(systems.some(f=>f.label.includes("Internet Banking System / API Application"))).toBe(true);
+ expect(facts.some(f=>f.label==="Omitted source content")).toBe(true);
+ await writeFile(config.modelPath,"{}");browser.refresh();const updated=await browser.getChildren();expect((await browser.getChildren(updated[0]))[0]!.label).toContain("unavailable");
 });

@@ -7,8 +7,8 @@ export function configurationHtml(): string {
 <p id="notice" role="status" aria-live="polite"></p>
 <section id="knowledge" role="tabpanel" aria-labelledby="knowledge-tab">
 <label for="project">Project / workspace</label><select id="project"></select>
-<p id="scope"></p><p id="knowledge-error" class="error" role="alert"></p><div class="card"><h2>Active Knowledge Pack</h2><pre id="pack-path"></pre><p id="validation" role="status"></p><pre id="counts"></pre></div>
-<div class="actions"><button id="choose">Choose Existing Knowledge Pack</button><button id="create">Create Knowledge Pack</button><button id="build">Build Knowledge Pack from Documents</button><button id="browse">Browse Knowledge</button><button id="refresh">Validate / Refresh</button></div>
+<p id="scope"></p><p id="knowledge-error" class="error" role="alert"></p><div class="card"><h2>Active Architecture Knowledge</h2><pre id="pack-path"></pre><p id="validation" role="status"></p><pre id="counts"></pre></div>
+<div class="actions"><button id="choose">Choose Existing Knowledge Pack</button><button id="create">Create Knowledge Pack</button><button id="build">Build Knowledge Pack from Documents</button><button id="browse">Browse Knowledge</button><button id="refresh">Validate / Refresh</button><button id="source-settings">Source Settings (User JSON)</button></div>
 <p class="muted">Choose validates before activation. Create starts with one real system. Document builds always save a new pack; review never changes an existing pack.</p>
 <div id="files" class="actions"></div></section>
 <section id="provider" role="tabpanel" aria-labelledby="provider-tab" hidden>
@@ -41,7 +41,7 @@ function controls(){const locked=applyPending||!!state?.busy,applying=applyPendi
 $('apply').onclick=()=>{if(applyPending)return;applyPending=true;controls();$('progress').textContent='Applying settings…';send('apply',{form:form(),baseRevision});};$('discard').onclick=()=>{draft=state.form;baseRevision=state.revision;dirty=false;inputs(draft);$('dirty').textContent='Changes discarded.';$('form-error').textContent='';controls();send('discard');tab(activeTab);};
 $('models').onchange=()=>{$('model').value=$('models').value;edits();};
 $('project').onchange=()=>send('project',{project:$('project').value});
-for(const [id,op] of [['choose','choose'],['create','create'],['build','build'],['refresh','refresh'],['browse','browse'],['set-key','set-key'],['delete-key','delete-key'],['models-refresh','models'],['diagnose','diagnose']])$(id).onclick=()=>send(op,op==='models'?{form:form()}:op.includes('key')?{profile:$('profile').value}:{});
+for(const [id,op] of [['choose','choose'],['create','create'],['build','build'],['refresh','refresh'],['source-settings','source-settings'],['browse','browse'],['set-key','set-key'],['delete-key','delete-key'],['models-refresh','models'],['diagnose','diagnose']])$(id).onclick=()=>send(op,op==='models'?{form:form()}:op.includes('key')?{profile:$('profile').value}:{});
 window.addEventListener('message',({data:m})=>{if(m.type==='tab'){tab(m.tab);return;}if(m.type==='apply-finished'){applyPending=false;controls();return;}if(m.type!=='state')return;const old=state;state=m;
 $('notice').textContent=m.notice||'';$('form-error').textContent=m.error||'';$('knowledge-error').textContent=m.error||'';$('progress').textContent=m.busy||'';
 $('project').replaceChildren();for(const p of m.projects){const o=document.createElement('option');o.value=p.id;o.textContent=p.label;$('project').append(o);}$('project').value=m.project;

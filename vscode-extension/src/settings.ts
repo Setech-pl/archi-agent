@@ -1,3 +1,4 @@
+import { validStructurizrConfiguration, type KnowledgePackSourceConfig } from "../../src/runtime/index.js";
 import path from "node:path";
 import {
   defaultBaseUrlForLocalProfile,
@@ -43,11 +44,13 @@ export interface LocalModelSettings {
 
 export interface ArchiAgentSettings {
   readonly knowledgePackPath: string;
+  readonly architectureSource?: KnowledgePackSourceConfig;
   readonly localModel: LocalModelSettings;
   readonly defaultAuthor: string;
 }
 
 export type SettingsProblemCode =
+  | "architecture-source-invalid"
   | "knowledge-pack-path-missing"
   | "knowledge-pack-path-not-absolute"
   | "unknown-provider-profile"
@@ -211,11 +214,15 @@ export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
   const problems: SettingsProblem[] = [];
   const knowledgePackPath = text(reader.get(settingKeys.knowledgePackPath));
 
-  if (knowledgePackPath === "") {
+  const explicitSource = reader.get(settingKeys.architectureSource);
+  let architectureSource: KnowledgePackSourceConfig | undefined;
+  try { architectureSource = explicitSource == null ? undefined : configuredArchitectureSource(reader); }
+  catch { problems.push(problem("architecture-source-invalid", settingKeys.architectureSource, "Set a valid local architecture source configuration.")); }
+  if (explicitSource == null && knowledgePackPath === "") {
     problems.push(
       problem("knowledge-pack-path-missing", settingKeys.knowledgePackPath, "Set the absolute path of the Architecture Knowledge Pack directory.")
     );
-  } else if (!path.isAbsolute(knowledgePackPath) || hasControlCharacter(knowledgePackPath)) {
+  } else if (explicitSource == null && (!path.isAbsolute(knowledgePackPath) || hasControlCharacter(knowledgePackPath))) {
     problems.push(
       problem("knowledge-pack-path-not-absolute", settingKeys.knowledgePackPath, "The Knowledge Pack path must be an absolute directory path.")
     );
@@ -240,6 +247,14 @@ export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
 
   return Object.freeze({
     ok: true,
-    settings: Object.freeze({ knowledgePackPath, localModel: localModel.settings, defaultAuthor: author })
+    settings: Object.freeze({ knowledgePackPath, ...(architectureSource ? {architectureSource} : {}), localModel: localModel.settings, defaultAuthor: author })
   });
+}
+
+/** Configuration shape only; all source I/O/semantics remain in runtime. */
+export function configuredArchitectureSource(reader: Pick<SettingsReader, "get">): KnowledgePackSourceConfig {
+  const v = reader.get(settingKeys.architectureSource);
+  if (v == null) return { kind: "local-directory", path: text(reader.get(settingKeys.knowledgePackPath)) };
+  if (validStructurizrConfiguration(v)) return { ...v };
+  throw new Error("architecture-source-invalid");
 }

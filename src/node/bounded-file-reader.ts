@@ -1,3 +1,4 @@
+import { throwIfCancelled, type CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import { lstat, open } from "node:fs/promises";
 import { knowledgePackLimits } from "../core/knowledge-pack/source-limits.js";
 import { LocalPathError, resolveContainedPath } from "./local-file-path.js";
@@ -50,12 +51,13 @@ export interface BoundedTextFile {
 export async function readBoundedTextFile(
   canonicalRoot: string,
   relativePath: string,
-  options: { readonly maxBytes: number }
+  options: { readonly maxBytes: number; readonly signal?: CancellationSignal }
 ): Promise<BoundedTextFile> {
   if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes < 1) {
     throw new Error("The byte limit must be a positive integer.");
   }
 
+  throwIfCancelled(options.signal);
   let resolved;
 
   try {
@@ -94,7 +96,8 @@ export async function readBoundedTextFile(
     let length = 0;
 
     while (length < buffer.length) {
-      const { bytesRead } = await handle.read(buffer, length, buffer.length - length, length);
+      throwIfCancelled(options.signal);
+      const { bytesRead } = await handle.read(buffer, length, Math.min(65536, buffer.length - length), length);
 
       if (bytesRead === 0) {
         break;
@@ -107,6 +110,9 @@ export async function readBoundedTextFile(
       throw new BoundedReadError("too-large", options.maxBytes);
     }
 
+    throwIfCancelled(options.signal);
+    const after = await handle.stat({ bigint: true });
+    if (after.size !== opened.size || after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) throw new BoundedReadError("read-failed");
     const bytes = buffer.subarray(0, length);
 
     if (bytes.includes(0)) {
@@ -123,6 +129,7 @@ export async function readBoundedTextFile(
 
     return Object.freeze({ relativePath, text, byteLength: length });
   } catch (error) {
+    throwIfCancelled(options.signal);
     throw error instanceof BoundedReadError ? error : new BoundedReadError("read-failed");
   } finally {
     await handle.close();

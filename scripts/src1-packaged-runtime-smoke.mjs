@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {mkdtempSync,realpathSync,readFileSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+const [bundle,fixture,reportFile]=process.argv.slice(2),require=createRequire(import.meta.url),runtime=require(bundle),{prepare,answer}=require('./src1-smoke-fixture.cjs');
+const root=realpathSync(mkdtempSync(path.join(tmpdir(),'src1-packaged-'))),results=[];
+const {flow,config}=prepare(root,fixture);let calls=0;const snapshots=[];
+const client={clientType:'openai-compatible-local',generationMetadata:{modelId:'synthetic-src1',temperature:0,seed:42,attemptCount:1,structuredOutput:true},async complete(r){calls++;const input=JSON.parse(r.messages[1].content);snapshots.push(input.snapshot);return {source:'content',value:answer(input)};}};
+const app=runtime.createArchiAgentRuntime({diagramClientFactory:()=>client});
+const check=async(id,fn)=>{try{await fn();results.push({id,status:'PASS'});}catch(e){results.push({id,status:'FAIL',error:e.stack});}};
+for(const diagramType of ['sequence','component'])await check('src1-packaged-'+diagramType,async()=>{
+ const before=calls,r=await app.generateDiagram({diagramType,knowledgePack:config,flow:{kind:'file',path:flow},generator:{kind:'openai-compatible-local',baseUrl:'http://127.0.0.1:1234/v1',modelId:'synthetic-src1'}});
+ assert.equal(r.status,'success');assert.equal(calls-before,2);assert.deepEqual(snapshots.at(-1),snapshots.at(-2));
+ const provenance=JSON.parse(r.groundingReport).sourceProvenance;assert(provenance.facts.some(f=>f.provenance.some(p=>p.sourceId==='big-bank-overlay')));
+ const saved=await runtime.saveDiagramBundle(root,r.artifact,runtime.planDiagramBundle());const report=JSON.parse(readFileSync(path.join(saved.directory,'report.json')));assert.deepEqual(report.generationReport.sourceProvenance,provenance);
+ assert(!JSON.stringify(snapshots.at(-1)).includes(root));assert(!JSON.stringify(snapshots.at(-1)).includes('Sign In Controller'));
+});
+await check('src1-packaged-invalid-zero-calls',async()=>{const file=path.join(config.overlayPath,'relationships.md');writeFileSync(file,readFileSync(file,'utf8').replace('| 45 | 11 | 18 |','| 45 | 11 | 4 |'));const before=calls,r=await app.generateDiagram({diagramType:'sequence',knowledgePack:config,flow:{kind:'file',path:flow},generator:{kind:'openai-compatible-local',baseUrl:'http://127.0.0.1:1234/v1',modelId:'synthetic-src1'}});assert.equal(r.status,'failed');assert.equal(calls,before);assert.equal(r.issues[0].code,'overlay-relationship-endpoints-mismatch');});
+writeFileSync(reportFile,JSON.stringify({bundle,root,calls,results},null,2));console.log(JSON.stringify(results));if(results.some(r=>r.status!=='PASS'))process.exitCode=1;

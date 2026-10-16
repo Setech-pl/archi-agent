@@ -2,6 +2,13 @@
 
 Current implemented architecture after UX4-FU2 (`6863a30`), with offline PL/EN Help added by this documentation checkpoint. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [Historical architecture and superseded pipelines](architecture-history.md) preserve prior decisions; [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
 
+SRC1 adds a local Structurizr workspace JSON adapter and an ID-bound three-table Markdown overlay.
+The pure mapper produces the existing K1 records/indexes and one frozen knowledge snapshot;
+Node reads through the existing bounded source port and the host passes source configuration.
+Field provenance distinguishes model and overlay origins, and the original ART1 pair preserves
+that snapshot. Containers use qualified names; source components/deployment are explicitly omitted.
+See the [SRC1 contract](src1-structurizr-source.md) and [local verification](src1-verification.md).
+
 `src/core` defines deterministic contracts, parsing, grounding, plan/evidence/verdict validators, renderers and reports; it has no filesystem or VS Code I/O. Pipeline orchestration calls injected provider ports. `src/node` implements bounded filesystem, exclusive writers and provider transports. `src/runtime` composes those adapters into host-neutral operations exported by `src/runtime/index.ts`. `vscode-extension/src` adapts commands, settings, SecretStorage, progress, editors and webviews; it reaches product code through that runtime entrypoint. Knowledge Browser is a read-only K1 loader projection; Help uses bundled Markdown and no model.
 
 Only bounded selected document text reaches extraction; only the relevant frozen architecture snapshot reaches diagram generation/review. Full architecture repositories and raw XML are not sent. Model outputs and imported sources are untrusted. Local schema/semantic checks remain fail-closed. Generator and semantic reviewer share the configured model but use separate requests and the same snapshot. No retry, repair, fallback or additional call is introduced.

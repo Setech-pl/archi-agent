@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import path from "node:path";
-import { inspectKnowledgePackDirectory, classifyProviderDiagnostic, defaultLocalModelBaseUrl, type ArchiAgentRuntime } from "../../../src/runtime/index.js";
+import { inspectArchitectureSource, inspectKnowledgePackDirectory, classifyProviderDiagnostic, defaultLocalModelBaseUrl, type ArchiAgentRuntime } from "../../../src/runtime/index.js";
 import { captureProviderConfiguration, providerConfigurationIsCurrent, publishProviderConfiguration, ProviderConfigurationConflict } from "../provider-configuration.js";
 import { readApiKey } from "../api-key-storage.js";
 import { commandIds, settingKeys, settingsSection } from "../contributions.js";
-import { readLocalModelSettings } from "../settings.js";
+import { configuredArchitectureSource, readLocalModelSettings } from "../settings.js";
 import { describeProviderDiagnostic } from "../user-messages.js";
 import { configureKnowledgePackForFolder } from "../commands/knowledge-pack-onboarding.js";
 import { setApiKey, removeApiKey } from "../commands/api-key-management.js";
@@ -14,7 +14,7 @@ import { configurationHtml } from "./configuration-ui.js";
 import { plainMessage } from "./webview.js";
 
 const files = ["systems.md", "actors.md", "relationships.md", "aliases.md", "rules.md"];
-const operations = ["ready", "refresh", "project", "apply", "discard", "draft-changed", "models", "diagnose", "set-key", "delete-key", "choose", "create", "build", "browse", "open-file"];
+const operations = ["ready", "refresh", "project", "apply", "discard", "draft-changed", "models", "diagnose", "set-key", "delete-key", "choose", "create", "build", "browse", "open-file", "source-settings"];
 interface ProviderForm { profile: string; endpoint: string; timeout: number; model: string }
 function modelListKey(f: ProviderForm): string { return JSON.stringify([f.profile, f.profile === "local-lm-studio" ? f.endpoint.trim() : f.profile, f.timeout]); }
 function modelListMessage(kind: "loading" | "ready" | "empty" | "invalid" | "error", count = 0): string {
@@ -101,9 +101,17 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     }
     catch { error ||= "SecretStorage could not be read. Retry the operation."; }
     const packPath = this.projectSelected ? configuration.get<string>(settingKeys.knowledgePackPath) ?? "" : "";
-    const validation = packPath ? await inspectKnowledgePackDirectory(packPath) : undefined;
+    let validation;
+    let architectureSummary = "";
+    try {
+      const source = configuredArchitectureSource(configuration);
+      if (source.kind === "structurizr-json") architectureSummary = `Structurizr JSON — ${source.sourceId}\nModel: ${source.modelPath}\nOverlay: ${source.overlayPath}`;
+      validation = this.projectSelected && (source.kind === "structurizr-json" || source.path) ? await inspectArchitectureSource(source) : undefined;
+      if (validation?.ok && source.kind === "structurizr-json") architectureSummary += "\nOmitted: " + validation.snapshot.sources.flatMap(s => s.omissions ?? []).map(o => `${o.kind}: ${o.count}`).join(", ");
+    } catch { validation = {ok:false as const,code:"architecture-source-invalid",issues:[{message:"Invalid architecture source configuration."}]}; }
+
     if (this.disposed || epoch !== this.epoch || publication !== this.publication) return;
-    const inspected = configuration.inspect(settingKeys.knowledgePackPath);
+    const inspected = configuration.inspect(architectureSummary ? settingKeys.architectureSource : settingKeys.knowledgePackPath);
     const source = !vscode.workspace.isTrusted ? "User settings only (untrusted workspace)" : inspected?.workspaceFolderValue !== undefined ? "Workspace Folder" : inspected?.workspaceValue !== undefined ? "Workspace" : inspected?.globalValue !== undefined ? "User" : "Default";
     const savedPath = this.folder ? inspected?.workspaceFolderValue : inspected?.globalValue;
     const form: ProviderForm = {
@@ -116,9 +124,9 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     await this.panel?.webview.postMessage({ type: "state", revision: this.revision, applied, notice, error, busy: this.busy,
       projects: [{ id: "", label: folders.length > 1 ? "Select a project explicitly" : "No project — User scope" }, ...folders.map((f, i) => ({ id: String(i), label: `${f.name} — ${f.uri.fsPath}` }))],
       project: this.folder ? String(folders.indexOf(this.folder)) : "", projectSelected: this.projectSelected,
-      scope: !this.projectSelected ? "Choose a project. Knowledge operations are disabled until a project is selected." : `Write scope: ${this.folder ? "Workspace Folder: " + this.folder.name : "User"}. Saved value in write scope: ${savedPath ?? "not set"}. Effective source: ${source}. ${!vscode.workspace.isTrusted ? "Workspace settings are restricted by Workspace Trust." : ""}`,
-      packPath, validation: !this.projectSelected ? "Select the project whose knowledge you want to manage." : !validation ? "Choose or create a Knowledge Pack." : validation.ok ? "Valid — production loader passed." : `[${validation.code}] ${validation.issues.map((i) => i.message).join(" ")} Repair the five required tables or choose another valid pack.`,
-      counts: validation?.ok ? validation.counts : undefined, files: validation?.ok ? files : [],
+      scope: !this.projectSelected ? "Choose a project. Knowledge operations are disabled until a project is selected." : `Write scope: ${this.folder ? "Workspace Folder: " + this.folder.name : "User"}. Saved value in write scope: ${savedPath === undefined ? "not set" : typeof savedPath === "object" ? JSON.stringify(savedPath) : savedPath}. Effective source: ${source}. ${!vscode.workspace.isTrusted ? "Workspace settings are restricted by Workspace Trust." : ""}`,
+      packPath: architectureSummary || packPath, architectureSource: !!architectureSummary, validation: !this.projectSelected ? "Select the project whose knowledge you want to manage." : !validation ? "Choose or create a Knowledge Pack." : validation.ok ? "Valid — production loader passed." : `[${validation.code}] ${validation.issues.map((i) => i.message).join(" ")} Repair the five required tables or choose another valid pack.`,
+      counts: validation?.ok ? validation.counts : undefined, files: validation?.ok && !architectureSummary ? files : [],
       profiles: this.runtime.listProviderProfiles(), form,
       effective: selected.ok ? `${selected.settings.profileId}\nEndpoint: ${selected.settings.baseUrl ?? "fixed HTTPS profile endpoint"}\nModel: ${selected.settings.modelId ?? "none selected"}\nTimeout: ${selected.settings.timeoutMs / 1000}s\nSelection: ${selected.settings.selectionMode}` : selected.problems.map((p) => `${p.setting}: ${p.message}`).join("\n"),
       profileKeys, keyRequired: profile?.credentialRequirement === "api-key", keyPresent, models: this.models, modelsFor: this.modelsFor, modelMessage: this.modelMessage, diagnostic: this.diagnostic });
@@ -155,7 +163,8 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       if (m.op === "models" && (operationEpoch !== this.epoch || operationRevision !== this.revision)) {
         this.busy = ""; await this.publish(); return;
       }
-      if (m.op === "refresh") { this.invalidate(); }
+      if (m.op === "source-settings") { await vscode.commands.executeCommand("workbench.action.openSettingsJson"); }
+      else if (m.op === "refresh") { this.invalidate(); }
       else if (m.op === "apply") await this.apply(m, providerSnapshot);
       else if (["models", "diagnose", "set-key", "delete-key"].includes(m.op)) {
         if (this.dirty && m.op === "diagnose") throw new Error("Apply or Discard Changes before using the applied provider configuration.");

@@ -16,7 +16,7 @@ export interface DiagramArtifact {
   readonly report: Readonly<Record<string, CanonicalValue>>;
   readonly metadata: Readonly<Record<string, CanonicalValue>>;
 }
-const sourceLocations = new WeakMap<DiagramArtifact, { pack: string; flow: string | null }>();
+const sourceLocations = new WeakMap<DiagramArtifact, { pack: string; model?: string; flow: string | null }>();
 const completed = new WeakSet<DiagramArtifact>();
 const hash = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 function freeze<T>(value: T): T {
@@ -41,6 +41,8 @@ const reportProjection: Projection = {
   facts: [{ ...fields("factId label kind requestFactId operationId flowEvidenceId evidenceId evidenceClass interfaceType interfaceName mode fromId toId lineNumber"), source: locator }],
   deterministicValidation: fields("verdict"), semanticReview: { verdict: "scalar", violations: [fields("code factId")] },
   sources: { ...fields("flowFile knowledgePackDirectory flow knowledgePack"), evidence: [fields("id file line evidenceClass elementKind ownership")] },
+  sourceProvenance: { ...fields("version snapshotId digest"), sources: [{...fields("id kind"), scope: fields("systems actors relationships aliases rules"), files: [fields("file sha256")], omissions: [fields("kind count")] }],
+    facts: [{...fields("factId recordKey"), provenance: [{...fields("sourceId externalId originalName externalKind parentId"),fields:"scalars",location:locator}]}] },
   outputs: fields("diagram report"),
   knownParticipants: [{ ...fields("elementId participantType elementKind diagramKind canonicalName usedInDiagram resolution"),
     matchKinds: "scalars", source: locator, flowMentions: [locator] }],
@@ -80,6 +82,7 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
     }
   }
   const configuration = {
+    ...(request.knowledgePack.kind === "structurizr-json" ? { architectureSource: { kind: request.knowledgePack.kind, sourceId: request.knowledgePack.sourceId } } : {}),
     diagramType, generationPath: report.generationPath ?? "compatibility-sequence",
     generatorKind: request.generator.kind,
     providerProfileId: "profileId" in request.generator ? safeProviderProfileId(request.generator.profileId) : "local-lm-studio",
@@ -104,7 +107,7 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
       warnings: result.warnings.map((w) => ({ code: w.code, severity: w.severity, message: w.message,
         ...(w.file ? { file: w.file } : {}), ...(w.line ? { line: w.line } : {}) })) }
   });
-  sourceLocations.set(artifact, { pack: request.knowledgePack.path, flow: request.flow.kind === "file" ? request.flow.path : null });
+  sourceLocations.set(artifact, { pack: request.knowledgePack.kind === "local-directory" ? request.knowledgePack.path : request.knowledgePack.overlayPath, ...(request.knowledgePack.kind === "structurizr-json" ? { model: request.knowledgePack.modelPath } : {}), flow: request.flow.kind === "file" ? request.flow.path : null });
   completed.add(artifact);
   return artifact;
 }
@@ -138,7 +141,7 @@ export async function saveDiagramBundle(project: string, artifact: DiagramArtifa
     return { reference: relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? relative.split(path.sep).join("/") : path.basename(file),
       availability: relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? "project-relative" : "logical-name-only" };
   };
-  const report = { sourceReferences: { knowledgePack: reference(references.pack), flow: reference(references.flow) }, format: "archi-agent-artifact", formatVersion: 1, bundleId: plan.bundleId, resultId: artifact.resultId,
+  const report = { sourceReferences: { knowledgePack: reference(references.pack), ...(references.model ? { model: reference(references.model) } : {}), flow: reference(references.flow) }, format: "archi-agent-artifact", formatVersion: 1, bundleId: plan.bundleId, resultId: artifact.resultId,
     savedAt: new Date().toISOString(), createdAt: artifact.createdAt, diagramType: artifact.diagramType,
     diagram: { file: "diagram.puml", encoding: "utf8", byteLength: diagram.length, sha256: hash(diagram) },
     generationReport: artifact.report, ...artifact.metadata };

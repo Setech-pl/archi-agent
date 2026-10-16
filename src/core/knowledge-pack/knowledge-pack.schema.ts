@@ -119,7 +119,18 @@ export interface SourceLocation {
   readonly line: number;
 }
 
+export interface RecordProvenance {
+  readonly sourceId: string;
+  readonly location?: SourceLocation;
+  readonly fields?: readonly string[];
+  readonly externalId?: string;
+  readonly originalName?: string;
+  readonly externalKind?: string;
+  readonly parentId?: string;
+}
+
 export interface SystemRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly id: string;
   readonly canonicalName: string;
   readonly kind: SystemKind;
@@ -128,6 +139,7 @@ export interface SystemRecord {
 }
 
 export interface ActorRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly id: string;
   readonly canonicalName: string;
   readonly kind: ActorKind;
@@ -136,6 +148,7 @@ export interface ActorRecord {
 }
 
 export interface RelationshipRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly fromId: string;
   readonly toId: string;
   readonly interfaceType: InterfaceType;
@@ -146,12 +159,14 @@ export interface RelationshipRecord {
 }
 
 export interface AliasRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly alias: string;
   readonly targetId: string;
   readonly location: SourceLocation;
 }
 
 export interface RuleRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly rule: RuleType;
   readonly fromId: string;
   readonly toId: string;

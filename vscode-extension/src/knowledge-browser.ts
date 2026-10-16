@@ -1,3 +1,5 @@
+import { configuredArchitectureSource } from "./settings.js";
+import { inspectArchitectureSource, type KnowledgePackSourceConfig, type KnowledgeSnapshot } from "../../src/runtime/index.js";
 import * as vscode from "vscode";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -14,6 +16,8 @@ interface KnowledgeNode {
   readonly packPath?: string;
   readonly location?: SourceLocation;
   readonly epoch: number;
+  readonly architectureConfig?: KnowledgePackSourceConfig;
+  readonly architectureDigest?: string;
   readonly source?: Omit<DocumentSource, "text">;
   readonly sourceLine?: number;
 }
@@ -28,9 +32,9 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
   constructor() {
     this.view = vscode.window.createTreeView("archiAgent.knowledge", { treeDataProvider: this, showCollapseAll: true });
     this.subscriptions = [this.view, this.changed,
-      vscode.workspace.onDidChangeConfiguration(e => { if (e.affectsConfiguration(settingsSection + "." + settingKeys.knowledgePackPath)) this.refresh(); }),
+      vscode.workspace.onDidChangeConfiguration(e => { if ((e.affectsConfiguration(settingsSection + "." + settingKeys.knowledgePackPath) || e.affectsConfiguration(settingsSection + "." + settingKeys.architectureSource))) this.refresh(); }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
-      vscode.workspace.onDidSaveTextDocument(doc => { if (/\/(systems|actors|relationships|aliases|rules)\.md$/u.test(doc.uri.path)) this.refresh(); }),
+      vscode.workspace.onDidSaveTextDocument(doc => { if ((/\/(systems|actors|relationships|aliases|rules)\.md$/u.test(doc.uri.path) || doc.uri.path.endsWith(".json"))) this.refresh(); }),
       vscode.commands.registerCommand(commandIds.refreshKnowledge, () => this.refresh()),
       vscode.commands.registerCommand(commandIds.openKnowledgeRecord, (node: KnowledgeNode) => this.open(node))];
   }
@@ -54,6 +58,14 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
     if (node.epoch !== this.epoch) return [];
     if (!node.project) return node.epoch === this.epoch ? [...(node.children ?? [])] : [];
     const epoch = this.epoch;
+    try {
+      const config = configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection,node.folder?.uri));
+      if (config.kind === "structurizr-json") {
+        const result = await inspectArchitectureSource(config);
+        if (this.disposed || epoch !== this.epoch || JSON.stringify(config) !== JSON.stringify(configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection,node.folder?.uri)))) return [];
+        return result.ok ? [this.architectureNode(node, config, result.snapshot)] : [{id:node.id+"/invalid",label:`Architecture unavailable [${result.code}]`,epoch}];
+      }
+    } catch { return [{id:node.id+"/invalid",label:"Architecture unavailable [architecture-source-invalid]",epoch}]; }
     const packPath = this.configuredPath(node.folder);
     const child = (label: string, detail?: string): KnowledgeNode => ({ id: node.id + "/state", label, ...(detail ? { detail } : {}), epoch });
     if (node.folder?.uri.scheme && node.folder.uri.scheme !== "file") return [child("Local project required")];
@@ -64,7 +76,25 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
     return [this.packNode(node, packPath, result.pack, result.snapshot.digest)];
   }
   private configuredPath(folder?: vscode.WorkspaceFolder): string {
-    return vscode.workspace.getConfiguration(settingsSection, folder?.uri).get<string>(settingKeys.knowledgePackPath) ?? "";
+    const config = configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection, folder?.uri));
+    return config.kind === "local-directory" ? config.path : "";
+  }
+  private architectureNode(project: KnowledgeNode, config: Extract<KnowledgePackSourceConfig,{kind:"structurizr-json"}>, snapshot: KnowledgeSnapshot): KnowledgeNode {
+    const make = (id:string,label:string,detail?:string,location?:SourceLocation,children?:readonly KnowledgeNode[]):KnowledgeNode => ({id:project.id+"/"+config.sourceId+"/"+id,label,epoch:this.epoch,folder:project.folder,architectureConfig:config,architectureDigest:snapshot.digest,
+      ...(detail ? {detail}:{}),...(location ? {location}:{}),...(children ? {children}:{})});
+    const names = new Map(snapshot.facts.filter(f => f.table === "systems" || f.table === "actors").map(f => [f.value.id,f.value.canonicalName]));
+    const children = (["systems","actors","relationships","aliases","rules"] as const).map(table => {
+      const facts = snapshot.facts.filter(f => f.table === table);
+      const rows = facts.map(f => {
+        const label = "canonicalName" in f.value ? f.value.canonicalName : "alias" in f.value ? f.value.alias :
+          "fromId" in f.value ? `${names.get(f.value.fromId)} → ${names.get(f.value.toId)}${f.table === "relationships" ? " · "+f.value.interfaceType : ""}` : f.id;
+        return make(f.id,label,JSON.stringify({value:f.value,provenance:f.provenance},null,2),undefined,
+          f.provenance.map((p,i)=>make(f.id+"/"+i,`${p.sourceId} · ${(p.fields ?? []).join(", ")} · ${p.location?.file ?? ""}:${p.location?.line ?? ""}`,JSON.stringify(p,null,2),p.location)));
+      }).sort((a,b)=>a.label<b.label?-1:a.label>b.label?1:0);
+      return make(table,`${table[0]!.toUpperCase()+table.slice(1)} (${rows.length})`,undefined,undefined,rows);
+    });
+    children.push(make("omissions","Omitted source content",JSON.stringify(snapshot.sources.flatMap(s=>s.omissions??[]),null,2)));
+    return make("root",`Active Structurizr — ${config.sourceId}`,`K1 snapshot: ${snapshot.digest}`,undefined,children);
   }
   private packNode(project: KnowledgeNode, packPath: string, pack: KnowledgePack, digest: string): KnowledgeNode {
     const prefix = project.id + "/" + packPath;
@@ -97,6 +127,28 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
   private async open(node: KnowledgeNode): Promise<void> {
     if (!node || this.disposed || node.epoch !== this.epoch) return;
     try {
+      if (node.architectureConfig) {
+        const current = configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection,node.folder?.uri));
+        if (JSON.stringify(current) !== JSON.stringify(node.architectureConfig)) { this.refresh(); return; }
+        const loaded = await inspectArchitectureSource(current);
+        if (!loaded.ok || loaded.snapshot.digest !== node.architectureDigest) { this.refresh(); return; }
+        if (this.disposed || node.epoch !== this.epoch) return;
+        if (node.location && current.kind === "structurizr-json") {
+          const modelFile = `sources/${current.sourceId}/workspace.json`, overlayPrefix = `sources/${current.sourceId}-overlay/`;
+          const relative = node.location.file.startsWith(overlayPrefix) ? node.location.file.slice(overlayPrefix.length) : undefined;
+          const file = node.location.file === modelFile ? current.modelPath : relative && ["aliases.md","rules.md","relationships.md"].includes(relative) ? path.join(current.overlayPath,relative) : undefined;
+          if (file) {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+            const proof = loaded.snapshot.sources.flatMap(s => s.files ?? []).find(f => f.file === node.location!.file);
+            if (proof && createHash("sha256").update(doc.getText()).digest("hex") === proof.sha256) {
+              await vscode.window.showTextDocument(doc,{preview:false,selection:new vscode.Range(node.location.line-1,0,node.location.line-1,0)}); return;
+            }
+            // A dirty editor is not the captured file. Show frozen origin details instead of a misleading line.
+          }
+        }
+        if (node.detail) await vscode.workspace.openTextDocument({content:node.detail,language:"json"}).then(doc=>vscode.window.showTextDocument(doc,{preview:false}));
+        return;
+      }
       if (node.packPath && (node.packPath !== this.configuredPath(node.folder) || !(await inspectKnowledgePackDirectory(node.packPath)).ok)) { this.refresh(); return; }
       if (this.disposed || node.epoch !== this.epoch) return;
       if (node.source?.editorUri) {

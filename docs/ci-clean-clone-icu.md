@@ -1,5 +1,7 @@
 # CI clean-clone — naprawa brakującego ICU
 
+Aktualizacja 2026-10-16: [GitHub run 38611666025](https://github.com/Setech-pl/archi-agent/actions/runs/38611666025) dla main `152542f35c839c06a9bd0eed05a8a7e8e2523752` potwierdza Linux x64 i macOS ARM64 PASS. Poniższy raport i NOT_RUN zachowują stan wcześniejszego checkpointu. Nie są wynikami implementacji SRC1. Windows ARM64 runtime pozostaje NOT_RUN.
+
 Raport implementacji i lokalnej walidacji z 2026-10-14. Zakres obejmuje wyłącznie
 zatwierdzone uzupełnienie zasobów pakowania i bramkę CI. Nie obejmuje publikacji,
 SRC1, Core/Full ani pozostałych ustaleń audytu.

@@ -274,5 +274,25 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](https://github.com/Setech-pl/archi-agent/blob/main/docs/assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
 Own code: [MIT](LICENSE.txt). Bundled components: [notices](THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](https://github.com/Setech-pl/archi-agent/blob/main/docs/product-roadmap.md), [technical state](https://github.com/Setech-pl/archi-agent/blob/main/docs/project-state.md). Existing-model verification (SRC1 → VER1 → MCP1) is planned; those features are not available in this prerelease.
+## Local Structurizr source — SRC1 candidate
+
+This section applies to the local SRC1 candidate, not the downloadable alpha.6 release.
+Configure a local workspace JSON and a three-file Knowledge Pack overlay in VS Code User
+or project settings. Configuration → Knowledge Management shows validation and omitted content.
+Source Settings opens User JSON; use `.vscode/settings.json` for a project override.
+
+```json
+{"archiAgent.architectureSource":{"kind":"structurizr-json","sourceId":"big-bank","modelPath":"/project/architecture/workspace.json","overlayPath":"/project/architecture/overlay"}}
+```
+
+The overlay contains aliases.md, rules.md and relationships.md. Relationship metadata binds the
+original relationship ID and expected from_id/to_id. interface_type is explicit. Model
+interactionStyle determines mode; otherwise the overlay must provide it. Conflicts block generation.
+Container names use `System / Container`; original IDs remain stable after renaming.
+Source components and deployment are omitted; Sequence and Component diagram output is supported.
+Each operation reads again. The generated pair preserves its original snapshot when saved.
+
+Set `archiAgent.architectureSource` to null to use knowledgePackPath again. K3 Save and use
+does this in the selected scope automatically; it creates a standalone pack, not an overlay.
 
 OCR notices: [ux2-ocr/TRIAL_NOTICES.md](ux2-ocr/TRIAL_NOTICES.md).

@@ -1,10 +1,12 @@
+import { inspectArchitectureSource } from "./architecture-source.js";
+import { buildKnowledgePackIndexes } from "../core/knowledge-pack/knowledge-pack-loader.js";
 import { captureDiagramArtifact } from "./diagram-artifact.js";
 import { extractDocumentCandidates, type ExtractDocumentCandidatesRequest, type ExtractDocumentCandidatesOutcome, type DocumentExtractionOptions } from "./extract-document-candidates.js";
 import path from "node:path";
 import { parseFlowDocument, type FlowDocument } from "../core/grounding/grounded-context-builder.js";
 import type { AmbiguityReport } from "../core/grounding/grounded-context.js";
 import { loadKnowledgePack, type KnowledgePackLoadIssue } from "../core/knowledge-pack/knowledge-pack-loader.js";
-import { knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
+import { selectKnowledgeContext, knowledgeSnapshotFromPack } from "../core/knowledge-pack/knowledge-snapshot.js";
 import { validateRelativePath } from "../core/knowledge-pack/knowledge-pack-source.js";
 import { KnowledgePackError, safeMessageFor } from "../core/knowledge-pack/source-errors.js";
 import { containsControlCharacter, countUnicodeCharacters, knowledgePackLimits } from "../core/knowledge-pack/source-limits.js";
@@ -325,6 +327,12 @@ type PackResolution =
   | { readonly ok: false; readonly issues: readonly RuntimeIssue[] };
 
 async function resolveKnowledgePack(config: KnowledgePackSourceConfig, signal: CancellationSignal | undefined): Promise<PackResolution> {
+  if (config.kind === "structurizr-json") {
+    const result = await inspectArchitectureSource(config, signal);
+    if (!result.ok) return { ok: false, issues: result.issues.map(i => ({severity: "error" as const,code:i.code,message:i.message,...("file" in i ? {file:i.file} : {}),...("line" in i ? {line:i.line} : {})})) };
+    return { ok: true, directoryName: "architecture", knowledgePack: { pack: result.pack, indexes: buildKnowledgePackIndexes(result.pack), knowledge: result.snapshot } };
+  }
+
   const directoryName = path.basename(config.path);
 
   if (!path.isAbsolute(config.path) || directoryName === "" || !validateRelativePath(directoryName).ok) {
@@ -549,6 +557,17 @@ function freezeGenerationRequest<T extends GenerateSequenceDiagramRequest>(reque
     ...(request.confirmedNewParticipants ? { confirmedNewParticipants: [...request.confirmedNewParticipants] } : {}) };
 }
 
+function withSourceProvenance(result: GenerateSequenceDiagramResult, knowledge: import("../core/knowledge-pack/knowledge-snapshot.js").KnowledgeSnapshot): GenerateSequenceDiagramResult;
+function withSourceProvenance(result: GenerateDiagramOutcome, knowledge: import("../core/knowledge-pack/knowledge-snapshot.js").KnowledgeSnapshot): GenerateDiagramOutcome;
+function withSourceProvenance(result: GenerateDiagramOutcome, knowledge: import("../core/knowledge-pack/knowledge-snapshot.js").KnowledgeSnapshot): GenerateDiagramOutcome {
+  if (result.status !== "success" || !knowledge.sources.some(s => s.kind === "structurizr-json")) return result;
+  const report = JSON.parse(result.groundingReport);
+  const ids = [...(report.sources?.evidence ?? []).map((e: {id: string}) => e.id), ...(report.knownParticipants ?? []).map((e: {elementId: string}) => e.elementId)];
+  const selected = selectKnowledgeContext(knowledge, ids);
+  const sourceProvenance = { version: 1, snapshotId: selected.id, digest: selected.digest, sources: selected.sources, facts: selected.provenance };
+  return Object.freeze({ ...result, groundingReport: JSON.stringify({ ...report, sourceProvenance }, null, 2) + "\n" });
+}
+
 class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #extensionVersion: string | null;
   readonly #documentExtraction: DocumentExtractionOptions;
@@ -599,7 +618,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
         ...(request.selections === undefined ? {} : { selections: request.selections }),
         ...(request.confirmedNewParticipants === undefined ? {} : { confirmedNewParticipants: request.confirmedNewParticipants }),
         ...(request.signal === undefined ? {} : { signal: request.signal }) });
-      const result = outcome.status === "unverified" ? outcome : mapOutcome(outcome);
+      const result = withSourceProvenance(outcome.status === "unverified" ? outcome : mapOutcome(outcome), pack.knowledgePack.knowledge!);
       return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
         pack.knowledgePack.knowledge!, request.diagramType as "sequence" | "component", diagnostics.runId, this.#extensionVersion) }) : result;
     };
@@ -652,7 +671,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       ...(request.signal === undefined ? {} : { signal: request.signal })
     });
 
-    const result = mapOutcome(outcome);
+    const result = withSourceProvenance(mapOutcome(outcome), pack.knowledgePack.knowledge!);
     return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
       pack.knowledgePack.knowledge!, "sequence", null, this.#extensionVersion) }) : result;
   }

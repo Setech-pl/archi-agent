@@ -1,3 +1,4 @@
+export { inspectArchitectureSource, validStructurizrConfiguration } from "./architecture-source.js";
 /**
  * Public entry point of the Archi Agent application runtime.
  *

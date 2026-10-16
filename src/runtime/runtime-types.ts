@@ -51,7 +51,7 @@ export type KnowledgePackSourceConfig = {
   readonly kind: "local-directory";
   /** Absolute path of the directory that holds the five pack files. */
   readonly path: string;
-};
+} | { readonly kind: "structurizr-json"; readonly sourceId: string; readonly modelPath: string; readonly overlayPath: string };
 
 /** Endpoint of a local OpenAI-compatible server such as LM Studio; loopback only. */
 export interface LocalModelEndpointConfig {

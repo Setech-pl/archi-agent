@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/structurizr/structurizr",
+  "commit": "da99caf2f2857e5373f7b58569152274f1725ba3",
+  "path": "structurizr-export/src/test/resources/big-bank-plc.json",
+  "bytes": 63526,
+  "sha256": "93fbed6bb643d14ee58c70a5b195c55fa319462ea20dc896280b63312196f1f3",
+  "license": "Apache-2.0",
+  "overlay": "Synthetic Archi Agent test annotations; not upstream facts."
+}

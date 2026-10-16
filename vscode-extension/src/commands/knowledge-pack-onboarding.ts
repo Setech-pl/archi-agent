@@ -1,3 +1,5 @@
+import { configuredArchitectureSource } from "../settings.js";
+import { inspectArchitectureSource } from "../../../src/runtime/index.js";
 import path from "node:path";
 import * as vscode from "vscode";
 import { cleanupStarterKnowledgePack, createStarterKnowledgePack, defaultKnowledgePackPath, StarterPackCreateError, validateKnowledgePackDirectory, type FirstSystem, type StarterPackReceipt } from "../../../src/runtime/index.js";
@@ -31,6 +33,7 @@ interface ConfigurationSnapshot {
   readonly present: boolean;
   readonly value: unknown;
   readonly effective: unknown;
+  readonly architectureSource: string;
 }
 
 const activeOperations = new Map<string, Promise<void>>();
@@ -55,14 +58,14 @@ function scopedValue(configuration: vscode.WorkspaceConfiguration, target: vscod
 
 function snapshot(configuration: vscode.WorkspaceConfiguration, target: vscode.ConfigurationTarget): ConfigurationSnapshot {
   const value = scopedValue(configuration, target);
-  return { present: value !== undefined, value, effective: configuration.get(settingKeys.knowledgePackPath) };
+  return { present: value !== undefined, value, effective: configuration.get(settingKeys.knowledgePackPath), architectureSource: JSON.stringify(configuration.get(settingKeys.architectureSource) ?? null) };
 }
 
 function matches(configuration: vscode.WorkspaceConfiguration, target: vscode.ConfigurationTarget,
   expected: ConfigurationSnapshot): boolean {
   const current = snapshot(configuration, target);
   return current.present === expected.present && Object.is(current.value, expected.value) &&
-    Object.is(current.effective, expected.effective);
+    Object.is(current.effective, expected.effective) && current.architectureSource === expected.architectureSource;
 }
 
 async function configurationConflict(receipt?: StarterPackReceipt, configuration?: vscode.WorkspaceConfiguration): Promise<PackOutcome> {
@@ -104,7 +107,12 @@ async function storePath(configuration: vscode.WorkspaceConfiguration, target: v
   if (!matches(configuration, target, before)) return configurationConflict(receipt, configuration);
   try {
     await configuration.update(settingKeys.knowledgePackPath, directory, target);
-    if (scopedValue(configuration, target) !== directory) return configurationConflict(receipt, configuration);
+    if (scopedValue(configuration, target) !== directory || JSON.stringify(configuration.get(settingKeys.architectureSource) ?? null) !== before.architectureSource) return configurationConflict(receipt, configuration);
+    if (before.architectureSource !== "null") {
+      await configuration.update(settingKeys.architectureSource, null, target);
+      const active = configuredArchitectureSource(configuration);
+      if (active.kind !== "local-directory" || active.path !== directory) return configurationConflict(receipt, configuration);
+    }
     return { status: "ready", ...(resource === undefined ? {} : { resource }) };
   } catch {
     // A rejected update may already have applied. An unconditional rollback could overwrite an
@@ -132,6 +140,14 @@ async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | und
   const configuration = vscode.workspace.getConfiguration(settingsSection, folder?.uri);
   const target = folder === undefined ? vscode.ConfigurationTarget.Global : vscode.ConfigurationTarget.WorkspaceFolder;
   const before = snapshot(configuration, target);
+  if (!explicit && configuration.get(settingKeys.architectureSource) != null) {
+    try {
+      const validation = await inspectArchitectureSource(configuredArchitectureSource(configuration));
+      if (!validation.ok) { await vscode.window.showErrorMessage(`Archi Agent: [${validation.code}] Architecture source is invalid. Check Configuration / Source Settings.`); return { status: "failed" }; }
+      if (!matches(configuration, target, before)) return configurationConflict();
+      return {status:"ready", ...(folder ? {resource:folder.uri} : {})};
+    } catch { await vscode.window.showErrorMessage("Archi Agent: [architecture-source-invalid] Check Source Settings."); return {status:"failed"}; }
+  }
   const configured = configuration.get<string>(settingKeys.knowledgePackPath)?.trim();
   let invalidCode: string | undefined;
   let invalidReason: string | undefined;

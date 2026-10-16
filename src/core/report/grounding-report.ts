@@ -73,7 +73,7 @@ function checkedRelative(value: string): string {
 }
 
 function source(directory: string, reference: PackSourceReference): Json {
-  return { file: `${directory}/${reference.file}`, line: reference.line };
+  return { file: reference.file.startsWith("sources/") ? reference.file : `${directory}/${reference.file}`, line: reference.line };
 }
 
 function mentions(references: readonly FlowReference[]): Json {

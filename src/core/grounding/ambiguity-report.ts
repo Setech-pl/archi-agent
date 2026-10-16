@@ -1,3 +1,4 @@
+import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
 import { knowledgePackFileNames, type KnowledgePackFileName } from "../knowledge-pack/knowledge-pack-source.js";
 import type { KnowledgePack, SourceLocation } from "../knowledge-pack/knowledge-pack.schema.js";
 import { stableCompare } from "../util/ordering.js";
@@ -35,11 +36,8 @@ export interface AmbiguitySelectionResult {
 const maxDetailCandidates = 50;
 
 export function packSourceReference(location: SourceLocation): PackSourceReference {
-  if (!(knowledgePackFileNames as readonly string[]).includes(location.file)) {
-    throw new Error("A pack record must come from one of the five pack files.");
-  }
-
-  return Object.freeze({ file: location.file as KnowledgePackFileName, line: location.line });
+  if (!validateRelativePath(location.file).ok || !Number.isSafeInteger(location.line) || location.line < 1) throw new Error("invalid-source-location");
+  return Object.freeze({ file: location.file, line: location.line });
 }
 
 function candidateCatalog(pack: KnowledgePack): ReadonlyMap<string, AmbiguityCandidate> {

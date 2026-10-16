@@ -57,7 +57,8 @@
         "archiAgent.localModel.profile",
         "archiAgent.localModel.selectedModel",
         "archiAgent.localModel.selectedModelProfile",
-        "archiAgent.localModel.timeoutSeconds"
+        "archiAgent.localModel.timeoutSeconds",
+        "archiAgent.architectureSource"
       ]
     },
     "virtualWorkspaces": {
@@ -280,6 +281,47 @@
           "default": false,
           "scope": "machine",
           "description": "Write safe structured Archi Agent pipeline diagnostics to the Archi Agent output channel."
+        },
+        "archiAgent.architectureSource": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "default": null,
+          "scope": "resource",
+          "markdownDescription": "Local Structurizr architecture source: kind, sourceId, absolute modelPath and overlayPath. Null uses knowledgePackPath and masks an inherited Structurizr configuration. See the SRC1 source contract.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "sourceId",
+                "modelPath",
+                "overlayPath"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "structurizr-json"
+                  ]
+                },
+                "sourceId": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,55}$"
+                },
+                "modelPath": {
+                  "type": "string"
+                },
+                "overlayPath": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
         }
       }
     },
