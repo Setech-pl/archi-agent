@@ -111,6 +111,7 @@ export interface GenerateSequenceDiagramRequest {
 }
 
 export interface GenerateDiagramRequest extends GenerateSequenceDiagramRequest {
+  readonly c4Selection?: {readonly systemId:string;readonly expectedKnowledgeDigest:string};
   readonly diagramType: DiagramType;
   readonly diagnosticSink?: DiagnosticSink;
 }
@@ -214,6 +215,7 @@ export interface ListLocalModelsOptions {
  * interface do not change.
  */
 export interface ArchiAgentRuntime {
+  startFlowVerification?(request: import("./verify-flow.js").VerifyFlowRequest): Promise<import("./verify-flow.js").VerifyFlowStart>;
   /** K2 production entry; optional only for existing host test doubles. */
   extractDocumentCandidates?(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome>;
   /** D1 entry point. Optional on legacy host doubles compiled against the sequence-only contract. */

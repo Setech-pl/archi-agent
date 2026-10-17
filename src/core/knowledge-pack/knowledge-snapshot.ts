@@ -73,9 +73,11 @@ function sortedUnique<T>(values: readonly T[]): T[] {
 /** Apply the original row validators without introducing a second set of semantic rules. */
 function semanticRecord(table: KnowledgePackTableKind, record: KnowledgeRecord<KnowledgePackTableKind>) {
   const { location: _location, provenance: _provenance, ...value } = record;
+  const architecture = "architecture" in value ? value.architecture : undefined;
+  const semanticValue = Object.fromEntries(Object.entries(value).filter(([k]) => k !== "architecture"));
   const columns: Record<string, string> = { canonicalName: "canonical_name", fromId: "from_id", toId: "to_id",
     interfaceType: "interface_type", interfaceName: "interface_name", targetId: "target_id" };
-  const row = Object.fromEntries(Object.entries(value).map(([key, entry]) => [columns[key] ?? key, entry]));
+  const row = Object.fromEntries(Object.entries(semanticValue).map(([key, entry]) => [columns[key] ?? key, entry]));
   if (table === "relationships" && row["interface_name"] === undefined) row["interface_name"] = "";
   const schemas = { systems: systemRowSchema, actors: actorRowSchema, relationships: relationshipRowSchema,
     aliases: aliasRowSchema, rules: ruleRowSchema };
@@ -83,7 +85,11 @@ function semanticRecord(table: KnowledgePackTableKind, record: KnowledgeRecord<K
   if (!parsed.success || Object.values(value).some((entry) => typeof entry === "string" && containsControlCharacter(entry)))
     throw new Error("knowledge-record-invalid");
   const names = Object.fromEntries(Object.entries(columns).map(([key, name]) => [name, key]));
-  return Object.fromEntries(Object.entries(parsed.data).filter(([, entry]) => entry !== undefined).map(([key, entry]) => [names[key] ?? key, entry]));
+  if (architecture !== undefined && (table !== "systems" && table !== "actors" || !architecture || typeof architecture !== "object" ||
+    !("kind" in architecture) || !["person","software-system","container"].includes(String(architecture.kind)) ||
+    Object.entries(architecture).some(([k,v]) => !["kind","parentId","technology"].includes(k) || typeof v !== "string" || v.length>1000 || containsControlCharacter(v)))) throw new Error("knowledge-architecture-invalid");
+  return {...Object.fromEntries(Object.entries(parsed.data).filter(([, entry]) => entry !== undefined).map(([key, entry]) => [names[key] ?? key, entry])),
+    ...(architecture === undefined ? {} : {architecture:{...architecture}})};
 }
 function identity(fact: KnowledgeFact): string {
   const value = fact.value;

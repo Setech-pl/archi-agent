@@ -17,6 +17,7 @@ import {
 import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPrompts } from "./sequence-generation-session.js";
 import { selectLocalModel } from "./local-provider-selection.js";
 import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
+import {inspectC4Source} from "../../../src/runtime/index.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -261,7 +262,9 @@ async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, outpu
 
 export async function generateDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
   const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const },
-    { label: "Component", description: "component", id: "component" as const }],
+    { label: "Component", description: "component", id: "component" as const },
+    { label:"C4 Context",description:"c4-context",id:"c4-context" as const },
+    { label:"C4 Container",description:"c4-container",id:"c4-container" as const }],
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
   if (picked === undefined) return;
   await runGenerateCommand(dependencies, picked.id);
@@ -283,7 +286,16 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   let settings = settingsResult.settings;
-  const flow = await pickFlowSource(settings);
+  let c4Selection:{systemId:string;expectedKnowledgeDigest:string}|undefined;
+  let flow:FlowSource|undefined;
+  if(diagramType==="c4-context"||diagramType==="c4-container") {
+    const source=await inspectC4Source(settings.architectureSource??{kind:"local-directory",path:settings.knowledgePackPath});
+    if(!source.ok){await vscode.window.showWarningMessage(`Archi Agent: ${source.code}. C4 requires explicit source types and hierarchy.`);return;}
+    const subject=await vscode.window.showQuickPick(source.systems.map(e=>({label:e.name,description:e.id,detail:e.provenance[0]?.location?.file,id:e.id})),{title:"Archi Agent: C4 software system",placeHolder:"Select the system of interest / parent",ignoreFocusOut:true});
+    if(!subject)return;
+    c4Selection={systemId:subject.id,expectedKnowledgeDigest:source.knowledgeDigest};
+    flow={kind:"description",flowName:`${diagramType} ${subject.label}`,description:`Show the source-confirmed ${diagramType} view of ${subject.label}.`,author:settings.defaultAuthor};
+  } else flow = await pickFlowSource(settings);
 
   if (flow === undefined) {
     return;
@@ -342,7 +354,7 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
     (_progress, token) =>
       runSequenceGenerationSession({
         runtime,
-        request: buildGenerationRequest(settings, flow, modelId, cancellationSignal(token), apiKey),
+        request: {...buildGenerationRequest(settings, flow, modelId, cancellationSignal(token), apiKey),...(c4Selection?{c4Selection}: {})},
         ...(diagramType === undefined ? {} : { diagramType }),
         ...(diagramType === undefined || vscode.workspace.getConfiguration(settingsSection).get("diagnostics.verbose") !== true
           ? {} : { diagnosticSink: (line: string) => output.appendLine(line) }),
@@ -370,7 +382,7 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   }
 
   await openGeneratedDocuments(outcome.result, dependencies.results);
-  const message = describeSuccess(outcome.result, diagramType === "component" ? "component" : "sequence");
+  const message = describeSuccess(outcome.result, diagramType === "archimate-hld" ? "sequence" : diagramType ?? "sequence");
   if (dependencies.results && outcome.result.artifact) {
     output.appendLine(message.text);
     for (const detail of message.details) output.appendLine(`  ${detail}`);

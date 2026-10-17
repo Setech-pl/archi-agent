@@ -218,7 +218,7 @@ A reviewer should check:
 
 ## Status
 
-**Planned.**
+**Implemented D2.** Uses its own plan, snapshot, validator and renderer under the [reviewed pipeline](reviewed-diagram-pipeline.md).
 
 ---
 
@@ -301,7 +301,7 @@ Those belong to other views.
 
 ---
 
-# C4 System Context — C1
+# C4 System Context — D3
 
 ## Profile identifier
 
@@ -311,7 +311,7 @@ c4-context
 
 ## Status
 
-**Planned.**
+**Implemented in the local candidate.** See [C4 contract](c4-diagrams.md) for Context/Container source requirements and limitations.
 
 ---
 
@@ -398,7 +398,7 @@ Customer
 
 ---
 
-# C4 Container — C2
+# C4 Container — D4
 
 ## Profile identifier
 
@@ -408,7 +408,7 @@ c4-container
 
 ## Status
 
-**Planned.**
+**Implemented in the local candidate.** See [C4 contract](c4-diagrams.md) for Context/Container source requirements and limitations.
 
 ---
 

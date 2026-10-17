@@ -306,11 +306,11 @@ describe("activation", () => {
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(21);
+    expect(context.subscriptions.length).toBe(22);
     deactivate();
   });
 
-  it("offers only Sequence and cancellation performs no further I/O", async () => {
+  it("offers supported diagram types and cancellation performs no further I/O", async () => {
     const inner = echoRuntime();
     const calls = { generated: 0, listed: 0 };
     packagedRuntime.current = {
@@ -321,7 +321,7 @@ describe("activation", () => {
     state.quickPickAnswers.push(() => undefined);
     activate(createExtensionContext() as never);
     await state.registeredCommands.get(commandIds.generateDiagram)?.();
-    expect((state.quickPicks[0]?.items as { description: string }[]).map((item) => item.description)).toEqual(["sequence", "component"]);
+    expect((state.quickPicks[0]?.items as { description: string }[]).map((item) => item.description)).toEqual(["sequence", "component", "c4-context", "c4-container"]);
     expect(state.messages).toEqual([]);
     expect(state.secretReads).toEqual([]);
     expect(calls).toEqual({ generated: 0, listed: 0 });
@@ -416,7 +416,7 @@ describe("activation", () => {
   it("hidden Sequence ID delegates to the common type picker, Cancel performs no onboarding or I/O", async () => {
     activate(createExtensionContext() as never);
     await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
-    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"}]);
+    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"},{label:"C4 Context"},{label:"C4 Container"}]);
     expect(state.quickPicks).toHaveLength(1); expect(state.configurationUpdates).toEqual([]);
     expect(state.secretReads).toEqual([]); expect(state.openedDocuments).toEqual([]);
   });

@@ -123,7 +123,7 @@ describe("ART1 editor adapter", () => {
   });
   it("no result instructs generation and performs no settings, provider or secret access", async () => {
     await saveDiagramAndReportCommand(new OpenDiagramResults());
-    expect(state.messages[0]!.text).toContain("Generate a Sequence or Component");
+    expect(state.messages[0]!.text).toContain("Use Create Diagram");
     expect(state.secretReads).toEqual([]); expect(state.configurationUpdates).toEqual([]); expect(state.quickPicks).toEqual([]); expect(state.progressTitles).toEqual([]);
   });
   it("does not adopt results without a linked runtime artifact", async () => {

@@ -2,6 +2,31 @@
 
 [English](../en/user-guide.md) · **Polski** · [Strona główna](../../README.pl.md)
 
+## Lokalny kandydat VER1 / C4
+
+Te dodatki należą do nieopublikowanego lokalnego kandydata wskazanego w raporcie weryfikacji;
+publiczne alpha.6 pozostaje wcześniejszą paczką. Dotychczasowe zrzuty dokumentują wcześniejszą bazę.
+Przed sprawdzeniem tych funkcji zainstaluj dokładny VSIX kandydata i potwierdź jego hash.
+
+**Archi: Verify Flow (Sequence / prose)** sprawdza wpisany tekst, zaznaczenie lub aktywny bufor.
+Sequence PlantUML nie używa LLM; proza używa jednego żądania interpretacji. Raport JSON odróżnia
+potwierdzone kroki, rozbieżności, nierozstrzygnięte nazwy i pominięcia składni/źródła. Tylko dokładna
+legenda Archi Agent ustanawia znaczenie sync/async/response strzałek; inne style mogą pozostać
+nierozstrzygnięte. C4 jest poza zakresem weryfikatora. Nieznane nazwy wymagają jawnego wyboru elementu.
+Dla Structurizr Save confirmed aliases przygotowuje minimalną edycję nakładki i natywny zapis;
+brudny, zmieniony lub konfliktowy plik zatrzymuje zapis. Dla samodzielnego packa decyzje są sesyjne.
+Zmiana źródła podczas potwierdzania wymaga nowej weryfikacji; decyzje nie są automatycznie przenoszone.
+
+**Create Diagram** oferuje także **C4 Context** i **C4 Container**. Ustaw lokalny JSON Structurizr
+oraz nakładkę SRC1 przez Source Settings. Jawnie wybierz system. Context pokazuje osoby i bezpośrednio
+powiązane systemy, bez wewnętrznych kontenerów. Container pokazuje kontenery rodzica w jawnej granicy
+i obsługiwane otoczenie zewnętrzne. Przynależność nie tworzy relacji, a relacje dzieci nie są zwijane.
+Technologie i opisy pochodzą z pól źródła; raport zachowuje provenance hierarchii i pominięcia.
+Samodzielny pack bez hierarchii zgłasza brak danych. Poprawne C4 używa jednego żądania planu i jednego
+review na tym samym snapshotcie. **Save Diagram and Report** zapisuje oryginalną parę wyników.
+Podgląd graficzny nadal wymaga osobnej obsługi PlantUML; zdalne include C4 nie jest potrzebne.
+
+
 ## Instalacja na Macu i Windows
 
 Pobierz VSIX i `.sha256` z [tego samego wydania](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6). Przed instalacją porównaj wyświetlony hash z plikiem checksum.
@@ -26,7 +51,7 @@ Instrukcja opisuje **0.3.0-alpha.6**. Wcześniejsze pobranie i screenshoty alpha
 
 Potrzebujesz desktopowego VS Code zgodnego z deklaracją `^1.91.0`, lokalnego systemu plików oraz providera modeli do ekstrakcji lub diagramów. VSIX zawiera bundle runtime Node, worker konwersji i zasoby OCR offline; osobne Node/npm nie są potrzebne. Celem 1.0 jest Mac ARM. Bieżące screenshoty powstały na macOS arm64; testy właściciela Mac/Windows i Windows ARM64 runtime pozostają NOT_RUN do otrzymania raportu. Pakiet zawiera także bindingi Mac Intel, Linux x64/arm64 GNU i musl oraz Windows x64/arm64 — to pokrycie pakowania, nie weryfikacja natywnego UI tych systemów. Workspace zdalny lub wirtualny nie potwierdza obsługi zdalnych ścieżek dokumentów; używaj lokalnych folderów. W niezaufanym workspace ustawienia objęte ograniczeniami są odczytywane z ustawień użytkownika.
 
-Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence** lub **Component** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje [instrukcja deweloperska](development.md).
+Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence**, **Component**, **C4 Context** lub **C4 Container** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje [instrukcja deweloperska](development.md).
 
 ## Zacznij tutaj — pierwsze użycie
 
@@ -273,7 +298,7 @@ Na macOS natywny picker może zwrócić `/tmp` zamiast `/private/tmp`. Kontrolow
 
 **Archi: Help** otwiera tę instrukcję z zainstalowanej paczki. Przełącznik **English / Polski** i screenshoty są w VSIX i działają offline. Dodatkowe linki do repozytorium, wydań i dokumentacji technicznej potrzebują sieci. [Galeria aktualnych ekranów PL/EN](../assets/screenshots/README.md) podaje czynności i pochodzenie. Syntetyczne odpowiedzi pokazują UI, nie jakość żywego modelu ani wynik owner smoke.
 
-Własny kod: [MIT](../../LICENSE). Składniki: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) i notices OCR. Ograniczenia i kierunek weryfikacji: [roadmapa](../product-roadmap.md), [stan techniczny](../project-state.md). Weryfikacja względem istniejących modeli (SRC1 → VER1 → MCP1) jest planowana; te funkcje nie są dostępne w tym prerelease.
+Własny kod: [MIT](../../LICENSE). Składniki: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) i notices OCR. Ograniczenia i kierunek weryfikacji: [roadmapa](../product-roadmap.md), [stan techniczny](../project-state.md). Wcześniejsze publiczne alpha.6 poprzedza te lokalne dodatki. Bieżąca kolejność to SRC1 → VER1 → D3 → D4 → MCP1; MCP1 pozostaje planowane.
 ## Lokalne źródło Structurizr — kandydat SRC1
 
 Ta sekcja dotyczy lokalnego kandydata SRC1, nie pobieranej wersji alpha.6.
@@ -289,7 +314,7 @@ Nakładka zawiera aliases.md, rules.md i relationships.md. Metadane relacji wią
 ID relacji i oczekiwane from_id/to_id. interface_type jest jawne. interactionStyle modelu
 wyznacza mode; przy jego braku tryb musi podać nakładka. Konflikt blokuje generowanie.
 Nazwy kontenerów mają format `System / Container`; oryginalne ID pozostają stabilne po zmianie nazwy.
-Komponenty źródłowe i deployment są pomijane; wynikowe diagramy Sequence i Component są obsługiwane.
+Komponenty źródłowe i deployment są pomijane; lokalny kandydat obsługuje wynikowe diagramy Sequence, Component, C4 Context i C4 Container.
 Każda operacja odczytuje źródła ponownie. Zapis wyniku zachowuje jego oryginalny snapshot.
 
 Ustaw `archiAgent.architectureSource` na null, aby wrócić do knowledgePackPath. K3 Save and use

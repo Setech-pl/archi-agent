@@ -1,4 +1,6 @@
 import { inspectArchitectureSource } from "./architecture-source.js";
+import { startFlowVerification, type VerifyFlowRequest, type VerifyFlowStart } from "./verify-flow.js";
+import { buildContextSnapshot, buildContainerSnapshot, C4SourceError } from "../core/pipeline/c4-snapshot.js";
 import { buildKnowledgePackIndexes } from "../core/knowledge-pack/knowledge-pack-loader.js";
 import { captureDiagramArtifact } from "./diagram-artifact.js";
 import { extractDocumentCandidates, type ExtractDocumentCandidatesRequest, type ExtractDocumentCandidatesOutcome, type DocumentExtractionOptions } from "./extract-document-candidates.js";
@@ -552,6 +554,7 @@ function mapOutcome(outcome: PipelineOutcome): GenerateSequenceDiagramResult {
 /** Freeze caller inputs before the first await, without mutating the host's settings. */
 function freezeGenerationRequest<T extends GenerateSequenceDiagramRequest>(request: T): T {
   return { ...request, flow: { ...request.flow }, knowledgePack: { ...request.knowledgePack },
+    ...("c4Selection" in request && request.c4Selection ? {c4Selection:{systemId:(request.c4Selection as {systemId:string}).systemId,expectedKnowledgeDigest:(request.c4Selection as {expectedKnowledgeDigest:string}).expectedKnowledgeDigest}} : {}),
     generator: { ...request.generator, ...("credential" in request.generator && request.generator.credential ? { credential: { ...request.generator.credential } } : {}) },
     ...(request.selections ? { selections: { ...request.selections } } : {}),
     ...(request.confirmedNewParticipants ? { confirmedNewParticipants: [...request.confirmedNewParticipants] } : {}) };
@@ -595,6 +598,14 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     }, this.#documentExtraction);
   }
 
+  public async startFlowVerification(request:VerifyFlowRequest):Promise<VerifyFlowStart> {
+    return startFlowVerification(request,async()=>{
+      if(!request.interpreter)throw new Error("interpreter-required");
+      const result=resolveDiagramClient(request.interpreter,this.#providerRegistry,this.#defaultBaseUrlForProfile,this.#remoteTransport,this.#diagramClientFactory);
+      if(!result.ok)throw new Error("interpreter-configuration-invalid");return result.client;
+    });
+  }
+
   public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {
     request = freezeGenerationRequest(request);
     const diagnostics = new DiagnosticRun(request.diagnosticSink);
@@ -602,15 +613,25 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     const execute = async (): Promise<GenerateDiagramOutcome> => {
       // This must precede flow-file, Knowledge Pack, credential and provider access.
       if (!isSupportedDiagramType(request.diagramType)) return failure("generator-configuration", [issue("diagram-type-unsupported", "The selected diagram type is not supported in this version.")]);
+      if(request.signal?.aborted)return failure("grounding-blocked",[issue("generation-cancelled","Generation cancelled.")]);
       const flow = await resolveFlow(request.flow);
       if (!flow.ok) return failure("flow", flow.issues);
       const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
+      if(request.signal?.aborted)return failure("grounding-blocked",[issue("generation-cancelled","Generation cancelled.")]);
       if (!pack.ok) return failure("knowledge-pack", pack.issues);
+      if (request.diagramType === "c4-context" || request.diagramType === "c4-container") {
+        if(request.signal?.aborted)return failure("grounding-blocked",[issue("generation-cancelled","Generation cancelled.")]);
+        if(!request.c4Selection)return failure("grounding-blocked",[issue("c4-subject-required","Select a source software system explicitly.")]);
+        if(request.c4Selection.expectedKnowledgeDigest!==pack.knowledgePack.knowledge!.digest)return failure("grounding-blocked",[issue("c4-source-changed","The source changed after selection. Select the system again.")]);
+        try {(request.diagramType === "c4-context" ? buildContextSnapshot : buildContainerSnapshot)(pack.knowledgePack.pack,pack.knowledgePack.knowledge!,request.c4Selection.systemId);}
+        catch(e){return failure("grounding-blocked",[issue(e instanceof C4SourceError?e.code:"c4-source-invalid","C4 requires source element types and parent hierarchy. Check the source and selection.")]);}
+      }
       const resolved = resolveDiagramClient(request.generator, this.#providerRegistry, this.#defaultBaseUrlForProfile, this.#remoteTransport, this.#diagramClientFactory);
       if (!resolved.ok) return failure("generator-configuration", resolved.issues);
       diagnostics.emit("provider.resolved", { profileId: "profileId" in request.generator ? request.generator.profileId : "local-lm-studio",
         generatorType: resolved.client.clientType });
       const outcome = await generateDiagram({ diagramType: request.diagramType, flow: flow.flow, knowledgePack: pack.knowledgePack,
+        ...(request.c4Selection ? {c4Selection:request.c4Selection}:{}),
         client: resolved.client, artifactBaseName: baseNameFor(flow.flow.metadata.diagramName, 1),
         diagnostics,
         ...("profileId" in request.generator ? { providerProfileId: request.generator.profileId } : {}),
@@ -620,7 +641,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
         ...(request.signal === undefined ? {} : { signal: request.signal }) });
       const result = withSourceProvenance(outcome.status === "unverified" ? outcome : mapOutcome(outcome), pack.knowledgePack.knowledge!);
       return result.status === "success" ? Object.freeze({ ...result, artifact: captureDiagramArtifact(result, request,
-        pack.knowledgePack.knowledge!, request.diagramType as "sequence" | "component", diagnostics.runId, this.#extensionVersion) }) : result;
+        pack.knowledgePack.knowledge!, request.diagramType as "sequence" | "component" | "c4-context" | "c4-container", diagnostics.runId, this.#extensionVersion) }) : result;
     };
     try {
       const result = await execute();

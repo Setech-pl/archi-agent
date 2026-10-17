@@ -11,7 +11,7 @@ import type { GenerateSequenceDiagramSuccess, GenerateSequenceDiagramRequest } f
 export interface DiagramArtifact {
   readonly resultId: string;
   readonly createdAt: string;
-  readonly diagramType: "sequence" | "component";
+  readonly diagramType: "sequence" | "component" | "c4-context" | "c4-container";
   readonly plantUml: string;
   readonly report: Readonly<Record<string, CanonicalValue>>;
   readonly metadata: Readonly<Record<string, CanonicalValue>>;
@@ -35,6 +35,7 @@ const modelFields = fields("type providerProfileId modelId temperature seed atte
 const warning = { ...fields("origin code severity message path"), location: locator,
   details: { ...fields("order fromId toId elementId newParticipant mention expectedKind limit problem actual name key"), expected: "scalars", problems: "scalars" } } satisfies Projection;
 const reportProjection: Projection = {
+  c4: {...fields("systemId scope omittedRelationships"),limitations:"scalars",elements:[{...fields("id name kind parentId description technology"),provenance:[{...fields("sourceId externalId originalName externalKind parentId"),fields:"scalars",location:locator}]}]},
   ...fields("reportSchemaVersion diagramType generationPath attemptCount diagramName flowName author language generatorType"),
   snapshotDigest: fields("algorithm value"), groundingDigest: fields("algorithm value"),
   generator: modelFields, reviewer: modelFields, modelGeneration: modelFields,
@@ -72,7 +73,7 @@ function project(value: unknown, shape: Projection): CanonicalValue {
 
 /** Called only by runtime success mapping with the already loaded snapshot and actual request. */
 export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, request: GenerateSequenceDiagramRequest,
-  knowledge: KnowledgeSnapshot, diagramType: "sequence" | "component", runId: string | null,
+  knowledge: KnowledgeSnapshot, diagramType: "sequence" | "component" | "c4-context" | "c4-container", runId: string | null,
   extensionVersion: string | null): DiagramArtifact {
   const report = project(JSON.parse(result.groundingReport), reportProjection) as Record<string, CanonicalValue>;
   for (const key of ["generator", "reviewer", "modelGeneration"]) {
@@ -82,6 +83,7 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
     }
   }
   const configuration = {
+    ...("c4Selection" in request && request.c4Selection ? {c4Selection:{systemId:(request.c4Selection as {systemId:string}).systemId,expectedKnowledgeDigest:(request.c4Selection as {expectedKnowledgeDigest:string}).expectedKnowledgeDigest}} : {}),
     ...(request.knowledgePack.kind === "structurizr-json" ? { architectureSource: { kind: request.knowledgePack.kind, sourceId: request.knowledgePack.sourceId } } : {}),
     diagramType, generationPath: report.generationPath ?? "compatibility-sequence",
     generatorKind: request.generator.kind,

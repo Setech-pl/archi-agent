@@ -13,12 +13,14 @@ import { knowledgePackArchitectureProvider } from "./reviewed-sequence.js";
 import { createOperationCatalog, renderSequencePlan, sequencePlanResponseSchema, sequenceReviewResponseSchema, sequenceReviewLimits, validateSequencePlan, validateSequenceReview, type SequenceReviewViolationCode } from "./sequence-diagram-plan.js";
 import { sequenceDiagramPlanSchema } from "./sequence-diagram-plan.js";
 import { generateComponentDiagram } from "./generate-component-diagram.js";
+import { generateC4Diagram } from "./generate-c4-diagram.js";
 import type { ComponentReviewViolationCode } from "./component-diagram-plan.js";
 import type { DiagnosticRun } from "./diagnostics.js";
 import type { PipelineOutcome, RenderValidationFailedOutcome } from "./generation-outcome.js";
 
 /** D1.2 reviewed plan path; generateSequenceDiagram remains independent. */
 export interface GenerateDiagramRequest {
+  readonly c4Selection?: {readonly systemId:string;readonly expectedKnowledgeDigest:string};
   readonly diagramType: DiagramType;
   readonly flow: FlowDocument;
   readonly knowledgePack: GroundingKnowledgePack;
@@ -113,6 +115,7 @@ export function renderedDocumentFailure(plantUml: string): RenderValidationFaile
 
 /** D1.2: one plan call, local validation and rendering, one independent verdict call. */
 export async function generateDiagram(request: GenerateDiagramRequest): Promise<ReviewedDiagramOutcome> {
+  if (request.diagramType === "c4-context" || request.diagramType === "c4-container") return generateC4Diagram(request);
   const diagnostics = request.diagnostics;
   if (request.diagramType === "component") return generateComponentDiagram(request);
   if (request.diagramType !== "sequence") return invalid("schema-violation", "diagram-type-unsupported");

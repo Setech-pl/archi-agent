@@ -41,7 +41,8 @@
     "onCommand:archiAgent.buildKnowledgePackFromActiveFile",
     "onCommand:archiAgent.refreshKnowledge",
     "onCommand:archiAgent.openKnowledgeRecord",
-    "onView:archiAgent.knowledge"
+    "onView:archiAgent.knowledge",
+    "onCommand:archiAgent.verifyFlow"
   ],
   "extensionKind": [
     "workspace"
@@ -156,6 +157,11 @@
       {
         "command": "archiAgent.openKnowledgeRecord",
         "title": "Open Knowledge Record",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.verifyFlow",
+        "title": "Verify Flow (Sequence / prose)",
         "category": "Archi"
       }
     ],

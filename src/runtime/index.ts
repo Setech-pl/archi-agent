@@ -89,3 +89,7 @@ export { planDiagramBundle, saveDiagramBundle, isCompletedDiagramArtifact, seria
 export type { DiagramArtifact, DiagramBundlePlan } from "./diagram-artifact.js";
 
 export type { KnowledgePack, SourceLocation } from "../core/knowledge-pack/knowledge-pack.schema.js";
+export { FlowVerificationSession } from "./verify-flow.js";
+export {inspectC4Source} from "./architecture-source.js";
+export type { VerifyFlowRequest, VerifyFlowOutcome, VerifyFlowStart, AliasSavePlan, AliasSavePlanOutcome } from "./verify-flow.js";
+export type { NameDecision, VerifyFlowReport } from "../core/verification/compare-flow.js";

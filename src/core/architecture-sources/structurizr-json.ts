@@ -51,8 +51,13 @@ export function composeStructurizrKnowledge(modelText: string, texts: OverlayTex
     const name = e.kind === "container" ? text(e.parent!.value["name"], json.at([...e.parent!.path, "name"])) + " / " + ownName : ownName;
     const data = validate(z.union([actorRowSchema, systemRowSchema]),
       { id: ids.get(e.id), canonical_name: name, kind: e.kind === "person" ? "person" : "system", description: e.value["description"] }, json.at(e.path));
+    const technology = e.value["technology"];
+    if (technology !== undefined && (typeof technology !== "string" || technology.length > 256 || containsControlCharacter(technology))) sourceError("source-technology-invalid",json.at([...e.path,"technology"]));
     return { id: data.id, canonicalName: data.canonical_name, kind: data.kind, description: data.description, location: json.at(e.path),
+      architecture: {kind:e.kind as "person"|"software-system"|"container",...(e.kind === "container" ? {parentId:ids.get(e.parent!.id)!} : {}),...(technology ? {technology:technology as string} : {})},
       provenance: [provenance(e, ["id", "kind"], "id"), provenance(e, ["canonicalName"], "name"), provenance(e, ["description"], "description"),
+        provenance(e,["architecture"],"id"),...(technology ? [provenance(e,["architecture"],"technology")] : []),
+        ...(e.kind === "container" ? [{sourceId,externalId:e.parent!.id,fields:["architecture"],externalKind:"software-system",location:json.at([...e.parent!.path,"id"])}] : []),
         ...(e.kind === "container" ? [{ sourceId, fields: ["canonicalName"], externalId: e.parent!.id,
           originalName: text(e.parent!.value["name"], json.at([...e.parent!.path,"name"])), externalKind: "software-system", location: json.at([...e.parent!.path,"name"]) }] : [])] };
   };

@@ -1,6 +1,6 @@
 # Archi Agent architecture
 
-Current implemented architecture after UX4-FU2 (`6863a30`), with offline PL/EN Help added by this documentation checkpoint. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [Historical architecture and superseded pipelines](architecture-history.md) preserve prior decisions; [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
+Current local architecture includes SRC1, VER1 and D3/D4, on the earlier UX4-FU2 and offline PL/EN Help baseline. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [Historical architecture and superseded pipelines](architecture-history.md) preserve prior decisions; [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
 
 SRC1 adds a local Structurizr workspace JSON adapter and an ID-bound three-table Markdown overlay.
 The pure mapper produces the existing K1 records/indexes and one frozen knowledge snapshot;
@@ -13,6 +13,22 @@ See the [SRC1 contract](src1-structurizr-source.md) and [local verification](src
 
 Only bounded selected document text reaches extraction; only the relevant frozen architecture snapshot reaches diagram generation/review. Full architecture repositories and raw XML are not sent. Model outputs and imported sources are untrusted. Local schema/semantic checks remain fail-closed. Generator and semantic reviewer share the configured model but use separate requests and the same snapshot. No retry, repair, fallback or additional call is introduced.
 
+
+## VER1 and source-bound C4
+
+The current local candidate adds [VER1](ver1-flow-verification.md): a frozen runtime session,
+a bounded text-only Sequence parser (zero model calls), one prose interpretation call, existing
+K1 name resolution and deterministic assessment. User decisions and exact source fingerprints
+survive continuation; changed sources invalidate it. SRC1 aliases use runtime-prepared native
+editor edits, conflict checks and post-save production validation; standalone pack decisions are
+session-only. Verification does not call the diagram generator or reviewer and does not verify C4.
+
+[D3/D4](c4-diagrams.md) use optional source type/parent/technology metadata on the same K1 records,
+with field provenance and digest coverage. Separate Context/Container snapshots, plans, validators
+and local renderers feed the existing two-call reviewed pipeline and ART1. Only source-confirmed
+relationships are eligible. Create Diagram selects a software system by stable ID; missing hierarchy
+is an explicit controlled result. No remote include, C4 dependency or guessed parent/edge is used.
+The previous generation/acquisition diagrams below retain the shared boundaries.
 
 ## A. Components and boundaries
 

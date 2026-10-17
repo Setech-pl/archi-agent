@@ -1,4 +1,5 @@
 import { KnowledgeBrowser } from "./knowledge-browser.js";
+import { verifyFlowCommand } from "./commands/verify-flow.js";
 import { ConfigurationWorkbench } from "./workbench/configuration.js";
 import { OpenDiagramResults, saveDiagramAndReportCommand } from "./commands/save-diagram-and-report.js";
 import { buildKnowledgePackCommand, buildKnowledgePackFromActiveFileCommand } from "./commands/build-knowledge-pack.js";
@@ -33,6 +34,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(output);
   context.subscriptions.push(
+    vscode.commands.registerCommand(commandIds.verifyFlow, () => verifyFlowCommand({runtime,output,secrets:context.secrets}).catch(()=>vscode.window.showErrorMessage("Archi Agent: verification failed. Check the source and input."))),
     vscode.commands.registerCommand(commandIds.knowledgeBrowser, () => browser.reveal()),
     vscode.commands.registerCommand(commandIds.buildKnowledgePackFromActiveFile, () => buildKnowledgePackFromActiveFileCommand({ runtime, output, secrets: context.secrets })),
     vscode.commands.registerCommand(commandIds.configuration, () => configuration.open()),

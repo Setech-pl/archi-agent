@@ -130,6 +130,7 @@ export interface RecordProvenance {
 }
 
 export interface SystemRecord {
+  readonly architecture?: SourceArchitectureMetadata;
   readonly provenance?: readonly RecordProvenance[];
   readonly id: string;
   readonly canonicalName: string;
@@ -139,12 +140,20 @@ export interface SystemRecord {
 }
 
 export interface ActorRecord {
+  readonly architecture?: SourceArchitectureMetadata;
   readonly provenance?: readonly RecordProvenance[];
   readonly id: string;
   readonly canonicalName: string;
   readonly kind: ActorKind;
   readonly description: string;
   readonly location: SourceLocation;
+}
+
+/** Optional source facts; never inferred from Markdown kinds or names. */
+export interface SourceArchitectureMetadata {
+  readonly kind: "person" | "software-system" | "container";
+  readonly parentId?: string;
+  readonly technology?: string;
 }
 
 export interface RelationshipRecord {

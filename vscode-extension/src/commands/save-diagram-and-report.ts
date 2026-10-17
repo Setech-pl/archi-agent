@@ -32,7 +32,7 @@ export async function saveDiagramAndReportCommand(results: OpenDiagramResults, s
   if (!artifact) {
     const entries = results.results();
     if (entries.length === 0) {
-      await vscode.window.showInformationMessage("Archi Agent: no completed diagram with a linked report. Generate a Sequence or Component diagram first.");
+      await vscode.window.showInformationMessage("Archi Agent: no completed diagram with a linked report. Use Create Diagram first.");
       return;
     }
     const item = await vscode.window.showQuickPick(entries.map((result) => ({
@@ -44,7 +44,7 @@ export async function saveDiagramAndReportCommand(results: OpenDiagramResults, s
     artifact = item.result;
   }
   if (!isCompletedDiagramArtifact(artifact)) {
-    await vscode.window.showInformationMessage("Archi Agent: this result has no linked report. Generate a Sequence or Component diagram first."); return;
+    await vscode.window.showInformationMessage("Archi Agent: this result has no linked report. Use Create Diagram first."); return;
   }
   const folders = vscode.workspace.workspaceFolders;
   if (!folders?.length) {

@@ -2,6 +2,32 @@
 
 **English** · [Polski](../pl/user-guide.md) · [Home](../../README.md)
 
+## Local VER1 / C4 candidate
+
+These additions belong to the unpublished local candidate identified in the verification report;
+the public alpha.6 download remains the earlier package. Existing screenshots document that earlier
+baseline. Install the exact candidate VSIX and verify its hash before testing these functions.
+
+**Archi: Verify Flow (Sequence / prose)** checks entered text, selection or the active buffer.
+Sequence PlantUML uses no LLM; prose uses one interpretation request. The JSON report distinguishes
+confirmed steps, discrepancies, unresolved names and omitted syntax/source scope. Only the exact
+Archi Agent legend establishes arrow sync/async/response semantics; arbitrary styles may remain
+inconclusive. C4 input is outside this verifier. Unknown names require explicit element selection.
+For Structurizr, Save confirmed aliases prepares a minimal overlay edit and native save; dirty,
+changed or conflicting files stop the save. Standalone pack choices remain session-only. A source
+change during confirmation requires a new verification; decisions are never silently rebased.
+
+**Create Diagram** also offers **C4 Context** and **C4 Container**. Configure a local Structurizr
+JSON source and its SRC1 overlay in Source Settings. Pick the software system explicitly. Context
+shows people and directly connected software systems, without internal containers. Container shows
+the parent's containers inside a labelled boundary and the supported external environment. No
+relationship is invented from membership or rolled up from children. Technology and descriptions
+come from source fields; reports retain hierarchy provenance and omissions. A standalone pack
+without hierarchy reports missing data. Successful C4 generation uses one plan request and one
+review request with the same snapshot. **Save Diagram and Report** saves their original pair.
+Graphical preview still needs separate PlantUML support; no remote C4 include is needed.
+
+
 ## Installation on Mac and Windows
 
 Download the VSIX and `.sha256` from [the same release](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6). Compare the displayed hash with the checksum file before installation.
@@ -26,7 +52,7 @@ This guide covers **0.3.0-alpha.6**. Earlier alpha.4 screenshots and downloads r
 
 Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. The VSIX includes Node runtime bundles, conversion worker and offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence** or **Component** before any generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
 
 ## Start here — first use
 
@@ -273,7 +299,7 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](../assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](../product-roadmap.md), [technical state](../project-state.md). Existing-model verification (SRC1 → VER1 → MCP1) is planned; those features are not available in this prerelease.
+Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](../product-roadmap.md), [technical state](../project-state.md). The earlier public alpha.6 predates these local additions. The current local order is SRC1 → VER1 → D3 → D4 → MCP1; MCP1 remains planned.
 ## Local Structurizr source — SRC1 candidate
 
 This section applies to the local SRC1 candidate, not the downloadable alpha.6 release.
@@ -289,7 +315,7 @@ The overlay contains aliases.md, rules.md and relationships.md. Relationship met
 original relationship ID and expected from_id/to_id. interface_type is explicit. Model
 interactionStyle determines mode; otherwise the overlay must provide it. Conflicts block generation.
 Container names use `System / Container`; original IDs remain stable after renaming.
-Source components and deployment are omitted; Sequence and Component diagram output is supported.
+Source components and deployment are omitted; Sequence, Component, C4 Context and C4 Container output is supported in the local candidate.
 Each operation reads again. The generated pair preserves its original snapshot when saved.
 
 Set `archiAgent.architectureSource` to null to use knowledgePackPath again. K3 Save and use
