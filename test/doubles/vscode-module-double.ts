@@ -418,3 +418,5 @@ Object.assign(window, {
 
 /** VS Code display language used by offline help. */
 export const env = { language: "en" };
+
+export const extensions = { getExtension(_id:string) { return undefined; }, onDidChange(_callback:()=>void) { return {dispose(){}}; } };

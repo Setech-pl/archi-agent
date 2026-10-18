@@ -93,3 +93,21 @@ export { FlowVerificationSession } from "./verify-flow.js";
 export {inspectC4Source} from "./architecture-source.js";
 export type { VerifyFlowRequest, VerifyFlowOutcome, VerifyFlowStart, AliasSavePlan, AliasSavePlanOutcome } from "./verify-flow.js";
 export type { NameDecision, VerifyFlowReport } from "../core/verification/compare-flow.js";
+
+export { createLocalReadPolicy, assertLocalReadPath } from "../node/local-read-policy.js";
+export type { LocalReadPolicy } from "../node/local-read-policy.js";
+export { readLocalTextInput, parseLocalJson } from "./local-text-input.js";
+export { inspectKnowledgeForHost } from "./architecture-source.js";
+export { serializeFlowVerificationForHost, portableVerificationOutcome, portableDiagramOutcome, validateHostResult,
+  hostResultSchema, portableVerificationSchema, portableVerificationOutcomeSchema, portableDiagramOutcomeSchema,
+  inspectionOutcomeSchema, nameDecisionSchema, digestSchema, HostResultError } from "./host-results.js";
+export type { PortableVerificationV1, HostResultV1 } from "./host-results.js";
+export { resolveLocalReadReference } from "./local-text-input.js";
+
+export { getDocumentConversionCapabilities } from "./document-conversion-capabilities.js";
+export type { DocumentConversionCapabilities } from "./document-conversion-capabilities.js";
+
+export {mcpKnowledgeServerSchema}from"../node/mcp-knowledge-source.js";
+export type {McpKnowledgeServerConfig}from"../node/mcp-knowledge-source.js";
+export {createKnowledgeResponse,validateKnowledgeResponse,knowledgeResponseSchema,knowledgeFromContributions,contributionsVersion}from"../core/knowledge-pack/knowledge-transfer.js";
+export type{KnowledgeResponseV1}from"../core/knowledge-pack/knowledge-transfer.js";

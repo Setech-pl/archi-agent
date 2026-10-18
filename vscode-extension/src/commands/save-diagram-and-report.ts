@@ -1,3 +1,4 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "../profile-availability.js";
 import path from "node:path";
 import * as vscode from "vscode";
 import { isCompletedDiagramArtifact, planDiagramBundle, saveDiagramBundle, StarterPackCreateError, LocalPathError,
@@ -62,6 +63,7 @@ export async function saveDiagramAndReportCommand(results: OpenDiagramResults, s
     `Save original ${artifact.diagramType} result ${artifact.resultId} (${artifact.createdAt})? Manual editor changes are excluded.`,
     { modal: true, detail: `${destination}\n\ndiagram.puml\nreport.json\n\nA new folder will be created. Existing results are never overwritten.` }, saveDiagramAction);
   if (confirm !== saveDiagramAction) return;
+  assertProfileAvailable();
   const original = artifact;
   let saved: { readonly directory: string };
   try {
@@ -70,7 +72,7 @@ export async function saveDiagramAndReportCommand(results: OpenDiagramResults, s
         const controller = new AbortController();
         const listener = token.onCancellationRequested(() => controller.abort());
         if (token.isCancellationRequested) controller.abort();
-        try { return await saveDiagramBundle(project.uri.fsPath, original, plan, { signal: controller.signal }); }
+        try { return await saveDiagramBundle(project.uri.fsPath, original, plan, { signal: withProfileSignal(controller.signal) }); }
         finally { listener.dispose(); }
       });
   } catch (error) {

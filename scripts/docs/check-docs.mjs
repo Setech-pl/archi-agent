@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import {openVsix} from '../../vscode-extension/scripts/vsix-zip.mjs';
 import {createHash} from 'node:crypto';
 const [outArg,vsixArg,mode,baselineArg]=process.argv.slice(2),out=path.resolve(outArg),vsix=path.resolve(vsixArg);
-const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/product-roadmap.md','docs/configuration-workbench.md','docs/ux4-model-selection.md','docs/ux4-owner-findings.md'];
+assert.ok(['--docs','--help','--functional','--mcp1'].includes(mode),'Unknown documentation check mode');
+const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/product-roadmap.md','docs/en/cli-mcp.md','docs/pl/cli-mcp.md','examples/knowledge-server/README.md','docs/configuration-workbench.md','docs/ux4-model-selection.md','docs/ux4-owner-findings.md'];
 const issues=[],checks=[];const hash=b=>createHash('sha256').update(b).digest('hex');
 const content=f=>readFileSync(f,'utf8');
 function anchors(text){const counts=new Map();return new Set([...text.matchAll(/^#{1,6} (.+)$/gm)].map(m=>{const a=m[1].toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu,'').replace(/\s/g,'-');const n=counts.get(a)||0;counts.set(a,n+1);return a+(n?`-${n}`:'');}));}
@@ -55,9 +56,11 @@ for(const screen of provenance.screens)assert.equal(hash(readFileSync('docs/asse
 assert.equal(archive.read('extension/LICENSE.txt').toString(),content('LICENSE'));
 assert.equal(content('vscode-extension/LICENSE.txt'),content('LICENSE'));
 assert.equal(manifest.license,'MIT');assert.equal(JSON.parse(content('package.json')).license,'MIT');assert.equal(JSON.parse(content('package-lock.json')).packages[''].license,'MIT');
-for(const required of ['extension/THIRD_PARTY_NOTICES.md','extension/ux2-ocr/TRIAL_NOTICES.md','extension/ux2-ocr/licenses/SKIA-LICENSE','extension/ux2-ocr/assets/lang/LICENSE-tessdata-fast'])assert.ok(entries.includes(required),required);
+const coreProfile=entries.includes('extension/distribution-profile.json')&&JSON.parse(archive.read('extension/distribution-profile.json')).profile==='core';
+for(const required of ['extension/THIRD_PARTY_NOTICES.md',...(coreProfile?[]:['extension/ux2-ocr/TRIAL_NOTICES.md','extension/ux2-ocr/licenses/SKIA-LICENSE','extension/ux2-ocr/assets/lang/LICENSE-tessdata-fast'])])assert.ok(entries.includes(required),required);
 assert.ok(entries.every(e=>!e.endsWith('.gif')&&!e.includes('audits/')&&!e.includes('scripts/docs/')));
-// Confirm documentation-only packaging did not change executable code or OCR resources.
+// --mcp1 compares all executable/OCR bytes with an independently rebuilt same-candidate baseline.
+// Older documentation-only modes retain their original baseline policy.
 assert.ok(baselineArg,'Supply the exact verified baseline VSIX explicitly; no historical default.');
 const baseline=openVsix(baselineArg);
 const runtimeEntries=entries.filter(e=>e.startsWith('extension/ux2-ocr/')||(mode==='--help'?e.startsWith('extension/dist/')&&e!=='extension/dist/extension.js':mode==='--functional'?e==='extension/dist/archi-agent-converter-worker.js':e.startsWith('extension/dist/')));

@@ -1,3 +1,4 @@
+import {profileConflict,withProfileCancellation}from"./profile-availability.js";
 import { configuredArchitectureSource } from "./settings.js";
 import { inspectArchitectureSource, type KnowledgePackSourceConfig, type KnowledgeSnapshot } from "../../src/runtime/index.js";
 import * as vscode from "vscode";
@@ -32,7 +33,7 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
   constructor() {
     this.view = vscode.window.createTreeView("archiAgent.knowledge", { treeDataProvider: this, showCollapseAll: true });
     this.subscriptions = [this.view, this.changed,
-      vscode.workspace.onDidChangeConfiguration(e => { if ((e.affectsConfiguration(settingsSection + "." + settingKeys.knowledgePackPath) || e.affectsConfiguration(settingsSection + "." + settingKeys.architectureSource))) this.refresh(); }),
+      vscode.workspace.onDidChangeConfiguration(e => { if ((e.affectsConfiguration(settingsSection + "." + settingKeys.knowledgePackPath) || e.affectsConfiguration(settingsSection + "." + settingKeys.architectureSource) || e.affectsConfiguration(settingsSection + "." + settingKeys.knowledgeServer))) this.refresh(); }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
       vscode.workspace.onDidSaveTextDocument(doc => { if ((/\/(systems|actors|relationships|aliases|rules)\.md$/u.test(doc.uri.path) || doc.uri.path.endsWith(".json"))) this.refresh(); }),
       vscode.commands.registerCommand(commandIds.refreshKnowledge, () => this.refresh()),
@@ -49,7 +50,7 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
     return item;
   }
   async getChildren(node?: KnowledgeNode): Promise<KnowledgeNode[]> {
-    if (this.disposed) return [];
+    if (this.disposed||profileConflict()) return [];
     if (!node) {
       const folders = vscode.workspace.workspaceFolders ?? [];
       return folders.length ? folders.map(folder => ({ id: folder.uri.toString(), label: folder.name, folder, project: true, epoch: this.epoch })) :
@@ -60,8 +61,8 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
     const epoch = this.epoch;
     try {
       const config = configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection,node.folder?.uri));
-      if (config.kind === "structurizr-json") {
-        const result = await inspectArchitectureSource(config);
+      if (config.kind !== "local-directory") {
+        const result = await inspectArchitectureSource(config,withProfileCancellation());
         if (this.disposed || epoch !== this.epoch || JSON.stringify(config) !== JSON.stringify(configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection,node.folder?.uri)))) return [];
         return result.ok ? [this.architectureNode(node, config, result.snapshot)] : [{id:node.id+"/invalid",label:`Architecture unavailable [${result.code}]`,epoch}];
       }
@@ -79,7 +80,7 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
     const config = configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection, folder?.uri));
     return config.kind === "local-directory" ? config.path : "";
   }
-  private architectureNode(project: KnowledgeNode, config: Extract<KnowledgePackSourceConfig,{kind:"structurizr-json"}>, snapshot: KnowledgeSnapshot): KnowledgeNode {
+  private architectureNode(project: KnowledgeNode, config: Exclude<KnowledgePackSourceConfig,{kind:"local-directory"}>, snapshot: KnowledgeSnapshot): KnowledgeNode {
     const make = (id:string,label:string,detail?:string,location?:SourceLocation,children?:readonly KnowledgeNode[]):KnowledgeNode => ({id:project.id+"/"+config.sourceId+"/"+id,label,epoch:this.epoch,folder:project.folder,architectureConfig:config,architectureDigest:snapshot.digest,
       ...(detail ? {detail}:{}),...(location ? {location}:{}),...(children ? {children}:{})});
     const names = new Map(snapshot.facts.filter(f => f.table === "systems" || f.table === "actors").map(f => [f.value.id,f.value.canonicalName]));
@@ -89,12 +90,12 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
         const label = "canonicalName" in f.value ? f.value.canonicalName : "alias" in f.value ? f.value.alias :
           "fromId" in f.value ? `${names.get(f.value.fromId)} → ${names.get(f.value.toId)}${f.table === "relationships" ? " · "+f.value.interfaceType : ""}` : f.id;
         return make(f.id,label,JSON.stringify({value:f.value,provenance:f.provenance},null,2),undefined,
-          f.provenance.map((p,i)=>make(f.id+"/"+i,`${p.sourceId} · ${(p.fields ?? []).join(", ")} · ${p.location?.file ?? ""}:${p.location?.line ?? ""}`,JSON.stringify(p,null,2),p.location)));
+          f.provenance.map((p,i)=>make(f.id+"/"+i,`${p.sourceId} · ${(p.fields ?? []).join(", ")} · ${p.location?`${p.location.file}:${p.location.line}`:p.reference?.uri??p.externalId??"No local locator"}`,JSON.stringify(p,null,2),p.location)));
       }).sort((a,b)=>a.label<b.label?-1:a.label>b.label?1:0);
       return make(table,`${table[0]!.toUpperCase()+table.slice(1)} (${rows.length})`,undefined,undefined,rows);
     });
     children.push(make("omissions","Omitted source content",JSON.stringify(snapshot.sources.flatMap(s=>s.omissions??[]),null,2)));
-    return make("root",`Active Structurizr — ${config.sourceId}`,`K1 snapshot: ${snapshot.digest}`,undefined,children);
+    return make("root",`Active ${config.kind==="mcp"?"MCP knowledge":"Structurizr"} — ${config.sourceId}`,`K1 snapshot: ${snapshot.digest}`,undefined,children);
   }
   private packNode(project: KnowledgeNode, packPath: string, pack: KnowledgePack, digest: string): KnowledgeNode {
     const prefix = project.id + "/" + packPath;
@@ -130,7 +131,7 @@ export class KnowledgeBrowser implements vscode.TreeDataProvider<KnowledgeNode>,
       if (node.architectureConfig) {
         const current = configuredArchitectureSource(vscode.workspace.getConfiguration(settingsSection,node.folder?.uri));
         if (JSON.stringify(current) !== JSON.stringify(node.architectureConfig)) { this.refresh(); return; }
-        const loaded = await inspectArchitectureSource(current);
+        const loaded = await inspectArchitectureSource(current,withProfileCancellation());
         if (!loaded.ok || loaded.snapshot.digest !== node.architectureDigest) { this.refresh(); return; }
         if (this.disposed || node.epoch !== this.epoch) return;
         if (node.location && current.kind === "structurizr-json") {

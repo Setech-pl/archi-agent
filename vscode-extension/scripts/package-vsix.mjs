@@ -1,89 +1,34 @@
 #!/usr/bin/env node
-// Builds the bundles and packages the Archi Agent extension as a VSIX with @vscode/vsce.
-//
-//   node vscode-extension/scripts/package-vsix.mjs [--out <directory>]
-//
-// The package is written to vscode-extension/build/<name>-<version>.vsix (ignored by Git). vsce runs
-// in library mode with dependency detection disabled, so it neither calls npm nor needs a
-// node_modules directory inside the extension folder; the bundles already contain everything.
-// Nothing is published: this script never contacts a marketplace.
-
-import { copyFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { createVSIX } from "@vscode/vsce";
-import { execFileSync } from "node:child_process";
-import { buildExtensionBundles, extensionRoot, projectRoot } from "./build.mjs";
-
-export async function packageExtension(options = {}) {
-  const outDir = path.resolve(options.outDir ?? path.join(extensionRoot, "build"));
-  const manifest = JSON.parse(readFileSync(path.join(extensionRoot, "package.json"), "utf8"));
-  const packagePath = path.join(outDir, `${manifest.name}-${manifest.version}.vsix`);
-
-  await buildExtensionBundles(options.bundleDir === undefined ? {} : { outDir: options.bundleDir });
-  // Offline Help uses the same real screenshots as the repository guides.
-  const helpImages = new Set(["README.md", "README.pl.md"].flatMap((name) =>
-    [...readFileSync(path.join(extensionRoot, name), "utf8").matchAll(/help-assets\/([a-z0-9-]+\.png)/g)].map((match) => match[1])));
-  const helpAssets = path.join(extensionRoot, "help-assets");
-  rmSync(helpAssets, { recursive: true, force: true });
-  mkdirSync(helpAssets, { recursive: true });
-  for (const name of helpImages) copyFileSync(path.join(projectRoot, "docs/assets/screenshots", name), path.join(helpAssets, name));
-  mkdirSync(outDir, { recursive: true });
-  rmSync(packagePath, { force: true });
-
-  await createVSIX({
-    cwd: extensionRoot,
-    packagePath,
-    dependencies: false,
-    // Standalone bilingual docs link to files inside the VSIX, including unpublished local builds.
-    rewriteRelativeLinks: false,
-    skipLicense: true,
-    allowMissingRepository: true,
-    updatePackageJson: false
-  });
-
-  // Rebuild and pin the reviewed, offline OCR resources, then place them beside dist/.
-  // Runtime lookup is relative to the installed extension, never to this repository.
-  execFileSync(process.execPath, [path.join(projectRoot, "experiments/ux2-ocr/build-trial.mjs"), "--product-assets"], { stdio: "pipe" });
-  execFileSync("zip", ["-q", "-r", "-D", "-X", packagePath, "extension/ux2-ocr"], {
-    cwd: path.join(projectRoot, "build/ux2-ocr/phase2/stage")
-  });
-
-  return packagePath;
+import{bundleNotices}from"../../scripts/bundle-notices.mjs";
+import {copyFileSync,mkdirSync,readFileSync,rmSync,writeFileSync}from'node:fs';
+import path from'node:path';import{fileURLToPath}from'node:url';import{createHash}from'node:crypto';
+import{createVSIX}from'@vscode/vsce';import{execFileSync}from'node:child_process';
+import{buildExtensionBundles,extensionRoot,projectRoot}from'./build.mjs';
+export async function packageExtension(options={}){
+ const profile=options.profile??'core';if(!['core','full'].includes(profile))throw Error('Invalid distribution profile');
+ const outDir=path.resolve(options.outDir??path.join(extensionRoot,'build')),stage=path.join(outDir,`.stage-${profile}`);
+ mkdirSync(outDir,{recursive:true});rmSync(stage,{recursive:true,force:true});mkdirSync(stage,{recursive:true});
+ const manifest=JSON.parse(readFileSync(path.join(extensionRoot,'package.json')));manifest.name=profile==='core'?'archi-agent-core':'archi-agent';manifest.displayName=`Archi Agent ${profile==='core'?'Core':'Full'}`;
+ writeFileSync(path.join(stage,'package.json'),JSON.stringify(manifest,null,2)+'\n');
+ for(const name of ['.vscodeignore','README.md','README.pl.md','LICENSE.txt','THIRD_PARTY_NOTICES.md'])copyFileSync(path.join(extensionRoot,name),path.join(stage,name));
+ if(profile==='core')for(const name of ['README.md','README.pl.md']){const file=path.join(stage,name);writeFileSync(file,readFileSync(file,'utf8').replace('](ux2-ocr/TRIAL_NOTICES.md)','](https://github.com/Setech-pl/archi-agent/blob/main/experiments/ux2-ocr/TRIAL_NOTICES.md)'));}
+ const bundles=await buildExtensionBundles({outDir:path.join(stage,'dist')});
+ writeFileSync(path.join(stage,'THIRD_PARTY_NOTICES.md'),bundleNotices(readFileSync(path.join(extensionRoot,'THIRD_PARTY_NOTICES.md'),'utf8'),bundles.runtimeMetafile.inputs,projectRoot));
+ const images=new Set(['README.md','README.pl.md'].flatMap(name=>[...readFileSync(path.join(stage,name),'utf8').matchAll(/help-assets\/([a-z0-9-]+\.png)/g)].map(m=>m[1])));
+ mkdirSync(path.join(stage,'help-assets'));for(const name of images)copyFileSync(path.join(projectRoot,'docs/assets/screenshots',name),path.join(stage,'help-assets',name));
+ const declaration={schemaVersion:1,profile,ocr:{required:profile==='full'}};
+ if(profile==='full'){
+  execFileSync(process.execPath,[path.join(projectRoot,'experiments/ux2-ocr/build-trial.mjs'),'--product-assets'],{stdio:'pipe'});
+  declaration.ocr.manifestSha256=createHash('sha256').update(readFileSync(path.join(projectRoot,'build/ux2-ocr/phase2/stage/extension/ux2-ocr/resource-manifest.json'))).digest('hex');
+ }
+ writeFileSync(path.join(stage,'distribution-profile.json'),JSON.stringify(declaration)+'\n');
+ const packagePath=path.join(outDir,`archi-agent-${profile}-${manifest.version}.vsix`);rmSync(packagePath,{force:true});
+ await createVSIX({cwd:stage,packagePath,dependencies:false,rewriteRelativeLinks:false,skipLicense:true,allowMissingRepository:true,updatePackageJson:false});
+ if(profile==='full')execFileSync('zip',['-q','-r','-D','-X',packagePath,'extension/ux2-ocr'],{cwd:path.join(projectRoot,'build/ux2-ocr/phase2/stage')});
+ return packagePath;
 }
-
-function parseArguments(argv) {
-  let outDir;
-
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index] === "--out" && index + 1 < argv.length) {
-      outDir = argv[index + 1];
-      index += 1;
-    } else {
-      throw new Error("usage: node vscode-extension/scripts/package-vsix.mjs [--out <directory>]");
-    }
-  }
-
-  return outDir === undefined ? {} : { outDir };
-}
-
-function invokedDirectly() {
-  const entry = process.argv[1];
-
-  if (entry === undefined) {
-    return false;
-  }
-
-  const normalize = (value) => (process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value));
-  return normalize(fileURLToPath(import.meta.url)) === normalize(entry);
-}
-
-if (invokedDirectly()) {
-  try {
-    const packagePath = await packageExtension(parseArguments(process.argv.slice(2)));
-    process.stdout.write(`VSIX written: ${path.relative(projectRoot, packagePath)}\n`);
-  } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : "Packaging failed."}\n`);
-    process.exitCode = 1;
-  }
+function parseArguments(argv){const result={};for(let i=0;i<argv.length;i++){if(argv[i]==='--out'&&argv[i+1])result.outDir=argv[++i];else if(argv[i]==='--profile'&&argv[i+1])result.profile=argv[++i];else throw Error('usage: package-vsix.mjs [--profile core|full] [--out directory]');}return result;}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+ try{console.log('VSIX written: '+await packageExtension(parseArguments(process.argv.slice(2))));}
+ catch(e){process.stderr.write((e instanceof Error?e.message:'Packaging failed')+'\n');process.exitCode=1;}
 }

@@ -2,6 +2,10 @@
 
 # Archi Agent
 
+The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the MCP1 verification report; the alpha.6 download below remains historical. [CLI/MCP installation, commands and contracts](docs/en/cli-mcp.md).
+
+[Local MCP1 instructions](docs/en/cli-mcp.md): Core/Full, CLI, function MCP and knowledge MCP.
+
 Turn a flow description and your architecture knowledge into a Sequence or Component diagram with a report showing how names and relationships were grounded.
 
 ![Sequence diagram in PlantUML with its linked provenance report](docs/assets/screenshots/08-sequence.png)
@@ -70,7 +74,7 @@ Inside VS Code use **Archi: Help**. The same instructions and screenshots are in
 
 Review generated facts and document evidence. Local validation covers a defined PlantUML subset; graphical preview requires separate PlantUML support. Knowledge saves create new folders, results are held in memory until saved, and pair saving has no atomic-publication/crash-recovery guarantee. Platform resources are bundled, but packaging coverage does not establish equivalent native runtime support. [Current limits and technical status](docs/project-state.md).
 
-The next direction is verification against existing architecture models, followed by broader verification and MCP integration. **SRC1, VER1 and MCP1 are planned, not available features.** [Product roadmap](docs/product-roadmap.md). This prerelease does not establish M1 or production readiness.
+The next direction is verification against existing architecture models, followed by broader verification and MCP integration. SRC1, VER1 and MCP1 are available in the unpublished local candidate. [Product roadmap](docs/product-roadmap.md). This prerelease does not establish M1 or production readiness.
 
 ## Technical information and license
 

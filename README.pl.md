@@ -2,6 +2,10 @@
 
 # Archi Agent
 
+Nieopublikowany kandydat **0.3.0-alpha.7** dodaje CLI, serwer czterech funkcji MCP oraz klienta wiedzy MCP. Użyj dokładnych plików i SHA-256 z raportu weryfikacji MCP1; link alpha.6 poniżej pozostaje historyczny. [Instalacja CLI/MCP, polecenia i kontrakty](docs/pl/cli-mcp.md).
+
+[Lokalna instrukcja MCP1](docs/pl/cli-mcp.md): Core/Full, CLI, MCP funkcji i MCP wiedzy.
+
 Zamień opis przepływu i wiedzę o architekturze w diagram Sequence lub Component z raportem pokazującym rozpoznane nazwy i pochodzenie relacji.
 
 ![Diagram Sequence w PlantUML z powiązanym raportem pochodzenia](docs/assets/screenshots/08-sequence.png)
@@ -70,7 +74,7 @@ W VS Code użyj **Archi: Help**. Te same instrukcje i screenshoty są w VSIX. He
 
 Sprawdzaj wygenerowane fakty i evidence dokumentów. Walidacja lokalna obejmuje określony podzbiór PlantUML; podgląd graficzny wymaga osobnej obsługi PlantUML. Zapis wiedzy tworzy nowe katalogi, wyniki pozostają w pamięci do zapisu, a zapis pary nie gwarantuje atomowej publikacji ani odtworzenia po awarii. Zasoby platform są w paczce, ale pokrycie pakowania nie potwierdza równoważnego wsparcia natywnego runtime. [Ograniczenia i stan techniczny](docs/project-state.md).
 
-Następny kierunek to weryfikacja względem istniejących modeli architektury, następnie szersza weryfikacja i integracja MCP. **SRC1, VER1 i MCP1 są planowane, nie są dostępnymi funkcjami.** [Roadmapa](docs/product-roadmap.md). Prerelease nie potwierdza M1 ani gotowości produkcyjnej.
+Następny kierunek to weryfikacja względem istniejących modeli architektury, następnie szersza weryfikacja i integracja MCP. SRC1, VER1 i MCP1 są dostępne w nieopublikowanym lokalnym kandydacie. [Roadmapa](docs/product-roadmap.md). Prerelease nie potwierdza M1 ani gotowości produkcyjnej.
 
 ## Informacje techniczne i licencja
 

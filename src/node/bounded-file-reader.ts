@@ -1,3 +1,5 @@
+import path from "node:path";
+import { assertLocalReadPath, type LocalReadPolicy } from "./local-read-policy.js";
 import { throwIfCancelled, type CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import { lstat, open } from "node:fs/promises";
 import { knowledgePackLimits } from "../core/knowledge-pack/source-limits.js";
@@ -51,7 +53,7 @@ export interface BoundedTextFile {
 export async function readBoundedTextFile(
   canonicalRoot: string,
   relativePath: string,
-  options: { readonly maxBytes: number; readonly signal?: CancellationSignal }
+  options: { readonly maxBytes: number; readonly signal?: CancellationSignal; readonly localReadPolicy?: LocalReadPolicy }
 ): Promise<BoundedTextFile> {
   if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes < 1) {
     throw new Error("The byte limit must be a positive integer.");
@@ -61,6 +63,7 @@ export async function readBoundedTextFile(
   let resolved;
 
   try {
+    if (options.localReadPolicy) await assertLocalReadPath(path.join(canonicalRoot, relativePath), options.localReadPolicy);
     resolved = await resolveContainedPath(canonicalRoot, relativePath);
   } catch (error) {
     throw new BoundedReadError(error instanceof LocalPathError ? error.code : "read-failed");
@@ -79,6 +82,7 @@ export async function readBoundedTextFile(
   }
 
   try {
+    if (options.localReadPolicy) await assertLocalReadPath(resolved.absolutePath, options.localReadPolicy);
     const opened = await handle.stat({ bigint: true });
     const entry = await lstat(resolved.absolutePath, { bigint: true });
     const { ino: openedInode, dev: openedDevice } = opened;
@@ -113,6 +117,9 @@ export async function readBoundedTextFile(
     throwIfCancelled(options.signal);
     const after = await handle.stat({ bigint: true });
     if (after.size !== opened.size || after.mtimeNs !== opened.mtimeNs || after.ctimeNs !== opened.ctimeNs) throw new BoundedReadError("read-failed");
+    if (options.localReadPolicy) await assertLocalReadPath(resolved.absolutePath, options.localReadPolicy);
+    const finalEntry = await lstat(resolved.absolutePath, { bigint: true });
+    if (finalEntry.isSymbolicLink() || finalEntry.dev !== opened.dev || finalEntry.ino !== opened.ino) throw new BoundedReadError("read-failed");
     const bytes = buffer.subarray(0, length);
 
     if (bytes.includes(0)) {

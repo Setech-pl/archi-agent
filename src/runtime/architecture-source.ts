@@ -1,3 +1,6 @@
+import {fetchMcpKnowledge,McpKnowledgeError}from"../node/mcp-knowledge-source.js";
+import {KnowledgeTransferError,contributionsVersion}from"../core/knowledge-pack/knowledge-transfer.js";
+import type { LocalReadPolicy } from "../node/local-read-policy.js";
 import path from "node:path";
 import { composeStructurizrKnowledge } from "../core/architecture-sources/structurizr-json.js";
 import { ArchitectureSourceError } from "../core/architecture-sources/json-with-locations.js";
@@ -22,19 +25,24 @@ export function validStructurizrConfiguration(v: unknown): v is Extract<Knowledg
 }
 
 /** Explicit source subject selection shared by editor and future hosts. */
-export async function inspectC4Source(config:KnowledgePackSourceConfig,signal?:CancellationSignal) {
-  const source=await inspectArchitectureSource(config,signal);
+export async function inspectC4Source(config:KnowledgePackSourceConfig,signal?:CancellationSignal,localReadPolicy?:LocalReadPolicy) {
+  const source=await inspectArchitectureSource(config,signal,localReadPolicy);
   if(!source.ok)return {ok:false as const,code:source.code};
   try {return {ok:true as const,knowledgeDigest:source.snapshot.digest,systems:listC4Systems(source.pack)};}
   catch(e){return {ok:false as const,code:e instanceof C4SourceError?e.code:"c4-source-invalid"};}
 }
 /** Same production loader for generation, configuration and Browser. No process-global cache. */
-export async function inspectArchitectureSource(config: KnowledgePackSourceConfig, signal?: CancellationSignal) {
+export async function inspectArchitectureSource(config: KnowledgePackSourceConfig, signal?: CancellationSignal, localReadPolicy?: LocalReadPolicy) {
   try {
     if (signal?.aborted) throw new Error("cancelled");
+    if(config.kind==="mcp"){
+      const loaded=await fetchMcpKnowledge(config.server,config.sourceId,signal);
+      return {ok:true as const,pack:loaded.pack,snapshot:loaded.snapshot,sourceTexts:{} as Record<string,string>,sourceFingerprint:loaded.version,sourceVersion:loaded.version,contributions:loaded.contributions,
+        counts:Object.fromEntries(["systems","actors","relationships","aliases","rules"].map(t=>[t,loaded.pack[t as "systems"].length]))};
+    }
     if (config.kind === "local-directory") {
       if(!path.isAbsolute(config.path))throw new Error("invalid-path");
-      const source = await NodeKnowledgePackSource.open(path.dirname(config.path), path.basename(config.path));
+      const source = await NodeKnowledgePackSource.open(path.dirname(config.path), path.basename(config.path), localReadPolicy);
       const sourceTexts: Record<string,string> = {};
       const loaded = await loadKnowledgePack({ listFiles: o => source.listFiles(o), readTextFile: async (file,o) => {
         const value = await source.readTextFile(file,o); sourceTexts[file] = value; return value;
@@ -45,8 +53,8 @@ export async function inspectArchitectureSource(config: KnowledgePackSourceConfi
         counts:Object.fromEntries(["systems","actors","relationships","aliases","rules"].map(t => [t,loaded.pack[t as "systems"].length]))};
     }
     if (!validStructurizrConfiguration(config)) throw new ArchitectureSourceError("source-configuration-invalid");
-    const model = await NodeArchitectureFileSource.open(path.dirname(config.modelPath), [path.basename(config.modelPath)]);
-    const overlay = await NodeArchitectureFileSource.open(config.overlayPath, overlayFiles);
+    const model = await NodeArchitectureFileSource.open(path.dirname(config.modelPath), [path.basename(config.modelPath)], localReadPolicy);
+    const overlay = await NodeArchitectureFileSource.open(config.overlayPath, overlayFiles, localReadPolicy);
     const options = signal ? { signal } : {};
     const modelText = await model.readTextFile(path.basename(config.modelPath), options);
     const texts: Record<string,string> = {};
@@ -55,10 +63,26 @@ export async function inspectArchitectureSource(config: KnowledgePackSourceConfi
     const sourceTexts:Record<string,string> = {"workspace.json":modelText,...texts};
     return { ok: true as const, pack: result.pack, snapshot: result.knowledge, sourceTexts,
       sourceFingerprint:stableDigest(sourceTexts),
+      sourceVersion:contributionsVersion(result.contributions),contributions:result.contributions,
       counts: Object.fromEntries(["systems","actors","relationships","aliases","rules"].map(t => [t,result.pack[t as "systems"].length])) };
   } catch (error) {
-    const code = error instanceof ArchitectureSourceError || error instanceof KnowledgePackError || error instanceof BoundedReadError ? error.code : "source-read-failed";
+    const code = error instanceof McpKnowledgeError || error instanceof KnowledgeTransferError || error instanceof ArchitectureSourceError || error instanceof KnowledgePackError || error instanceof BoundedReadError ? error.code : "source-read-failed";
     const location = error instanceof ArchitectureSourceError ? error.location : undefined;
     return { ok: false as const, code, issues: [{ severity: "error" as const, code, message: "Architecture source rejected. Check the source and overlay.", ...(location ?? {}) }] };
   }
+}
+
+/** A bounded projection of one production snapshot; never reloads to attach C4 data. */
+export async function inspectKnowledgeForHost(config:KnowledgePackSourceConfig,options:{query?:string;offset?:number;limit?:number;expectedKnowledgeDigest?:string;signal?:CancellationSignal;localReadPolicy?:LocalReadPolicy}={}) {
+  const loaded=await inspectArchitectureSource(config,options.signal,options.localReadPolicy);
+  if(options.signal?.aborted)return {status:"cancelled" as const,code:"cancelled"};
+  if(!loaded.ok)return {status:"failed" as const,code:loaded.code};
+  if(options.expectedKnowledgeDigest&&options.expectedKnowledgeDigest!==loaded.snapshot.digest)return {status:"stale-source" as const,code:"source-changed"};
+  const query=options.query?.toLocaleLowerCase()??"",offset=options.offset??0,limit=options.limit??20;
+  if(!Number.isInteger(offset)||offset<0||offset>10000||!Number.isInteger(limit)||limit<1||limit>64||query.length>160)return {status:"failed" as const,code:"input-invalid"};
+  const elements=loaded.snapshot.facts.filter((f):f is Extract<typeof f,{table:"systems"|"actors"}>=>(f.table==="systems"||f.table==="actors")&&(!query||f.value.id.toLocaleLowerCase().includes(query)||f.value.canonicalName.toLocaleLowerCase().includes(query)))
+    .sort((a,b)=>a.value.id<b.value.id?-1:a.value.id>b.value.id?1:0);
+  return {status:"success" as const,snapshot:{id:loaded.snapshot.id,digest:loaded.snapshot.digest},sourceFingerprint:"sourceVersion"in loaded?loaded.sourceVersion:loaded.sourceFingerprint,counts:loaded.counts,
+    sourceVersion: "sourceVersion"in loaded?loaded.sourceVersion:loaded.sourceFingerprint,sources:loaded.snapshot.sources,elements:elements.slice(offset,offset+limit),page:{total:elements.length,offset,limit,hasMore:offset+limit<elements.length},
+    c4Available:loaded.pack.systems.some(s=>s.architecture?.kind==="software-system")};
 }

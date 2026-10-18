@@ -1,3 +1,4 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "../profile-availability.js";
 import { configuredArchitectureSource } from "../settings.js";
 import { inspectArchitectureSource } from "../../../src/runtime/index.js";
 import path from "node:path";
@@ -106,10 +107,12 @@ async function storePath(configuration: vscode.WorkspaceConfiguration, target: v
   // This narrows the race, but VS Code Configuration.update has no compare-and-swap operation.
   if (!matches(configuration, target, before)) return configurationConflict(receipt, configuration);
   try {
+    assertProfileAvailable();
     await configuration.update(settingKeys.knowledgePackPath, directory, target);
     if (scopedValue(configuration, target) !== directory || JSON.stringify(configuration.get(settingKeys.architectureSource) ?? null) !== before.architectureSource) return configurationConflict(receipt, configuration);
     if (before.architectureSource !== "null") {
-      await configuration.update(settingKeys.architectureSource, null, target);
+      assertProfileAvailable();
+    await configuration.update(settingKeys.architectureSource, null, target);
       const active = configuredArchitectureSource(configuration);
       if (active.kind !== "local-directory" || active.path !== directory) return configurationConflict(receipt, configuration);
     }
@@ -142,7 +145,9 @@ async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | und
   const before = snapshot(configuration, target);
   if (!explicit && configuration.get(settingKeys.architectureSource) != null) {
     try {
-      const validation = await inspectArchitectureSource(configuredArchitectureSource(configuration));
+      const source=configuredArchitectureSource(configuration);
+      if(source.kind==="mcp")return {status:"ready",...(folder?{resource:folder.uri}:{})};
+      const validation = await inspectArchitectureSource(source);
       if (!validation.ok) { await vscode.window.showErrorMessage(`Archi Agent: [${validation.code}] Architecture source is invalid. Check Configuration / Source Settings.`); return { status: "failed" }; }
       if (!matches(configuration, target, before)) return configurationConflict();
       return {status:"ready", ...(folder ? {resource:folder.uri} : {})};
@@ -215,7 +220,8 @@ async function ensureKnowledgePackForFolder(folder: vscode.WorkspaceFolder | und
       if (system === undefined) return { status: "cancelled" };
       if (!matches(configuration, target, before)) return configurationConflict();
       try {
-        receipt = await createStarterKnowledgePack(directory, system);
+        assertProfileAvailable();
+        receipt = await createStarterKnowledgePack(directory, system, {signal:profileLifetimeSignal});
         break;
       } catch (error) {
         const code = error instanceof StarterPackCreateError ? error.code : "write-failed";

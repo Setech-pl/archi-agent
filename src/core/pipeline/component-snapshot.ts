@@ -1,3 +1,5 @@
+import {packSourceReferenceSchema}from"../grounding/grounded-context.schema.js";
+import type { PackSourceReference } from "../grounding/grounded-context.js";
 import type { FlowDocument } from "../grounding/grounded-context-builder.js";
 import type { GroundedContext } from "../grounding/grounded-context.js";
 import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
@@ -14,9 +16,9 @@ export interface ComponentSnapshot {
   readonly flowFile: string;
   readonly taskDescription: string;
   readonly metadata: GroundedContext["metadata"];
-  readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: "actor" | "system" | "new"; readonly elementKind: string; readonly ownership: "source-owned" | "external" | "user-stated"; readonly description: string; readonly source: { readonly file: string; readonly line: number }; readonly mentions: readonly { readonly line: number; readonly column: number; readonly length: number; readonly spelling: string }[]; readonly mentionLines: readonly number[] }[];
-  readonly relationships: readonly { readonly evidenceId: string; readonly fromId: string; readonly toId: string; readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: string; readonly purpose: string; readonly source: { readonly file: string; readonly line: number } }[];
-  readonly rules: readonly { readonly evidenceId: string; readonly rule: string; readonly fromId: string; readonly toId: string; readonly reason: string; readonly source: { readonly file: string; readonly line: number } }[];
+  readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: "actor" | "system" | "new"; readonly elementKind: string; readonly ownership: "source-owned" | "external" | "user-stated"; readonly description: string; readonly source: PackSourceReference; readonly mentions: readonly { readonly line: number; readonly column: number; readonly length: number; readonly spelling: string }[]; readonly mentionLines: readonly number[] }[];
+  readonly relationships: readonly { readonly evidenceId: string; readonly fromId: string; readonly toId: string; readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: string; readonly purpose: string; readonly source: PackSourceReference }[];
+  readonly rules: readonly { readonly evidenceId: string; readonly rule: string; readonly fromId: string; readonly toId: string; readonly reason: string; readonly source: PackSourceReference }[];
   readonly flowEvidence: readonly { readonly flowEvidenceId: string; readonly line: number; readonly text: string }[];
 }
 
@@ -74,7 +76,7 @@ export function buildComponentSnapshot(context: GroundedContext, flow: FlowDocum
         return mentions.length >= 2;
       }))) throw new Error("component-snapshot-empty-or-over-limit");
   for (const source of [...elements, ...relationships, ...rules]) {
-    if (!validateRelativePath(source.source.file).ok || !Number.isSafeInteger(source.source.line) || source.source.line < 1)
+    if (!packSourceReferenceSchema.safeParse(source.source).success)
       throw new Error("component-snapshot-invalid-path");
   }
   const payload = { ...(knowledge === undefined ? {} : { knowledge: selectKnowledgeContext(knowledge, known.map((entry) => entry.id)) }),

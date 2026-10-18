@@ -1,3 +1,4 @@
+import type {PackSourceReference}from"../grounding/grounded-context.js";
 import { z } from "zod";
 import type { JsonSchemaObject } from "../llm/structured-chat-client.js";
 import { interfaceTypes, interactionModes } from "../knowledge-pack/knowledge-pack.schema.js";
@@ -24,7 +25,7 @@ export function createComponentDependencyCatalog(snapshot: ComponentSnapshot) {
 export interface ComponentFact {
   readonly factId: string; readonly evidenceId: string; readonly evidenceClass: "source-confirmed" | "user-stated";
   readonly fromId: string; readonly toId: string; readonly interfaceType: string; readonly interfaceName: string | null;
-  readonly mode: string; readonly source: { readonly file: string; readonly line: number };
+  readonly mode: string; readonly source: PackSourceReference;
 }
 export interface ResolvedComponentPlan { readonly version: 1; readonly snapshotDigest: string;
   readonly elementIds: readonly string[]; readonly facts: readonly ComponentFact[] }

@@ -1,3 +1,4 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, withProfileCancellation, profileLifetimeSignal } from "../profile-availability.js";
 import * as vscode from "vscode";
 import path from "node:path";
 import { inspectArchitectureSource, inspectKnowledgePackDirectory, classifyProviderDiagnostic, defaultLocalModelBaseUrl, type ArchiAgentRuntime } from "../../../src/runtime/index.js";
@@ -106,7 +107,8 @@ export class ConfigurationWorkbench implements vscode.Disposable {
     try {
       const source = configuredArchitectureSource(configuration);
       if (source.kind === "structurizr-json") architectureSummary = `Structurizr JSON — ${source.sourceId}\nModel: ${source.modelPath}\nOverlay: ${source.overlayPath}`;
-      validation = this.projectSelected && (source.kind === "structurizr-json" || source.path) ? await inspectArchitectureSource(source) : undefined;
+      if(source.kind==="mcp")architectureSummary=`MCP knowledge — ${source.sourceId} (User-configured stdio server)`;
+      validation = this.projectSelected && (source.kind !== "local-directory" || source.path) ? await inspectArchitectureSource(source, withProfileCancellation()) : undefined;
       if (validation?.ok && source.kind === "structurizr-json") architectureSummary += "\nOmitted: " + validation.snapshot.sources.flatMap(s => s.omissions ?? []).map(o => `${o.kind}: ${o.count}`).join(", ");
     } catch { validation = {ok:false as const,code:"architecture-source-invalid",issues:[{message:"Invalid architecture source configuration."}]}; }
 
@@ -132,6 +134,7 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       profileKeys, keyRequired: profile?.credentialRequirement === "api-key", keyPresent, models: this.models, modelsFor: this.modelsFor, modelMessage: this.modelMessage, diagnostic: this.diagnostic });
   }
   private async receive(value: unknown): Promise<void> {
+    if(profileConflict()){this.dispose();return;}
     if (!plainMessage(value, operations) || !this.panel) return;
     const m = value;
     if (m.op === "draft-changed") {
@@ -217,7 +220,7 @@ export class ConfigurationWorkbench implements vscode.Disposable {
       ...(f.profile === "local-lm-studio" ? [[settingKeys.localModelBaseUrl, f.endpoint] as const] : []),
       [settingKeys.localModelTimeoutSeconds, f.timeout],
       ...(f.model ? [[settingKeys.localModelSelectedModel, f.model] as const, [settingKeys.localModelSelectedModelProfile, f.profile] as const] : [])
-    ], () => this.disposed || snapshot.resource?.toString() !== this.folder?.uri.toString());
+    ], () => profileConflict() || this.disposed || snapshot.resource?.toString() !== this.folder?.uri.toString());
     if (!providerConfigurationIsCurrent(published)) throw new ProviderConfigurationConflict();
     this.dirty = false;
   }

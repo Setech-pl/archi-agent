@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { settingKeys } from "../../vscode-extension/src/contributions.js";
-import { readArchiAgentSettings, settingsLimits, type SettingsReader } from "../../vscode-extension/src/settings.js";
+import { configuredArchitectureSource, readArchiAgentSettings, settingsLimits, type SettingsReader } from "../../vscode-extension/src/settings.js";
 
 const absolutePack = path.resolve(path.sep, "architecture", "pack");
 
@@ -388,4 +388,13 @@ describe("settings parsing", () => {
       "archiAgent.localModel.timeoutSeconds"
     ]);
   });
+});
+
+// Executable configuration must never be selected from workspace data.
+it("uses only User-level knowledge executable and copies its arguments",()=>{
+ const trusted={command:process.execPath,args:["/trusted/server.cjs"]},untrusted={command:"/workspace/evil",args:[]},source={kind:"mcp",sourceId:"bank"};
+ const r=reader({[settingKeys.architectureSource]:source,[settingKeys.knowledgeServer]:untrusted},{[settingKeys.knowledgeServer]:{globalValue:trusted,workspaceValue:untrusted}});
+ const chosen=configuredArchitectureSource(r);expect(chosen).toEqual({...source,server:trusted});
+ trusted.args.push("changed");expect(chosen.kind==="mcp"&&chosen.server.args).toEqual(["/trusted/server.cjs"]);
+ expect(()=>configuredArchitectureSource(reader({[settingKeys.architectureSource]:source},{[settingKeys.knowledgeServer]:{workspaceValue:untrusted}}))).toThrow();
 });

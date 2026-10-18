@@ -17,6 +17,8 @@ import { RemoteJsonTransportDouble } from "../doubles/remote-json-transport-doub
 import { OpenAiCompatibleServerDouble } from "../doubles/openai-compatible-server-double.js";
 import * as vscodeDouble from "../doubles/vscode-module-double.js";
 
+vi.mock("../../src/runtime/document-conversion-capabilities.js",()=>({getDocumentConversionCapabilities:async()=>({profile:"core",ocr:"not-installed",languages:[]})}));
+
 const packagedRuntime = vi.hoisted(() => ({ current: undefined as ArchiAgentRuntime | undefined }));
 
 vi.mock("../../vscode-extension/src/runtime/packaged-runtime-adapter.js", () => ({
@@ -306,7 +308,7 @@ describe("activation", () => {
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(22);
+    expect(context.subscriptions.length).toBe(23);
     deactivate();
   });
 

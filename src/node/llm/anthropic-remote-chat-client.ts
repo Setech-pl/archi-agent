@@ -1,3 +1,4 @@
+import { containsCredential } from "../sensitive-response.js";
 import { parseStrictJsonObject } from "../../core/llm/strict-json-response.js";
 import {
   isSafeModelId,
@@ -98,6 +99,7 @@ export class AnthropicRemoteChatClient implements StructuredChatClient {
     if (!isSafeModelId(options.modelId)) throw new RemoteProviderError("unsafe-model-id");
     this.#modelId = options.modelId;
     this.#apiKey = checkedApiKey(options.apiKey);
+    if (containsCredential(options.modelId, [this.#apiKey])) throw new RemoteProviderError("sensitive-provider-response");
     this.#timeoutMs = checkedRemoteTimeout(options.timeoutMs);
     this.#transport = options.transport ?? new NodeHttpsJsonTransport();
     this.generationMetadata = Object.freeze({
@@ -122,7 +124,9 @@ export class AnthropicRemoteChatClient implements StructuredChatClient {
       maxResponseBytes: remoteTransportLimits.maxGenerationResponseBytes,
       ...(request.signal === undefined ? {} : { signal: request.signal })
     });
-    return Object.freeze({ value: parseAnthropicResponse(text), source: "content" });
+    const value = parseAnthropicResponse(text);
+    if (containsCredential(value, [this.#apiKey])) throw new RemoteProviderError("sensitive-provider-response");
+    return Object.freeze({ value, source: "content" });
   }
 }
 
@@ -166,5 +170,6 @@ export async function listAnthropicRemoteModels(options: ListAnthropicRemoteMode
     ids.push(id);
   }
   if (new Set(ids).size !== ids.length) throw new RemoteProviderError("duplicate-model-id");
+  if (containsCredential(ids, [apiKey])) throw new RemoteProviderError("sensitive-provider-response");
   return Object.freeze([...ids].sort(stableCompare));
 }

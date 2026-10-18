@@ -1,7 +1,11 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "../profile-availability.js";
 import * as vscode from "vscode";
-import { convertDocument, type ConvertErrorCode, type PdfOcrMode } from "../../../src/runtime/index.js";
+import { getDocumentConversionCapabilities, convertDocument, type ConvertErrorCode, type PdfOcrMode } from "../../../src/runtime/index.js";
 
 const messages: Record<ConvertErrorCode, string> = {
+  "ocr-unavailable": "OCR is not installed in Core. Choose No OCR to inspect text coverage, or install Full.",
+  "ocr-installation-invalid": "Full OCR installation is damaged. Reinstall Full; no resources are downloaded automatically.",
+  "installation-invalid": "The installation profile is missing or invalid. Reinstall Archi Agent.",
   "unsupported-format": "Choose a PDF, DOCX or XLSX document.",
   "non-local-source": "Choose a local file.",
   "not-a-file": "Choose a regular local file.",
@@ -47,11 +51,13 @@ export async function convertToMarkdownCommand(): Promise<void> {
 
   let pdfOcrMode: PdfOcrMode = "none";
   if (/\.pdf$/i.test(uri.fsPath)) {
+    const capabilities=await getDocumentConversionCapabilities();
+    const core=capabilities.profile==="core";
     const choice = await vscode.window.showQuickPick([
-      { label: "Auto OCR", description: "Use text where available; read scanned pages locally", mode: "auto" as const },
+      { label: "Auto OCR", description: "Use text where available; Core reports pages needing OCR", mode: "auto" as const },
       { label: "No OCR", description: "Use the PDF text layer only", mode: "none" as const },
-      { label: "OCR all pages", description: "Read every page locally, including pages with text", mode: "all" as const }
-    ], { title: "Archi Agent: PDF conversion", placeHolder: "Choose how to read this PDF" });
+      ...(core?[]:[{ label: "OCR all pages", description: "Read every page locally, including pages with text", mode: "all" as const }])
+    ], { title: `Archi Agent: PDF conversion — ${core?"Core (OCR all pages unavailable)":capabilities.ocr==="installation-error"?"installation error":"Full"}`, placeHolder: "Choose how to read this PDF" });
     if (!choice) return;
     pdfOcrMode = choice.mode;
   }
@@ -62,7 +68,7 @@ export async function convertToMarkdownCommand(): Promise<void> {
     async (progress, token) => {
       const subscription = token.onCancellationRequested(() => controller.abort());
       try {
-        return await convertDocument(uri.fsPath, { signal: controller.signal, pdfOcrMode,
+        return await convertDocument(uri.fsPath, { signal: withProfileSignal(controller.signal), pdfOcrMode,
           onProgress: (stage) => progress.report({ message: stage === "recognize" ? "Reading scanned page…" : "Processing PDF…" }) });
       } finally {
         subscription.dispose();
@@ -74,6 +80,7 @@ export async function convertToMarkdownCommand(): Promise<void> {
     await vscode.window.showErrorMessage(`Archi Agent: ${messages[outcome.code]}`);
     return;
   }
+  assertProfileAvailable();
   const document = await vscode.workspace.openTextDocument({ language: "markdown", content: outcome.markdown });
   await vscode.window.showTextDocument(document, { preview: false });
 }

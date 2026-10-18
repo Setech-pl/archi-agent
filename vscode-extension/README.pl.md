@@ -2,6 +2,18 @@
 
 [English](readme.md) · **Polski** · [Strona główna](https://github.com/Setech-pl/archi-agent/blob/main/README.pl.md)
 
+## Lokalny kandydat MCP1: profile i wiedza
+
+Nieopublikowany kandydat **0.3.0-alpha.7** dodaje CLI, serwer czterech funkcji MCP oraz klienta wiedzy MCP. Użyj dokładnych plików i SHA-256 z raportu weryfikacji MCP1; link alpha.6 poniżej pozostaje historyczny. [Instalacja CLI/MCP, polecenia i kontrakty](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
+
+**Core** (`setech-pl.archi-agent-core`) jest rekomendowany nowym użytkownikom. Zawiera wspólny runtime oraz tekstową konwersję PDF/DOCX/XLSX, bez zależności i modeli OCR. **Full** (`setech-pl.archi-agent`) dodaje przypięte lokalne OCR PL/EN. Istniejący Full pozostaje Full. Żaden profil nie pobiera OCR. W Core Auto OCR działa dla tekstowych PDF; strona wymagająca OCR zatrzymuje konwersję z jawnym pokryciem, bez częściowego Markdown. OCR all pages wymaga Full. Uszkodzony Full zgłasza błąd instalacji: zainstaluj ponownie zweryfikowany VSIX Full.
+
+Aby zmienić profil, zainstaluj wybrany VSIX, samodzielnie wyłącz poprzedni profil i przeładuj VS Code. Oba ID mogą pozostać zainstalowane, ale włącz dokładnie jedno. Przy obu włączonych deklaracje statyczne kolidują przed aktywacją; VS Code może zgłosić duplikaty, a Archi Agent blokuje operacje do wyboru profilu i przeładowania. Aktualizacje dotyczą każdego ID osobno. Wspólne ustawienia `archiAgent.*` pozostają; SecretStorage należy do każdego ID osobno. Wprowadź klucze chmurowe ponownie dla wybranego profilu: nie są kopiowane ani czytane przez CLI/MCP.
+
+Wybierz jedno źródło na operację: Markdown Knowledge Pack; **Structurizr workspace.json + nakładka**; albo **wiedza MCP**. Structurizr wymaga `workspace.json` oraz plików nakładki SRC1 `aliases.md`, `relationships.md`, `rules.md`, powiązanych z oryginalnymi ID. Produkcyjny resolver sprawdza wymagane interface type/mode, odwołania i konflikty; Knowledge Browser pokazuje walidację, oryginalne ID, pochodzenie, obsługiwany zakres i pominięcia. Obsługiwane są people, software systems, containers i relacje statyczne; components/deployment/views są pomijane. DSL nie jest obsługiwany. [Pełny kontrakt SRC1](https://github.com/Setech-pl/archi-agent/blob/main/docs/src1-structurizr-source.md).
+
+Dla MCP ustaw `archiAgent.knowledgeServer` w **ustawieniach User**, następnie `archiAgent.architectureSource` na `{"kind":"mcp","sourceId":"bank"}`. Workspace nie może wskazać programu. Zacznij od samodzielnego przykładu w [instrukcji CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md#klient-mcp-wiedzy-i-przykładowy-serwer). Operacja pobiera jeden niezmienny snapshot; następna pobiera ponownie. Błąd zatrzymuje operację; brak fallbacku do starej lokalnej wiedzy i automatycznego zapisu aliasów. LLM nie wybiera narzędzi źródła. JSON Verify Flow korzysta z tego samego przenośnego raportu co CLI/MCP.
+
 ## Lokalny kandydat VER1 / C4
 
 Te dodatki należą do nieopublikowanego lokalnego kandydata wskazanego w raporcie weryfikacji;
@@ -165,7 +177,7 @@ Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configurati
 
 ## Lokalna konwersja dokumentów i OCR
 
-Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.docx` lub `.xlsx` i obejrzyj niezapisany Markdown. Dla PDF wybierz **No OCR**, **Auto OCR** lub **OCR all pages**. Auto zachowuje strony tekstowe i wykonuje OCR stron bez użytecznego tekstu. Modele OCR PL/EN są w paczce i działają offline; polecenie nie wysyła żądań do dostawcy i nie potrzebuje Knowledge Pack. Aby zachować Markdown, użyj zwykłego Save edytora. Sprawdź błędy OCR przed wykorzystaniem tekstu jako evidence. Konwersja nie tworzy packa ani diagramu.
+Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.docx` lub `.xlsx` i obejrzyj niezapisany Markdown. Dla PDF wybierz **No OCR**, **Auto OCR** lub, w Full, **OCR all pages**. Auto zachowuje strony tekstowe i wykonuje OCR stron bez użytecznego tekstu. W Full modele OCR PL/EN są w paczce i działają offline; polecenie nie wysyła żądań do dostawcy i nie potrzebuje Knowledge Pack. Aby zachować Markdown, użyj zwykłego Save edytora. Sprawdź błędy OCR przed wykorzystaniem tekstu jako evidence. Konwersja nie tworzy packa ani diagramu.
 
 ![Wybór trybu OCR PDF](help-assets/13-ocr.png)
 
@@ -199,7 +211,7 @@ Limity Buildera są mniejsze niż samodzielnej konwersji:
 | Żądanie/kandydaci | 256 KiB gotowego żądania; 128 kandydatów, 32 aliasy, 64 relacje | bez LLM |
 | Deadline pracy | 360 sekund; generowanie 120 sekund ograniczone pozostałym czasem | 120 sekund bez OCR; deadline OCR 300 sekund |
 
-Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowanego canvas, 16 MP osadzonego obrazu; ZIP Office 1000 wpisów, 100 MiB po rozpakowaniu łącznie, 25 MiB na wpis, proporcja 100:1; XLSX 40 arkuszy, 20000 wierszy, 150 kolumn, 250000 komórek. PDF traci układ/strukturę tabel; DOCX pomija obrazy/zasoby zewnętrzne, złożony układ może stracić wierność; XLSX bierze zapisane wyniki formuł, bez przeliczania. DOC/XLS są nieobsługiwane. Modele OCR PL/EN są lokalne. Cancel/błąd nie zwraca częściowej konwersji ani kandydatów. Zamykanie workerów/cleanup może wykroczyć poza deadline pracy. Zobacz [pełne limity ekstrakcji](https://github.com/Setech-pl/archi-agent/blob/main/docs/document-candidates.md#limits-and-cancellation).
+Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowanego canvas, 16 MP osadzonego obrazu; ZIP Office 1000 wpisów, 100 MiB po rozpakowaniu łącznie, 25 MiB na wpis, proporcja 100:1; XLSX 40 arkuszy, 20000 wierszy, 150 kolumn, 250000 komórek. PDF traci układ/strukturę tabel; DOCX pomija obrazy/zasoby zewnętrzne, złożony układ może stracić wierność; XLSX bierze zapisane wyniki formuł, bez przeliczania. DOC/XLS są nieobsługiwane. Full zawiera lokalne modele OCR PL/EN; Core zgłasza strony wymagające OCR. Cancel/błąd nie zwraca częściowej konwersji ani kandydatów. Zamykanie workerów/cleanup może wykroczyć poza deadline pracy. Zobacz [pełne limity ekstrakcji](https://github.com/Setech-pl/archi-agent/blob/main/docs/document-candidates.md#limits-and-cancellation).
 
 ## Aktywny plik i Knowledge Browser
 
@@ -298,7 +310,7 @@ Na macOS natywny picker może zwrócić `/tmp` zamiast `/private/tmp`. Kontrolow
 
 **Archi: Help** otwiera tę instrukcję z zainstalowanej paczki. Przełącznik **English / Polski** i screenshoty są w VSIX i działają offline. Dodatkowe linki do repozytorium, wydań i dokumentacji technicznej potrzebują sieci. [Galeria aktualnych ekranów PL/EN](https://github.com/Setech-pl/archi-agent/blob/main/docs/assets/screenshots/README.md) podaje czynności i pochodzenie. Syntetyczne odpowiedzi pokazują UI, nie jakość żywego modelu ani wynik owner smoke.
 
-Własny kod: [MIT](LICENSE.txt). Składniki: [notices](THIRD_PARTY_NOTICES.md) i notices OCR. Ograniczenia i kierunek weryfikacji: [roadmapa](https://github.com/Setech-pl/archi-agent/blob/main/docs/product-roadmap.md), [stan techniczny](https://github.com/Setech-pl/archi-agent/blob/main/docs/project-state.md). Wcześniejsze publiczne alpha.6 poprzedza te lokalne dodatki. Bieżąca kolejność to SRC1 → VER1 → D3 → D4 → MCP1; MCP1 pozostaje planowane.
+Własny kod: [MIT](LICENSE.txt). Składniki: [notices](THIRD_PARTY_NOTICES.md) i notices OCR. Ograniczenia i kierunek weryfikacji: [roadmapa](https://github.com/Setech-pl/archi-agent/blob/main/docs/product-roadmap.md), [stan techniczny](https://github.com/Setech-pl/archi-agent/blob/main/docs/project-state.md). Wcześniejsze publiczne alpha.6 poprzedza te lokalne dodatki. Bieżąca kolejność to SRC1 → VER1 → D3 → D4 → MCP1; MCP1 jest zaimplementowane w lokalnym kandydacie; odbiór jest raportowany osobno.
 ## Lokalne źródło Structurizr — kandydat SRC1
 
 Ta sekcja dotyczy lokalnego kandydata SRC1, nie pobieranej wersji alpha.6.

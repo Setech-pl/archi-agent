@@ -20,7 +20,7 @@ async function generate(type){
  await cdp.palette('Archi: Create Diagram');await cdp.pick('Archi Agent: diagram type',type);
  await cdp.expectTitle('Archi Agent: flow source');await cdp.text('Choose a flow file');
  const label=await waitFor(async()=>{const value=await cdp.read("document.querySelector('.quick-input-list .monaco-list-row.focused .label-name')?.textContent");return value?.includes('Choose a flow file')?value:null;},'filtered file choice');
- await cdp.chooseLabel(label);
+ await cdp.expectTitle('Archi Agent: flow source');await cdp.key('Enter','Enter');await delay(500);
  command(path.join(out,'picker'),[String(child.pid),flow]);
 }
 

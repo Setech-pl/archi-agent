@@ -1,0 +1,22 @@
+{
+  "name": "@setech-pl/archi-agent-cli",
+  "version": "0.3.0-alpha.7",
+  "description": "Archi Agent local CLI and MCP stdio adapters",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "bin": {
+    "archi-agent": "bin/archi-agent.cjs",
+    "archi-agent-knowledge-server": "bin/archi-agent-knowledge-server.cjs"
+  },
+  "files": [
+    "bin",
+    "distribution-profile.json",
+    "THIRD_PARTY_NOTICES.md",
+    "README.md",
+    "README.pl.md",
+    "LICENSE.txt"
+  ]
+}

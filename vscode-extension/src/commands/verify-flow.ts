@@ -1,7 +1,8 @@
+import { assertProfileAvailable, profileConflict, withProfileCancellation } from "../profile-availability.js";
 import * as vscode from "vscode";
 import path from "node:path";
 import type { ArchiAgentRuntime, AliasSavePlan, FlowVerificationSession, GeneratorConfig, KnowledgePackSourceConfig, VerifyFlowReport } from "../../../src/runtime/index.js";
-import { inspectArchitectureSource } from "../../../src/runtime/index.js";
+import { serializeFlowVerificationForHost } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
 import { readArchiAgentSettings } from "../settings.js";
 import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
@@ -11,6 +12,7 @@ import { readApiKey } from "../api-key-storage.js";
 
 /** Thin native-editor save adapter. Never forces overwrite, merges or rolls back foreign edits. */
 export async function saveVerificationAliases(session:FlowVerificationSession,plan:AliasSavePlan,currentSource:()=>KnowledgePackSourceConfig|undefined):Promise<string> {
+  assertProfileAvailable();
   const uri=vscode.Uri.file(plan.path),doc=await vscode.workspace.openTextDocument(uri);
   if(doc.isDirty||doc.getText()!==plan.expectedText)return "conflict";
   const version=doc.version;
@@ -18,15 +20,17 @@ export async function saveVerificationAliases(session:FlowVerificationSession,pl
   const chosen=await vscode.window.showInformationMessage("Archi Agent: save the confirmed aliases to this source overlay?",{modal:true},"Save aliases");
   if(chosen!=="Save aliases")return "cancelled";
   const source=currentSource();if(!source)return "stale-source";
-  const check=await session.prepareAliasSave(source);
+  const check=await session.prepareAliasSave(source,withProfileCancellation());
   if(check.status!=="prepared"||check.plan.id!==plan.id)return check.status;
   if(doc.isDirty||doc.version!==version||doc.getText()!==plan.expectedText)return "conflict";
+  assertProfileAvailable();
   const applied=await editor.edit(edit=>edit.insert(doc.positionAt(doc.getText().length),plan.appendText));
   if(!applied||doc.version!==version+1||doc.getText()!==plan.proposedText)return "conflict";
   // Native save performs the editor's external-file conflict check. Never execute an overwrite command.
+  assertProfileAvailable();
   if(!await doc.save())return "conflict";
   const after=currentSource();if(!after)return "stale-source";
-  return (await session.confirmAliasSave(plan.id,after)).status;
+  return (await session.confirmAliasSave(plan.id,after,withProfileCancellation())).status;
 }
 
 export async function verifyFlowCommand(deps:{runtime:ArchiAgentRuntime;output:vscode.OutputChannel;secrets?:vscode.SecretStorage}):Promise<void> {
@@ -48,7 +52,7 @@ export async function verifyFlowCommand(deps:{runtime:ArchiAgentRuntime;output:v
   const settings=()=>readArchiAgentSettings(vscode.workspace.getConfiguration(settingsSection,pack.resource));
   const initial=settings();if(!initial.ok){await vscode.window.showErrorMessage("Archi Agent: invalid settings.");return;}
   let configured=initial.settings;
-  const currentSource=():KnowledgePackSourceConfig|undefined=>{const s=settings();return s.ok?s.settings.architectureSource??{kind:"local-directory",path:s.settings.knowledgePackPath}:undefined;};
+  const currentSource=():KnowledgePackSourceConfig|undefined=>{if(profileConflict())return undefined;const s=settings();return s.ok?s.settings.architectureSource??{kind:"local-directory",path:s.settings.knowledgePackPath}:undefined;};
   const source=currentSource();if(!source)return;
   let interpreter:GeneratorConfig|undefined;
   if(format==="prose") {
@@ -57,27 +61,27 @@ export async function verifyFlowCommand(deps:{runtime:ArchiAgentRuntime;output:v
     const key=deps.secrets?await readApiKey(deps.secrets,profile):undefined;
     interpreter=buildGenerationRequest(configured,{kind:"description",flowName:"Verification",description:text},configured.localModel.modelId!,undefined,key).generator;
   }
-  const result=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: verifying Sequence / prose",cancellable:true},(_p,token)=>deps.runtime.startFlowVerification!({input:{format,text:text!,firstLine,...(editor?{fileName:path.basename(editor.document.fileName)}:{})},knowledgePack:source,...(interpreter?{interpreter}:{}),signal:{get aborted(){return token.isCancellationRequested;}}}));
+  const result=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: verifying Sequence / prose",cancellable:true},(_p,token)=>deps.runtime.startFlowVerification!({input:{format,text:text!,firstLine,...(editor?{fileName:path.basename(editor.document.fileName)}:{})},knowledgePack:source,...(interpreter?{interpreter}:{}),signal:withProfileCancellation({get aborted(){return token.isCancellationRequested;}})}));
   if(!("report" in result)||!result.session){await vscode.window.showWarningMessage(`Archi Agent: verification ${result.status}${"code" in result?` (${result.code})`:""}.`);return;}
   let outcome: {report:VerifyFlowReport}|undefined=result;
-  const loaded=await inspectArchitectureSource(source);
-  if(!loaded.ok)return;
+  const catalog=result.report.sourceProvenance.facts.filter(f=>f.table==="systems"||f.table==="actors").map(f=>({...f.value,provenance:f.provenance}));
   for(const mention of result.report.resolutions.filter(r=>r.status!=="resolved")) {
-    const candidates=[...loaded.pack.systems,...loaded.pack.actors].filter(e=>!mention.candidateIds.length||mention.candidateIds.includes(e.id));
-    const chosen=await vscode.window.showQuickPick([{label:"Leave unresolved",id:""},...candidates.map(e=>({label:e.canonicalName,description:e.id,detail:`${e.kind} — ${e.location.file}:${e.location.line}`,id:e.id}))],{title:`Archi Agent: confirm meaning of “${mention.mention}”`,ignoreFocusOut:true,matchOnDescription:true});
+    const candidates=catalog.filter(e=>!mention.candidateIds.length||mention.candidateIds.includes(e.id));
+    const chosen=await vscode.window.showQuickPick([{label:"Leave unresolved",id:""},...candidates.map(e=>({label:e.canonicalName,description:e.id,detail:`${e.kind} — ${e.provenance?.map(p=>p.location?`${p.location.file}:${p.location.line}`:p.reference?.uri??p.sourceId).join(", ")??"No local locator"}`,id:e.id}))],{title:`Archi Agent: confirm meaning of “${mention.mention}”`,ignoreFocusOut:true,matchOnDescription:true});
     if(!chosen||!chosen.id)continue;
     const current=currentSource();if(!current)return;
-    const next=await result.session.resolveNames({expectedSnapshotDigest:result.report.snapshot.digest,decisions:[{mentionId:mention.mentionId,targetElementId:chosen.id,expectedSnapshotDigest:result.report.snapshot.digest,confirmed:true}],currentSource:current});
+    const next=await result.session.resolveNames({expectedSnapshotDigest:result.report.snapshot.digest,decisions:[{mentionId:mention.mentionId,targetElementId:chosen.id,expectedSnapshotDigest:result.report.snapshot.digest,confirmed:true}],currentSource:current,signal:withProfileCancellation()});
     if(!("report" in next)){await vscode.window.showWarningMessage(`Archi Agent: ${next.status}; start verification again.`);return;}
     outcome=next;
   }
+  assertProfileAvailable();
   const report=outcome!.report;
-  const reportDoc=await vscode.workspace.openTextDocument({language:"json",content:JSON.stringify(report,null,2)+"\n"});
+  const reportDoc=await vscode.workspace.openTextDocument({language:"json",content:JSON.stringify(serializeFlowVerificationForHost(report),null,2)+"\n"});
   await vscode.window.showTextDocument(reportDoc,{viewColumn:vscode.ViewColumn.Beside,preview:false,preserveFocus:true});
   const summary=`Archi Agent: ${report.assessment}; ${report.coverage.conformant}/${report.coverage.steps} steps confirmed, ${report.coverage.discrepant} discrepancies, ${report.coverage.unresolved} unresolved. Scope: Sequence / prose.`;
   deps.output.appendLine(summary);
   const current=currentSource();
-  const aliasPlan=current?await result.session.prepareAliasSave(current):undefined;
+  const aliasPlan=current?await result.session.prepareAliasSave(current,withProfileCancellation()):undefined;
   const choice=await vscode.window.showInformationMessage(summary,...(aliasPlan?.status==="prepared"?["Save confirmed aliases"]:[]));
   if(choice==="Save confirmed aliases"&&aliasPlan?.status==="prepared") {
     const saved=await saveVerificationAliases(result.session,aliasPlan.plan,currentSource);

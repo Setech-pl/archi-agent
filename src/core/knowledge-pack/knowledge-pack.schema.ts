@@ -1,3 +1,4 @@
+import type { SourceReference } from "./source-reference.js";
 import type { DocumentProvenance } from "./document-provenance.js";
 import { z } from "zod";
 import { parseMarkdownTable, type ParsedTable } from "./markdown-table-parser.js";
@@ -120,6 +121,7 @@ export interface SourceLocation {
 }
 
 export interface RecordProvenance {
+  readonly reference?: SourceReference;
   readonly sourceId: string;
   readonly location?: SourceLocation;
   readonly fields?: readonly string[];
@@ -136,7 +138,7 @@ export interface SystemRecord {
   readonly canonicalName: string;
   readonly kind: SystemKind;
   readonly description: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface ActorRecord {
@@ -146,7 +148,7 @@ export interface ActorRecord {
   readonly canonicalName: string;
   readonly kind: ActorKind;
   readonly description: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 /** Optional source facts; never inferred from Markdown kinds or names. */
@@ -161,17 +163,17 @@ export interface RelationshipRecord {
   readonly fromId: string;
   readonly toId: string;
   readonly interfaceType: InterfaceType;
-  readonly interfaceName: string | undefined;
+  readonly interfaceName?: string;
   readonly mode: InteractionMode;
   readonly purpose: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface AliasRecord {
   readonly provenance?: readonly RecordProvenance[];
   readonly alias: string;
   readonly targetId: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface RuleRecord {
@@ -180,7 +182,7 @@ export interface RuleRecord {
   readonly fromId: string;
   readonly toId: string;
   readonly reason: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 /** Validated content of one pack, assembled by the loader in a later phase. */

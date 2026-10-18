@@ -1,3 +1,4 @@
+import type { LocalReadPolicy } from "../node/local-read-policy.js";
 import { inspectArchitectureSource } from "./architecture-source.js";
 import { startFlowVerification, type VerifyFlowRequest, type VerifyFlowStart } from "./verify-flow.js";
 import { buildContextSnapshot, buildContainerSnapshot, C4SourceError } from "../core/pipeline/c4-snapshot.js";
@@ -92,6 +93,7 @@ export const runtimeLimits = Object.freeze({
 export type GeneratorFactory = (config: GeneratorConfig, endpoint: LoopbackEndpoint) => SequenceModelGenerator;
 
 export interface ArchiAgentRuntimeOptions {
+  readonly localReadPolicy?: LocalReadPolicy;
   readonly extensionVersion?: string;
   readonly documentExtraction?: DocumentExtractionOptions;
   readonly generatorFactory?: GeneratorFactory;
@@ -296,7 +298,7 @@ function parsedFlow(text: string, flowFile: string): FlowResolution {
   return Object.freeze({ ok: true, flow: parsed.flow, flowFile });
 }
 
-async function readFlowFile(absolutePath: string): Promise<FlowResolution> {
+async function readFlowFile(absolutePath: string, localReadPolicy?: LocalReadPolicy): Promise<FlowResolution> {
   const fileName = logicalName(path.basename(absolutePath), "");
 
   if (!path.isAbsolute(absolutePath) || fileName === "") {
@@ -305,7 +307,7 @@ async function readFlowFile(absolutePath: string): Promise<FlowResolution> {
 
   try {
     const root = await canonicalDirectory(path.dirname(absolutePath));
-    const file = await readBoundedTextFile(root, fileName, { maxBytes: maxFlowFileBytes });
+    const file = await readBoundedTextFile(root, fileName, { maxBytes: maxFlowFileBytes, localReadPolicy });
     return parsedFlow(file.text, fileName);
   } catch (error) {
     const code = error instanceof BoundedReadError || error instanceof LocalPathError ? error.code : "read-failed";
@@ -313,12 +315,12 @@ async function readFlowFile(absolutePath: string): Promise<FlowResolution> {
   }
 }
 
-async function resolveFlow(source: FlowSource): Promise<FlowResolution> {
+async function resolveFlow(source: FlowSource, localReadPolicy?: LocalReadPolicy): Promise<FlowResolution> {
   switch (source.kind) {
     case "document":
       return parsedFlow(source.text, logicalName(source.fileName, defaultFlowFileName));
     case "file":
-      return readFlowFile(source.path);
+      return readFlowFile(source.path, localReadPolicy);
     case "description":
       return composeFlowDocument(source);
   }
@@ -328,9 +330,9 @@ type PackResolution =
   | { readonly ok: true; readonly knowledgePack: Parameters<typeof generateSequenceDiagram>[0]["knowledgePack"]; readonly directoryName: string }
   | { readonly ok: false; readonly issues: readonly RuntimeIssue[] };
 
-async function resolveKnowledgePack(config: KnowledgePackSourceConfig, signal: CancellationSignal | undefined): Promise<PackResolution> {
-  if (config.kind === "structurizr-json") {
-    const result = await inspectArchitectureSource(config, signal);
+async function resolveKnowledgePack(config: KnowledgePackSourceConfig, signal: CancellationSignal | undefined, localReadPolicy?: LocalReadPolicy): Promise<PackResolution> {
+  if (config.kind === "structurizr-json"||config.kind === "mcp") {
+    const result = await inspectArchitectureSource(config, signal, localReadPolicy);
     if (!result.ok) return { ok: false, issues: result.issues.map(i => ({severity: "error" as const,code:i.code,message:i.message,...("file" in i ? {file:i.file} : {}),...("line" in i ? {line:i.line} : {})})) };
     return { ok: true, directoryName: "architecture", knowledgePack: { pack: result.pack, indexes: buildKnowledgePackIndexes(result.pack), knowledge: result.snapshot } };
   }
@@ -347,7 +349,7 @@ async function resolveKnowledgePack(config: KnowledgePackSourceConfig, signal: C
   let source: NodeKnowledgePackSource;
 
   try {
-    source = await NodeKnowledgePackSource.open(path.dirname(config.path), directoryName);
+    source = await NodeKnowledgePackSource.open(path.dirname(config.path), directoryName, localReadPolicy);
   } catch (error) {
     return Object.freeze({
       ok: false,
@@ -505,7 +507,7 @@ function ambiguityChoices(report: AmbiguityReport): readonly AmbiguityChoice[] {
             elementKind: candidate.elementKind,
             canonicalName: candidate.canonicalName,
             sourceFile: candidate.source.file,
-            sourceLine: candidate.source.line
+            sourceLine: candidate.source.line,...(candidate.source.provenance?{sourceProvenance:candidate.source.provenance}:{})
           })
         ),
         lines: Object.freeze([...new Set(entry.locations.map((location) => location.line))])
@@ -553,7 +555,7 @@ function mapOutcome(outcome: PipelineOutcome): GenerateSequenceDiagramResult {
 
 /** Freeze caller inputs before the first await, without mutating the host's settings. */
 function freezeGenerationRequest<T extends GenerateSequenceDiagramRequest>(request: T): T {
-  return { ...request, flow: { ...request.flow }, knowledgePack: { ...request.knowledgePack },
+  return { ...request, flow: { ...request.flow }, knowledgePack: request.knowledgePack.kind==="mcp"?{...request.knowledgePack,server:{...request.knowledgePack.server,args:[...request.knowledgePack.server.args],...(request.knowledgePack.server.credentialEnv?{credentialEnv:[...request.knowledgePack.server.credentialEnv]}:{})}}:{ ...request.knowledgePack },
     ...("c4Selection" in request && request.c4Selection ? {c4Selection:{systemId:(request.c4Selection as {systemId:string}).systemId,expectedKnowledgeDigest:(request.c4Selection as {expectedKnowledgeDigest:string}).expectedKnowledgeDigest}} : {}),
     generator: { ...request.generator, ...("credential" in request.generator && request.generator.credential ? { credential: { ...request.generator.credential } } : {}) },
     ...(request.selections ? { selections: { ...request.selections } } : {}),
@@ -563,7 +565,7 @@ function freezeGenerationRequest<T extends GenerateSequenceDiagramRequest>(reque
 function withSourceProvenance(result: GenerateSequenceDiagramResult, knowledge: import("../core/knowledge-pack/knowledge-snapshot.js").KnowledgeSnapshot): GenerateSequenceDiagramResult;
 function withSourceProvenance(result: GenerateDiagramOutcome, knowledge: import("../core/knowledge-pack/knowledge-snapshot.js").KnowledgeSnapshot): GenerateDiagramOutcome;
 function withSourceProvenance(result: GenerateDiagramOutcome, knowledge: import("../core/knowledge-pack/knowledge-snapshot.js").KnowledgeSnapshot): GenerateDiagramOutcome {
-  if (result.status !== "success" || !knowledge.sources.some(s => s.kind === "structurizr-json")) return result;
+  if (result.status !== "success" || !knowledge.sources.some(s => s.kind !== "markdown-pack")) return result;
   const report = JSON.parse(result.groundingReport);
   const ids = [...(report.sources?.evidence ?? []).map((e: {id: string}) => e.id), ...(report.knownParticipants ?? []).map((e: {elementId: string}) => e.elementId)];
   const selected = selectKnowledgeContext(knowledge, ids);
@@ -580,7 +582,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
   readonly #remoteTransport: RemoteJsonTransport | undefined;
   readonly #diagramClientFactory: (config: GeneratorConfig, endpoint: LoopbackEndpoint) => StructuredChatClient;
 
-  public constructor(options: ArchiAgentRuntimeOptions) {
+  public constructor(private readonly options: ArchiAgentRuntimeOptions) {
     this.#extensionVersion = options.extensionVersion ?? null;
     this.#documentExtraction = options.documentExtraction ?? {};
     this.#generatorFactory = options.generatorFactory ?? defaultGeneratorFactory;
@@ -603,7 +605,7 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       if(!request.interpreter)throw new Error("interpreter-required");
       const result=resolveDiagramClient(request.interpreter,this.#providerRegistry,this.#defaultBaseUrlForProfile,this.#remoteTransport,this.#diagramClientFactory);
       if(!result.ok)throw new Error("interpreter-configuration-invalid");return result.client;
-    });
+    },this.options.localReadPolicy);
   }
 
   public async generateDiagram(request: GenerateDiagramRequest): Promise<GenerateDiagramOutcome> {
@@ -614,11 +616,12 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
       // This must precede flow-file, Knowledge Pack, credential and provider access.
       if (!isSupportedDiagramType(request.diagramType)) return failure("generator-configuration", [issue("diagram-type-unsupported", "The selected diagram type is not supported in this version.")]);
       if(request.signal?.aborted)return failure("grounding-blocked",[issue("generation-cancelled","Generation cancelled.")]);
-      const flow = await resolveFlow(request.flow);
+      const flow = await resolveFlow(request.flow,this.options.localReadPolicy);
       if (!flow.ok) return failure("flow", flow.issues);
-      const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
+      const pack = await resolveKnowledgePack(request.knowledgePack, request.signal,this.options.localReadPolicy);
       if(request.signal?.aborted)return failure("grounding-blocked",[issue("generation-cancelled","Generation cancelled.")]);
       if (!pack.ok) return failure("knowledge-pack", pack.issues);
+      if(request.expectedKnowledgeDigest && request.expectedKnowledgeDigest!==pack.knowledgePack.knowledge!.digest)return failure("grounding-blocked",[issue("decision-binding-stale","The source changed after the decisions were prepared.")]);
       if (request.diagramType === "c4-context" || request.diagramType === "c4-container") {
         if(request.signal?.aborted)return failure("grounding-blocked",[issue("generation-cancelled","Generation cancelled.")]);
         if(!request.c4Selection)return failure("grounding-blocked",[issue("c4-subject-required","Select a source software system explicitly.")]);
@@ -657,13 +660,13 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
 
   public async generateSequenceDiagram(request: GenerateSequenceDiagramRequest): Promise<GenerateSequenceDiagramResult> {
     request = freezeGenerationRequest(request);
-    const flow = await resolveFlow(request.flow);
+    const flow = await resolveFlow(request.flow,this.options.localReadPolicy);
 
     if (!flow.ok) {
       return failure("flow", flow.issues);
     }
 
-    const pack = await resolveKnowledgePack(request.knowledgePack, request.signal);
+    const pack = await resolveKnowledgePack(request.knowledgePack, request.signal,this.options.localReadPolicy);
 
     if (!pack.ok) {
       return failure("knowledge-pack", pack.issues);

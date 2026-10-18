@@ -151,11 +151,11 @@ describe("context digest", () => {
       systems: base.systems.map((system) => ({
         ...system,
         mentions: system.mentions.map((mention) => ({ ...mention, line: mention.line + 40 })),
-        source: { ...system.source, line: system.source.line + 3 }
+        source: { ...system.source, line: system.source.line! + 3 }
       })),
       relationships: base.relationships.map((relationship) => ({
         ...relationship,
-        source: { ...relationship.source, line: relationship.source.line + 3 }
+        source: { ...relationship.source, line: relationship.source.line! + 3 }
       }))
     };
 

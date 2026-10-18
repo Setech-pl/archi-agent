@@ -30,7 +30,11 @@
     "k2:gauntlet": "node scripts/k2-gauntlet.mjs",
     "k3:gauntlet": "node scripts/k3-gauntlet.mjs",
     "art1:gauntlet": "node scripts/art1-gauntlet.mjs",
-    "ux4:gauntlet": "node scripts/ux4-gauntlet.mjs"
+    "ux4:gauntlet": "node scripts/ux4-gauntlet.mjs",
+    "cli:build": "node scripts/build-cli.mjs",
+    "cli:package": "node scripts/package-cli.mjs",
+    "cli:verify": "node scripts/verify-cli.mjs",
+    "mcp1:verify": "node scripts/mcp1-verify.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.8.15",
@@ -43,7 +47,8 @@
     "unpdf": "1.7.0",
     "yauzl": "3.4.0",
     "zod": "4.6.5",
-    "jsonc-parser": "3.3.1"
+    "jsonc-parser": "3.3.1",
+    "@modelcontextprotocol/sdk": "1.32.1"
   },
   "overrides": {
     "mammoth": {

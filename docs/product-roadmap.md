@@ -27,14 +27,14 @@ Windows x64 canvas 0.1.97 tarball, retaining both lockfiles and all eight platfo
 Linux x64 and macOS ARM64 GitHub jobs passed for main `152542f35c839c06a9bd0eed05a8a7e8e2523752`
 ([run 38611666025](https://github.com/Setech-pl/archi-agent/actions/runs/38611666025)).
 This satisfies the CI prerequisite for SRC1; it is not evidence for the SRC1 implementation.
-SRC1 is locally implemented and verified under the [approved corrected contract](src1-structurizr-source.md); [verification](src1-verification.md) is separate from base CI and from the unchanged published alpha.6. VER1, D3 and D4 are implemented in the current local candidate; their passing local gates are recorded separately in [verification](ver1-c4-verification.md). MCP1 remains planned.
+SRC1 is locally implemented and verified under the [approved corrected contract](src1-structurizr-source.md); [verification](src1-verification.md) is separate from base CI and from the unchanged published alpha.6. VER1, D3 and D4 are implemented in the current local candidate; their passing local gates are recorded separately in [verification](ver1-c4-verification.md). MCP1 is implemented and locally verified; [MCP1 verification](mcp1-verification.md) records the exact candidate. Owner smoke remains DEFERRED; remote CI and Windows ARM64 runtime remain NOT_RUN.
 AUD-001/002 remain closed; AUD-003–006 remain OPEN. Windows ARM64 runtime is NOT_RUN.
 This does not establish M1 or production readiness.
 
 | Step | Status / scope |
 | --- | --- |
 | CI | Local clean-clone PASS after the approved ICU packaging repair: 1824 root tests, 662 extension tests, package/verify 532 entries. GitHub Linux/macOS PASS for main 152542f (run 38611666025); Windows ARM64 runtime NOT_RUN. |
-| SRC1 → VER1 → D3 → D4 → MCP1 | Active owner-approved order. SRC1, VER1, D3 and D4 locally accepted; MCP1 planned. |
+| SRC1 → VER1 → D3 → D4 → MCP1 | Active owner-approved order. SRC1, VER1, D3 and D4 locally accepted; MCP1 implemented and locally verified; owner smoke DEFERRED. |
 | M1 | Historical MCP milestone; not resumed or declared ready. Active MCP work follows SRC1 and VER1 as MCP1. |
 | C1 | Deferred VS Code Chat participant; no current Chat integration or authorization to resume. |
 | D3 / D4 | C4 Context and Container in Create Diagram, source-bound local Structurizr hierarchy; see [contract](c4-diagrams.md). |

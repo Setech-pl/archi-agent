@@ -1,3 +1,4 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, withProfileCancellation, profileLifetimeSignal } from "../profile-availability.js";
 import { OpenDiagramResults, saveDiagramAction, saveDiagramAndReportCommand } from "./save-diagram-and-report.js";
 import path from "node:path";
 import * as vscode from "vscode";
@@ -219,6 +220,7 @@ async function openGeneratedDocuments(result: GenerateSequenceDiagramSuccess, re
     language: languages.includes("plantuml") ? "plantuml" : "plaintext",
     content: result.plantUml
   });
+  assertProfileAvailable();
   await vscode.window.showTextDocument(diagram, { viewColumn: vscode.ViewColumn.Active, preview: false });
   const report = await vscode.workspace.openTextDocument({ language: "json", content: result.groundingReport });
   results?.remember(result.artifact, [diagram, report]);
@@ -256,6 +258,7 @@ async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, outpu
   const languages = await vscode.languages.getLanguages();
   const document = await vscode.workspace.openTextDocument({ language: languages.includes("plantuml") ? "plantuml" : "plaintext",
     content: unverifiedDocument(result, reason) });
+  assertProfileAvailable();
   await vscode.window.showTextDocument(document, { viewColumn: vscode.ViewColumn.Active, preview: false });
   if (verbose) output.appendLine(JSON.stringify({ event: "unverified-candidate.opened" }));
 }
@@ -289,7 +292,7 @@ async function runGenerateCommand(dependencies: GenerateCommandDependencies, dia
   let c4Selection:{systemId:string;expectedKnowledgeDigest:string}|undefined;
   let flow:FlowSource|undefined;
   if(diagramType==="c4-context"||diagramType==="c4-container") {
-    const source=await inspectC4Source(settings.architectureSource??{kind:"local-directory",path:settings.knowledgePackPath});
+    const source=await inspectC4Source(settings.architectureSource??{kind:"local-directory",path:settings.knowledgePackPath},withProfileCancellation());
     if(!source.ok){await vscode.window.showWarningMessage(`Archi Agent: ${source.code}. C4 requires explicit source types and hierarchy.`);return;}
     const subject=await vscode.window.showQuickPick(source.systems.map(e=>({label:e.name,description:e.id,detail:e.provenance[0]?.location?.file,id:e.id})),{title:"Archi Agent: C4 software system",placeHolder:"Select the system of interest / parent",ignoreFocusOut:true});
     if(!subject)return;

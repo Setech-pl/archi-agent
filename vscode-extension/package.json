@@ -2,7 +2,7 @@
   "name": "archi-agent",
   "displayName": "Archi Agent",
   "description": "Grounded architecture diagram generation with local or cloud models: validated PlantUML sequence and component diagrams from flow descriptions and an Architecture Knowledge Pack.",
-  "version": "0.3.0-alpha.6",
+  "version": "0.3.0-alpha.7",
   "publisher": "setech-pl",
   "private": true,
   "license": "MIT",
@@ -295,7 +295,7 @@
           ],
           "default": null,
           "scope": "resource",
-          "markdownDescription": "Local Structurizr architecture source: kind, sourceId, absolute modelPath and overlayPath. Null uses knowledgePackPath and masks an inherited Structurizr configuration. See the SRC1 source contract.",
+          "markdownDescription": "Architecture source: local Structurizr workspace.json + three-file overlay, or one sourceId from the User-configured knowledge MCP stdio server. Null selects knowledgePackPath. Components/deployment/views are omitted from SRC1; no DSL parser. Validation uses the shared runtime.",
           "oneOf": [
             {
               "type": "null"
@@ -326,8 +326,67 @@
                   "type": "string"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "sourceId"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "mcp"
+                  ]
+                },
+                "sourceId": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,55}$"
+                }
+              }
             }
           ]
+        },
+        "archiAgent.knowledgeServer": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "default": null,
+          "scope": "machine",
+          "markdownDescription": "One trusted MCP knowledge stdio server. User settings only: absolute command, args, optional credentialEnv names (ARCHI_AGENT_*) and timeoutMs (1\u2013120000). Source contents and tools cannot change this process. No shell, automatic install, fallback or LLM tool selection. Set architectureSource to {\"kind\":\"mcp\",\"sourceId\":\"your-source\"}.",
+          "additionalProperties": false,
+          "required": [
+            "command",
+            "args"
+          ],
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "args": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            },
+            "credentialEnv": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "^ARCHI_AGENT_[A-Z0-9_]{1,80}$"
+              }
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 120000
+            }
+          }
         }
       }
     },

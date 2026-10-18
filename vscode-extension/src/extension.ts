@@ -1,3 +1,5 @@
+import { profileConflict, assertProfileAvailable, showProfileConflict } from "./profile-availability.js";
+import { getDocumentConversionCapabilities } from "../../src/runtime/index.js";
 import { KnowledgeBrowser } from "./knowledge-browser.js";
 import { verifyFlowCommand } from "./commands/verify-flow.js";
 import { ConfigurationWorkbench } from "./workbench/configuration.js";
@@ -23,6 +25,11 @@ function errorName(error: unknown): string {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  if(profileConflict()){showProfileConflict();return;}
+  const registerAvailableCommand=(id:string,callback:(...args:any[])=>unknown)=>vscode.commands.registerCommand(id,(...args:any[])=>{
+    if(profileConflict()){showProfileConflict();return;}
+    assertProfileAvailable();return callback(...args);
+  });
   const output = vscode.window.createOutputChannel(outputChannelName);
   const runtime = createPackagedRuntime(context.extension?.packageJSON.version);
   const results = new OpenDiagramResults();
@@ -30,62 +37,68 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(browser);
   const configuration = new ConfigurationWorkbench(runtime, output, context.secrets);
   context.subscriptions.push(configuration);
+  if(vscode.extensions?.onDidChange)context.subscriptions.push(vscode.extensions.onDidChange(()=>{
+    if(profileConflict()){configuration.dispose();browser.dispose();showProfileConflict();}
+  }));
+  void getDocumentConversionCapabilities().then(capabilities=>{
+    if(capabilities.ocr==="installation-error")void vscode.window.showWarningMessage(`Archi Agent: installation error (${capabilities.code}). Reinstall ${capabilities.profile==="full"?"Full":"the extension"}; resources are never downloaded automatically.`);
+  });
   if (vscode.workspace.onDidCloseTextDocument) context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => results.close(doc)));
 
   context.subscriptions.push(output);
   context.subscriptions.push(
-    vscode.commands.registerCommand(commandIds.verifyFlow, () => verifyFlowCommand({runtime,output,secrets:context.secrets}).catch(()=>vscode.window.showErrorMessage("Archi Agent: verification failed. Check the source and input."))),
-    vscode.commands.registerCommand(commandIds.knowledgeBrowser, () => browser.reveal()),
-    vscode.commands.registerCommand(commandIds.buildKnowledgePackFromActiveFile, () => buildKnowledgePackFromActiveFileCommand({ runtime, output, secrets: context.secrets })),
-    vscode.commands.registerCommand(commandIds.configuration, () => configuration.open()),
-    vscode.commands.registerCommand(commandIds.help, () => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.joinPath(context.extensionUri, /^pl(?:-|$)/iu.test(vscode.env.language) ? "README.pl.md" : "readme.md"))),
-    vscode.commands.registerCommand(commandIds.saveDiagramAndReport, () => saveDiagramAndReportCommand(results).catch(() => {
+    registerAvailableCommand(commandIds.verifyFlow, () => verifyFlowCommand({runtime,output,secrets:context.secrets}).catch(()=>vscode.window.showErrorMessage("Archi Agent: verification failed. Check the source and input."))),
+    registerAvailableCommand(commandIds.knowledgeBrowser, () => browser.reveal()),
+    registerAvailableCommand(commandIds.buildKnowledgePackFromActiveFile, () => buildKnowledgePackFromActiveFileCommand({ runtime, output, secrets: context.secrets })),
+    registerAvailableCommand(commandIds.configuration, () => configuration.open()),
+    registerAvailableCommand(commandIds.help, () => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.joinPath(context.extensionUri, /^pl(?:-|$)/iu.test(vscode.env.language) ? "README.pl.md" : "readme.md"))),
+    registerAvailableCommand(commandIds.saveDiagramAndReport, () => saveDiagramAndReportCommand(results).catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: diagram and report save could not be completed. Retry Save Diagram and Report.");
     })),
-    vscode.commands.registerCommand(commandIds.buildKnowledgePack, () => buildKnowledgePackCommand({ runtime, output, secrets: context.secrets })),
-    vscode.commands.registerCommand(commandIds.open, () => openArchiAgentMenu().catch(() => {
+    registerAvailableCommand(commandIds.buildKnowledgePack, () => buildKnowledgePackCommand({ runtime, output, secrets: context.secrets })),
+    registerAvailableCommand(commandIds.open, () => openArchiAgentMenu().catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: navigation could not be opened.");
     })),
-    vscode.commands.registerCommand(commandIds.convertToMarkdown, () => convertToMarkdownCommand().catch(() => {
+    registerAvailableCommand(commandIds.convertToMarkdown, () => convertToMarkdownCommand().catch(() => {
       void vscode.window.showErrorMessage("Archi Agent: conversion could not be completed.");
     })),
-    vscode.commands.registerCommand(commandIds.configureKnowledgePack, () => configuration.open("knowledge")),
-    vscode.commands.registerCommand(commandIds.generateDiagram, () =>
+    registerAvailableCommand(commandIds.configureKnowledgePack, () => configuration.open("knowledge")),
+    registerAvailableCommand(commandIds.generateDiagram, () =>
       generateDiagramCommand({ runtime, output, results, secrets: context.secrets }).catch((error: unknown) => {
         output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.generateSequenceDiagram, () =>
+    registerAvailableCommand(commandIds.generateSequenceDiagram, () =>
       generateDiagramCommand({ runtime, output, results, secrets: context.secrets }).catch((error: unknown) => {
         output.appendLine(`The generate command failed unexpectedly (${errorName(error)}).`);
         void vscode.window.showErrorMessage("Archi Agent: the command failed unexpectedly. See the Archi Agent output channel.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.selectProviderProfile, () => configuration.open("provider")),
-    vscode.commands.registerCommand(commandIds.selectModel, () => configuration.open("provider")),
-    vscode.commands.registerCommand(commandIds.checkProviderConfiguration, () =>
+    registerAvailableCommand(commandIds.selectProviderProfile, () => configuration.open("provider")),
+    registerAvailableCommand(commandIds.selectModel, () => configuration.open("provider")),
+    registerAvailableCommand(commandIds.checkProviderConfiguration, () =>
       checkProviderConfiguration(runtime, output, context.secrets).catch(() => {
         output.appendLine("The provider configuration check failed unexpectedly.");
         void vscode.window.showErrorMessage("Archi Agent: the provider configuration check could not be completed.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.setApiKey, () =>
+    registerAvailableCommand(commandIds.setApiKey, () =>
       setApiKey(runtime, context.secrets, output).catch(() => {
         output.appendLine("The API key command failed unexpectedly (secret-storage-failed).");
         void vscode.window.showErrorMessage("Archi Agent: secure key storage is unavailable.");
       })
     ),
-    vscode.commands.registerCommand(commandIds.deleteApiKey, () =>
+    registerAvailableCommand(commandIds.deleteApiKey, () =>
       removeApiKey(runtime, context.secrets, output).catch(() => {
         output.appendLine("The API key deletion command failed unexpectedly (secret-storage-failed).");
         void vscode.window.showErrorMessage("Archi Agent: secure key storage is unavailable.");
       })
     ),
-    vscode.commands.registerCommand(legacyCommandIds.selectLocalProviderProfile, () =>
+    registerAvailableCommand(legacyCommandIds.selectLocalProviderProfile, () =>
       vscode.commands.executeCommand(commandIds.selectProviderProfile)
     ),
-    vscode.commands.registerCommand(legacyCommandIds.selectLocalModel, () => vscode.commands.executeCommand(commandIds.selectModel))
+    registerAvailableCommand(legacyCommandIds.selectLocalModel, () => vscode.commands.executeCommand(commandIds.selectModel))
   );
 }
 

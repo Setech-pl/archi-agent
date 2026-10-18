@@ -1,3 +1,4 @@
+import type { RecordProvenance } from "../knowledge-pack/knowledge-pack.schema.js";
 import type { FlowLanguage } from "../knowledge-pack/front-matter.js";
 import type { KnowledgePackFileName } from "../knowledge-pack/knowledge-pack-source.js";
 import type {
@@ -46,8 +47,9 @@ export interface FlowReference {
 
 /** Declaration of an element, relationship or rule in the pack. */
 export interface PackSourceReference {
-  readonly file: string;
-  readonly line: number;
+  readonly file?: string;
+  readonly line?: number;
+  readonly provenance?: readonly RecordProvenance[];
 }
 
 export interface GroundedFlowMetadata {

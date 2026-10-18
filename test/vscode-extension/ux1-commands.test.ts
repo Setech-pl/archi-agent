@@ -5,7 +5,7 @@ import { commandIds } from "../../vscode-extension/src/contributions.js";
 import { resetDouble, state, Uri } from "../doubles/vscode-module-double.js";
 
 const converter = vi.hoisted(() => ({ run: vi.fn() }));
-vi.mock("../../src/runtime/index.js", () => ({ convertDocument: converter.run }));
+vi.mock("../../src/runtime/index.js", () => ({ convertDocument: converter.run, getDocumentConversionCapabilities: async()=>({profile:"full",ocr:"not-validated",languages:["pl","en"]}) }));
 
 const choose = (id: string) => (items: readonly unknown[]) => items.find((item) => (item as { id?: string }).id === id);
 

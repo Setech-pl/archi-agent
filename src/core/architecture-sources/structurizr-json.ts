@@ -117,5 +117,5 @@ export function composeStructurizrKnowledge(modelText: string, texts: OverlayTex
     { source: overlaySource, records: { aliases, rules } }];
   const knowledge = createKnowledgeSnapshot(contributions);
   if (knowledge.conflicts.length) sourceError("knowledge-conflicts-unresolved");
-  return freeze({ pack, indexes: buildKnowledgePackIndexes(pack), knowledge, warnings: issues.filter(i => i.severity === "warning") });
+  return freeze({ contributions,pack, indexes: buildKnowledgePackIndexes(pack), knowledge, warnings: issues.filter(i => i.severity === "warning") });
 }

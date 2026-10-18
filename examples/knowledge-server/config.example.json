@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "readRoots": { "project": "/srv/architecture" },
+  "sources": {
+    "bank": {
+      "kind": "structurizr-json",
+      "sourceId": "big-bank",
+      "model": { "root": "project", "path": "bank/workspace.json" },
+      "overlay": { "root": "project", "path": "bank/overlay" }
+    }
+  },
+  "providers": {}
+}

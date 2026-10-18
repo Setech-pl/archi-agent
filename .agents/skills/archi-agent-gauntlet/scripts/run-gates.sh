@@ -66,12 +66,13 @@ run npm run extension:typecheck
 run npm run extension:test
 run npm run extension:build
 if [[ -n "$vsix_out" ]]; then
-  run npm run extension:package -- --out "$vsix_out"
-  vsix_name=$(node -p 'const p = require(process.argv[1]); `${p.name}-${p.version}.vsix`' "$repo_root/vscode-extension/package.json")
+  run npm run extension:package -- --profile full --out "$vsix_out"
+  vsix_name=$(node -p 'const p = require(process.argv[1]); `archi-agent-full-${p.version}.vsix`' "$repo_root/vscode-extension/package.json")
   run npm run extension:verify -- "$vsix_out/$vsix_name"
 else
-  run npm run extension:package
-  run npm run extension:verify
+  run npm run extension:package -- --profile full
+  vsix_name=$(node -p 'const p = require(process.argv[1]); `archi-agent-full-${p.version}.vsix`' "$repo_root/vscode-extension/package.json")
+  run npm run extension:verify -- "$repo_root/vscode-extension/build/$vsix_name"
 fi
 run npm run demo:dry-run
 check_quietly git diff --check

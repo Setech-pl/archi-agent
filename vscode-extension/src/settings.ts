@@ -1,4 +1,4 @@
-import { validStructurizrConfiguration, type KnowledgePackSourceConfig } from "../../src/runtime/index.js";
+import { mcpKnowledgeServerSchema,validStructurizrConfiguration, type KnowledgePackSourceConfig } from "../../src/runtime/index.js";
 import path from "node:path";
 import {
   defaultBaseUrlForLocalProfile,
@@ -252,9 +252,14 @@ export function readArchiAgentSettings(reader: SettingsReader): SettingsResult {
 }
 
 /** Configuration shape only; all source I/O/semantics remain in runtime. */
-export function configuredArchitectureSource(reader: Pick<SettingsReader, "get">): KnowledgePackSourceConfig {
+export function configuredArchitectureSource(reader: Pick<SettingsReader, "get"> & Partial<Pick<SettingsReader,"inspect">>): KnowledgePackSourceConfig {
   const v = reader.get(settingKeys.architectureSource);
   if (v == null) return { kind: "local-directory", path: text(reader.get(settingKeys.knowledgePackPath)) };
   if (validStructurizrConfiguration(v)) return { ...v };
+  if(v&&typeof v==="object"&&!Array.isArray(v)&&Object.keys(v).sort().join(",")==="kind,sourceId"&&"kind"in v&&v.kind==="mcp"&&"sourceId"in v&&typeof v.sourceId==="string"&&/^[a-z][a-z0-9-]{0,55}$/.test(v.sourceId)){
+    const parsed=mcpKnowledgeServerSchema.safeParse(reader.inspect?.(settingKeys.knowledgeServer)?.globalValue);
+    if(!parsed.success)throw new Error("mcp-knowledge-configuration-invalid");
+    return {kind:"mcp",sourceId:v.sourceId,server:{...parsed.data,args:[...parsed.data.args],...(parsed.data.credentialEnv?{credentialEnv:[...parsed.data.credentialEnv]}:{})}};
+  }
   throw new Error("architecture-source-invalid");
 }

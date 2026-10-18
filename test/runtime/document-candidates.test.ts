@@ -1,3 +1,4 @@
+import { syntheticDistribution } from "../support/distribution-profile.js";
 import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, readdirSync, truncateSync, symlinkSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -229,7 +230,7 @@ describe("K2 production runtime", () => {
     const parent = path.join(temporary, "ocr-parent.mjs");
     writeFileSync(parent, `export async function convertPdfIsolated() { return { markdown: '## Page 1 (OCR)\\n\\nAlpha\\n\\n## Page 2 (blank)', pages: [{page:1, source:'ocr'}, {page:2, source:'blank'}] }; }`);
     requests = []; respond = good;
-    const op = createArchiAgentRuntime({ diagramClientFactory: () => client, documentExtraction: { conversion: { ocrParentFile: parent } } });
+    const op = createArchiAgentRuntime({ diagramClientFactory: () => client, documentExtraction: { conversion: { ocrParentFile: parent, distributionDirectory:syntheticDistribution(path.join(temporary,"synthetic-full")) } } });
     const result = await op.extractDocumentCandidates!({ documents: [{ path: path.resolve("test/fixtures/document-conversion/no-text.pdf"), pdfOcrMode: "auto" }], generator });
     expect(result.status).toBe("success");
     if (result.status === "success") {

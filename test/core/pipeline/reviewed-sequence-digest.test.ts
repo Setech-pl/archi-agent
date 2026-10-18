@@ -37,14 +37,14 @@ describe("D1.1 ArchitectureSnapshot digest", () => {
       ? { ...entry, source: { ...entry.source, file: "aliases.md" as const } } : entry);
     expect(digestOf({ ...context, systems })).not.toBe(digestOf());
     const shifted = context.systems.map((entry, index) => index === 0
-      ? { ...entry, source: { ...entry.source, line: entry.source.line + 1 } } : entry);
+      ? { ...entry, source: { ...entry.source, line: entry.source.line! + 1 } } : entry);
     expect(digestOf({ ...context, systems: shifted })).not.toBe(digestOf());
   });
 
   it("changes when only a relationship source line changes", () => {
     expect(context.relationships.length).toBeGreaterThan(0);
     const relationships = context.relationships.map((entry, index) => index === 0
-      ? { ...entry, source: { ...entry.source, line: entry.source.line + 1 } } : entry);
+      ? { ...entry, source: { ...entry.source, line: entry.source.line! + 1 } } : entry);
     expect(digestOf({ ...context, relationships })).not.toBe(digestOf());
     const relocated = context.relationships.map((entry, index) => index === 0
       ? { ...entry, source: { ...entry.source, file: "rules.md" as const } } : entry);
@@ -57,7 +57,7 @@ describe("D1.1 ArchitectureSnapshot digest", () => {
       ? { ...entry, source } : entry) });
     const original = context.rules[0]!.source;
     expect(digestOf(withSource({ ...original, file: "relationships.md" }))).not.toBe(digestOf());
-    expect(digestOf(withSource({ ...original, line: original.line + 1 }))).not.toBe(digestOf());
+    expect(digestOf(withSource({ ...original, line: original.line! + 1 }))).not.toBe(digestOf());
   });
 
   it("changes when only the logical flow file name changes", () => {

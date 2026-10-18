@@ -2,6 +2,18 @@
 
 **English** · [Polski](../pl/user-guide.md) · [Home](../../README.md)
 
+## Local MCP1 candidate: profiles and knowledge
+
+The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the MCP1 verification report; the alpha.6 download below remains historical. [CLI/MCP installation, commands and contracts](cli-mcp.md).
+
+**Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
+
+To change profile, install the chosen VSIX, disable the previous profile yourself and reload VS Code. Both IDs may remain installed, but enable exactly one. When both are enabled their static declarations collide before activation; VS Code can report duplicate contributions and Archi Agent blocks operations until you choose one and reload. Updates target each ID independently. Shared `archiAgent.*` settings remain; SecretStorage belongs to each ID. Enter cloud keys again for the chosen profile: keys are never copied or read by CLI/MCP.
+
+Choose one source per operation: a Markdown Knowledge Pack; **Structurizr workspace.json + overlay**; or **MCP knowledge**. Structurizr requires `workspace.json` and the SRC1 overlay files `aliases.md`, `relationships.md`, `rules.md`, bound to original IDs. The existing production resolver validates required interface type/mode, references and conflicts; Knowledge Browser shows validation, original IDs, provenance, supported scope and omissions. People, software systems, containers and static relationships are supported; components/deployment/views are omitted. DSL is unsupported. [Full SRC1 contract](../src1-structurizr-source.md).
+
+For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAgent.architectureSource` to `{"kind":"mcp","sourceId":"bank"}`. Workspace executable settings are ignored. Start with the standalone example in the [CLI/MCP guide](cli-mcp.md#mcp-knowledge-client-and-example-server). Each operation fetches one immutable snapshot; the next fetches again. Failures stop the operation; there is no stale local fallback or automatic alias save. LLM does not choose source tools. The JSON shown by Verify Flow uses the same portable report as CLI/MCP.
+
 ## Local VER1 / C4 candidate
 
 These additions belong to the unpublished local candidate identified in the verification report;
@@ -46,11 +58,11 @@ Get-FileHash <file.vsix> -Algorithm SHA256
 
 In VS Code, open **Extensions → … → Install from VSIX…**, select the file and reload if requested. Check the version in **Archi Agent** extension details. No repository, npm or separate Node.js installation is needed. If an older version is installed, use the same command to install this identified prerelease.
 
-This guide covers **0.3.0-alpha.6**. Earlier alpha.4 screenshots and downloads represent an older product. [Owner test checklist PL/EN](../testing/owner-smoke.md) records checks separately from the release's automated results.
+The download instructions below cover public **0.3.0-alpha.6**; the local MCP1 section covers **0.3.0-alpha.7**. Earlier alpha.4 screenshots and downloads represent an older product. [Owner test checklist PL/EN](../testing/owner-smoke.md) records checks separately from the release's automated results.
 
 ### Requirements and first launch
 
-Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. The VSIX includes Node runtime bundles, conversion worker and offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
+Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
 Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
 
@@ -166,7 +178,7 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 ## Local document conversion and OCR
 
-Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or **OCR all pages**. Auto retains text pages and OCRs pages without usable text. Bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
+Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
 ![Choose a PDF OCR mode](../assets/screenshots/13-ocr.png)
 
@@ -200,7 +212,7 @@ Builder limits are stricter than standalone conversion:
 | Request/candidates | 256 KiB prepared request; 128 candidates, 32 aliases, 64 relationships | no LLM |
 | Work deadline | 360 seconds; generation 120 seconds capped by remaining time | 120 seconds without OCR; OCR deadline 300 seconds |
 
-Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas, 16 MP embedded image; Office ZIP 1000 entries, 100 MiB inflated total, 25 MiB per entry, 100:1 ratio; XLSX 40 sheets, 20000 rows, 150 columns, 250000 cells. PDF loses layout/table structure; DOCX excludes images/external resources and complex layout may lose fidelity; XLSX uses cached formula values, never recalculation. DOC/XLS are unsupported. PL/EN OCR models are bundled offline. Cancel/failure returns no partial conversion or candidates. Worker closure/cleanup can extend beyond the work deadline. See [full extraction limits](../document-candidates.md#limits-and-cancellation).
+Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas, 16 MP embedded image; Office ZIP 1000 entries, 100 MiB inflated total, 25 MiB per entry, 100:1 ratio; XLSX 40 sheets, 20000 rows, 150 columns, 250000 cells. PDF loses layout/table structure; DOCX excludes images/external resources and complex layout may lose fidelity; XLSX uses cached formula values, never recalculation. DOC/XLS are unsupported. Full bundles PL/EN OCR models offline; Core reports pages requiring OCR. Cancel/failure returns no partial conversion or candidates. Worker closure/cleanup can extend beyond the work deadline. See [full extraction limits](../document-candidates.md#limits-and-cancellation).
 
 ## Active file and Knowledge Browser
 
@@ -299,7 +311,7 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](../assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](../product-roadmap.md), [technical state](../project-state.md). The earlier public alpha.6 predates these local additions. The current local order is SRC1 → VER1 → D3 → D4 → MCP1; MCP1 remains planned.
+Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](../product-roadmap.md), [technical state](../project-state.md). The earlier public alpha.6 predates these local additions. The current local order is SRC1 → VER1 → D3 → D4 → MCP1; MCP1 is implemented in the local candidate; acceptance is recorded separately.
 ## Local Structurizr source — SRC1 candidate
 
 This section applies to the local SRC1 candidate, not the downloadable alpha.6 release.

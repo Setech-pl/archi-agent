@@ -16,7 +16,7 @@ export interface DiagramArtifact {
   readonly report: Readonly<Record<string, CanonicalValue>>;
   readonly metadata: Readonly<Record<string, CanonicalValue>>;
 }
-const sourceLocations = new WeakMap<DiagramArtifact, { pack: string; model?: string; flow: string | null }>();
+const sourceLocations = new WeakMap<DiagramArtifact, { pack: string|null; model?: string; flow: string | null }>();
 const completed = new WeakSet<DiagramArtifact>();
 const hash = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 function freeze<T>(value: T): T {
@@ -84,7 +84,7 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
   }
   const configuration = {
     ...("c4Selection" in request && request.c4Selection ? {c4Selection:{systemId:(request.c4Selection as {systemId:string}).systemId,expectedKnowledgeDigest:(request.c4Selection as {expectedKnowledgeDigest:string}).expectedKnowledgeDigest}} : {}),
-    ...(request.knowledgePack.kind === "structurizr-json" ? { architectureSource: { kind: request.knowledgePack.kind, sourceId: request.knowledgePack.sourceId } } : {}),
+    ...(request.knowledgePack.kind !== "local-directory" ? { architectureSource: { kind: request.knowledgePack.kind, sourceId: request.knowledgePack.sourceId } } : {}),
     diagramType, generationPath: report.generationPath ?? "compatibility-sequence",
     generatorKind: request.generator.kind,
     providerProfileId: "profileId" in request.generator ? safeProviderProfileId(request.generator.profileId) : "local-lm-studio",
@@ -109,7 +109,7 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
       warnings: result.warnings.map((w) => ({ code: w.code, severity: w.severity, message: w.message,
         ...(w.file ? { file: w.file } : {}), ...(w.line ? { line: w.line } : {}) })) }
   });
-  sourceLocations.set(artifact, { pack: request.knowledgePack.kind === "local-directory" ? request.knowledgePack.path : request.knowledgePack.overlayPath, ...(request.knowledgePack.kind === "structurizr-json" ? { model: request.knowledgePack.modelPath } : {}), flow: request.flow.kind === "file" ? request.flow.path : null });
+  sourceLocations.set(artifact, { pack: request.knowledgePack.kind === "local-directory" ? request.knowledgePack.path : request.knowledgePack.kind === "structurizr-json" ? request.knowledgePack.overlayPath : null, ...(request.knowledgePack.kind === "structurizr-json" ? { model: request.knowledgePack.modelPath } : {}), flow: request.flow.kind === "file" ? request.flow.path : null });
   completed.add(artifact);
   return artifact;
 }

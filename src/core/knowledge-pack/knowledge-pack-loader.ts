@@ -388,9 +388,8 @@ export function crossFileIssues(pack: KnowledgePack): KnowledgePackLoadIssue[] {
   const systemIds = new Set(pack.systems.map((record) => record.id));
   const actorIds = new Set(pack.actors.map((record) => record.id));
   const isDeclared = (id: string): boolean => systemIds.has(id) || actorIds.has(id);
-  const at = (record: { readonly location: { readonly file: string; readonly line: number } }, column: string) => ({
-    file: record.location.file,
-    line: record.location.line,
+  const at = (record: { readonly location?: { readonly file: string; readonly line: number } }, column: string) => ({
+    ...(record.location?{file: record.location.file,line: record.location.line}:{}),
     column
   });
 

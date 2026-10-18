@@ -1,3 +1,4 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "./profile-availability.js";
 import type * as vscode from "vscode";
 import {
   anthropicRemoteProfileId,
@@ -31,11 +32,13 @@ export async function storeApiKey(secrets: vscode.SecretStorage, profile: Provid
   if (profile.credentialRequirement !== "api-key" || id === undefined || !validation.ok) {
     throw new Error("invalid-api-key");
   }
+  assertProfileAvailable();
   await secrets.store(id, validation.value);
 }
 
 export async function deleteApiKey(secrets: vscode.SecretStorage, profile: ProviderProfile): Promise<void> {
   const id = secretIdForProfile(profile.profileId);
   if (profile.credentialRequirement !== "api-key" || id === undefined) throw new Error("credential-not-supported");
+  assertProfileAvailable();
   await secrets.delete(id);
 }

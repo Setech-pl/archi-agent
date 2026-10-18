@@ -29,7 +29,7 @@ export type ExtractDocumentCandidatesOutcome =
   | { readonly status: "failed" | "cancelled"; readonly stage: string; readonly code: string; readonly logicalRequests: 0 | 1 };
 export interface DocumentExtractionOptions {
   /** Existing converter composition seam; production resolves sibling packaged resources. */
-  readonly conversion?: Pick<ConvertDocumentOptions, "workerFile" | "ocrParentFile">;
+  readonly conversion?: Pick<ConvertDocumentOptions, "workerFile" | "ocrParentFile" | "distributionDirectory">;
 }
 const sha = (bytes: Uint8Array | string): string => createHash("sha256").update(bytes).digest("hex");
 const size = (value: unknown): number => Buffer.byteLength(candidateCanonical(value));

@@ -22,7 +22,7 @@ exports.run=async()=>{
  vscode.window.showInformationMessage=async()=>undefined;vscode.window.showErrorMessage=async()=>undefined;
  const check=async(id,fn)=>{try{await fn();results.push({id:id+'-'+settings.mode,status:'PASS',layer:'actual Extension Host, controlled editor answers'});}catch(e){results.push({id:id+'-'+settings.mode,status:'FAIL',error:e.stack});}};
  try{
-  const extension=vscode.extensions.getExtension('setech-pl.archi-agent');assert(extension);
+  const extension=(vscode.extensions.getExtension('setech-pl.archi-agent-core')??vscode.extensions.getExtension('setech-pl.archi-agent'));assert(extension);
   Module._load=function(request,parent,...rest){return request==='vscode'&&parent?.filename===path.join(extension.extensionPath,'dist/extension.js')?vscode:load.call(this,request,parent,...rest);};await extension.activate();Module._load=load;
   const cfg=vscode.workspace.getConfiguration('archiAgent',folder?.uri),global=vscode.workspace.getConfiguration('archiAgent');
   await cfg.update('architectureSource',config,folder?vscode.ConfigurationTarget.WorkspaceFolder:vscode.ConfigurationTarget.Global);

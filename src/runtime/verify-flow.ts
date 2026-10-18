@@ -1,3 +1,4 @@
+import type { LocalReadPolicy } from "../node/local-read-policy.js";
 import path from "node:path";
 import { inspectArchitectureSource } from "./architecture-source.js";
 import type { CancellationSignal, GeneratorConfig, KnowledgePackSourceConfig } from "./runtime-types.js";
@@ -25,7 +26,7 @@ type Loaded=Extract<Awaited<ReturnType<typeof inspectArchitectureSource>>,{ok:tr
 export interface AliasSavePlan {readonly id:string;readonly path:string;readonly expectedText:string;readonly expectedSha256:string;readonly proposedText:string;readonly appendText:string;readonly snapshotDigest:string}
 export type AliasSavePlanOutcome={status:"prepared";plan:AliasSavePlan}|{status:"unchanged"|"session-only"|"stale-source"|"conflict"|"cancelled"|"failed";code:string};
 
-export async function startFlowVerification(request:VerifyFlowRequest,client:()=>Promise<StructuredChatClient>):Promise<VerifyFlowStart> {
+export async function startFlowVerification(request:VerifyFlowRequest,client:()=>Promise<StructuredChatClient>,localReadPolicy?:LocalReadPolicy):Promise<VerifyFlowStart> {
   request={ ...request,input:freezeVerification({...request.input}),knowledgePack:freezeVerification({...request.knowledgePack}),...(request.interpreter?{interpreter:freezeVerification({...request.interpreter})}:{}) };
   if(request.signal?.aborted)return {status:"cancelled",code:"cancelled"};
   const {text,format,fileName,firstLine}=request.input;
@@ -35,7 +36,7 @@ export async function startFlowVerification(request:VerifyFlowRequest,client:()=
     containsControlCharacter(text.replace(/[\n\r\t]/g,""))||text.length>(format==="prose"?50_000:256*1024))return {status:"invalid-input",code:"input-invalid"};
   const parsed=format==="plantuml-sequence"?parseSequenceVerification(text):undefined;
   if(parsed&&!parsed.ok)return {status:parsed.code==="unsupported"?"unsupported":"invalid-input",code:parsed.code,issues:parsed.issues};
-  const loaded=await inspectArchitectureSource(request.knowledgePack,request.signal);
+  const loaded=await inspectArchitectureSource(request.knowledgePack,request.signal,localReadPolicy);
   if(request.signal?.aborted)return {status:"cancelled",code:"cancelled"};
   if(!loaded.ok)return {status:"failed",code:loaded.code};
   let interpreted:InterpretationResult|undefined=parsed;
@@ -45,7 +46,7 @@ export async function startFlowVerification(request:VerifyFlowRequest,client:()=
   }
   if(!interpreted)return {status:"failed",code:"interpretation-failed"};
   if(!interpreted.ok)return {status:interpreted.code==="cancelled"?"cancelled":"failed",code:interpreted.code};
-  const session=new FlowVerificationSession(request,loaded,interpreted.value,interpreted.issues);
+  const session=new FlowVerificationSession(request,loaded,interpreted.value,interpreted.issues,localReadPolicy);
   return {...session.current(),session};
 }
 
@@ -53,7 +54,7 @@ export async function startFlowVerification(request:VerifyFlowRequest,client:()=
 export class FlowVerificationSession {
   readonly #request:VerifyFlowRequest;readonly #loaded:Loaded;readonly #interpretation:InterpretedFlow;readonly #issues:readonly SyntaxIssue[];
   #decisions:NameDecision[]=[];#savePlan:AliasSavePlan|undefined;
-  constructor(request:VerifyFlowRequest,loaded:Loaded,interpretation:InterpretedFlow,issues:readonly SyntaxIssue[]) {
+  constructor(request:VerifyFlowRequest,loaded:Loaded,interpretation:InterpretedFlow,issues:readonly SyntaxIssue[],private readonly localReadPolicy?:LocalReadPolicy) {
     this.#request=request;this.#loaded=loaded;this.#interpretation=interpretation;this.#issues=issues;
   }
   current():Extract<VerifyFlowOutcome,{report:VerifyFlowReport}> {
@@ -63,7 +64,7 @@ export class FlowVerificationSession {
   }
   async #fresh(source:KnowledgePackSourceConfig,signal?:CancellationSignal):Promise<Loaded|undefined> {
     if(signal?.aborted||JSON.stringify(source)!==JSON.stringify(this.#request.knowledgePack))return undefined;
-    const live=await inspectArchitectureSource(source,signal);
+    const live=await inspectArchitectureSource(source,signal,this.localReadPolicy);
     return live.ok&&live.sourceFingerprint===this.#loaded.sourceFingerprint&&!signal?.aborted?live:undefined;
   }
   async resolveNames(request:{expectedSnapshotDigest:string;decisions:readonly NameDecision[];currentSource:KnowledgePackSourceConfig;signal?:CancellationSignal}):Promise<VerifyFlowOutcome> {
@@ -110,7 +111,7 @@ export class FlowVerificationSession {
     if(signal?.aborted)return {status:"cancelled",code:"cancelled"};
     if(!this.#savePlan||this.#savePlan.id!==planId)return {status:"conflict",code:"alias-plan-invalid"};
     if(JSON.stringify(source)!==JSON.stringify(this.#request.knowledgePack))return {status:"stale-source",code:"source-changed"};
-    const live=await inspectArchitectureSource(source,signal);
+    const live=await inspectArchitectureSource(source,signal,this.localReadPolicy);
     if(!live.ok||signal?.aborted)return {status:signal?.aborted?"cancelled":"conflict",code:"alias-save-unverified"};
     for(const [f,t] of Object.entries(this.#loaded.sourceTexts)) if(live.sourceTexts[f]!== (f==="aliases.md"?this.#savePlan.proposedText:t))return {status:"stale-source",code:"source-changed"};
     this.#savePlan=undefined;return {status:"saved",code:"alias-saved"};

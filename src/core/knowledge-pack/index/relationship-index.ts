@@ -11,7 +11,7 @@ const noRelationships: readonly RelationshipRecord[] = Object.freeze([]);
 const noStrings: readonly string[] = Object.freeze([]);
 
 function frozenCopy(record: RelationshipRecord): RelationshipRecord {
-  return Object.freeze({ ...record, location: Object.freeze({ ...record.location }) });
+  return Object.freeze({ ...record, ...(record.location?{location:Object.freeze({ ...record.location })}:{}) });
 }
 
 export function compareRelationships(left: RelationshipRecord, right: RelationshipRecord): number {
@@ -21,8 +21,8 @@ export function compareRelationships(left: RelationshipRecord, right: Relationsh
     stableCompare(left.interfaceType, right.interfaceType) ||
     stableCompare(left.interfaceName ?? "", right.interfaceName ?? "") ||
     stableCompare(left.mode, right.mode) ||
-    stableCompare(left.location.file, right.location.file) ||
-    left.location.line - right.location.line
+    stableCompare(left.location?.file??"", right.location?.file??"") ||
+    (left.location?.line??0) - (right.location?.line??0)
   );
 }
 

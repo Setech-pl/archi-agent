@@ -1,0 +1,34 @@
+// Installed candidate: visible MCP knowledge configuration and profile-specific PDF controls.
+import assert from 'node:assert/strict';
+import {spawn,spawnSync,execFileSync} from 'node:child_process';
+import {mkdirSync,readFileSync,writeFileSync,copyFileSync,cpSync,existsSync,renameSync} from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {prepareVscode,vscodeBinary} from './ux3-vscode-smoke.mjs';
+import {Cdp,freePort,waitFor} from './ux3-real-ui-smoke.mjs';
+import {WebviewUi} from './ux4-webview-ui.mjs';
+const [vsix,tarball,profile,outArg]=process.argv.slice(2),out=path.resolve(outArg);mkdirSync(out,{recursive:true});
+const env=prepareVscode(path.resolve(vsix),'MCP1-'+profile),project=path.join(env.root,'project');mkdirSync(project);cpSync('test/fixtures/structurizr/big-bank-plc',path.join(project,'bank'),{recursive:true});
+execFileSync('tar',['-xzf',path.resolve(tarball),'-C',env.root]);
+const knowledgeConfig=path.join(env.root,'knowledge.json');writeFileSync(knowledgeConfig,JSON.stringify({schemaVersion:1,readRoots:{project},sources:{bank:{kind:'structurizr-json',sourceId:'big-bank',model:{root:'project',path:'bank/workspace.json'},overlay:{root:'project',path:'bank/overlay'}}},providers:{}}));
+const settingsPath=path.join(env.user,'User/settings.json'),settings=JSON.parse(readFileSync(settingsPath));
+const server={command:process.execPath,args:[path.join(env.root,'package/bin/archi-agent-knowledge-server.cjs'),'--config',knowledgeConfig],timeoutMs:10000};
+Object.assign(settings,{'archiAgent.architectureSource':{kind:'mcp',sourceId:'bank'},'archiAgent.knowledgeServer':server,'window.title':'Archi Agent MCP1 '+profile,'editor.minimap.enabled':false});writeFileSync(settingsPath,JSON.stringify(settings));
+mkdirSync(path.join(project,'.vscode'));writeFileSync(path.join(project,'.vscode/settings.json'),JSON.stringify({'archiAgent.knowledgeServer':{command:'/does-not-exist/workspace-override',args:[]}}));
+const pdf=path.join(project,'text.pdf');copyFileSync('test/fixtures/document-conversion/two-pages.pdf',pdf);const scan=path.join(project,'scan.pdf');copyFileSync('test/fixtures/document-conversion/no-text.pdf',scan);
+let child,cdp,ui;const logs=[],results=[];
+const run=(bin,args)=>{const r=spawnSync(bin,args,{encoding:'utf8',timeout:60000});assert.equal(r.status,0,r.stderr);};
+const check=async(id,fn)=>{try{await fn();results.push({id,status:'PASS',layer:'visible installed VS Code UI'});}catch(e){results.push({id,status:'FAIL',error:e.stack});throw e;}};
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+async function convert(file){await cdp.palette('Archi: Convert to Markdown');run(path.join(out,'picker'),[String(child.pid),file]);await cdp.expectTitle('Archi Agent: PDF conversion — '+(profile==='core'?'Core (OCR all pages unavailable)':'Full'));}
+try{
+ run('/usr/bin/swiftc',['scripts/k3-native-picker.swift','-o',path.join(out,'picker')]);
+ const port=await freePort();child=spawn(vscodeBinary,['--user-data-dir',env.user,'--extensions-dir',env.extensions,`--remote-debugging-port=${port}`,'--skip-welcome','--skip-release-notes','--new-window',project],{stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>logs.push(b));child.stderr.on('data',b=>logs.push(b));
+ const target=await waitFor(async()=>{try{return(await(await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(i=>i.type==='page'&&/workbench/u.test(i.url));}catch{}},'renderer',30000),socket=new WebSocket(target.webSocketDebuggerUrl);await new Promise((r,j)=>{socket.addEventListener('open',r,{once:true});socket.addEventListener('error',j,{once:true});});cdp=new Cdp(socket);ui=new WebviewUi(cdp);await delay(3000);
+ await check('User-only-MCP-configuration-and-source-validation',async()=>{await cdp.palette('Archi: Configuration');await ui.wait('#pack-path','document.querySelector("#pack-path").textContent.includes("MCP knowledge") && document.querySelector("#counts").textContent.includes("relationships: 18")');await cdp.screenshot(path.join(out,'knowledge.png'));});
+ await check('MCP-unavailable-no-local-fallback-and-recovery',async()=>{const executable=server.args[0],originalHash=createHash('sha256').update(readFileSync(executable)).digest('hex');renameSync(executable,executable+'.disabled');try{await ui.click('#refresh');await ui.wait('#validation','document.querySelector("#validation").textContent.includes("mcp-knowledge")');const failure=await ui.read('#validation','({counts:document.querySelector("#counts").textContent,validation:document.querySelector("#validation").textContent,source:document.querySelector("#pack-path").textContent})');assert.equal(failure.counts,'');assert(!failure.validation.includes('Valid —'));assert(failure.source.includes('MCP knowledge'));writeFileSync(path.join(out,'source-failure-state.json'),JSON.stringify(failure,null,2));await cdp.screenshot(path.join(out,'source-failure.png'));}finally{renameSync(executable+'.disabled',executable);assert.equal(createHash('sha256').update(readFileSync(executable)).digest('hex'),originalHash,'restored knowledge executable bytes');}await ui.click('#refresh');await ui.wait('#counts','document.querySelector("#counts").textContent.includes("relationships: 18")');});
+ await check('profile-PDF-controls-and-text-conversion',async()=>{await convert(pdf);const labels=await cdp.read('Array.from(document.querySelectorAll(".quick-input-list .label-name")).map(e=>e.textContent)');assert.equal(labels.includes('OCR all pages'),profile==='full');await cdp.screenshot(path.join(out,'pdf-modes.png'));await cdp.text('Auto OCR');await cdp.chooseLabel('Auto OCR');await waitFor(()=>cdp.read('Array.from(document.querySelectorAll(".tab.active")).some(e=>e.textContent.includes("Untitled"))'),'converted Markdown editor',30000);await cdp.screenshot(path.join(out,'text-converted.png'));});
+ if(profile==='core')await check('Core-auto-scan-reports-OCR-unavailable',async()=>{await convert(scan);await cdp.text('Auto OCR');await cdp.chooseLabel('Auto OCR');await waitFor(()=>cdp.read('document.body.textContent.includes("OCR is not installed in Core")'),'Core OCR message');await cdp.screenshot(path.join(out,'core-ocr-unavailable.png'));});
+}catch(e){if(cdp){await cdp.screenshot(path.join(out,'failure.png')).catch(()=>{});writeFileSync(path.join(out,'failure-dom.html'),await cdp.read('document.body.innerHTML').catch(()=>''));}writeFileSync(path.join(out,'failure.txt'),e.stack);process.exitCode=1;}
+finally{ui?.dispose();cdp?.socket.close();child?.kill('SIGTERM');writeFileSync(path.join(out,'ui.log'),Buffer.concat(logs));writeFileSync(path.join(out,'report.json'),JSON.stringify({vsix:path.resolve(vsix),sha256:createHash('sha256').update(readFileSync(vsix)).digest('hex'),profile,environment:env,realLlm:false,results},null,2));}
+console.log(JSON.stringify(results,null,2));if(results.length!==(profile==='core'?4:3)||results.some(r=>r.status!=='PASS'))process.exitCode=1;

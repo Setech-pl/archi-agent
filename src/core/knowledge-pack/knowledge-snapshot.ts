@@ -1,3 +1,4 @@
+import {sourceReferenceSchema,type SourceReference} from "./source-reference.js";
 import type { DocumentProvenance } from "./document-provenance.js";
 import {
   actorRowSchema, aliasRowSchema, knowledgePackTables, relationshipRowSchema, ruleRowSchema, systemRowSchema,
@@ -14,6 +15,7 @@ export type KnowledgeRecord<K extends KnowledgePackTableKind> = Omit<RecordByTab
   readonly location?: SourceLocation;
 };
 export interface KnowledgeSource {
+  readonly reference?: SourceReference;
   /** Stable logical identity, never an endpoint, credential or absolute path. */
   readonly id: string;
   readonly kind: string;
@@ -124,7 +126,8 @@ export function createKnowledgeSnapshot(contributions: readonly KnowledgeContrib
         !/^[a-z0-9][a-z0-9-]{0,63}$/.test(source.id) || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(source.kind) ||
         sources.some((entry) => entry.id === source.id) || Object.keys(source.scope).some((key) => !tables.includes(key as KnowledgePackTableKind)) ||
         Object.keys(records).some((key) => !tables.includes(key as KnowledgePackTableKind))) throw new Error("knowledge-source-invalid");
-    sources.push({ id: source.id, kind: source.kind, scope: Object.fromEntries(tables.flatMap((table) =>
+    if(suppliedSource.reference&&!sourceReferenceSchema.safeParse(suppliedSource.reference).success)throw new Error("knowledge-source-invalid");
+    sources.push({ ...(suppliedSource.reference?{reference:{...suppliedSource.reference}}:{}),id: source.id, kind: source.kind, scope: Object.fromEntries(tables.flatMap((table) =>
       source.scope[table] === undefined ? [] : [[table, source.scope[table]]])),
       ...(suppliedSource.files ? { files: suppliedSource.files.map((f: { file: string; sha256: string }) => {
         if (!validateRelativePath(f.file).ok || !/^[a-f0-9]{64}$/.test(f.sha256)) throw new Error("knowledge-source-invalid");
@@ -152,7 +155,7 @@ export function createKnowledgeSnapshot(contributions: readonly KnowledgeContrib
           throw new Error("knowledge-provenance-invalid");
         const provenance = { sourceId: source.id, ...(location === undefined ? {} : { location: { file: location.file, line: location.line } }) };
         const proofs = record.provenance === undefined ? [provenance] : record.provenance.map((p: KnowledgeProvenance) => {
-          if (!contributions.some(c => c.source.id === p.sourceId) ||
+          if (p.reference&&!sourceReferenceSchema.safeParse(p.reference).success || !contributions.some(c => c.source.id === p.sourceId) ||
               p.location && (!validateRelativePath(p.location.file).ok || !Number.isSafeInteger(p.location.line) || p.location.line < 1) ||
               p.fields && p.fields.some(f => !(f in value)) ||
               [p.externalId, p.originalName, p.externalKind, p.parentId].some(v => v !== undefined && (typeof v !== "string" || v.length > 256 || containsControlCharacter(v))))

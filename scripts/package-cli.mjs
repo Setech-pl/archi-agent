@@ -1,0 +1,12 @@
+import {mkdirSync,copyFileSync,writeFileSync,readFileSync,chmodSync}from'node:fs';
+import {execFileSync}from'node:child_process';
+import path from'node:path';
+import {buildCli}from'./build-cli.mjs';
+const out=path.resolve(process.argv[2]??'build/mcp1/cli-package');mkdirSync(out,{recursive:true});
+const stage=path.join(out,'package');await buildCli(stage);
+for(const [source,target]of [['distribution/cli/package.json','package.json'],['LICENSE','LICENSE.txt'],['docs/en/cli-mcp.md','README.md'],['docs/pl/cli-mcp.md','README.pl.md']])copyFileSync(source,path.join(stage,target));
+writeFileSync(path.join(stage,'distribution-profile.json'),JSON.stringify({schemaVersion:1,profile:'core',ocr:{required:false}})+'\n');
+chmodSync(path.join(stage,'bin/archi-agent.cjs'),0o755);chmodSync(path.join(stage,'bin/archi-agent-knowledge-server.cjs'),0o755);
+const p=JSON.parse(readFileSync(path.join(stage,'package.json'))),file=path.join(out,`archi-agent-cli-${p.version}.tgz`);
+execFileSync('tar',['-czf',file,'--exclude=package/.bundles','--exclude=package/build-inputs.json','package'],{cwd:out});
+console.log(file);

@@ -18,11 +18,11 @@ npm run typecheck
 npm run extension:typecheck
 npm run extension:test
 npm run extension:build
-npm run extension:package -- --out build/docs-pl-en/<unique-run>/candidate
-npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-0.3.0-alpha.4.vsix
+npm run extension:package -- --profile core --out build/docs-pl-en/<unique-run>/candidate
+npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.7.vsix
 ```
 
-Replace `<unique-run>` with a new run directory name; do not reuse candidate outputs. `npm ci` preserves locked optional platform bindings; avoid ordinary `npm install` in this repo. Packaging rebuilds the extension/runtime/converter bundles and offline OCR assets. The root and OCR dependency sets must be present. Packaging/gauntlets sharing OCR staging directories run sequentially. `extension:verify` checks the exact VSIX allowlist, bundle boundaries and resource hashes. Record size and SHA-256 with the source commit/tree and actual changes; package version alone is insufficient.
+Replace `<unique-run>` with a new run directory name; do not reuse candidate outputs. `npm ci` preserves locked optional platform bindings; avoid ordinary `npm install` in this repo. Packaging rebuilds the extension/runtime/converter bundles. Core is the default and needs only root dependencies; Full additionally requires the OCR dependency set and pinned assets. Use --profile full explicitly for that package. Packaging/gauntlets sharing OCR staging directories run sequentially. `extension:verify` checks the exact VSIX allowlist, bundle boundaries and resource hashes. Record size and SHA-256 with the source commit/tree and actual changes; package version alone is insufficient.
 
 Use focused checks for routine changes. Product code needs relevant tests, typechecks and build; runtime/bundling changes also need package/verify. Functional checkpoints require the full applicable gates. Milestone commands `ux3:gauntlet`, `k1:gauntlet`, `k2:gauntlet`, `k3:gauntlet`, `art1:gauntlet`, `ux4:gauntlet` exist in the root manifest; run only those justified by the scope. DOC1 uses documentation checks, diagram/media validation, build/package/verify and exact-VSIX UI demonstrations, without repeating functional gauntlets or inheriting historical PASS counts. [Stable workflow](../development-workflow.md) owns the process.
 
@@ -47,3 +47,7 @@ npm run local:models
 npm run demo:llm:dry-run -- qwen/qwen3-14b
 npm run demo:llm -- qwen/qwen3-14b
 ```
+
+## MCP1
+
+Run the complete local acceptance with Node 22.12.0: `npm run mcp1:verify -- build/mcp1/<unique-run>`. It includes fresh Core/Full packages and CLI tarball, independent bundle parity, actual Host/UI, OCR integrity and previous-version profile upgrades. The Full predecessor must be the exact locally verified alpha.6 identified in the plan. Each run preserves its own reports; failures are never overwritten. Owner smoke and real-model quality remain separate. [CLI/MCP instructions](cli-mcp.md).
