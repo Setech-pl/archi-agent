@@ -223,16 +223,16 @@ Save success follows exact-byte/load/ownership checks and a final cancellation c
 
 The text above is complete without animation. [Media and provenance](../assets/README.md) explain the controlled synthetic transport; recordings demonstrate the earlier DOC1 UI, not the new UX4 screens, live LLM quality or manual test results. Follow the current text instructions for UX4.
 
-[Choose a pack and generate](../assets/choose-pack-generate.gif) — configure Alpha/Beta's existing pack, choose Sequence and a flow, inspect the result/report. [Static preview](../assets/choose-pack-generate.png).
+[Choose a pack and generate](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/choose-pack-generate.gif) — configure Alpha/Beta's existing pack, choose Sequence and a flow, inspect the result/report. [Static preview](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/choose-pack-generate.png).
 
-![Actual VS Code selection of an existing Knowledge Pack, followed by Sequence generation and its report](../assets/choose-pack-generate.gif)
 
-[Documents to review to save](../assets/documents-review-save.gif) — select `source.md`, inspect proposals, edit Beta's description, accept, preview, save in a new folder. [Static preview](../assets/documents-review-save.png).
 
-![Actual VS Code document picker, candidate review and new Knowledge Pack save](../assets/documents-review-save.gif)
+[Documents to review to save](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/documents-review-save.gif) — select `source.md`, inspect proposals, edit Beta's description, accept, preview, save in a new folder. [Static preview](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/documents-review-save.png).
 
-[Save the original pair](../assets/save-original-pair.gif) — select the completed Sequence result, confirm the new folder, save and open its report. [Static preview](../assets/save-original-pair.png).
 
-![Actual VS Code original result selection, ART1 native confirmation and saved report](../assets/save-original-pair.gif)
+
+[Save the original pair](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/save-original-pair.gif) — select the completed Sequence result, confirm the new folder, save and open its report. [Static preview](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/save-original-pair.png).
+
+
 
 Own code/docs use [MIT](../../LICENSE); bundled components retain [their notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR licenses](../../experiments/ux2-ocr/TRIAL_NOTICES.md). MCP, EA acquisition, Context/Container, ArchiMate, Chat and retry/repair remain planned. Do not use roadmap entries as instructions for current UI.

@@ -223,16 +223,16 @@ Sukces następuje po sprawdzeniu dokładnych bajtów/wczytania/własności i fin
 
 Powyższy tekst jest kompletny bez animacji. [Media i pochodzenie](../assets/README.md) opisują kontrolowany syntetyczny transport; nagrania pokazują wcześniejsze UI DOC1, a nie nowe ekrany UX4, jakość żywego LLM ani wyniki ręcznych testów. Dla UX4 stosuj aktualne instrukcje tekstowe.
 
-[Wybór packa i generowanie](../assets/choose-pack-generate.gif) — skonfiguruj istniejący pack Alpha/Beta, wybierz Sequence i przepływ, sprawdź wynik/raport. [Statyczny podgląd](../assets/choose-pack-generate.png).
+[Wybór packa i generowanie](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/choose-pack-generate.gif) — skonfiguruj istniejący pack Alpha/Beta, wybierz Sequence i przepływ, sprawdź wynik/raport. [Statyczny podgląd](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/choose-pack-generate.png).
 
-![Prawdziwy VS Code: wybór istniejącego Knowledge Pack, generowanie Sequence i jego raport](../assets/choose-pack-generate.gif)
 
-[Dokumenty, review, zapis](../assets/documents-review-save.gif) — wybierz `source.md`, obejrzyj propozycje, zmień opis Beta, zaakceptuj, sprawdź preview i zapisz w nowym folderze. [Statyczny podgląd](../assets/documents-review-save.png).
 
-![Prawdziwy VS Code: wybór dokumentu, review kandydatów i zapis nowego Knowledge Pack](../assets/documents-review-save.gif)
+[Dokumenty, review, zapis](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/documents-review-save.gif) — wybierz `source.md`, obejrzyj propozycje, zmień opis Beta, zaakceptuj, sprawdź preview i zapisz w nowym folderze. [Statyczny podgląd](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/documents-review-save.png).
 
-[Zapis oryginalnej pary](../assets/save-original-pair.gif) — wybierz ukończony wynik Sequence, potwierdź nowy folder, zapisz i otwórz raport. [Statyczny podgląd](../assets/save-original-pair.png).
 
-![Prawdziwy VS Code: wybór oryginalnego wyniku, natywne potwierdzenie ART1 i zapisany raport](../assets/save-original-pair.gif)
+
+[Zapis oryginalnej pary](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/save-original-pair.gif) — wybierz ukończony wynik Sequence, potwierdź nowy folder, zapisz i otwórz raport. [Statyczny podgląd](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/save-original-pair.png).
+
+
 
 Własny kod/dokumentacja używa [MIT](../../LICENSE); cudze składniki zachowują [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) i [licencje OCR](../../experiments/ux2-ocr/TRIAL_NOTICES.md). MCP, pobieranie EA, Context/Container, ArchiMate, Chat oraz retry/repair są planowane. Wpisy roadmapy nie opisują obecnego UI.

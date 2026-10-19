@@ -1,6 +1,6 @@
-# Archi Agent — Pomoc
+# Instrukcja użytkownika
 
-[English](readme.md) · **Polski**
+[English](readme.md) · **Polski** · [Strona główna](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/README.pl.md)
 
 ## Zacznij tutaj — pierwsze użycie
 
@@ -27,11 +27,11 @@ PDF może więc stać się tekstem po konwersji, potem kandydatami i zaakceptowa
 
 ## Wersja i wymagania
 
-Instrukcja opisuje bieżący checkpoint gałęzi UX4-FU2 na bazie `6863a30`. Publiczne pobranie `v0.3.0-alpha.4` zawiera UX2; późniejsze funkcje OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 wymagają wskazanego lokalnego kandydata. Zobacz wybór pakietu i sumy kontrolne.
+Instrukcja opisuje bieżący checkpoint gałęzi UX4-FU2 na bazie `6863a30`. Publiczne pobranie `v0.3.0-alpha.4` zawiera UX2; późniejsze funkcje OBS1/UX3/K1–K3/ART1/UX4/UX4-FU1 wymagają wskazanego lokalnego kandydata. Zobacz [wybór pakietu i sumy kontrolne](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/README.pl.md#wybierz-właściwy-pakiet).
 
 Potrzebujesz desktopowego VS Code zgodnego z deklaracją `^1.91.0`, lokalnego systemu plików oraz providera modeli do ekstrakcji lub diagramów. VSIX zawiera bundle runtime Node, worker konwersji i zasoby OCR offline; osobne Node/npm nie są potrzebne. Celem 1.0 jest Mac ARM. Dotychczasowa weryfikacja natywnego UI odbyła się na macOS arm64 (VS Code 1.140.0). Pakiet zawiera także bindingi Mac Intel, Linux x64/arm64 GNU i musl oraz Windows x64/arm64 — to pokrycie pakowania, nie weryfikacja natywnego UI tych systemów. Workspace zdalny lub wirtualny nie potwierdza obsługi zdalnych ścieżek dokumentów; używaj lokalnych folderów. W niezaufanym workspace ustawienia objęte ograniczeniami są odczytywane z ustawień użytkownika.
 
-Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence** lub **Component** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje instrukcja deweloperska w repozytorium.
+Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence** lub **Component** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje [instrukcja deweloperska](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/pl/development.md).
 
 ## Provider, profil i model
 
@@ -59,7 +59,7 @@ Przygotuj lokalny serwer/model samodzielnie; rozszerzenie nie pobiera modeli. Ot
 | `archiAgent.defaultAuthor` | autor wpisanego opisu, domyślnie `Archi Agent` |
 | `archiAgent.diagnostics.verbose` | bezpieczna diagnostyka JSON w Output; domyślnie false |
 
-Wybór profilu/modelu ma scope machine: Settings Sync go nie synchronizuje, a workspace nie nadpisuje. Po zmianie profilu wybierz model ponownie; stary binding jest nieaktywny. Preferuj UI zamiast ręcznych zmian ustawień modelu. Lokalne URL dopuszczają dosłowne `127.0.0.1` lub `[::1]` z `/v1`; `localhost`, zdalne hosty, przekierowania i URL z credentialami są odrzucane. Szczegóły: adaptery lokalne, adaptery chmurowe.
+Wybór profilu/modelu ma scope machine: Settings Sync go nie synchronizuje, a workspace nie nadpisuje. Po zmianie profilu wybierz model ponownie; stary binding jest nieaktywny. Preferuj UI zamiast ręcznych zmian ustawień modelu. Lokalne URL dopuszczają dosłowne `127.0.0.1` lub `[::1]` z `/v1`; `localhost`, zdalne hosty, przekierowania i URL z credentialami są odrzucane. Szczegóły: [adaptery lokalne](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/local-model.md), [adaptery chmurowe](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/cloud-models.md).
 
 ## Wybór lub utworzenie aktywnego Knowledge Pack
 
@@ -69,7 +69,7 @@ Otwórz **Configuration → Knowledge Management** (ukryty identyfikator zgodno�
 
 **Create Knowledge Pack** wybiera istniejący folder nadrzędny natywnym pickerem, pyta o jedną nazwę folderu i rzeczywisty system (ID, nazwa, kind, opis), następnie tworzy pięć tabel bez wymyślonych relacji. UX3 nadal obsługuje nowy lub istniejący pusty cel i odrzuca niepuste foldery. Builder dokumentów wymaga nowego folderu. Onboarding pierwszego **Create Diagram** zachowuje natywne Create/Choose/Cancel i edytowalny bezwzględny domyślny cel; nie używa modelu.
 
-Dla małego katalogu demonstracyjnego utwórz Alpha jako `service`, następnie dodaj Beta jako `database` i relację zgodnie z formatem pięciu tabel. Wymaga to świadomej edycji plików i ponownej walidacji; Builder dokumentów nie aktualizuje tego packa. Relacja może mieć `interface_type` `DB`, `interface_name` `Writer` i `mode` `synchronous`.
+Dla małego katalogu demonstracyjnego utwórz Alpha jako `service`, następnie dodaj Beta jako `database` i relację zgodnie z [formatem pięciu tabel](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/knowledge-pack-format.md). Wymaga to świadomej edycji plików i ponownej walidacji; Builder dokumentów nie aktualizuje tego packa. Relacja może mieć `interface_type` `DB`, `interface_name` `Writer` i `mode` `synchronous`.
 
 
 ### Kompletny syntetyczny pack z pięciu plików
@@ -136,7 +136,7 @@ Limity Buildera są mniejsze niż samodzielnej konwersji:
 | Żądanie/kandydaci | 256 KiB gotowego żądania; 128 kandydatów, 32 aliasy, 64 relacje | bez LLM |
 | Deadline pracy | 360 sekund; generowanie 120 sekund ograniczone pozostałym czasem | 120 sekund bez OCR; deadline OCR 300 sekund |
 
-Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowanego canvas, 16 MP osadzonego obrazu; ZIP Office 1000 wpisów, 100 MiB po rozpakowaniu łącznie, 25 MiB na wpis, proporcja 100:1; XLSX 40 arkuszy, 20000 wierszy, 150 kolumn, 250000 komórek. PDF traci układ/strukturę tabel; DOCX pomija obrazy/zasoby zewnętrzne, złożony układ może stracić wierność; XLSX bierze zapisane wyniki formuł, bez przeliczania. DOC/XLS są nieobsługiwane. Modele OCR PL/EN są lokalne. Cancel/błąd nie zwraca częściowej konwersji ani kandydatów. Zamykanie workerów/cleanup może wykroczyć poza deadline pracy. Zobacz pełne limity ekstrakcji.
+Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowanego canvas, 16 MP osadzonego obrazu; ZIP Office 1000 wpisów, 100 MiB po rozpakowaniu łącznie, 25 MiB na wpis, proporcja 100:1; XLSX 40 arkuszy, 20000 wierszy, 150 kolumn, 250000 komórek. PDF traci układ/strukturę tabel; DOCX pomija obrazy/zasoby zewnętrzne, złożony układ może stracić wierność; XLSX bierze zapisane wyniki formuł, bez przeliczania. DOC/XLS są nieobsługiwane. Modele OCR PL/EN są lokalne. Cancel/błąd nie zwraca częściowej konwersji ani kandydatów. Zamykanie workerów/cleanup może wykroczyć poza deadline pracy. Zobacz [pełne limity ekstrakcji](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/document-candidates.md#limits-and-cancellation).
 
 ## Aktywny plik i Knowledge Browser
 
@@ -219,5 +219,22 @@ Lista menu/palety przechowuje wyniki w bieżącym Extension Host, gdy co najmnie
 
 Sukces następuje po sprawdzeniu dokładnych bajtów/wczytania/własności i finalnej kontroli anulowania. Pliki mogą być widoczne stopniowo. To kontrolowane operacje z warunkowym rollbackiem, **nie atomowa publikacja katalogu ani dwóch plików**. Cleanup usuwa tylko zasoby o potwierdzonej własności i niezmienionej treści; niepewne dane zachowuje. Nie ma crash recovery ani gwarancji trwałości fsync; przenośne sprawdzanie ścieżek nie eliminuje wrogich wyścigów między syscallami. Cancel po sukcesie nie cofa danych. Pliki packa i ustawienia VS Code są osobnymi operacjami.
 
+## Demonstracje i licencja
 
-Own code / własny kod: [MIT](LICENSE.txt). Bundled components / składniki: [notices](THIRD_PARTY_NOTICES.md), OCR notices in ux2-ocr/TRIAL_NOTICES.md. [Repository](https://github.com/Setech-pl/archi-agent). Branch build, not a new release.
+Powyższy tekst jest kompletny bez animacji. [Media i pochodzenie](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/README.md) opisują kontrolowany syntetyczny transport; nagrania pokazują wcześniejsze UI DOC1, a nie nowe ekrany UX4, jakość żywego LLM ani wyniki ręcznych testów. Dla UX4 stosuj aktualne instrukcje tekstowe.
+
+[Wybór packa i generowanie](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/choose-pack-generate.gif) — skonfiguruj istniejący pack Alpha/Beta, wybierz Sequence i przepływ, sprawdź wynik/raport. [Statyczny podgląd](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/choose-pack-generate.png).
+
+
+
+[Dokumenty, review, zapis](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/documents-review-save.gif) — wybierz `source.md`, obejrzyj propozycje, zmień opis Beta, zaakceptuj, sprawdź preview i zapisz w nowym folderze. [Statyczny podgląd](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/documents-review-save.png).
+
+
+
+[Zapis oryginalnej pary](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/save-original-pair.gif) — wybierz ukończony wynik Sequence, potwierdź nowy folder, zapisz i otwórz raport. [Statyczny podgląd](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/docs/assets/save-original-pair.png).
+
+
+
+Własny kod/dokumentacja używa [MIT](LICENSE.txt); cudze składniki zachowują [notices](THIRD_PARTY_NOTICES.md) i [licencje OCR](https://github.com/Setech-pl/archi-agent/blob/6b96ff629c33cf6deea65a329cf2b36b54a6539d/experiments/ux2-ocr/TRIAL_NOTICES.md). MCP, pobieranie EA, Context/Container, ArchiMate, Chat oraz retry/repair są planowane. Wpisy roadmapy nie opisują obecnego UI.
+
+OCR notices: [ux2-ocr/TRIAL_NOTICES.md](ux2-ocr/TRIAL_NOTICES.md).
