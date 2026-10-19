@@ -12,32 +12,38 @@ UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i po
 
 ```mermaid
 flowchart TB
-  subgraph Host["Granica rozszerzenia VS Code"]
-    direction TB
-    UI["Polecenia / webview Configuration-Review / Knowledge Browser / Help offline"] --> Settings["Ustawienia / SecretStorage"]
+  subgraph Host["Host VS Code"]
+    UI["Komendy / Configuration / Browser / Help"] --> Settings["Ustawienia / SecretStorage"]
   end
-  subgraph Runtime["Runtime niezależny od hosta"]
-    direction TB
-    App["archi-agent-runtime / extract-document-candidates"] --> Review["knowledge-pack-review / diagram-artifact"]
-  end
-  subgraph Core["Deterministyczny core — bez I/O"]
-    direction TB
-    Knowledge["Loader packa / snapshot K1 / grounding / KPB-A"] --> Pipeline["Plany / walidatory / renderery / raport"]
-  end
-  subgraph Adapters["Adaptery Node i lokalne zasoby pakietu"]
-    direction TB
-    Pack["NodeKnowledgePackSource"] --> Files["Lokalne pliki: odczyt w limitach / zapis exclusive / cleanup"]
-    Conversion["Prywatne kopie / worker konwersji"] --> OCR["PDF.js / canvas / Tesseract WASM + PL/EN"]
-    Providers["LM Studio / Ollama / Anthropic / OpenAI / OpenRouter"]
-  end
+  CLI["Adapter CLI / src/cli"] --> Ops["Kompozycja hosta / readRoots / sekrety środowiska"]
+  MCP["Serwer funkcji MCP / cztery tools / src/mcp"] --> Ops
+  Ops --> App
   UI -->|src/runtime/index.ts| App
+  subgraph Runtime["Runtime niezależny od hosta / src/runtime"]
+    App["Generowanie / VER1 / dokumenty / oryginalne artefakty"]
+  end
+  subgraph Core["Deterministyczny core / bez I-O Node i VS Code"]
+    Knowledge["Snapshot K1 / grounding / provenance"] --> Pipeline["Plany typów / walidatory / renderery / porównanie"]
+  end
+  subgraph Node["Adaptery Node / src/node"]
+    Local["Pack / Structurizr JSON + nakładka"] --> Files["Ograniczone odczyty / wyłączny zapis"]
+    Client["Klient wiedzy MCP / stałe get_knowledge_snapshot"]
+    Providers["StructuredChatClient / dostawca lokalny lub chmurowy"]
+    Conversion["Worker dokumentów / lokalna konwersja"]
+  end
   App --> Knowledge
-  Review --> Knowledge
-  App --> Pack
+  App --> Local
+  App --> Client
+  Client --> KS["Osobny serwer wiedzy MCP / adapter źródła"]
+  KS --> Model["Model architektury / przykład: produkcyjne SRC1 + K1"]
   App --> Conversion
-  Pipeline -->|StructuredChatClient| Providers
-  App -->|StructuredChatClient| Providers
-  Review -->|ART1 / K3 / UX3| Files
+  App --> Files
+  Pipeline --> Providers
+  App --> Providers
+  Build["Wspólny kod / trzy identyczne bundle runtime"] --> CP["Core VSIX / konwersja tekstu / bez OCR"]
+  Build --> FP["Full VSIX / przypięty offline OCR PL-EN"]
+  FP --> OCR["PDF.js / canvas / Tesseract WASM / model resources"]
+  Conversion -->|Full only when OCR needed| OCR
 ```
 
 ## B. Dokumenty i zamrożone wejście
@@ -50,6 +56,8 @@ flowchart LR
   Extract --> Evidence["Deterministyczna walidacja schematu / dowodów / referencji"]
   Evidence --> Review["Decyzje użytkownika / edycje / zwalidowany podgląd"]
   Review --> Pack["NOWY Knowledge Pack pięciu plików / provenance"]
+  Structurizr["Structurizr workspace.json + nakładka / oryginalne ID"] --> Snapshot
+  MCPSource["Wiedza MCP / znormalizowane dane / zakres"] --> Snapshot
   Pack --> Snapshot["Loader / snapshot K1 / deterministyczny grounding"]
   Flow["Opis przepływu / jawne decyzje"] --> Snapshot
   Snapshot --> Plan["JEDNO żądanie generatora / plan typu diagramu"]
@@ -108,7 +116,7 @@ sequenceDiagram
   Core-->>UI: Odrzuć, zero wywołań generacyjnych
   else Poprawny kontekst
   Core->>G: Jedno żądanie planu właściwego dla typu
-  G-->>Core: Nieufny plan Sequence v3 / Component v1
+  G-->>Core: Nieufny plan Sequence / Component / C4 Context / Container
   Core->>Core: Waliduj, rozwiąż, renderuj, sprawdź podzbiór
   alt Lokalne odrzucenie
   Core-->>UI: Odrzuć po jednym wywołaniu, bez review
@@ -192,3 +200,40 @@ Konwersja przyjmuje jeden plik do 50 MiB i wynik do 8 MiB Markdown; deadline bez
 `npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](../project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
 
 Pakowanie MCP1 domyślnie wybiera Core, bez zależności i zasobów OCR. Full zachowuje dotychczasowe ID i przypięte OCR offline, z jawną kontrolą integralności instalacji. Oba profile mają identyczne bundle runtime. [CLI/MCP i profile](cli-mcp.md) opisują ścisłe wersjonowane kontrakty wyniku/źródła oraz konfigurację.
+
+## F. VER1 — snapshot i provenance
+
+```mermaid
+sequenceDiagram
+  participant H as VS Code / CLI / function MCP
+  participant R as Wspólny runtime weryfikacji
+  participant S as Źródło lokalne lub MCP wiedzy
+  participant C as Deterministyczny core
+  participant L as Model interpretacji
+  H->>R: Sequence PlantUML lub proza
+  R->>S: Wczytaj jeden niezmienny snapshot źródła
+  S-->>R: Fakty, digest, zakres i provenance
+  alt Sequence PlantUML
+  R->>C: Ograniczony parser, zero wywołań modelu
+  else Proza
+  R->>L: Jedno ograniczone żądanie interpretacji
+  L-->>R: Nieufna interpretacja z dowodami
+  R->>C: Waliduj interpretację
+  end
+  R->>C: Rozstrzygnij nazwy i porównaj z zamrożonym snapshotem
+  C-->>H: Ocena, kroki, pominięcia, provenance i digesty
+  opt Jawne decyzje nazw / zapis aliasów
+  H->>R: Potwierdź decyzje względem oczekiwanych digestów
+  R->>S: Odczytaj źródło ponownie i sprawdź wersję
+  alt Zmienione źródło lub wejście
+  R-->>H: Nieaktualny wynik, ponów weryfikację
+  else To samo źródło i wejście
+  R->>C: Zastosuj jawne decyzje bez LLM
+  C-->>H: Zaktualizowany raport z provenance
+  end
+  end
+```
+
+Zapis aliasów do nakładki SRC1 jest osobną operacją adaptera VS Code: minimalna edycja i natywny zapis po sprawdzeniu wersji oraz dirty buffer. Dla packa i MCP decyzje pozostają sesyjne; CLI/MCP nie zapisują źródeł. VER1 nie weryfikuje C4.
+
+Wyrenderowane kopie (SVG / PNG): [A SVG](../assets/diagrams/pl-A.svg) / [PNG](../assets/diagrams/pl-A.png) · [B SVG](../assets/diagrams/pl-B.svg) / [PNG](../assets/diagrams/pl-B.png) · [C SVG](../assets/diagrams/pl-C.svg) / [PNG](../assets/diagrams/pl-C.png) · [D SVG](../assets/diagrams/pl-D.svg) / [PNG](../assets/diagrams/pl-D.png) · [E SVG](../assets/diagrams/pl-E.svg) / [PNG](../assets/diagrams/pl-E.png) · [F SVG](../assets/diagrams/pl-F.svg) / [PNG](../assets/diagrams/pl-F.png)

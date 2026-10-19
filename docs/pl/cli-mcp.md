@@ -1,5 +1,7 @@
 # CLI i lokalny MCP — kandydat MCP1
 
+[English](../en/cli-mcp.md) · **Polski**
+
 Lokalny kandydat MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
 oraz dwa profile VS Code. Kandydat nie został opublikowany. Weryfikacja dotyczy Sequence
 PlantUML i prozy, nie diagramów Component ani C4. Generowanie obsługuje cztery istniejące
@@ -212,3 +214,11 @@ npx vitest run test/runtime/mcp-knowledge.test.ts --no-file-parallelism
 ```
 
 Odpowiedź dostawcy chmurowego odbijająca aktywny credential jest odrzucana przed interpretacją, renderingiem lub publikacją ID modeli. Dotyczy to również escape JSON i zapisanej selekcji modelu zawierającej klucz. Operacja bezpiecznie kończy się błędem; nie redaguje wyniku domenowego, nie ponawia żądania i nie wywołuje innego modelu.
+
+## Pipeline PR: deterministyczna bramka Sequence
+
+Zainstaluj pobrany tarball zgodnie z instrukcją powyżej. Zapisz konfigurację z jawnymi lokalnymi readRoots i źródłem, bez credentiali. Przykład kroku shell po checkout; PlantUML nie wymaga providera. Niezerowy wynik ma zatrzymać krok: bez `|| true`. Sprawdź pokrycie i provenance w artefakcie JSON. Niepełny/nieobsługiwany zakres to exit 2, nie PASS.
+
+```bash
+archi-agent flow verify --config /srv/archi-agent.json --source bank --input project:flows/good.puml --input-format plantuml-sequence --format json > verification.json
+```

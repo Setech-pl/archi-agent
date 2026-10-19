@@ -1,4 +1,40 @@
-# Aktualne ekrany / Current screens
+# DOC2 — aktualna galeria / current gallery
+
+Sześć rzeczywistych ekranów Core 0.3.0-alpha.7, macOS ARM64, publiczny Structurizr Big Bank. Modele syntetyczne; rzeczywiste UI, SRC1, K1, generowanie, ART1 i VER1. / Six actual Core 0.3.0-alpha.7 screens, macOS ARM64, public Structurizr Big Bank. Synthetic models; real UI, SRC1, K1, generation, ART1 and VER1.
+
+Pierwsze trzy ekrany pokazują osobny lokalny render oryginalnego zapisanego PlantUML (PlantUML 1.2026.6 / Smetana), otwarty jako PNG w VS Code (Sequence/Context obok raportu, Container na pełną szerokość). Archi Agent nie bundluje tego podglądu. / The first three screens show a separate local render of the original saved PlantUML (PlantUML 1.2026.6 / Smetana), opened as PNG in VS Code (Sequence/Context beside the report, Container at full width). Archi Agent does not bundle that preview.
+
+Bez makiet, odrysowania, sekretów i danych klienta. Obrazy obejrzane; zachowano pełne okno własnego PID. / No mockups, redrawing, secrets or customer data. Images inspected; the entire owned PID window is retained.
+
+[Commit, hash VSIX, czas, metoda i SHA-256 obrazów / capture provenance](provenance-doc2.json). Bieżący capture-5: PASS, sześć żądań (plan + review dla każdego diagramu), zero dla Verify Flow i konfiguracji/Browser. Wcześniejsze próby 1–3 zachowano lokalnie jako FAIL: dopasowanie etykiety, wysokość drzewa Browser, brak pierwszej klatki ScreenCaptureKit. Nie stanowią dowodów PASS. / Current capture-5: PASS, six requests (plan + review per diagram), zero for Verify Flow and Configuration/Browser. Earlier attempts 1–3 remain local FAIL evidence: label matching, Browser tree height, missing first ScreenCaptureKit frame.
+
+## Sequence i raport / Sequence and report
+
+![Sequence i raport / Sequence and report](15-sequence.png)
+
+## C4 Context
+
+![C4 Context](16-c4-context.png)
+
+## C4 Container
+
+![C4 Container](17-c4-container.png)
+
+## Verify Flow: rozbieżności, bez LLM / discrepancies, no LLM
+
+![Verify Flow: rozbieżności, bez LLM / discrepancies, no LLM](18-verify-flow.png)
+
+## Knowledge Browser: zakres źródła / source scope
+
+![Knowledge Browser: zakres źródła / source scope](19-knowledge-browser.png)
+
+## Configuration: JSON + nakładka / JSON + overlay
+
+![Configuration: JSON + nakładka / JSON + overlay](20-configuration.png)
+
+---
+
+# Historyczne ekrany alpha.6 / Historical alpha.6 screens
 
 [README EN](../../../README.md) · [README PL](../../../README.pl.md) · [Help EN](../../en/user-guide.md) · [Help PL](../../pl/user-guide.md)
 

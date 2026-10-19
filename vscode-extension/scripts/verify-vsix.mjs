@@ -32,7 +32,7 @@ export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Conten
 
 /** Optional entries that vsce adds from the allow-listed files; their names may be lower-cased by vsce. */
 const optionalEntryPatterns = Object.freeze([/^extension\/readme(?:\.pl)?\.md$/i, /^extension\/changelog\.md$/i, /^extension\/licen[cs]e(?:\.md|\.txt)?$/i,
-  /^extension\/help-assets\/(?:01-open|02-provider|03-knowledge|04-browser|05-review|06-edit|07-pack-preview|08-sequence|09-component|10-save|11-conversion|12-help|13-ocr|14-help-pl)\.png$/]);
+  /^extension\/help-assets\/(?:01-open|02-provider|03-knowledge|04-browser|05-review|06-edit|07-pack-preview|08-sequence|09-component|10-save|11-conversion|12-help|13-ocr|14-help-pl|15-sequence|16-c4-context|17-c4-container|18-verify-flow|19-knowledge-browser|20-configuration)\.png$/]);
 
 /** Explicit rejections, reported with their own rule identifier even though the allow-list would reject them anyway. */
 export const prohibitedEntryRules = Object.freeze([

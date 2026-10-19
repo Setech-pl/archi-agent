@@ -9,6 +9,10 @@ const allowed=['package/bin/archi-agent.cjs','package/bin/archi-agent-knowledge-
 if(names.length!==allowed.length||names.some(n=>!allowed.includes(n)))throw Error('CLI archive allowlist mismatch');
 execFileSync('tar',['-xzf',file,'-C',root]);
 const p=JSON.parse(readFileSync(path.join(root,'package/package.json')));if(p.dependencies||p.scripts||p.engines.node!=='>=22.12.0')throw Error('CLI manifest invalid');
+for(const name of ['README.md','README.pl.md'])for(const match of readFileSync(path.join(root,'package',name),'utf8').replace(/```[\s\S]*?```/g,'').matchAll(/\[[^\]]*\]\(([^)]+)\)/g)){
+ const target=match[1];if(/^(https?:|#)/.test(target))continue;
+ if(!allowed.includes('package/'+target.split('#')[0]))throw Error('Broken offline CLI guide link: '+target);
+}
 for(const name of allowed){const bytes=readFileSync(path.join(root,name));if(bytes.includes(Buffer.from(process.cwd()))||/\b(?:require|import)\(["'](?:vscode|@modelcontextprotocol|\.\.\/)/.test(bytes.toString()))throw Error('External runtime import or repository path: '+name);}
 const version=execFileSync(process.execPath,[path.join(root,'package/bin/archi-agent.cjs'),'--version'],{cwd:root,env:{...process.env,PATH:'',NODE_PATH:''},encoding:'utf8'}).trim();if(version!==p.version)throw Error('CLI version mismatch');
 const prefix=path.join(root,'installed');

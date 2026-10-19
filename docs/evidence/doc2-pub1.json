@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "inputHead": "3af45f4914b4e96697d65afc27440bd9b2e86aab",
+  "baseMain": "152542f35c839c06a9bd0eed05a8a7e8e2523752",
+  "C5": {
+    "checkpoint": "62155f173001168631bf652f2f933034e6cf6306",
+    "manifestSha256": "94a5eac2021000a853145bc95fd2e1c30055b282ae87c7665669983528c6f4c9",
+    "acceptanceSha256": "7a3e4e435207edcce9e9366636c11b672b402e9275f7f7a6369d3763164341da",
+    "sourceFingerprints": 576,
+    "productSourceChanges": [],
+    "originalArchivesVerified": true,
+    "historicalGates": [
+      {
+        "id": "clean-Core",
+        "status": "PASS"
+      },
+      {
+        "id": "install-root",
+        "status": "PASS"
+      },
+      {
+        "id": "install-ocr",
+        "status": "PASS"
+      },
+      {
+        "id": "audit-root",
+        "status": "PASS"
+      },
+      {
+        "id": "audit-ocr",
+        "status": "PASS"
+      },
+      {
+        "id": "prepare-ocr",
+        "status": "PASS"
+      },
+      {
+        "id": "typecheck",
+        "status": "PASS"
+      },
+      {
+        "id": "extension-typecheck",
+        "status": "PASS"
+      },
+      {
+        "id": "root-tests",
+        "status": "PASS"
+      },
+      {
+        "id": "extension-tests",
+        "status": "PASS"
+      },
+      {
+        "id": "build",
+        "status": "PASS"
+      },
+      {
+        "id": "cli-build",
+        "status": "PASS"
+      },
+      {
+        "id": "demo",
+        "status": "PASS"
+      },
+      {
+        "id": "package-core",
+        "status": "PASS"
+      },
+      {
+        "id": "verify-core",
+        "status": "PASS"
+      },
+      {
+        "id": "package-full",
+        "status": "PASS"
+      },
+      {
+        "id": "verify-full",
+        "status": "PASS"
+      },
+      {
+        "id": "package-cli",
+        "status": "PASS"
+      },
+      {
+        "id": "verify-cli",
+        "status": "PASS"
+      },
+      {
+        "id": "fresh-build-core",
+        "status": "PASS"
+      },
+      {
+        "id": "docs-core",
+        "status": "PASS"
+      },
+      {
+        "id": "fresh-build-full",
+        "status": "PASS"
+      },
+      {
+        "id": "docs-full",
+        "status": "PASS"
+      },
+      {
+        "id": "packaged-parity",
+        "status": "PASS"
+      },
+      {
+        "id": "Full-offline-OCR",
+        "status": "PASS"
+      },
+      {
+        "id": "src1-packaged",
+        "status": "PASS"
+      },
+      {
+        "id": "k1-packaged",
+        "status": "PASS"
+      },
+      {
+        "id": "k3-packaged",
+        "status": "PASS"
+      },
+      {
+        "id": "art1-packaged",
+        "status": "PASS"
+      },
+      {
+        "id": "ver1-c4-packaged",
+        "status": "PASS"
+      },
+      {
+        "id": "profile-install-switch-coinstall",
+        "status": "PASS"
+      },
+      {
+        "id": "src1-Host-core",
+        "status": "PASS"
+      },
+      {
+        "id": "ver1-c4-Host-core",
+        "status": "PASS"
+      },
+      {
+        "id": "mcp1-export-Host-core",
+        "status": "PASS"
+      },
+      {
+        "id": "src1-Host-full",
+        "status": "PASS"
+      },
+      {
+        "id": "ver1-c4-Host-full",
+        "status": "PASS"
+      },
+      {
+        "id": "mcp1-export-Host-full",
+        "status": "PASS"
+      },
+      {
+        "id": "mcp1-ui-core",
+        "status": "PASS"
+      },
+      {
+        "id": "mcp1-ui-full",
+        "status": "PASS"
+      },
+      {
+        "id": "src1-ui-core",
+        "status": "PASS"
+      },
+      {
+        "id": "ver1-c4-ui-core",
+        "status": "PASS"
+      },
+      {
+        "id": "src1-ui-full",
+        "status": "PASS"
+      },
+      {
+        "id": "ver1-c4-ui-full",
+        "status": "PASS"
+      },
+      {
+        "id": "diff-check",
+        "status": "PASS"
+      }
+    ],
+    "rerun": "NOT_RUN; no executable/product/test/dependency changes"
+  },
+  "current": {
+    "packagingTests": {
+      "status": "PASS",
+      "passed": 16,
+      "files": 1
+    },
+    "documentation": {
+      "status": "PASS",
+      "core": 3,
+      "full": 3,
+      "offlineHelpImages": 20,
+      "examplesAndTopology": "PL/EN equal",
+      "C5RuntimeEntriesCompared": {
+        "core": 3,
+        "full": 525
+      }
+    },
+    "coreFullCliVerify": {
+      "status": "PASS",
+      "coreEntries": 31,
+      "fullEntries": 553,
+      "cliEntries": 10,
+      "cliOfflineInstallation": "PASS"
+    },
+    "render": {
+      "status": "PASS",
+      "diagrams": 12,
+      "visualReview": "PASS"
+    },
+    "screenshots": {
+      "status": "PASS",
+      "count": 6,
+      "syntheticTransport": true,
+      "originalC5CoreSha256": "96715aeb6e5583337af178fc337644b8d61ce868795a554b9f559eac444739bb"
+    },
+    "notRun": [
+      "local full C5 rerun (byte parity established)",
+      "repeat independent audit (documentation-only scope)",
+      "owner smoke (DEFERRED)",
+      "live LLM",
+      "Windows ARM64 runtime"
+    ],
+    "attempts": [
+      {
+        "id": "capture-1",
+        "status": "FAIL",
+        "cause": "capture harness exact QuickPick label"
+      },
+      {
+        "id": "capture-2",
+        "status": "FAIL",
+        "cause": "Browser tree height in capture harness"
+      },
+      {
+        "id": "capture-3",
+        "status": "FAIL",
+        "cause": "ScreenCaptureKit had no first frame before stop"
+      },
+      {
+        "id": "capture-4",
+        "status": "PASS",
+        "note": "superseded by readable full-width Container capture-5"
+      },
+      {
+        "id": "capture-5",
+        "status": "PASS",
+        "screens": 6
+      },
+      {
+        "id": "initial-cli-offline-install",
+        "status": "FAIL",
+        "cause": "sandbox npm cache EPERM; rerun outside sandbox PASS"
+      },
+      {
+        "id": "initial-parity-report",
+        "status": "FAIL",
+        "cause": "tar stdout exceeded default buffer; larger buffer rerun PASS"
+      },
+      {
+        "id": "initial-docs-check",
+        "status": "FAIL",
+        "cause": "new staged Help assets resolved against old ignored extension tree; checker mapping corrected, rerun PASS"
+      }
+    ],
+    "offlineHelpUI": {
+      "status": "PASS",
+      "profile": "core",
+      "vsixSha256": "a56c0348fdc6517eb4cb363d8025e2c7c455f8b1a65476d268eda3ad8d7864d7",
+      "switches": [
+        "en\u2192pl",
+        "pl\u2192en"
+      ],
+      "polishImagesLoaded": 19,
+      "englishImagesLoaded": 19,
+      "providerRequests": 0,
+      "localeNote": "explicit EN\u2192PL\u2192EN links; automatic locale dispatch remains historical unit evidence"
+    }
+  },
+  "parity": [
+    {
+      "profile": "core",
+      "status": "PASS",
+      "comparedEntries": 3,
+      "bundles": [
+        {
+          "file": "extension/dist/archi-agent-converter-worker.js",
+          "sha256": "97d0cfecec4792c1bd2350bc208c2188492095214dc5e84b788749a99b7293f3"
+        },
+        {
+          "file": "extension/dist/archi-agent-runtime.js",
+          "sha256": "e08b281e1897e8f3348c38178451e8f8548ddceddab31342ea1f42fcb44e2f16"
+        },
+        {
+          "file": "extension/dist/extension.js",
+          "sha256": "73700887247e42cc15e700893ad986dc253c3b4c1beaabdde1af4192b0d8ab3a"
+        }
+      ]
+    },
+    {
+      "profile": "full",
+      "status": "PASS",
+      "comparedEntries": 525,
+      "bundles": [
+        {
+          "file": "extension/dist/archi-agent-converter-worker.js",
+          "sha256": "97d0cfecec4792c1bd2350bc208c2188492095214dc5e84b788749a99b7293f3"
+        },
+        {
+          "file": "extension/dist/archi-agent-runtime.js",
+          "sha256": "e08b281e1897e8f3348c38178451e8f8548ddceddab31342ea1f42fcb44e2f16"
+        },
+        {
+          "file": "extension/dist/extension.js",
+          "sha256": "73700887247e42cc15e700893ad986dc253c3b4c1beaabdde1af4192b0d8ab3a"
+        }
+      ]
+    },
+    {
+      "profile": "cli",
+      "file": "package/bin/archi-agent.cjs",
+      "status": "PASS",
+      "sha256": "6612a35d3531d24f02f70010a2f42cd3e22ab87be69e3c77957b7db80d5332b4"
+    },
+    {
+      "profile": "cli",
+      "file": "package/bin/archi-agent-mcp.cjs",
+      "status": "PASS",
+      "sha256": "18bf52121d9b8faf986ab28d0d43ceef299c5dde7c899170ae964f8563210271"
+    },
+    {
+      "profile": "cli",
+      "file": "package/bin/archi-agent-knowledge-server.cjs",
+      "status": "PASS",
+      "sha256": "0e50df5660a87876a20b7b8b79a4fce3a6ce93965908fb7934e4caaae34b4548"
+    },
+    {
+      "profile": "cli",
+      "file": "package/bin/archi-agent-runtime.js",
+      "status": "PASS",
+      "sha256": "e08b281e1897e8f3348c38178451e8f8548ddceddab31342ea1f42fcb44e2f16"
+    }
+  ],
+  "artifacts": [
+    {
+      "profile": "core",
+      "version": "0.3.0-alpha.7",
+      "file": "build/doc2-pub1/publication/core/archi-agent-core-0.3.0-alpha.7.vsix",
+      "bytes": 5508318,
+      "sha256": "a56c0348fdc6517eb4cb363d8025e2c7c455f8b1a65476d268eda3ad8d7864d7",
+      "entries": 31
+    },
+    {
+      "profile": "full",
+      "version": "0.3.0-alpha.7",
+      "file": "build/doc2-pub1/publication/full/archi-agent-full-0.3.0-alpha.7.vsix",
+      "bytes": 128934489,
+      "sha256": "5be28e9b74eed48e970ef340869e5f2464ad1b18c989d748ea6c64bd7399b923",
+      "entries": 553
+    },
+    {
+      "profile": "cli",
+      "version": "0.3.0-alpha.7",
+      "file": "build/doc2-pub1/publication/cli/archi-agent-cli-0.3.0-alpha.7.tgz",
+      "bytes": 889217,
+      "sha256": "dde91d6fe094588539de54f387f20e4beca62b2dce066f8d7deeb9485b346ddb",
+      "entries": 10
+    }
+  ],
+  "ownerSmoke": "DEFERRED",
+  "realLlm": "NOT_RUN",
+  "windowsArm64Runtime": "NOT_RUN",
+  "AUD003to006": "OPEN"
+}

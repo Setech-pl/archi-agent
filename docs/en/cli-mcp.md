@@ -1,5 +1,7 @@
 # CLI and local MCP — MCP1 candidate
 
+**English** · [Polski](../pl/cli-mcp.md)
+
 The local MCP1 candidate supplies the same Archi Agent runtime through a CLI, a stdio MCP
 server, and two VS Code profiles. This candidate has not been published. It verifies Sequence
 PlantUML and prose; it does not verify Component or C4 diagrams. Generation supports the four
@@ -207,3 +209,11 @@ npx vitest run test/runtime/mcp-knowledge.test.ts --no-file-parallelism
 ```
 
 A cloud provider response that reflects its active credential is rejected before interpretation, rendering or publishing model IDs. This also covers JSON escapes and saved model selections containing the key. The operation fails safely; it does not redact the domain result, retry or invoke another model.
+
+## PR pipeline: deterministic Sequence gate
+
+Install the downloaded tarball as described above. Commit a configuration with explicit local readRoots and a source, without credentials. Example shell step after checkout; PlantUML needs no provider. A nonzero result must fail the step: do not use `|| true`. Inspect coverage and provenance in the JSON artifact. Missing/unsupported scope is exit 2, not PASS.
+
+```bash
+archi-agent flow verify --config /srv/archi-agent.json --source bank --input project:flows/good.puml --input-format plantuml-sequence --format json > verification.json
+```

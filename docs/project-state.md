@@ -2,6 +2,14 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## DOC2/PUB1 — dokumentacja i kandydat PR, 2026-10-19
+
+- Autoryzowany pełny push i PR do main; bez merge, tagowania i release. Preflight: `feature/mcp1-cli-mcp-core-full`, HEAD `3af45f4914b4e96697d65afc27440bd9b2e86aab`, working tree clean, staging empty. Remote `github`; main po fetch/API `152542f35c839c06a9bd0eed05a8a7e8e2523752`, brak otwartych PR. Pełen przyrost zawiera SRC1 → VER1 → C4 Context/Container → MCP1/Core/Full, nie tylko dokumentację.
+- [Raport DOC2/PUB1](doc2-pub1-verification.md), [dowód maszynowy](evidence/doc2-pub1.json), [galeria bieżąca](assets/screenshots/README.md). README PL/EN i Help uaktualnione; sześć rzeczywistych ekranów na publicznym Big Bank. PNG diagramów po osobnym lokalnym PlantUML/Smetana, jawnie opisanym jako dodatkowe narzędzie; Container na pełną szerokość. Modele syntetyczne. Dwanaście diagramów Mermaid PL/EN wyrenderowano lokalnie i obejrzano.
+- C5: sprawdzono manifest→acceptance→checkpoint i hashe wszystkich trzech oryginalnych paczek; na wejściu brak różnic produktu/testów/zależności względem fingerprintów C5. Pełne 44/44 i 1954/730 są historyczne, pełnego gauntletu ani niezależnego audytu nie ponawiano dla DOC2. Bieżące 16/16 testów pakowania PASS. Końcowe paczki i bezpośredni parytet bundle/OCR C5 w raporcie. CI uzupełniony o obydwa profile, CLI/MCP, Help i artefakty z hashami/testowanym SHA.
+- Weryfikacja CLI offline początkowo nie mogła zapisać cache npm w sandboxie; ponowiona poza sandboxem PASS. Wcześniejsze capture 1–3 FAIL zachowano; capture 4 PASS i poprawiający czytelność Container capture 5 PASS. To automatyczny capture, nie owner smoke.
+- Owner smoke **DEFERRED**, żywy LLM i Windows ARM64 runtime **NOT_RUN**, AUD-003–006 **OPEN**; publiczne alpha.6 bez zmiany. Aktualny SHA/PR/CI odczytaj z Git i raportu publikacji. Kontrole lokalne zakończone: verify 31/553/10 wpisów i CLI offline, docs 3/3 na profil, bezpośredni parytet C5 3/525/4 pliki PASS. Następny krok publikacji: autoryzowany checkpoint/push/PR i CI jego SHA; potem zbiorczy owner smoke właściciela.
+
 ## MCP1-KNOW — ponowne uzgodnienie wymagań, 2026-10-19
 
 - Preflight: `feature/mcp1-cli-mcp-core-full`, HEAD `62155f173001168631bf652f2f933034e6cf6306`, working tree czysty, staging pusty. Git potwierdza ukończoną implementację poniżej; ponowione zlecenie nie wymaga drugiego loadera ani przebudowy CLI/MCP/Core/Full.
