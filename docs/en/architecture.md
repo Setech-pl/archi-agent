@@ -2,7 +2,7 @@
 
 **English** · [Polski](../pl/architecture.md) · [Home](../../README.md)
 
-This is the architecture of the local SRC1/VER1/D3/D4/MCP1 candidate, not the earlier published alpha.6. [Detailed stable architecture](../architecture.md) describes current boundaries; a separate history preserves earlier explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition supports local Structurizr JSON with an ID-bound overlay, standalone Markdown packs and selected documents to build a new pack; a Node MCP knowledge client fetches normalized partial contributions from one explicitly configured stdio server. The standalone example reuses production SRC1 parsing/mapping and K1 validation. No EA adapter or DSL parser exists. Sequence and Component use separate plans/validators/renderers. C4 Context/Container use source-bound Structurizr metadata and separate plans/validators/renderers; VER1 checks Sequence/prose. ArchiMate remains planned. The compatibility sequence renderer is a separate older path.
+This branch implements SRC1/VER1/C4/MCP1. Public DEMO1 packages have a distinct source identity; see [project state](../project-state.md). [roadmap](../product-roadmap.md) owns plans. Current acquisition supports local Structurizr JSON with an ID-bound overlay, standalone Markdown packs and selected documents to build a new pack; a Node MCP knowledge client fetches normalized partial contributions from one explicitly configured stdio server. The standalone example reuses production SRC1 parsing/mapping and K1 validation. No EA adapter or DSL parser exists. Sequence and Component use separate plans/validators/renderers. C4 Context/Container use source-bound Structurizr metadata and separate plans/validators/renderers; VER1 checks Sequence/prose. ArchiMate remains planned. The compatibility sequence renderer is a separate older path.
 
 Core is deterministic and has no Node/VS Code I/O; orchestration calls injected ports and Node adapters. Runtime is host-neutral; the editor imports only `src/runtime/index.ts`. Providers are interchangeable adapters for StructuredChatClient. Documents/model responses are untrusted data. Only bounded relevant diagram snapshots or bounded selected extraction text reach a model. VS Code settings and SecretStorage stay at the editor boundary; CLI/MCP use process configuration, pinned readRoots and named environment credentials. The four-tool function server and knowledge client have separate roles; all hosts compose the same runtime.
 
@@ -197,7 +197,7 @@ Standalone conversion accepts one file up to 50 MiB and 8 MiB Markdown; non-OCR 
 
 `npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then, for Full only, appends pinned offline OCR resources with their license/hash manifest. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
 
-`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](../project-state-history.md); current checks and the auditor handoff are in [project state](../project-state.md).
+`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/project-state-history.md); current checks and the auditor handoff are in [project state](../project-state.md).
 
 MCP1 packaging defaults to Core, with no OCR dependencies/assets. Full retains the existing ID and pinned offline OCR, with explicit installation integrity checks. Both profiles use identical runtime bundles. See [CLI/MCP and profiles](cli-mcp.md) for the strict versioned result/source contracts and setup.
 
@@ -237,3 +237,45 @@ sequenceDiagram
 SRC1 overlay alias saving is a separate VS Code adapter operation: minimal edit and native save after version and dirty-buffer checks. Pack and MCP decisions remain session-only; CLI/MCP do not write sources. VER1 does not verify C4.
 
 Rendered copies (SVG / PNG): [A SVG](../assets/diagrams/en-A.svg) / [PNG](../assets/diagrams/en-A.png) · [B SVG](../assets/diagrams/en-B.svg) / [PNG](../assets/diagrams/en-B.png) · [C SVG](../assets/diagrams/en-C.svg) / [PNG](../assets/diagrams/en-C.png) · [D SVG](../assets/diagrams/en-D.svg) / [PNG](../assets/diagrams/en-D.png) · [E SVG](../assets/diagrams/en-E.svg) / [PNG](../assets/diagrams/en-E.png) · [F SVG](../assets/diagrams/en-F.svg) / [PNG](../assets/diagrams/en-F.png)
+
+## Provider configuration consistency
+
+Resolve credentials for the final selected provider/model immediately before starting the operation.
+Generation and review share that immutable operation configuration despite later setting changes.
+The host observes relevant scoped configuration events before the first await; a monotonic revision
+invalidates stale interactions even after external A→B→A changes. Only one extension writer publishes
+at a time. Each setting write checks expected scoped state before and after await; only its own
+expected notification is consumed. Unexpected events, trust/workspace changes or a newer publication
+cancel stale selection. Dispose observations in finally, including failure and cancellation.
+
+Keep fail-closed binding order, activate an explicit profile last, and re-read the effective result.
+Partial publication can leave an unbound model. Multiple VS Code updates are non-atomic: there is
+no rollback over newer values, crash recovery or CAS against arbitrary in-flight external writers.
+Secrets stay in SecretStorage and never enter webviews, diagnostics or reports.
+
+## Source and MCP boundaries
+
+
+The shared runtime is composed by VSIX, CLI and the four-tool MCP function server. Portable results project existing reports without a second assessment engine. The Node MCP knowledge client is a separate source adapter: one configured stdio server, fixed get_knowledge_snapshot call, strict versioned normalized contributions and no LLM tool choice. Runtime pins one immutable snapshot per operation; a fresh fetch precedes a new operation or stale-session check. Production SRC1 parsing/mapping and K1 validation are shared with the standalone example. Remote records keep true references and original IDs; optional local locators are never fabricated. See [contracts and limits](cli-mcp.md) and [quality limits](../project-state.md).
+
+Core and Full use identical runtime/worker bundles. Core excludes OCR dependencies and assets; Full contains pinned offline resources with an installation manifest. Both installed IDs require one enabled profile; no automatic disable or secret transfer. CLI/MCP use explicit readRoots and environment credentials, never VS Code SecretStorage.
+
+
+See [knowledge source contract](../mcp-knowledge-source.md).
+
+## Knowledge snapshot invariants
+
+`src/core/knowledge-pack/knowledge-snapshot.ts` assembles a provider-neutral, immutable
+knowledge snapshot using the existing pack record semantics and validators. Contributions
+declare a logical source identity, kind and per-table scope (`partial` or `complete`;
+omission means not provided). Complete describes the source's declared scope, never a
+closed-world claim about architecture. A contribution may contain only systems and no
+file positions. Source identity is retained for each claim; file/line provenance appears
+only when supplied. Missing positions, categories and references remain explicit gaps.
+
+Equivalent claims retain all their provenance. Incompatible entity/relationship/rule
+claims, actor/system ID collisions, conflicting rules and forbidden relationships remain
+explicit conflicts with references to every claim. There is no source precedence or
+implicit winner. Multi-target aliases remain ambiguous. The sorted snapshot has a SHA-256
+digest over semantic facts, source scopes, provenance, gaps, ambiguities and conflicts;
+its ID contains that full digest. Source and record order do not change serialized bytes.

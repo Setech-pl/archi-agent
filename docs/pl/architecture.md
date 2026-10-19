@@ -197,7 +197,7 @@ Konwersja przyjmuje jeden plik do 50 MiB i wynik do 8 MiB Markdown; deadline bez
 
 `npm run extension:build` tworzy przez esbuild trzy sąsiednie bundle CommonJS: rozszerzenie, runtime niezależny od hosta i worker konwersji. Rozszerzenie externalizuje `vscode` i sąsiedni runtime; runtime — tylko moduły wbudowane Node. `npm run extension:package` przebudowuje bundle, używa jawnej allowlisty VSIX i, tylko dla Full, dodaje przypięte zasoby OCR offline z manifestem licencji/hashów. Obie instrukcje trafiają jako `readme.md` i `README.pl.md`. Użytkownik korzysta z Node wbudowanego w VS Code; nie potrzebuje ścieżek repo, npm ani osobnej instalacji Node.
 
-`npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](../project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
+`npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
 
 Pakowanie MCP1 domyślnie wybiera Core, bez zależności i zasobów OCR. Full zachowuje dotychczasowe ID i przypięte OCR offline, z jawną kontrolą integralności instalacji. Oba profile mają identyczne bundle runtime. [CLI/MCP i profile](cli-mcp.md) opisują ścisłe wersjonowane kontrakty wyniku/źródła oraz konfigurację.
 
@@ -237,3 +237,38 @@ sequenceDiagram
 Zapis aliasów do nakładki SRC1 jest osobną operacją adaptera VS Code: minimalna edycja i natywny zapis po sprawdzeniu wersji oraz dirty buffer. Dla packa i MCP decyzje pozostają sesyjne; CLI/MCP nie zapisują źródeł. VER1 nie weryfikuje C4.
 
 Wyrenderowane kopie (SVG / PNG): [A SVG](../assets/diagrams/pl-A.svg) / [PNG](../assets/diagrams/pl-A.png) · [B SVG](../assets/diagrams/pl-B.svg) / [PNG](../assets/diagrams/pl-B.png) · [C SVG](../assets/diagrams/pl-C.svg) / [PNG](../assets/diagrams/pl-C.png) · [D SVG](../assets/diagrams/pl-D.svg) / [PNG](../assets/diagrams/pl-D.png) · [E SVG](../assets/diagrams/pl-E.svg) / [PNG](../assets/diagrams/pl-E.png) · [F SVG](../assets/diagrams/pl-F.svg) / [PNG](../assets/diagrams/pl-F.png)
+
+## Spójność konfiguracji dostawcy
+
+Credential jest rozwiązywany dla ostatecznie wybranego profilu/modelu tuż przed operacją.
+Generowanie i review używają tej samej niezmiennej konfiguracji mimo późniejszych zmian ustawień.
+Host obserwuje zdarzenia konfiguracji we właściwym scope przed pierwszym await; monotoniczna rewizja
+unieważnia stary wybór także po zewnętrznym A→B→A. Tylko jeden writer rozszerzenia publikuje naraz.
+Każdy zapis sprawdza oczekiwany scope przed i po await; konsumuje wyłącznie własną oczekiwaną
+notyfikację. Inne zdarzenie, zmiana zaufania/workspace lub nowsza publikacja anulują stary wybór.
+Obserwacje są zwalniane w finally, również po błędzie i anulowaniu.
+
+Kolejność bindingu pozostaje fail-closed, jawny profil jest aktywowany na końcu, a wynik odczytywany
+ponownie. Częściowy zapis może pozostawić model bez bindingu. Wiele aktualizacji VS Code nie jest
+atomowe; nie ma rollbacku nad nowszymi wartościami, crash recovery ani CAS wobec obcych writerów.
+Sekrety pozostają w SecretStorage, poza webview, diagnostyką i raportami.
+
+## Granice źródeł i MCP
+
+VSIX, CLI i serwer czterech funkcji MCP komponują ten sam runtime. Osobny klient wiedzy
+uruchamia jeden skonfigurowany proces stdio i wywołuje stałe get_knowledge_snapshot.
+Generator i reviewer używają jednego frozen snapshotu; nowa operacja pobiera dane ponownie.
+Referencje i oryginalne ID są prawdziwe; brak file/line nie tworzy fikcyjnego lokatora.
+Core/Full mają identyczne bundle runtime; Core nie zawiera OCR. CLI używa jawnych readRoots
+i credentiali środowiska. [Kontrakt źródła](../mcp-knowledge-source.md), [instrukcja](cli-mcp.md).
+
+## Niezmienniki snapshotu wiedzy
+
+Contribution deklaruje tożsamość źródła i zakres partial/complete dla każdej tabeli; pominięcie
+oznacza brak dostarczonych danych. Complete dotyczy deklarowanego zakresu, nie zamkniętego świata
+architektury. Brak file/line pozostaje jawną luką. Równoważne twierdzenia zachowują całe provenance.
+Sprzeczne fakty/reguły, kolizje actor/system ID i forbidden relationships są jawnymi konfliktami
+z referencjami wszystkich stron; nie ma pierwszeństwa źródła ani domyślnego zwycięzcy.
+Wieloznaczne aliasy nadal wymagają decyzji. Digest SHA-256 obejmuje fakty semantyczne, zakresy,
+provenance, luki, niejednoznaczności i konflikty; ID zawiera pełny digest. Zmiana kolejności źródeł
+lub rekordów nie zmienia zserializowanych bajtów. Szczegóły rekordów określa kontrakt packa.

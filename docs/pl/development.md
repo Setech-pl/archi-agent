@@ -51,3 +51,32 @@ npm run demo:llm -- qwen/qwen3-14b
 ## MCP1
 
 Pełny lokalny odbiór uruchom Node 22.12.0: `npm run mcp1:verify -- build/mcp1/<unique-run>`. Obejmuje świeże Core/Full i tarball CLI, niezależną parity bundle, rzeczywisty Host/UI, integralność OCR i aktualizacje profili między wersjami. Poprzednik Full musi być dokładnym lokalnym alpha.6 wskazanym w planie. Każda próba zachowuje własne raporty; błędów nie nadpisujemy. Owner smoke i jakość żywego modelu pozostają osobnymi wynikami. [Instrukcja CLI/MCP](cli-mcp.md).
+
+## Przygotowanie OCR i pochodzenie ICU
+
+Zainstaluj oba zatwierdzone lockfile przez npm ci. Przygotuj OCR przed pakowaniem Full (albo jedynego
+profilu OCR na starszej gałęzi). Poniższa komenda sprawdza osiem archiwów canvas 0.1.97 względem
+SRI z lockfile i tworzy zasoby produktu; nie potrzebuje historycznych JSON wyników ani zewnętrznego
+manifestu próbnego. Brak zasobu kończy przygotowanie błędem.
+
+```bash
+node scripts/prepare-ci-ocr.mjs
+```
+
+Brakujący Windows ARM64 icudtl.dat pochodzi wyłącznie z archiwum Windows x64 canvas 0.1.97
+zweryfikowanego przez SRI. Oba pliki ICU muszą mieć identyczne bajty i SHA-256; canvasResourceSupplements
+zapisuje donora/wersję/resolved/SRI/wpis archiwum/ścieżki/hashe. Upstreamowy
+[skrypt wydania](https://github.com/Brooooooklyn/canvas/commit/e1a75d1aa888dcdf44467875829d58ea19c6cdd7)
+używa tego samego źródła ICU dla obu architektur. Nie używamy nowszego canvas ani zmienionych bindingów.
+Przypięty patch modułu display PDF.js wymaga zero fuzz i pełnego kontekstu zgodnego z GNU patch;
+worker, licencje i zasoby platform zachowują zweryfikowane hashe. Pakowanie i verify wykonuj kolejno.
+
+## Procedura wydania
+
+Użyj świeżego klonu i jawnego SHA źródeł. Wykonaj właściwe testy, oba typechecki, przygotowanie OCR,
+package i verify każdego istniejącego profilu. Zachowaj logi, nieudane próby, rozmiary i SHA-256
+dokładnych paczek poza śledzoną dokumentacją. Nie używaj ponownie katalogu wcześniejszego kandydata.
+Tylko osobno autoryzowane wydanie może utworzyć tag/prerelease i wysłać assets. Paczki CI same nie
+publikują wydania. Pobierz publiczne pliki i porównaj ich bajty/checksumy ze zweryfikowanymi kandydatami;
+zachowaj manifest wydania i tożsamość źródeł oddzielnie od merge commita. Nie zastępuj istniejących
+assets i nie wnioskuj z CI o owner smoke, jakości żywego modelu ani wykonaniu na innych platformach.

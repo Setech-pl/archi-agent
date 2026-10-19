@@ -4,7 +4,7 @@
 
 ## PR candidate: profiles and knowledge
 
-The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the [DOC2/PUB1 report](../doc2-pub1-verification.md) or the successful PR CI artifact manifest. Alpha.6 remains the earlier public release. [CLI/MCP installation, commands and contracts](cli-mcp.md).
+The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md) or the successful PR CI artifact manifest. Alpha.6 remains the earlier public release. [CLI/MCP installation, commands and contracts](cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
@@ -58,7 +58,7 @@ Actual installed UI, public Big Bank fixture, synthetic model responses. The fir
 
 ## Installation on Mac and Windows
 
-Download the Core or Full VSIX from the successful PR Clean-clone CI artifact. Compare its SHA-256 with the artifact `SHA256SUMS` / `packages.json`; local candidate hashes are in the [DOC2/PUB1 report](../doc2-pub1-verification.md). CI packages can have different archive hashes; use the manifest from the same download. No alpha.7 release has been published.
+Download the Core or Full VSIX from the successful PR Clean-clone CI artifact. Compare its SHA-256 with the artifact `SHA256SUMS` / `packages.json`; local candidate hashes are in the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md). CI packages can have different archive hashes; use the manifest from the same download. No alpha.7 release has been published.
 
 Mac:
 
@@ -84,7 +84,7 @@ Install the correct VSIX with **Extensions → … → Install from VSIX…**, t
 
 ## Start here — first use
 
-![Archi: Open task menu](../assets/screenshots/01-open.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -111,7 +111,7 @@ A PDF can therefore become converted text, then candidates, then an accepted pac
 
 ## Provider, profile and model
 
-![Provider and model selection](../assets/screenshots/02-provider.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -143,7 +143,7 @@ Machine-scoped profile/model selections are not synchronized by Settings Sync or
 
 ## Choose or create the active Knowledge Pack
 
-![Active Knowledge Pack management](../assets/screenshots/03-knowledge.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -202,17 +202,17 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
-![Choose a PDF OCR mode](../assets/screenshots/13-ocr.png)
+
 
 Historical alpha.6 UI reference.
 
-![Local conversion result](../assets/screenshots/11-conversion.png)
+
 
 Historical alpha.6 UI reference.
 
 ## Documents to a new pack
 
-![Review proposed knowledge](../assets/screenshots/05-review.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -225,11 +225,11 @@ Historical alpha.6 UI reference.
 7. Choose an existing parent folder and one **new pack folder name**. Expand the five read-only previews on the same screen: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. The immutable preview is the exact content saved.
 8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Choose Existing Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
 
-![Edit a proposed row](../assets/screenshots/06-edit.png)
+
 
 Historical alpha.6 UI reference.
 
-![Five-file preview and destination](../assets/screenshots/07-pack-preview.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -248,7 +248,7 @@ Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas,
 
 ## Active file and Knowledge Browser
 
-![Browse the active knowledge](../assets/screenshots/04-browser.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -263,7 +263,7 @@ The tree also includes **Actors**. Use **Refresh Knowledge** in the tree title a
 
 ## Generate and inspect a diagram
 
-![Sequence and grounding report](../assets/screenshots/08-sequence.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -285,13 +285,13 @@ Invalid input/grounding makes zero generation calls; generator/local rejection o
 
 If semantic review rejects/fails after local checks, **Show unverified candidate** may open a marked candidate without a report; Cancel opens nothing. It is not a completed ART1 result. User cancellation does not offer an unverified candidate. The old `archiAgent.generateSequenceDiagram` command ID is an invisible delegate to **Create Diagram**. The older one-call runtime compatibility API remains available internally; it is not a separate user entry or fallback.
 
-![Component diagram and report](../assets/screenshots/09-component.png)
+
 
 Historical alpha.6 UI reference.
 
 ## Save the original diagram and report
 
-![Confirm the original diagram and report pair](../assets/screenshots/10-save.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -347,7 +347,7 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 ## Screenshots, Help and license
 
-![Bundled offline Help](../assets/screenshots/12-help.png)
+
 
 Historical alpha.6 UI reference.
 

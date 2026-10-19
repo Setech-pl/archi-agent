@@ -1,20 +1,20 @@
 # User guide
 
-**English** · [Polski](README.pl.md) · [Home](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/README.md)
+**English** · [Polski](README.pl.md) · [Home](https://github.com/Setech-pl/archi-agent/blob/main/README.md)
 
 ## PR candidate: profiles and knowledge
 
-The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/doc2-pub1-verification.md) or the successful PR CI artifact manifest. Alpha.6 remains the earlier public release. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/en/cli-mcp.md).
+The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md) or the successful PR CI artifact manifest. Alpha.6 remains the earlier public release. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
 To change profile, install the chosen VSIX, disable the previous profile yourself and reload VS Code. Both IDs may remain installed, but enable exactly one. When both are enabled their static declarations collide before activation; VS Code can report duplicate contributions and Archi Agent blocks operations until you choose one and reload. Updates target each ID independently. Shared `archiAgent.*` settings remain; SecretStorage belongs to each ID. Enter cloud keys again for the chosen profile: keys are never copied or read by CLI/MCP.
 
-Choose one source per operation: a Markdown Knowledge Pack; **Structurizr workspace.json + overlay**; or **MCP knowledge**. Structurizr requires `workspace.json` and the SRC1 overlay files `aliases.md`, `relationships.md`, `rules.md`, bound to original IDs. The existing production resolver validates required interface type/mode, references and conflicts; Knowledge Browser shows validation, original IDs, provenance, supported scope and omissions. People, software systems, containers and static relationships are supported; components/deployment/views are omitted. DSL is unsupported. [Full SRC1 contract](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/src1-structurizr-source.md).
+Choose one source per operation: a Markdown Knowledge Pack; **Structurizr workspace.json + overlay**; or **MCP knowledge**. Structurizr requires `workspace.json` and the SRC1 overlay files `aliases.md`, `relationships.md`, `rules.md`, bound to original IDs. The existing production resolver validates required interface type/mode, references and conflicts; Knowledge Browser shows validation, original IDs, provenance, supported scope and omissions. People, software systems, containers and static relationships are supported; components/deployment/views are omitted. DSL is unsupported. [Full SRC1 contract](https://github.com/Setech-pl/archi-agent/blob/main/docs/src1-structurizr-source.md).
 
-For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAgent.architectureSource` to `{"kind":"mcp","sourceId":"bank"}`. Workspace executable settings are ignored. Start with the standalone example in the [CLI/MCP guide](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/en/cli-mcp.md#mcp-knowledge-client-and-example-server). Each operation fetches one immutable snapshot; the next fetches again. Failures stop the operation; there is no stale local fallback or automatic alias save. LLM does not choose source tools. The JSON shown by Verify Flow uses the same portable report as CLI/MCP.
+For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAgent.architectureSource` to `{"kind":"mcp","sourceId":"bank"}`. Workspace executable settings are ignored. Start with the standalone example in the [CLI/MCP guide](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md#mcp-knowledge-client-and-example-server). Each operation fetches one immutable snapshot; the next fetches again. Failures stop the operation; there is no stale local fallback or automatic alias save. LLM does not choose source tools. The JSON shown by Verify Flow uses the same portable report as CLI/MCP.
 
-The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/en/cli-mcp.md).
+The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
 ## Verify Flow and C4
 
@@ -42,7 +42,7 @@ Graphical preview still needs separate PlantUML support; no remote C4 include is
 
 ## Current product screens
 
-Actual installed UI, public Big Bank fixture, synthetic model responses. The first three images show PNGs rendered **separately with local PlantUML 1.2026.6 / Smetana**, opened in VS Code: Sequence/Context beside the original report, Container at full width. This graphical support is not bundled in Archi Agent. [Capture provenance](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/assets/screenshots/provenance-doc2.json).
+Actual installed UI, public Big Bank fixture, synthetic model responses. The first three images show PNGs rendered **separately with local PlantUML 1.2026.6 / Smetana**, opened in VS Code: Sequence/Context beside the original report, Container at full width. This graphical support is not bundled in Archi Agent. [Capture provenance](https://github.com/Setech-pl/archi-agent/blob/main/docs/assets/screenshots/provenance-doc2.json).
 
 ![Sequence + report](help-assets/15-sequence.png)
 
@@ -58,7 +58,7 @@ Actual installed UI, public Big Bank fixture, synthetic model responses. The fir
 
 ## Installation on Mac and Windows
 
-Download the Core or Full VSIX from the successful PR Clean-clone CI artifact. Compare its SHA-256 with the artifact `SHA256SUMS` / `packages.json`; local candidate hashes are in the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/doc2-pub1-verification.md). CI packages can have different archive hashes; use the manifest from the same download. No alpha.7 release has been published.
+Download the Core or Full VSIX from the successful PR Clean-clone CI artifact. Compare its SHA-256 with the artifact `SHA256SUMS` / `packages.json`; local candidate hashes are in the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md). CI packages can have different archive hashes; use the manifest from the same download. No alpha.7 release has been published.
 
 Mac:
 
@@ -74,17 +74,17 @@ Get-FileHash <file.vsix> -Algorithm SHA256
 
 In VS Code, open **Extensions → … → Install from VSIX…**, select the file and reload if requested. Check the version in **Archi Agent** extension details. No repository, npm or separate Node.js installation is needed. If an older version is installed, use the same command to install this identified prerelease.
 
-The earlier public alpha.6 remains available separately. [Collective owner smoke](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/testing/mcp1-owner-smoke.md) covers the PR candidate; owner smoke remains DEFERRED.
+The earlier public alpha.6 remains available separately. [Collective owner smoke](https://github.com/Setech-pl/archi-agent/blob/main/docs/testing/mcp1-owner-smoke.md) covers the PR candidate; owner smoke remains DEFERRED.
 
 ### Requirements and first launch
 
 Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/en/development.md).
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/development.md).
 
 ## Start here — first use
 
-![Archi: Open task menu](help-assets/01-open.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -111,7 +111,7 @@ A PDF can therefore become converted text, then candidates, then an accepted pac
 
 ## Provider, profile and model
 
-![Provider and model selection](help-assets/02-provider.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -139,11 +139,11 @@ Prepare your local server/model yourself; the extension does not download models
 | `archiAgent.defaultAuthor` | author for typed flow, default `Archi Agent` |
 | `archiAgent.diagnostics.verbose` | safe Output-channel JSON diagnostics; default false |
 
-Machine-scoped profile/model selections are not synchronized by Settings Sync or overridden by a workspace. After changing profile, select a model again; stale bindings are inactive. Prefer the UI to editing model settings. Local URLs accept literal `127.0.0.1` or `[::1]` with `/v1`; `localhost`, remote hosts, redirects and credential-bearing URLs are rejected. Details: [local adapters](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/local-model.md), [cloud adapters](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/cloud-models.md).
+Machine-scoped profile/model selections are not synchronized by Settings Sync or overridden by a workspace. After changing profile, select a model again; stale bindings are inactive. Prefer the UI to editing model settings. Local URLs accept literal `127.0.0.1` or `[::1]` with `/v1`; `localhost`, remote hosts, redirects and credential-bearing URLs are rejected. Details: [local adapters](https://github.com/Setech-pl/archi-agent/blob/main/docs/local-model.md), [cloud adapters](https://github.com/Setech-pl/archi-agent/blob/main/docs/cloud-models.md).
 
 ## Choose or create the active Knowledge Pack
 
-![Active Knowledge Pack management](help-assets/03-knowledge.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -153,7 +153,7 @@ Open **Configuration → Knowledge Management** (the hidden **Configure Knowledg
 
 **Create Knowledge Pack** selects an existing parent through the native folder picker, asks for one folder name and one real system (ID, canonical name, kind, description), and creates five tables without invented relationships. UX3 still supports a new or existing empty destination and rejects nonempty folders. Document Builder below requires a new folder. First-run **Create Diagram** onboarding retains its native Create/Choose/Cancel controls and editable absolute default destination; it uses no model.
 
-For the small demo catalog, start Alpha as `service`, then add Beta as `database` and a relationship using the [five-table format](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/knowledge-pack-format.md). Do this by deliberate file editing and reload validation; the document Builder does not update this pack. A relationship's `interface_type` can be `DB`, `interface_name` `Writer`, and `mode` `synchronous`.
+For the small demo catalog, start Alpha as `service`, then add Beta as `database` and a relationship using the [five-table format](https://github.com/Setech-pl/archi-agent/blob/main/docs/knowledge-pack-format.md). Do this by deliberate file editing and reload validation; the document Builder does not update this pack. A relationship's `interface_type` can be `DB`, `interface_name` `Writer`, and `mode` `synchronous`.
 
 
 ### Complete synthetic five-file pack
@@ -202,17 +202,17 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
-![Choose a PDF OCR mode](help-assets/13-ocr.png)
+
 
 Historical alpha.6 UI reference.
 
-![Local conversion result](help-assets/11-conversion.png)
+
 
 Historical alpha.6 UI reference.
 
 ## Documents to a new pack
 
-![Review proposed knowledge](help-assets/05-review.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -225,11 +225,11 @@ Historical alpha.6 UI reference.
 7. Choose an existing parent folder and one **new pack folder name**. Expand the five read-only previews on the same screen: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. The immutable preview is the exact content saved.
 8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Choose Existing Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
 
-![Edit a proposed row](help-assets/06-edit.png)
+
 
 Historical alpha.6 UI reference.
 
-![Five-file preview and destination](help-assets/07-pack-preview.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -244,11 +244,11 @@ Builder limits are stricter than standalone conversion:
 | Request/candidates | 256 KiB prepared request; 128 candidates, 32 aliases, 64 relationships | no LLM |
 | Work deadline | 360 seconds; generation 120 seconds capped by remaining time | 120 seconds without OCR; OCR deadline 300 seconds |
 
-Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas, 16 MP embedded image; Office ZIP 1000 entries, 100 MiB inflated total, 25 MiB per entry, 100:1 ratio; XLSX 40 sheets, 20000 rows, 150 columns, 250000 cells. PDF loses layout/table structure; DOCX excludes images/external resources and complex layout may lose fidelity; XLSX uses cached formula values, never recalculation. DOC/XLS are unsupported. Full bundles PL/EN OCR models offline; Core reports pages requiring OCR. Cancel/failure returns no partial conversion or candidates. Worker closure/cleanup can extend beyond the work deadline. See [full extraction limits](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/document-candidates.md#limits-and-cancellation).
+Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas, 16 MP embedded image; Office ZIP 1000 entries, 100 MiB inflated total, 25 MiB per entry, 100:1 ratio; XLSX 40 sheets, 20000 rows, 150 columns, 250000 cells. PDF loses layout/table structure; DOCX excludes images/external resources and complex layout may lose fidelity; XLSX uses cached formula values, never recalculation. DOC/XLS are unsupported. Full bundles PL/EN OCR models offline; Core reports pages requiring OCR. Cancel/failure returns no partial conversion or candidates. Worker closure/cleanup can extend beyond the work deadline. See [full extraction limits](https://github.com/Setech-pl/archi-agent/blob/main/docs/document-candidates.md#limits-and-cancellation).
 
 ## Active file and Knowledge Browser
 
-![Browse the active knowledge](help-assets/04-browser.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -263,7 +263,7 @@ The tree also includes **Actors**. Use **Refresh Knowledge** in the tree title a
 
 ## Generate and inspect a diagram
 
-![Sequence and grounding report](help-assets/08-sequence.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -285,13 +285,13 @@ Invalid input/grounding makes zero generation calls; generator/local rejection o
 
 If semantic review rejects/fails after local checks, **Show unverified candidate** may open a marked candidate without a report; Cancel opens nothing. It is not a completed ART1 result. User cancellation does not offer an unverified candidate. The old `archiAgent.generateSequenceDiagram` command ID is an invisible delegate to **Create Diagram**. The older one-call runtime compatibility API remains available internally; it is not a separate user entry or fallback.
 
-![Component diagram and report](help-assets/09-component.png)
+
 
 Historical alpha.6 UI reference.
 
 ## Save the original diagram and report
 
-![Confirm the original diagram and report pair](help-assets/10-save.png)
+
 
 Historical alpha.6 UI reference.
 
@@ -347,13 +347,13 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 ## Screenshots, Help and license
 
-![Bundled offline Help](help-assets/12-help.png)
+
 
 Historical alpha.6 UI reference.
 
-**Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
+**Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](https://github.com/Setech-pl/archi-agent/blob/main/docs/assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-Own code: [MIT](LICENSE.txt). Bundled components: [notices](THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/product-roadmap.md), [technical state](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/project-state.md). The earlier public alpha.6 predates these local additions. The current local order is SRC1 → VER1 → D3 → D4 → MCP1; MCP1 is implemented in the local candidate; acceptance is recorded separately.
+Own code: [MIT](LICENSE.txt). Bundled components: [notices](THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](https://github.com/Setech-pl/archi-agent/blob/main/docs/product-roadmap.md), [technical state](https://github.com/Setech-pl/archi-agent/blob/main/docs/project-state.md). The earlier public alpha.6 predates these local additions. The current local order is SRC1 → VER1 → D3 → D4 → MCP1; MCP1 is implemented in the local candidate; acceptance is recorded separately.
 ## Local Structurizr source — SRC1 candidate
 
 This section applies to the local SRC1 candidate, not the downloadable alpha.6 release.
