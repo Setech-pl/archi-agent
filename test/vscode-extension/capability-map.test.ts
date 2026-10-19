@@ -16,10 +16,10 @@ function dependencies(){const runtime=createArchiAgentRuntime();
 function choose(file:string){state.quickPickAnswers.push(by("id","capability-map"),by("id","sales"),by("value",3),by("id","maturity"));state.openDialogAnswers.push([Uri.file(file)]);}
 it("routes before all knowledge/provider settings, secrets, model listing and generator calls",async()=>{
  const f=await fixture();state.workspaceFolders=[{name:"retail",uri:Uri.file(f.root),index:0}];choose(f.file);
- const {deps,providerSpies}=dependencies();const config=vi.spyOn(workspace,"getConfiguration").mockImplementation(()=>{throw Error("Provider settings must not be touched");});
+ const {deps,providerSpies}=dependencies();const config=vi.spyOn(workspace,"getConfiguration");
  await generateDiagramCommand(deps);expect(state.openedDocuments).toHaveLength(2);expect(deps.results.results()).toHaveLength(1);
  const report=JSON.parse(state.openedDocuments[1]!.getText());expect(report.modelCalls).toBe(0);expect(report.selection.rootIds).toEqual(["sales"]);
- providerSpies.forEach(s=>expect(s).not.toHaveBeenCalled());expect(config).not.toHaveBeenCalled();expect(state.secretReads).toEqual([]);expect(state.configurationUpdates).toEqual([]);
+ providerSpies.forEach(s=>expect(s).not.toHaveBeenCalled());expect(config).toHaveBeenCalledTimes(1);expect(state.secretReads).toEqual([]);expect(state.configurationUpdates).toEqual([]);
  expect(await readdir(f.root)).toEqual(["enterprise.json"]);
 });
 it.each(["type","project","file","scope","detail","colors","progress"])("Cancel %s leaves no previews, registry entries or files",async step=>{

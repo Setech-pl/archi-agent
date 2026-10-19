@@ -6,4 +6,6 @@ Start with [Retail Checkout](../../examples/retail-checkout/START-HERE.en.md) fo
 
 [Public ZIPs and installers](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) · [Coverage, archive checks and limitations](../demo1-verification.md). Each ZIP contains complete PL/EN instructions and ready synthetic knowledge. VSIX use needs VS Code 1.91+, with no repository/npm/Node. Optional CLI/MCP needs Node 22.12+. First PlantUML verification needs no model; generation/prose/extraction use your provider. Keep one Core/Full profile enabled.
 
-[Capability Map — local EA1 only](capability-map.md): use the current Retail enterprise catalog with a new local EA1 VSIX, without a provider. Published DEMO1 downloads remain the four software diagrams.
+[Capability Map — local EA1b only](capability-map.md): use the current Retail enterprise catalog with a new local EA1b VSIX, without a provider. Published DEMO1 downloads remain the four software diagrams.
+
+Continue the same catalog through the CLI and the separate enterprise knowledge server using the complete Capability Map section of the CLI/MCP guide. No LLM configuration is needed.

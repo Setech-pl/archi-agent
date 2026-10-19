@@ -1,9 +1,9 @@
 # Enterprise catalog — EA1
 
-EA1 is a local VS Code candidate. Published DEMO1 packages do not contain Capability Map.
+EA1/EA1b are local VS Code/CLI/MCP candidates. Published DEMO1 packages do not contain Capability Map.
 [Tutorial EN](en/capability-map.md) · [Tutorial PL](pl/capability-map.md) · [Reviewed plan](plans/ea1-capability-map.md).
 Capabilities are business abilities, independent of systems, actors and containers. No technical
-relationships or model inference are created. CLI and MCP enterprise support belongs to EA1b.
+relationships or model inference are created. EA1b adds CLI, function MCP and an MCP knowledge source without changing software knowledge v1.
 
 ## File contract
 
@@ -91,3 +91,31 @@ project-relative or logical-name-only. Manual preview edits do not change the or
 Cancel, registry lifetime, collision protection and conditional rollback follow
 [ART1](diagram-artifact-save.md). Closing both previews/reloading loses the in-memory entry.
 No atomic two-file publication or crash recovery guarantee is added.
+
+## MCP source and parity — EA1b
+
+The optional fixed tool get_enterprise_snapshot takes {sourceId,contractVersion:1}, returning strict
+archi-agent-enterprise-snapshot/1: schemaVersion, source:{id,version}, snapshot:{id,digest}, catalog.
+Source identity must match the requested ID and catalog.source.id. Source version hashes
+{domain:"archi-agent-enterprise-source-version/1",catalog} in response order; snapshot digest reuses
+EA1 canonical catalogDigest. Client verifies both plus enterprise-${digest}, then freezes once.
+Client responseFingerprint hashes the full structuredContent (not JSON-RPC/text). Object keys use
+UTF-16 order; response arrays keep order. Semantic snapshot sorts records/provenance/fields as EA1.
+Raw byte hash is local only. Declared reference/version stays semantic, never excluded from parity.
+
+The knowledge v1 protocol remains strict and unchanged. Discovery checks the exact enterprise tool,
+with 16 pages/256 tools/1 MiB listing limits. No tool or unsupported version yields explicit unsupported,
+no fallback. Catalog bounds remain 1 MiB/100000 tokens/depth 64; structured enterprise response is
+2 MiB, complete knowledge reply 64 MiB, including escaped text copy. Each inspect/generation has
+30 s total budget (local read 10 s), cancellation and confirmed transport closure. No retries.
+
+Local report v1 is unchanged. MCP report v2 uses source.transport containing kind:mcp, sourceId,
+sourceVersion,responseFingerprint,tool,contractVersion, and response JSON Pointer locators without
+file/line. Original provenance/reference is retained in capabilities/scales. Snapshot/projection digests
+and PlantUML are identical for the same semantic catalog and view across hosts; transport evidence
+and ART1/meta identity may differ. ART1 keeps envelope v1 and original bytes with a remote-source
+reference. CLI/function MCP return data and cannot write files automatically.
+
+Complete executable configuration and user adapter instructions:
+[EN](en/cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate) /
+[PL](pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b).

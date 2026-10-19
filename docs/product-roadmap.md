@@ -22,13 +22,13 @@ This is the next planned diagram group. It begins with a small separate business
 not a universal metamodel or a capability encoded as a software system.
 [EA1 plan](plans/ea1-capability-map.md) reviewed and implementation authorized 2026-10-19.
 Local Capability Map implementation and required automated verification are complete; owner smoke
-is deferred. [EA1 verification](ea1-verification.md). No publication; EA1b has not started.
+is deferred. [EA1 verification](ea1-verification.md). No publication. EA1b adds local CLI/function MCP generation and the separate enterprise MCP knowledge contract; acceptance evidence is in the [EA1b report](ea1b-verification.md).
 [Contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) / [PL](pl/capability-map.md).
 
 | Order | View | Scope and dependencies |
 | --- | --- | --- |
 | EA1 | Capability Map | Local versioned enterprise.json; business capability IDs, L1–L3 hierarchy, provenance and optional explicit-scale assessments; deterministic projection, zero LLM; existing Create Diagram and ART1 |
-| EA1b | CLI/MCP and MCP knowledge source | Explicit enterprise contract/version discovery; retain existing knowledge v1 servers and functions; no invented capabilities when enterprise data is missing |
+| EA1b | CLI/MCP and MCP knowledge source | Local implementation: fixed get_enterprise_snapshot v1, config v2/enterpriseSources, report MCP v2 with true references; existing knowledge v1 preserved; zero LLM |
 | EA2 | Capability–Application Map | Explicit application IDs and capability support mappings with provenance and coverage; builds on the capability catalog |
 | EA3 | Value Stream | Explicit ordered stages, delivered value and capability mappings; no inferred process order |
 | EA4 | Application Landscape | Application portfolio, ownership/domains and optional explicit assessments; depends on the application contract |

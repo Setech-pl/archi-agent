@@ -5,7 +5,7 @@ import { canonicalDirectory } from "./local-file-path.js";
 import type { LocalReadPolicy } from "./local-read-policy.js";
 import type { CancellationSignal } from "../core/knowledge-pack/knowledge-pack-source.js";
 import { parseLocatedJson } from "../core/architecture-sources/json-with-locations.js";
-import { createEnterpriseSnapshot, EnterpriseError, enterpriseLimits, validateEnterpriseCatalog, type EnterpriseCatalog, type EnterpriseEvidence } from "../core/enterprise/enterprise-catalog.js";
+import { createEnterpriseSnapshot, EnterpriseError, enterpriseLimits, validateEnterpriseCatalog, type EnterpriseCatalog, type LocalEnterpriseEvidence } from "../core/enterprise/enterprise-catalog.js";
 
 export interface EnterpriseSourceConfig { readonly kind:"enterprise-json"; readonly path:string }
 /** One bounded, link-free read. JSON pointers and physical lines refer to these exact bytes. */
@@ -33,7 +33,7 @@ export async function loadEnterpriseJson(source:EnterpriseSourceConfig, signal?:
     }),e.count);
     throw e;
   }
-  const evidence:EnterpriseEvidence = {file, sourceBytesSha256:createHash("sha256").update(input.text,"utf8").digest("hex"),
+  const evidence:LocalEnterpriseEvidence = {file, sourceBytesSha256:createHash("sha256").update(input.text,"utf8").digest("hex"),
     capabilities:Object.fromEntries(catalog.capabilities.map((c,i)=>[c.id,{pointer:`/capabilities/${i}`,
       fields:Object.fromEntries(["id","name","description",...(c.parentId?["parentId"]:[]),...Object.keys(c.ratings??{}).map(s=>`ratings/${s}`)]
         .map(f=>[`/${f}`,parsed.at(["capabilities",i,...f.split("/")])]))}])),

@@ -22,7 +22,7 @@ provenance, freezes the snapshot, projects a selected view and emits a closed Pl
 Node reads one bounded file with actual positions/fingerprint. Runtime composes these functions
 and a separate strict ART1 capture; the existing writer/envelope remains compatible.
 The editor routes this type before any software source/provider onboarding. No provider settings,
-keys, model listing, generation or semantic review are used. CLI/MCP enterprise remains EA1b.
+keys, model listing, generation or semantic review are used. EA1b routes CLI and function MCP to the same operation, and adds a separate fixed enterprise knowledge tool. Local report v1 remains; remote report v2 uses true references/pointers instead of file lines. Config v2 keeps enterpriseSources separate from software sources; VS Code uses enterpriseSource plus User-only knowledgeServer.
 The existing generation sequence diagram below describes software diagrams only.
 
 ## VER1 and source-bound C4

@@ -1,4 +1,5 @@
-import { loadEnterpriseJson, type EnterpriseSourceConfig } from "../node/enterprise-json-source.js";
+import { loadEnterpriseSource, type EnterpriseSourceConfig } from "./enterprise-source.js";
+import {McpKnowledgeError} from "../node/mcp-knowledge-source.js";
 import type { LocalReadPolicy } from "../node/local-read-policy.js";
 import { BoundedReadError } from "../node/bounded-file-reader.js";
 import { LocalPathError } from "../node/local-file-path.js";
@@ -12,32 +13,36 @@ import { captureCapabilityMapArtifact } from "./diagram-artifact.js";
 
 function failure(error:unknown, signal?:CancellationSignal) {
   const code = signal?.aborted ? "cancelled" : error instanceof EnterpriseError || error instanceof BoundedReadError || error instanceof LocalPathError ||
-    error instanceof KnowledgePackError || error instanceof ArchitectureSourceError ? error.code : "invalid-source";
+    error instanceof KnowledgePackError || error instanceof ArchitectureSourceError || error instanceof McpKnowledgeError ? error.code : "invalid-source";
   return {status:"failed" as const,code:code === "structurizr-json-invalid" ? "enterprise-json-invalid" : code,
     issues:error instanceof EnterpriseError ? error.issues : error instanceof ArchitectureSourceError && error.location ? [{code,path:[],location:error.location}] : [],
     ...(error instanceof EnterpriseError && error.count !== undefined ? {count:error.count}:{})};
 }
 export async function inspectEnterpriseSource(source:EnterpriseSourceConfig, signal?:CancellationSignal, localReadPolicy?:LocalReadPolicy) {
   try {
-    const snapshot = await loadEnterpriseJson(source,signal,localReadPolicy);
+    const snapshot = await loadEnterpriseSource(source,signal,localReadPolicy,Date.now()+30_000);
     if(signal?.aborted) throw new EnterpriseError("cancelled");
     return {status:"success" as const,snapshot};
   } catch(e) {return failure(e,signal);}
 }
 /** EA1 has no provider, generator, credentials or flow fields. A single read supplies every later stage. */
-export async function generateCapabilityMap(request:{source:EnterpriseSourceConfig;selection:CapabilityMapSelection}, signal?:CancellationSignal, localReadPolicy?:LocalReadPolicy) {
+export type CapabilityMapView = Omit<CapabilityMapSelection,"expectedCatalogDigest"> & {expectedCatalogDigest?:string};
+export async function generateCapabilityMap(request:{source:EnterpriseSourceConfig;selection:CapabilityMapView}, signal?:CancellationSignal, localReadPolicy?:LocalReadPolicy) {
   const deadline = Date.now()+30_000;
   const check=()=>{if(signal?.aborted)throw new EnterpriseError("cancelled");if(Date.now()>=deadline)throw new EnterpriseError("deadline-exceeded");};
   try {
     check();
-    const snapshot=await loadEnterpriseJson(request.source,{get aborted(){return !!signal?.aborted||Date.now()>=deadline;}},localReadPolicy);
+    const snapshot=await loadEnterpriseSource(request.source,{get aborted(){return !!signal?.aborted||Date.now()>=deadline;}},localReadPolicy,deadline);
     check();
-    const projection=projectCapabilityMap(snapshot,request.selection), rendered=renderCapabilityMap(projection);
+    const projection=projectCapabilityMap(snapshot,{...request.selection,expectedCatalogDigest:request.selection.expectedCatalogDigest??snapshot.catalogDigest}), rendered=renderCapabilityMap(projection);
     check();
+    const evidence=snapshot.evidence, remote="kind"in evidence;
     const report=deepFreeze(capabilityMapReportSchema.parse({
-      format:"archi-agent-capability-map-report",formatVersion:1,diagramType:"capability-map",generationPath:"deterministic-catalog-projection",modelCalls:0,
+      format:"archi-agent-capability-map-report",formatVersion:remote?2:1,diagramType:"capability-map",generationPath:"deterministic-catalog-projection",modelCalls:0,
       deterministicValidation:{verdict:"passed"},semanticReview:{status:"not-applicable",reason:"deterministic-projection"},
-      source:{contract:snapshot.catalog.format,schemaVersion:1,identity:snapshot.catalog.source,file:snapshot.evidence.file,sourceBytesSha256:snapshot.evidence.sourceBytesSha256},
+      source:{contract:snapshot.catalog.format,schemaVersion:1,identity:snapshot.catalog.source,...(remote?
+        {transport:{kind:"mcp",sourceId:evidence.sourceId,sourceVersion:evidence.sourceVersion,responseFingerprint:evidence.responseFingerprint,tool:evidence.tool,contractVersion:1}}:
+        {file:evidence.file,sourceBytesSha256:evidence.sourceBytesSha256})},
       snapshot:{id:`enterprise-${snapshot.catalogDigest}`,catalogDigest:snapshot.catalogDigest},projectionDigest:projection.projectionDigest,rendererVersion:1,
       selection:projection.selection,hierarchy:snapshot.hierarchy,
       visible:projection.visible.map(h=>({capability:snapshot.catalog.capabilities.find(c=>c.id===h.id),hierarchy:h,locator:snapshot.evidence.capabilities[h.id],renderLine:rendered.lines[h.id]})),
@@ -49,6 +54,6 @@ export async function generateCapabilityMap(request:{source:EnterpriseSourceConf
     if(Buffer.byteLength(serialized,"utf8")>enterpriseLimits.reportBytes)throw new EnterpriseError("map-too-large");
     check();
     return {status:"success" as const,diagramType:"capability-map" as const,plantUml:rendered.plantUml,report,
-      artifact:captureCapabilityMapArtifact(rendered.plantUml,report,request.source.path)};
-  } catch(e) {return failure(e,signal);}
+      artifact:captureCapabilityMapArtifact(rendered.plantUml,report,request.source.kind==="enterprise-json"?request.source.path:undefined)};
+  } catch(e) {return failure(!signal?.aborted&&Date.now()>=deadline?new EnterpriseError("deadline-exceeded"):e,signal);}
 }

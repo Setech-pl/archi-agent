@@ -106,7 +106,12 @@ export { resolveLocalReadReference } from "./local-text-input.js";
 
 export { getDocumentConversionCapabilities } from "./document-conversion-capabilities.js";
 export { inspectEnterpriseSource, generateCapabilityMap } from "./capability-map.js";
-export type { EnterpriseSourceConfig } from "../node/enterprise-json-source.js";
+export type { EnterpriseSourceConfig } from "./enterprise-source.js";
+export type {CapabilityMapView} from "./capability-map.js";
+export type {EnterpriseCatalog,EnterpriseEvidence} from "../core/enterprise/enterprise-catalog.js";
+export {createEnterpriseResponse,validateEnterpriseResponse,enterpriseResponseSchema,enterpriseInputSchema,enterpriseOutputSchema,enterpriseStateSchema,enterpriseTool,enterpriseTransferLimits} from "../core/enterprise/enterprise-transfer.js";
+export type {EnterpriseResponseV1} from "../core/enterprise/enterprise-transfer.js";
+export {capabilityMapSelectionSchema} from "../core/enterprise/capability-map.js";
 export type { CapabilityMapSelection } from "../core/enterprise/capability-map.js";
 export type { EnterpriseSnapshot } from "../core/enterprise/enterprise-catalog.js";
 export type { DocumentConversionCapabilities } from "./document-conversion-capabilities.js";

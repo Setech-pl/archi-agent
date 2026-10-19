@@ -20,9 +20,9 @@ For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAg
 
 The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
-## Capability Map — local EA1 candidate
+## Capability Map — local EA1b candidate
 
-Available in the new local EA1 Core/Full candidate, **not in the published DEMO1 downloads above**.
+Available in the new local EA1b Core/Full candidate, **not in the published DEMO1 downloads above**.
 Open a local project and run **Archi: Create Diagram → Enterprise Architecture → Capability Map**.
 Select `enterprise.json`, choose the whole map or an L1 branch, L1–L3 detail, and no colors or an
 explicit rating scale. In multi-root workspaces select the source project first. No software pack,
@@ -35,7 +35,21 @@ The legend/report show source coverage and deliberate scope/detail omissions. La
 an explicit narrower view. This report is not semantic review or Verify Flow.
 In the current checkout, `docs/en/capability-map.md` contains the Retail exercise and reference map;
 `docs/enterprise-catalog.md` describes the exact contract. These new files are local candidate documentation.
-CLI/MCP enterprise access belongs to the later EA1b stage.
+The local EA1b CLI also accepts diagram generate with --type capability-map and a config v2 enterpriseSources entry, without input/provider. The function server uses the same generate_diagram tool with a separate capability-map variant. Published DEMO1 does not contain this addition.
+
+For the MCP catalog, use the locally packaged archi-agent-knowledge-server with a config v2 enterpriseSources entry named retail-business pointing to architecture/enterprise.json under its readRoots, sources/providers empty. Check it with --check-source retail-business --type enterprise. The CLI/MCP guide includes both complete configuration files. Set these User settings, replacing the absolute executable/package/config paths:
+
+```json
+{
+  "archiAgent.enterpriseSource": {"kind": "mcp", "sourceId": "retail-business"},
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": ["/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs", "--config", "/srv/retail-knowledge.json"]
+  }
+}
+```
+
+Create Diagram → Enterprise Architecture → Capability Map now offers Configured MCP source and Local enterprise.json. Choose MCP, then the same scope/detail/rating options. Only User knowledgeServer can configure a process; workspace values cannot. Software architectureSource is separate. Each generation loads one snapshot, makes zero model calls and saves only after ART1 confirmation. Missing get_enterprise_snapshot v1 gives enterprise-unsupported with no fallback. Remote report v2 preserves references and JSON Pointers, never fictitious file/line. The old get_knowledge_snapshot v1 remains unchanged.
 
 ## Verify Flow and C4
 

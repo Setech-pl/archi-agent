@@ -19,7 +19,42 @@ i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0
 identyfikują dokładne publiczne pliki. VSIX nie wymaga repo/npm/Node; CLI/MCP wymaga Node >=22.12.
 Nie deklarujemy wydania stabilnego ani Marketplace.
 
-## Aktywne zadanie: IMPLEMENTACJA EA1 — Capability Map
+## EA1b — lokalny checkpoint, STOP po tym etapie
+
+Zrealizowano zatwierdzony [plan EA1b](plans/ea1b-capability-map-cli-mcp.md).
+Preflight: `docs/doc3-ea1`, HEAD `4f3e8d90d65078835fb32fc477f8a9f6b73414ff`, tylko plan
+EA1b/project-state poza stagingiem; zachowano oba pliki i utworzono `feature/ea1b-cli-mcp`.
+Lokalny checkpoint jest commitem zawierającym ten stan i [raport EA1b](ea1b-verification.md);
+pełny SHA wskazuje Git i raport końcowy. Bez push/merge/tagów/publikacji, zmian release assets
+ani rozpoczęcia EA2.
+
+Wspólny runtime generuje Capability Map lokalnie oraz przez źródło MCP w VS Code, CLI i serwerze
+funkcji, z jednym frozen snapshotem, 0 wywołań LLM i 0 odczytów providera/modelu/credentiali LLM. Opcjonalny
+get_enterprise_snapshot v1 zachowuje get_knowledge_snapshot v1 bez migracji. Config v2 oddziela
+enterpriseSources, raport MCP v2 zachowuje prawdziwe references/pointers obok lokalnego v1,
+ART1 nadal zapisuje oryginalną parę po potwierdzeniu; CLI/function MCP nie zapisują plików.
+User-only knowledgeServer, readRoots, limity i zamknięcie dziecka zachowane. Gotowy adapter
+Retail i komplet instrukcji PL/EN. Opublikowane DEMO1/ZIP-y oraz zależności/lockfile bez zmian.
+
+Bieżący odbiór Node 22.12 PASS: root 2054/2054, rozszerzenie 768/768, oba typechecki, build,
+sekwencyjne package/verify Core/Full/CLI i dokumentacja. Dokładne paczki/SHA-256 i osobne
+warstwy: `build/ea1b/candidate-20261019/` oraz raport EA1b. Spakowany CLI/function/source MCP
+poza repo z pustymi PATH/NODE_PATH 8/8, w tym nested cancel/timeout/EOF/SIGTERM i potwierdzenie
+zakończenia PID. EA1 Core/Full 4+4, SRC1 3, VER1/C4 5, ART1 14 PASS.
+Rzeczywisty Host: EA1b 19/19 (providerReads=0, secretReads=0), EA1 18/18.
+Widoczny UI Core: MCP 6/6, lokalny EA1 5/5, pojedynczy Sequence/provider route 1/1 PASS;
+`ui-summary.json` agreguje wyłącznie zaliczone wymagane warstwy. Nie utożsamiamy Host z UI.
+Błędne początkowe próby testu limitu i harnessów są zachowane i opisane, bez fikcyjnego PASS.
+
+Niezależny read-only review kodu, dokładnych paczek, manifestów, zapisanych oryginałów
+oraz zrzutów UI: PASS, 0 otwartych HIGH/MEDIUM/LOW. Potwierdzony parytet semantyki/digestów
+oraz PlantUML, w tym rzeczywiste UI lokalne kontra MCP. Źródła produktu i paczki bez zmian po
+zaliczonych bramkach; końcowe korekty dotyczą tylko harnessów/dokumentacji.
+OWNER_SMOKE: DEFERRED. Full Host/UI nie powtarzano osobno (runtime i bundle parity PASS);
+live LLM/cloud, Windows/Linux i fresh clean-clone NOT_RUN. Dawnych AUD-ID nie zamykano.
+Następny etap wymaga osobnego polecenia właściciela. Po EA1b STOP.
+
+## EA1 — lokalny checkpoint i historyczny odbiór
 
 Gałąź `docs/doc3-ea1`, baza `d723af09dacc71746a82c0fddcad97beb2cece8e`.
 Osobny lokalny checkpoint DOC3: `ec3939cbcc9ca0ceaa9791c4378ae2f1c4fa6920`.
@@ -85,7 +120,7 @@ Po checkpointcie STOP: EA1b i kolejne diagramy poza zakresem, bez push/merge/tag
   wybierz regularny folder projektu zamiast obchodzenia walidacji ścieżki.
 - **Q-04 nadal do oceny owner smoke:** wybór kilku wyników tego samego typu pokazuje typ/czas/UUID,
   które trudno skorelować z kartami podglądu; nie dodano nazwy diagramu ani historii wyników.
-- EA1 Capability Map jest gotowa w lokalnym kandydacie; EA1b i kolejne widoki enterprise oraz ArchiMate HLD pozostają planowane. Enterprise Architect XML nadal odłożone
+- EA1/EA1b Capability Map jest gotowa w lokalnym kandydacie; kolejne widoki enterprise oraz ArchiMate HLD pozostają planowane. Enterprise Architect XML nadal odłożone
   bez bezpiecznego fixture. Historia M1 nie oznacza gotowości produkcyjnej.
 
 ## Istotne dowody (historyczne, nie wyniki DOC3)

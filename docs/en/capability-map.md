@@ -1,8 +1,8 @@
-# Capability Map — local EA1 candidate
+# Capability Map — local EA1b candidate
 
 [Polski](../pl/capability-map.md) · [User guide](user-guide.md)
 
-Use the **new local EA1 Core or Full VSIX**, identified in the local verification report.
+Use the **new local EA1b Core or Full VSIX**, identified in the local verification report.
 The published DEMO1 VSIX/ZIP does not include this feature. Use the current checkout's
 [Retail folder](../../examples/retail-checkout/START-HERE.en.md) and
 [enterprise.json](../../examples/retail-checkout/architecture/enterprise.json).
@@ -39,5 +39,4 @@ If the catalog changes during selection, repeat Create Diagram. Invalid input gi
 fix the catalog, never ask a model to guess a missing parent or name.
 
 [Exact file contract, bounds and digests](../enterprise-catalog.md).
-CLI/MCP enterprise transport, application support maps, value streams and application landscapes
-are later stages and are not available here.
+CLI/MCP and the MCP enterprise source are available in the local EA1b candidate. Follow the complete configurations and commands in the [CLI/MCP tutorial](cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate). With enterpriseSource configured, choose Configured MCP source instead of a file; scope/detail/colors and ART1 stay the same. Remote errors show a code and JSON Pointer without invented file lines. Application support maps, value streams and application landscapes remain future work.

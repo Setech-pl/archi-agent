@@ -348,6 +348,18 @@
             }
           ]
         },
+        "archiAgent.enterpriseSource": {
+          "type": ["object", "null"],
+          "default": null,
+          "scope": "resource",
+          "markdownDescription": "Capability Map only: null selects a local enterprise.json file; {\"kind\":\"mcp\",\"sourceId\":\"retail-business\"} offers the configured MCP catalog. Executable and args come only from User knowledgeServer settings. Zero LLM calls.",
+          "additionalProperties": false,
+          "required": ["kind", "sourceId"],
+          "properties": {
+            "kind": {"enum": ["mcp"]},
+            "sourceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,55}$"}
+          }
+        },
         "archiAgent.knowledgeServer": {
           "type": [
             "object",

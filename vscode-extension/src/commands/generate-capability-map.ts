@@ -1,6 +1,7 @@
 import path from "node:path";
 import * as vscode from "vscode";
-import { generateCapabilityMap, inspectEnterpriseSource, type CapabilityMapSelection } from "../../../src/runtime/index.js";
+import { generateCapabilityMap, inspectEnterpriseSource, type CapabilityMapSelection,type EnterpriseSourceConfig } from "../../../src/runtime/index.js";
+import {configuredEnterpriseSource} from "../settings.js";
 import { assertProfileAvailable, withProfileCancellation } from "../profile-availability.js";
 import { OpenDiagramResults, saveDiagramAction, saveDiagramAndReportCommand } from "./save-diagram-and-report.js";
 
@@ -13,19 +14,32 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults):
     {title:"Archi Agent: capability project",ignoreFocusOut:true}))?.folder;
   if(!project)return;
   if(project.uri.scheme!=="file") {await vscode.window.showWarningMessage("Archi Agent: Capability Map requires a local project and enterprise.json catalog.");return;}
-  const picked=await vscode.window.showOpenDialog({title:pl ? "Wybierz enterprise.json — katalog zdolności biznesowych" : "Select enterprise.json — a business capability catalog",
+  let source:EnterpriseSourceConfig|undefined;
+  try{source=configuredEnterpriseSource(vscode.workspace.getConfiguration("archiAgent",project.uri));}
+  catch(e){await vscode.window.showWarningMessage(`Archi Agent: ${e instanceof Error?e.message:"enterprise-source-invalid"}. ${pl?"Ustaw źródło enterprise oraz zaufany knowledgeServer w ustawieniach użytkownika.":"Configure enterpriseSource and a trusted knowledgeServer in User settings."}`);return;}
+  if(source){
+    const choice=await vscode.window.showQuickPick([{label:`${pl?"Skonfigurowane źródło MCP":"Configured MCP source"}: ${source.sourceId}`,id:"mcp"},
+      {label:"Local enterprise.json…",id:"local"}],{title:"Archi Agent: capability source",ignoreFocusOut:true});
+    if(!choice)return;if(choice.id==="local")source=undefined;
+  }
+  if(!source){
+   const picked=await vscode.window.showOpenDialog({title:pl ? "Wybierz enterprise.json — katalog zdolności biznesowych" : "Select enterprise.json — a business capability catalog",
     canSelectFiles:true,canSelectFolders:false,canSelectMany:false,filters:{"Enterprise catalog":["json"]},
     defaultUri:vscode.Uri.file(path.join(project.uri.fsPath,"architecture","enterprise.json"))});
   if(!picked?.[0])return;
   if(picked[0].scheme!=="file") {await vscode.window.showWarningMessage("Archi Agent: select a local enterprise.json file. Software architecture sources do not supply business capabilities.");return;}
-  const source={kind:"enterprise-json" as const,path:picked[0].fsPath};
+   source={kind:"enterprise-json",path:picked[0].fsPath};
+  }
+  const selectedSource=source;
   const inspected=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: validating enterprise catalog",cancellable:true},
-    (_progress,token)=>inspectEnterpriseSource(source,withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
+    (_progress,token)=>inspectEnterpriseSource(selectedSource,withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
   const showFailure=async(f:{code:string;issues:readonly {code:string;path:readonly (string|number)[];location?:{line:number}}[];count?:number})=>{
     if(f.code==="cancelled")return;
     const issue=f.issues[0], detail=issue?` ${issue.code}: /${issue.path.join("/")}${issue.location?` (line ${issue.location.line})`:""}.`:"";
     const next=f.code==="map-too-large" ? ` Visible capabilities: ${f.count??"over limit"}. Select fewer L1 branches or L1/L2 detail.` :
-      f.code==="stale-source" ? " The catalog changed. Repeat Create Diagram and scope selection." : " Select a valid enterprise.json business catalog; software sources cannot supply these capabilities.";
+      f.code==="stale-source" ? " The catalog changed. Repeat Create Diagram and scope selection." :
+      f.code==="enterprise-unsupported"||f.code==="enterprise-version-unsupported"?" The configured knowledge server does not support get_enterprise_snapshot v1. No fallback was used.":
+      selectedSource.kind==="mcp"?" Check the configured MCP enterprise source and its catalog. No fallback was used.":" Select a valid enterprise.json business catalog; software sources cannot supply these capabilities.";
     await vscode.window.showWarningMessage(`Archi Agent: ${f.code}.${detail}${next}`);
   };
   if(inspected.status!=="success") {await showFailure(inspected);return;}
@@ -46,7 +60,7 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults):
   const selection:CapabilityMapSelection={rootIds:root.id?[root.id]:[],maxLevel:level.value,colorBy:color.id?{kind:"rating",scaleId:color.id}:{kind:"none"},
     language:pl?"pl":"en",expectedCatalogDigest:snapshot.catalogDigest};
   const result=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: creating Capability Map",cancellable:true},
-    (_progress,token)=>generateCapabilityMap({source,selection},withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
+    (_progress,token)=>generateCapabilityMap({source:selectedSource,selection},withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
   if(result.status!=="success") {await showFailure(result);return;}
   assertProfileAvailable();
   const languages=await vscode.languages.getLanguages();

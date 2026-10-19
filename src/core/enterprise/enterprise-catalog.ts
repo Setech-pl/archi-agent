@@ -80,20 +80,31 @@ export function validateEnterpriseCatalog(raw: unknown): EnterpriseCatalog {
   return catalog;
 }
 
-export interface EnterpriseEvidence {
+export interface LocalEnterpriseEvidence {
   readonly file: string;
   readonly sourceBytesSha256: string;
   readonly capabilities: Readonly<Record<string, { readonly pointer: string; readonly fields: Readonly<Record<string, SourceLocation>> }>>;
   readonly scales: Readonly<Record<string, { readonly pointer: string; readonly location: SourceLocation }>>;
 }
-export interface EnterpriseSnapshot {
+export interface McpEnterpriseEvidence {
+  readonly kind: "mcp";
+  readonly sourceId: string;
+  readonly sourceVersion: string;
+  readonly responseFingerprint: string;
+  readonly tool: "get_enterprise_snapshot";
+  readonly contractVersion: 1;
+  readonly capabilities: Readonly<Record<string, { readonly pointer: string; readonly fields: Readonly<Record<string, {readonly pointer:string}>> }>>;
+  readonly scales: Readonly<Record<string, {readonly pointer:string}>>;
+}
+export type EnterpriseEvidence = LocalEnterpriseEvidence | McpEnterpriseEvidence;
+export interface EnterpriseSnapshot<E extends EnterpriseEvidence = EnterpriseEvidence> {
   readonly catalog: EnterpriseCatalog;
   readonly catalogDigest: string;
-  readonly evidence: EnterpriseEvidence;
+  readonly evidence: E;
   readonly hierarchy: readonly { readonly id: string; readonly parentId: string | null; readonly level: number; readonly rootId: string }[];
   readonly duplicateNames: readonly string[];
 }
-export function createEnterpriseSnapshot(catalog: EnterpriseCatalog, evidence: EnterpriseEvidence): EnterpriseSnapshot {
+export function createEnterpriseSnapshot<E extends EnterpriseEvidence>(catalog: EnterpriseCatalog, evidence: E): EnterpriseSnapshot<E> {
   // Own all data before freezing. Adapter positions are excluded from semantic identity.
   const owned = validateEnterpriseCatalog(catalog);
   const normalize = (p: Capability["provenance"]) => p.map(v => ({ ...v, fields: [...v.fields].sort(stableCompare) }))

@@ -20,9 +20,9 @@ Dla MCP ustaw `archiAgent.knowledgeServer` w **ustawieniach User**, następnie `
 
 **Serwer funkcji MCP** (`archi-agent mcp serve`) udostępnia zewnętrznym klientom `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram`. Opisany wyżej **klient wiedzy MCP** pobiera `get_knowledge_snapshot` z osobnego serwera źródła. Dostarczony przykład `archi-agent-knowledge-server` współdzieli produkcyjne SRC1/K1 i rozdziela transport od `KnowledgeAdapter.load`. W żadnym kierunku LLM nie wybiera tools źródła. CLI/serwery wymagają Node 22.12+ oraz jawnych readRoots/sekretów środowiska; VSIX używa Node VS Code i SecretStorage. W pipeline PR użyj `flow verify` i akceptuj tylko exit 0; 1 oznacza rozbieżności, 2 nierozstrzygnięte/częściowe/nieobsługiwane, 3 błąd wykonania. Pełna konfiguracja i polecenia: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
 
-## Mapa zdolności biznesowych — lokalny kandydat EA1
+## Mapa zdolności biznesowych — lokalny kandydat EA1b
 
-Dostępna w nowym lokalnym kandydacie EA1 Core/Full, **nie w powyższych paczkach DEMO1**.
+Dostępna w nowym lokalnym kandydacie EA1b Core/Full, **nie w powyższych paczkach DEMO1**.
 Otwórz lokalny projekt i uruchom **Archi: Create Diagram → Architektura korporacyjna → Mapa zdolności biznesowych**.
 Wskaż `enterprise.json`, wybierz całą mapę lub gałąź L1, szczegółowość L1–L3 oraz brak kolorowania
 albo jawną skalę ocen. W multi-root najpierw wybierz projekt źródła. Nie potrzebujesz packa
@@ -35,7 +35,21 @@ Legenda/raport pokazują pokrycie źródła i świadome pominięcia zakresu/szcz
 jawnego zawężenia widoku. Raport nie jest semantic review ani Verify Flow.
 W bieżącym checkoucie `docs/pl/capability-map.md` zawiera ćwiczenie Retail i mapę referencyjną,
 a `docs/enterprise-catalog.md` opisuje dokładny kontrakt. To nowe lokalne dokumenty kandydata.
-Dostęp enterprise przez CLI/MCP należy do późniejszego EA1b.
+Lokalny CLI EA1b obsługuje diagram generate z --type capability-map i wpisem enterpriseSources w config v2, bez input/provider. Serwer funkcji używa tego samego generate_diagram z osobnym wariantem capability-map. Opublikowane DEMO1 nie zawiera tej zmiany.
+
+Dla katalogu MCP użyj lokalnie spakowanego archi-agent-knowledge-server z config v2: wpis enterpriseSources o nazwie retail-business wskazuje architecture/enterprise.json w readRoots, sources/providers są puste. Sprawdź źródło przez --check-source retail-business --type enterprise. Guide CLI/MCP zawiera oba kompletne pliki konfiguracji. Zapisz poniższe User settings, dostosowując absolutne ścieżki executable/paczki/config:
+
+```json
+{
+  "archiAgent.enterpriseSource": {"kind": "mcp", "sourceId": "retail-business"},
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": ["/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs", "--config", "/srv/retail-knowledge.json"]
+  }
+}
+```
+
+Create Diagram → Architektura korporacyjna → Mapa zdolności oferuje teraz skonfigurowane źródło MCP i Local enterprise.json. Wybierz MCP, a następnie dotychczasowy zakres/poziom/oceny. Tylko User knowledgeServer konfiguruje proces, workspace nie może tego zrobić. Software architectureSource pozostaje osobne. Generacja ładuje jeden snapshot, wykonuje zero wywołań modelu i zapisuje dopiero po potwierdzeniu ART1. Brak get_enterprise_snapshot v1 daje enterprise-unsupported bez fallbacku. Raport zdalny v2 zachowuje referencje i JSON Pointers, bez fikcyjnych file/line. Get_knowledge_snapshot v1 pozostaje bez zmian.
 
 ## Verify Flow i C4
 

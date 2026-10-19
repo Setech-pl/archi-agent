@@ -202,3 +202,16 @@ sequenceDiagram
 [Host i pakowanie](../vscode-extension.md) · [Źródła](../src1-structurizr-source.md) · [Weryfikacja przepływu](../ver1-flow-verification.md) · [C4](../c4-diagrams.md) · [Ekstrakcja dokumentów](../document-candidates.md) · [Review i zapis nowego packa](../knowledge-pack-review.md) · [Zapis oryginalnej pary](../diagram-artifact-save.md) · [CLI/MCP](cli-mcp.md) · [Decyzje architektoniczne](../adr/0002-deterministic-diagram-plan-renderers.md).
 
 Wyrenderowane kopie (SVG / PNG): [A SVG](../assets/diagrams/pl-A.svg) / [PNG](../assets/diagrams/pl-A.png) · [B SVG](../assets/diagrams/pl-B.svg) / [PNG](../assets/diagrams/pl-B.png) · [C SVG](../assets/diagrams/pl-C.svg) / [PNG](../assets/diagrams/pl-C.png) · [D SVG](../assets/diagrams/pl-D.svg) / [PNG](../assets/diagrams/pl-D.png) · [E SVG](../assets/diagrams/pl-E.svg) / [PNG](../assets/diagrams/pl-E.png) · [F SVG](../assets/diagrams/pl-F.svg) / [PNG](../assets/diagrams/pl-F.png)
+
+## Katalog enterprise we wszystkich hostach — lokalne EA1b
+
+Capability Map używa tej samej walidacji EA1, zamrożonego snapshotu, projekcji i renderera
+w VS Code, CLI i serwerze funkcji MCP. Nie ma pól flow/provider/model i wykonuje zero wywołań LLM.
+Config v2 oddziela enterpriseSources od źródeł software. Opcjonalne narzędzie wiedzy
+get_enterprise_snapshot v1 przekazuje katalog enterprise/1; get_knowledge_snapshot v1 bez zmian.
+Klient sprawdza identity, source version i semantic digest, ogranicza discovery, odpowiedź i czas
+oraz potwierdza zakończenie dziecka. EnterpriseSource VS Code wybiera katalog, lecz tylko User
+knowledgeServer wskazuje executable. Lokalny raport v1 ma prawdziwe linie pliku, zdalny v2
+pointers odpowiedzi i deklarowane referencje. ART1 zachowuje writer/envelope oryginalnej pary;
+CLI/serwer funkcji nie uzyskują automatycznego zapisu. To lokalny kandydat, nie zmiana
+opublikowanych paczek DEMO1.

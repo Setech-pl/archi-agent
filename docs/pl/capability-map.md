@@ -1,8 +1,8 @@
-# Mapa zdolności biznesowych — lokalny kandydat EA1
+# Mapa zdolności biznesowych — lokalny kandydat EA1b
 
 [English](../en/capability-map.md) · [Instrukcja użytkownika](user-guide.md)
 
-Użyj **nowego lokalnego VSIX EA1 Core lub Full**, wskazanego w lokalnym raporcie weryfikacji.
+Użyj **nowego lokalnego VSIX EA1b Core lub Full**, wskazanego w lokalnym raporcie weryfikacji.
 Opublikowane VSIX/ZIP DEMO1 nie zawierają tej funkcji. Użyj bieżącego checkoutu:
 [folder Retail](../../examples/retail-checkout/START-HERE.pl.md) i
 [enterprise.json](../../examples/retail-checkout/architecture/enterprise.json).
@@ -42,5 +42,4 @@ dane nie są obcinane po cichu. Jeśli katalog zmieni się podczas wyboru, powt�
 Błędne dane otrzymują pole/kod/linię; popraw katalog bez zgadywania nazw lub rodziców przez model.
 
 [Dokładny kontrakt pliku, limity i digesty](../enterprise-catalog.md).
-Transport enterprise CLI/MCP, powiązania z aplikacjami, strumienie wartości i krajobraz aplikacji
-są kolejnymi etapami i nie są tu dostępne.
+CLI/MCP i źródło enterprise MCP są dostępne w lokalnym kandydacie EA1b. Pełna konfiguracja i komendy są w [tutorialu CLI/MCP](cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b). Po ustawieniu enterpriseSource wybierz skonfigurowane źródło MCP zamiast pliku; zakres/poziom/kolory i ART1 działają tak samo. Błędy zdalne pokazują kod i JSON Pointer bez fikcyjnych linii pliku. Powiązania z aplikacjami, strumienie wartości i krajobraz aplikacji pozostają przyszłymi etapami.

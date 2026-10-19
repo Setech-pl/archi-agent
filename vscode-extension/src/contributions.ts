@@ -38,6 +38,7 @@ export const settingKeys = Object.freeze({
   knowledgePackPath: "knowledgePackPath",
   architectureSource: "architectureSource",
   knowledgeServer: "knowledgeServer",
+  enterpriseSource: "enterpriseSource",
   localModelBaseUrl: "localModel.baseUrl",
   localModelId: "localModel.model",
   localModelProfile: "localModel.profile",

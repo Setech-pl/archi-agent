@@ -95,3 +95,7 @@ W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję vi
 ## Mapa zdolności — tylko bieżący checkout i lokalny VSIX EA1
 
 Powyższe opublikowane ZIP/VSIX nie zawierają EA1. Z nowym lokalnym kandydatem EA1 otwórz ten bieżący folder i wykonaj [tutorial mapy zdolności](../../docs/pl/capability-map.md). Wskaż `architecture/enterprise.json`; bez setup, źródła oprogramowania i providera. [Wyrenderowana mapa](assets/capability-map.png) · [PlantUML](assets/capability-map.puml).
+
+## Lokalny kandydat EA1b: Capability Map przez CLI/MCP
+
+Opublikowane ZIP-y DEMO1 pozostają bez zmian. Z nowymi lokalnymi paczkami EA1b i katalogiem z checkoutu użyj [tutorialu Capability Map](../../docs/pl/capability-map.md) i kompletnego [guide CLI/MCP](../../docs/pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b). Ten sam Retail działa lokalnie i przez get_enterprise_snapshot v1, bez LLM; wiedza software v1 pozostaje osobna.

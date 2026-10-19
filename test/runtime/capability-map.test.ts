@@ -10,6 +10,7 @@ async function request(f:Awaited<ReturnType<typeof fixture>>){const i=await insp
  return {source:f.source,selection:{rootIds:[],maxLevel:3 as const,colorBy:{kind:"rating" as const,scaleId:"maturity"},language:"pl" as const,expectedCatalogDigest:i.snapshot.catalogDigest}};}
 it("generates without any provider; captures truthful provenance, exact hashes and the original ART1 pair",async()=>{
  const f=await fixture(),req=await request(f),result=await generateCapabilityMap(req);expect(result.status).toBe("success");if(result.status!=="success")throw Error(JSON.stringify(result));
+ if(result.report.formatVersion!==1)throw Error("local v1 report required");
  expect(result.report.modelCalls).toBe(0);expect(result.report.semanticReview.status).toBe("not-applicable");expect(isCompletedDiagramArtifact(result.artifact)).toBe(true);
  expect(result.report.source.sourceBytesSha256).toBe(createHash("sha256").update(f.text).digest("hex"));
  const item=result.report.visible.find(v=>v.capability.id==="checkout")!;
@@ -24,7 +25,7 @@ it("generates without any provider; captures truthful provenance, exact hashes a
 it("formatting changes fingerprint and actual locators, not semantics; data change after inspection is stale",async()=>{
  const f=await fixture(),req=await request(f),a=await generateCapabilityMap(req);expect(a.status).toBe("success");
  const data=JSON.parse(f.text);data.capabilities.reverse();await writeFile(f.file,JSON.stringify(data));const b=await generateCapabilityMap(req);expect(b.status).toBe("success");
- if(a.status!=="success"||b.status!=="success")throw Error("generation failed");expect(b.plantUml).toBe(a.plantUml);expect(b.report.projectionDigest).toBe(a.report.projectionDigest);
+ if(a.status!=="success"||b.status!=="success"||a.report.formatVersion!==1||b.report.formatVersion!==1)throw Error("generation failed");expect(b.plantUml).toBe(a.plantUml);expect(b.report.projectionDigest).toBe(a.report.projectionDigest);
  expect(b.report.source.sourceBytesSha256).not.toBe(a.report.source.sourceBytesSha256);expect(b.report.visible.find(v=>v.capability.id==="checkout")!.locator.fields['/name']!.line).toBe(1);
  data.capabilities[0].name="Changed";await writeFile(f.file,JSON.stringify(data));expect(await generateCapabilityMap(req)).toMatchObject({status:"failed",code:"stale-source"});
 });

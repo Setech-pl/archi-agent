@@ -95,3 +95,7 @@ Every report also includes the shared informational `source-not-covered` for Str
 ## Capability Map — current checkout and local EA1 VSIX only
 
 The published ZIP/VSIX above does not contain EA1. With a new local EA1 candidate, open this current folder and follow the [Capability Map tutorial](../../docs/en/capability-map.md). Select `architecture/enterprise.json`; no setup, software source or provider is needed. [Rendered reference](assets/capability-map.png) · [PlantUML](assets/capability-map.puml).
+
+## Local EA1b candidate: Capability Map through CLI/MCP
+
+Published DEMO1 ZIPs are unchanged. With fresh local EA1b packages and this checkout catalog, follow the [Capability Map tutorial](../../docs/en/capability-map.md) and complete [CLI/MCP guide](../../docs/en/cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate). The same Retail catalog works locally and through get_enterprise_snapshot v1, without an LLM; software knowledge v1 remains separate.
