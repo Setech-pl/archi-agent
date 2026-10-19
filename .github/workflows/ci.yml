@@ -76,6 +76,11 @@ jobs:
           # Self-baselines check documentation, not historical C5 byte parity.
           node scripts/docs/check-docs.mjs build/ci/docs-core build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix --docs build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix
           node scripts/docs/check-docs.mjs build/ci/docs-full build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix --docs build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix
+      - name: Build and verify standalone DEMO1 archives
+        run: |
+          python3 scripts/check-demo-docs.py
+          python3 scripts/build-demo-archives.py --out build/ci/demos
+          node scripts/demo1-verify.mjs build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix build/ci/cli/archi-agent-cli-0.3.0-alpha.7.tgz build/ci/demos build/ci/demo-verification
       - name: Record package checksums and source revision
         run: |
           node --input-type=module -e 'import{readFileSync,writeFileSync}from"node:fs";import{createHash}from"node:crypto";import{execFileSync}from"node:child_process";const files=["core/archi-agent-core-0.3.0-alpha.7.vsix","full/archi-agent-full-0.3.0-alpha.7.vsix","cli/archi-agent-cli-0.3.0-alpha.7.tgz"];const artifacts=files.map(file=>{const b=readFileSync("build/ci/"+file);return{file,bytes:b.length,sha256:createHash("sha256").update(b).digest("hex")}});writeFileSync("build/ci/packages.json",JSON.stringify({testedSha:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),platform:process.platform,arch:process.arch,artifacts},null,2)+"\n");writeFileSync("build/ci/SHA256SUMS",artifacts.map(a=>a.sha256+"  "+a.file).join("\n")+"\n")'
@@ -93,6 +98,9 @@ jobs:
             build/ci/packages.json
             build/ci/SHA256SUMS
             build/ci/docs-*/documentation-check.json
+            build/ci/demos/*.zip
+            build/ci/demos/demos.json
+            build/ci/demo-verification/report.json
       - name: Verify lockfiles and tracked files remain unchanged
         if: always()
         run: |

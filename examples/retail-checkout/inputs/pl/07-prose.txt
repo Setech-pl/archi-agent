@@ -1,0 +1,1 @@
+Zamówienia synchronicznie komunikują się z Magazynem.

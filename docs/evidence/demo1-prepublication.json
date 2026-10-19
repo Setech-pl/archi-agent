@@ -1,0 +1,639 @@
+{
+  "schemaVersion": 1,
+  "stage": "prepublication: draft ZIPs, not final public asset identity",
+  "sourceBaseline": "5b4031ea109c08b6cddfded6387303fa398d9235",
+  "checks": {
+    "draft-archive-acceptance": {
+      "status": "PASS",
+      "syntheticTransport": true,
+      "requests": 38,
+      "results": [
+        {
+          "id": "retail-checkout-manifest-and-portable-setup",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-production-loader-counts-provenance",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/01-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/02-direction.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/03-mode.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/04-unknown.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/05-partial.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/06-alias-after-save.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/01-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/02-direction.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/03-mode.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/04-unknown.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/05-partial.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/06-alias-after-save.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/pl/09-async-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-inputs/en/09-async-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-pl-sequence-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-pl-component-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-pl-c4-context-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-pl-c4-container-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-en-sequence-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-en-component-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-en-c4-context-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-en-c4-container-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-pl-prose-one-call-decision-zero-calls",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-en-prose-one-call-decision-zero-calls",
+          "status": "PASS"
+        },
+        {
+          "id": "retail-checkout-saved-alias-next-operation-zero-LLM",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-manifest-and-portable-setup",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-production-loader-counts-provenance",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/01-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/02-direction.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/03-mode.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/04-unknown.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/05-partial.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/06-alias-after-save.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/01-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/02-direction.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/03-mode.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/04-unknown.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/05-partial.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/06-alias-after-save.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/pl/09-async-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-inputs/en/09-async-good.puml",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-pl-sequence-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-pl-component-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-pl-c4-context-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-pl-c4-container-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-en-sequence-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-en-component-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-en-c4-context-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-en-c4-container-and-original-ART1",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-pl-prose-one-call-decision-zero-calls",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-en-prose-one-call-decision-zero-calls",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-control-saved-alias-next-operation-zero-LLM",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-independent-CLI-MCP-setup",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-real-knowledge-server-adapter-check",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-cli-mission-local-good",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-cli-mission-local-direction",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-cli-mission-local-partial",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-cli-mission-mcp-good",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-cli-mission-mcp-direction",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-cli-mission-mcp-partial",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-real-function-MCP-client-and-nested-knowledge-process",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-documents-pl-K3-new-pack",
+          "status": "PASS"
+        },
+        {
+          "id": "mission-documents-en-K3-new-pack",
+          "status": "PASS"
+        },
+        {
+          "id": "Core-pl-scan-explicit-unavailable",
+          "status": "PASS"
+        },
+        {
+          "id": "Full-pl-real-offline-OCR",
+          "status": "PASS"
+        },
+        {
+          "id": "Core-en-scan-explicit-unavailable",
+          "status": "PASS"
+        },
+        {
+          "id": "Full-en-real-offline-OCR",
+          "status": "PASS"
+        }
+      ],
+      "artifacts": [
+        {
+          "file": "archi-agent-core-0.3.0-alpha.7.vsix",
+          "bytes": 5508318,
+          "sha256": "564d04bb3b49056276497ca7d53f7471ed46c5448227eb4d81b0c8f9a133513a"
+        },
+        {
+          "file": "archi-agent-full-0.3.0-alpha.7.vsix",
+          "bytes": 128934489,
+          "sha256": "2b2501676181b7baeb1cb6697a23b05714f7a4208e5ff0c34b11a290abc51914"
+        },
+        {
+          "file": "archi-agent-cli-0.3.0-alpha.7.tgz",
+          "bytes": 890041,
+          "sha256": "279407b84e1550eda42e5bd2ef28ed58b5d5eb8b805d9e813bd3730a4da38c20"
+        },
+        {
+          "file": "archi-agent-demo-mission-control-0.3.0-alpha.7-demo.1.zip",
+          "bytes": 1086523,
+          "sha256": "e90d66ad1f30094026fc6ea6039c0cdebad62a55b11dbcb0c6f6f9922979fe8b"
+        },
+        {
+          "file": "archi-agent-demo-retail-checkout-0.3.0-alpha.7-demo.1.zip",
+          "bytes": 1094026,
+          "sha256": "4c0edb0c923cc2f3940a6ad3112fcc3310f9080c1adb62401ab80f548fcb99f3"
+        }
+      ]
+    },
+    "mission-real-ui": {
+      "status": "PASS",
+      "syntheticTransport": true,
+      "calls": 10,
+      "listCalls": 1,
+      "results": [
+        {
+          "id": "source-from-portable-setup-in-UI",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "first-Verify-Flow-zero-provider",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-02-direction.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-03-mode.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-05-partial.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "provider-configuration-real-controls",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-Sequence-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-Component-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-C4 Context-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-C4 Container-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Polish-prose-conscious-alias-native-save",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "saved-alias-fresh-operation",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Knowledge-Browser-source-and-provenance",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "K3-native-document-review-new-pack-no-source-overwrite",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "VSIX-knowledge-client-real-process-and-UI",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        }
+      ],
+      "vsixSha256": "564d04bb3b49056276497ca7d53f7471ed46c5448227eb4d81b0c8f9a133513a",
+      "zipSha256": "e90d66ad1f30094026fc6ea6039c0cdebad62a55b11dbcb0c6f6f9922979fe8b"
+    },
+    "retail-alias-real-ui": {
+      "status": "PASS",
+      "syntheticTransport": true,
+      "calls": 1,
+      "listCalls": 1,
+      "results": [
+        {
+          "id": "source-from-portable-setup-in-UI",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "first-Verify-Flow-zero-provider",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-02-direction.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-03-mode.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-05-partial.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "provider-configuration-real-controls",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Polish-prose-conscious-alias-native-save",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "saved-alias-fresh-operation",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Knowledge-Browser-source-and-provenance",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        }
+      ],
+      "vsixSha256": "564d04bb3b49056276497ca7d53f7471ed46c5448227eb4d81b0c8f9a133513a",
+      "zipSha256": "4c07ea655c19ca141d858fcd5a013394ec37cf102949b14ebc7e77ecf5e40708"
+    },
+    "Full-real-OCR-UI": {
+      "status": "PASS",
+      "syntheticTransport": true,
+      "calls": 0,
+      "listCalls": 0,
+      "results": [
+        {
+          "id": "source-from-portable-setup-in-UI",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Full-visible-offline-OCR-pl",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Full-visible-offline-OCR-en",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        }
+      ],
+      "vsixSha256": "2b2501676181b7baeb1cb6697a23b05714f7a4208e5ff0c34b11a290abc51914",
+      "zipSha256": "c3e251a95586f80aecfe4f3dae4a5f0ae016d581d11f84b61de75b089e59a2cc"
+    },
+    "retail-earlier-UI-attempt": {
+      "status": "FAIL",
+      "reason": "Harness notification coordinate/alias confirmation race, fixed in later alias run",
+      "passed": [
+        {
+          "id": "source-from-portable-setup-in-UI",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "first-Verify-Flow-zero-provider",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-02-direction.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-03-mode.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-05-partial.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "provider-configuration-real-controls",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-Sequence-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-Component-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-C4 Context-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-C4 Container-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        }
+      ],
+      "failed": {
+        "id": "Polish-prose-conscious-alias-native-save",
+        "status": "FAIL",
+        "error": "AssertionError [ERR_ASSERTION]: Native alias confirmation unavailable\n\n\n1 !== 0\n\n    at command (file://<source-root>/scripts/demo1-ui.mjs:21:95)\n    at file://<source-root>/scripts/demo1-ui.mjs:41:901\n    at async check (file://<source-root>/scripts/demo1-ui.mjs:22:118)\n    at async file://<source-root>/scripts/demo1-ui.mjs:41:2"
+      }
+    },
+    "retail-complete-real-ui": {
+      "status": "PASS",
+      "syntheticTransport": true,
+      "calls": 9,
+      "listCalls": 1,
+      "results": [
+        {
+          "id": "source-from-portable-setup-in-UI",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "first-Verify-Flow-zero-provider",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-02-direction.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-03-mode.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-verification-05-partial.puml",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "provider-configuration-real-controls",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-Sequence-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-Component-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-C4 Context-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "visible-C4 Container-and-native-ART1",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Polish-prose-conscious-alias-native-save",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "saved-alias-fresh-operation",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        },
+        {
+          "id": "Knowledge-Browser-source-and-provenance",
+          "status": "PASS",
+          "layer": "real installed VS Code UI"
+        }
+      ],
+      "vsixSha256": "564d04bb3b49056276497ca7d53f7471ed46c5448227eb4d81b0c8f9a133513a",
+      "zipSha256": "a6ab7af63e1aca83bf422f9bf64c219854d61c5f76f4cf79eac84141ddba1586"
+    }
+  },
+  "independentReview": {
+    "status": "PASS",
+    "resolvedMedium": "Explicit VER1 interface annotations and async event labels",
+    "openHigh": 0,
+    "openMedium": 0,
+    "openLow": 0,
+    "currentSourceVer1Checks": 28
+  },
+  "notRun": [
+    "live-llm",
+    "paid-cloud",
+    "windows-arm64-runtime",
+    "powershell-setup"
+  ],
+  "ownerSmoke": "DEFERRED",
+  "openAudits": [
+    "AUD-003",
+    "AUD-004",
+    "AUD-005",
+    "AUD-006"
+  ]
+}

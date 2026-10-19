@@ -1,0 +1,14 @@
+@startuml
+participant "Orders" as A
+participant "Unknown Gateway" as B
+A -> B : Call (REST API)
+legend right
+Legend
+Actor symbol: grounded actor from the Knowledge Pack
+Box, database or queue symbol: grounded system from the Knowledge Pack
+[NEW] prefix: confirmed new participant, not part of the Knowledge Pack
+Solid arrow with filled head: synchronous interaction
+Arrow with open head: asynchronous interaction
+Dashed arrow: response to a synchronous request
+endlegend
+@enduml

@@ -1,0 +1,115 @@
+{
+  "id": 1,
+  "name": "Retail Checkout",
+  "description": "Synthetic standalone Archi Agent demonstration; MIT.",
+  "model": {
+    "people": [
+      {
+        "id": "customer",
+        "name": "Customer",
+        "description": "Customer using Retail Checkout",
+        "relationships": [
+          {
+            "id": "r1",
+            "sourceId": "customer",
+            "destinationId": "retail",
+            "description": "Uses checkout",
+            "interactionStyle": "Synchronous"
+          },
+          {
+            "id": "r2",
+            "sourceId": "customer",
+            "destinationId": "storefront",
+            "description": "Submits checkout",
+            "interactionStyle": "Synchronous"
+          }
+        ]
+      }
+    ],
+    "softwareSystems": [
+      {
+        "id": "retail",
+        "name": "Retail Checkout",
+        "description": "Retail Checkout demonstration system",
+        "relationships": [],
+        "containers": [
+          {
+            "id": "storefront",
+            "name": "Storefront",
+            "description": "Web interface for checkout",
+            "technology": "Synthetic service",
+            "relationships": [
+              {
+                "id": "r3",
+                "sourceId": "storefront",
+                "destinationId": "orders",
+                "description": "Places order",
+                "interactionStyle": "Synchronous"
+              }
+            ]
+          },
+          {
+            "id": "orders",
+            "name": "Orders",
+            "description": "Creates orders and coordinates checkout",
+            "technology": "Synthetic service",
+            "relationships": [
+              {
+                "id": "r4",
+                "sourceId": "orders",
+                "destinationId": "payments",
+                "description": "Authorizes payment",
+                "interactionStyle": "Synchronous"
+              },
+              {
+                "id": "r5",
+                "sourceId": "orders",
+                "destinationId": "inventory",
+                "description": "Reserves stock",
+                "interactionStyle": "Synchronous"
+              },
+              {
+                "id": "r6",
+                "sourceId": "orders",
+                "destinationId": "notifications",
+                "description": "Publishes order confirmed",
+                "interactionStyle": "Asynchronous"
+              }
+            ]
+          },
+          {
+            "id": "payments",
+            "name": "Payments",
+            "description": "Authorizes card payments",
+            "technology": "Synthetic service",
+            "relationships": []
+          },
+          {
+            "id": "inventory",
+            "name": "Inventory",
+            "description": "Reserves available stock",
+            "technology": "Synthetic service",
+            "relationships": []
+          },
+          {
+            "id": "notifications",
+            "name": "Notifications",
+            "description": "Delivers order confirmations",
+            "technology": "Synthetic service",
+            "relationships": []
+          }
+        ]
+      }
+    ]
+  },
+  "views": {
+    "systemContextViews": [],
+    "containerViews": [],
+    "configuration": {
+      "styles": {
+        "elements": [],
+        "relationships": []
+      }
+    }
+  }
+}

@@ -8,6 +8,23 @@ Turn a flow and architecture knowledge into **Sequence, Component, C4 Context or
 
 Inspect the generated Sequence and its original report side by side. The three diagram screens use a **separate local PlantUML 1.2026.6 / Smetana render**, opened as PNG in VS Code. Archi Agent itself opens PlantUML text; graphical preview needs that additional tool or extension.
 
+## Tutorials — ready projects
+
+Download a ZIP, install Core or Full, open the folder and get your first **Verify Flow result without an LLM**. The synthetic knowledge, overlays and PL/EN inputs are ready. Generation, prose and document extraction use your configured provider.
+
+| Project | Download | Tutorials |
+| --- | --- | --- |
+| Retail Checkout — customers, orders, payments, stock and notifications | [Project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-retail-checkout-0.3.0-alpha.7-demo.1.zip) | [English](examples/retail-checkout/START-HERE.en.md) · [Polski](examples/retail-checkout/START-HERE.pl.md) |
+| Mission Control — planning, telemetry, commands, archive and alarms; CLI, both MCP directions, K3 and optional OCR | [Project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-mission-control-0.3.0-alpha.7-demo.1.zip) | [English](examples/mission-control/START-HERE.en.md) · [Polski](examples/mission-control/START-HERE.pl.md) |
+
+![Retail Checkout in Archi Agent](examples/retail-checkout/assets/project.png)
+
+![Mission Control in Archi Agent](examples/mission-control/assets/project.png)
+
+These are actual installed UI screenshots on synthetic demo data, with synthetic model responses. Diagram PNG uses a separate local PlantUML renderer. [Tutorial index](docs/en/tutorials.md) · [Coverage and evidence](docs/demo1-verification.md).
+
+[Core VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix) · [Full VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix) · [CLI/MCP (Node 22.12+)](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-cli-0.3.0-alpha.7.tgz) · [SHA-256](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) · [Package selection](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/DOWNLOADS.md).
+
 ## See it in action
 
 ![C4 Context and its source-bound report](docs/assets/screenshots/16-c4-context.png)
@@ -32,9 +49,9 @@ Use Structurizr JSON with an ID-bound overlay, a standalone Markdown pack, or an
 
 These are actual installed **0.3.0-alpha.7** screens on public Big Bank data, captured on macOS ARM64. Model responses are synthetic; the UI and runtime are real. [Gallery and capture provenance PL/EN](docs/assets/screenshots/README.md).
 
-## Install the candidate
+## Install the demonstration prerelease
 
-The complete SRC1 → VER1 → C4 → MCP1 increment is a **PR candidate**, not a published release. Download Core, Full or CLI/MCP from the PR's successful **Clean-clone CI** run artifacts; inspect its head/merge SHA and checksum. [Current package identities and verification](docs/doc2-pub1-verification.md). The earlier [public alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6) does not contain these additions.
+The complete SRC1 → VER1 → C4 → MCP1 increment and DEMO1 projects are available in the [demonstration prerelease v0.3.0-alpha.7-demo.1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Download the public release assets and verify `SHA256SUMS`. [Exact source, tested checkout and evidence](docs/demo1-verification.md). The earlier alpha.6 does not contain these additions.
 
 1. Choose **Core** (`setech-pl.archi-agent-core`) for the shared runtime and text PDF/DOCX/XLSX conversion. Choose **Full** (`setech-pl.archi-agent`) when you need bundled offline PL/EN OCR.
 2. Verify SHA-256, then use **Extensions → … → Install from VSIX…** in desktop VS Code. Neither profile needs this repository, npm or a separate Node.js installation.

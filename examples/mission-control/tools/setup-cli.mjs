@@ -1,0 +1,20 @@
+// Node >=22.12. No npm or runtime dependencies; configure a separately extracted CLI asset.
+import { realpathSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const project = realpathSync(fileURLToPath(new URL('..', import.meta.url)));
+const packageRoot = realpathSync(process.argv[2] ?? path.join(project, 'cli', 'package'));
+const cli = path.join(packageRoot, 'bin', 'archi-agent.cjs');
+const server = path.join(packageRoot, 'bin', 'archi-agent-knowledge-server.cjs');
+if (!existsSync(cli) || !existsSync(server)) throw new Error('Pass the extracted CLI package directory (containing bin/).');
+const local = {kind:'structurizr-json',sourceId:'mission-control',model:{root:'project',path:'architecture/workspace.json'},overlay:{root:'project',path:'architecture/overlay'}};
+const knowledge = {schemaVersion:1,readRoots:{project},sources:{'mission-control':local},providers:{}};
+const directory = path.join(project, 'local-config');
+mkdirSync(directory,{recursive:true});
+const save = (name,data) => writeFileSync(path.join(directory,name),JSON.stringify(data,null,2)+'\n',{flag:'wx'});
+save('knowledge.json',knowledge);
+save('archi-agent.json',{schemaVersion:1,readRoots:{project},sources:{'mission-local':local,'mission-mcp':{kind:'mcp',server:'mission',sourceId:'mission-control'}},providers:{},knowledgeServers:{mission:{command:process.execPath,args:[server,'--config',path.join(directory,'knowledge.json')]}}});
+save('runtime.json',{cli,server,node:process.execPath});
+save('vscode-user-settings.json',{'archiAgent.knowledgeServer':{command:process.execPath,args:[server,'--config',path.join(directory,'knowledge.json')]},'archiAgent.architectureSource':{kind:'mcp',sourceId:'mission-control'}});
+save('function-client.json',{mcpServers:{'archi-agent':{command:process.execPath,args:[cli,'mcp','serve','--config',path.join(directory,'archi-agent.json')]}}});
+console.log('Created local-config/*.json with absolute paths. Existing files are never overwritten.');

@@ -1,0 +1,14 @@
+flowchart LR
+  actor["Customer / Klient"]
+  subgraph system["Retail Checkout"]
+    n0["Storefront / Witryna"]
+    n1["Orders / Zamówienia"]
+    n2["Payments / Płatności"]
+    n3["Inventory / Magazyn"]
+    n4["Notifications / Powiadomienia"]
+  end
+  actor -->|REST sync| n0
+  n0 -->|REST sync| n1
+  n1 -->|REST sync| n2
+  n1 -->|REST sync| n3
+  n1 -.->|EVENT async| n4

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "project": "mission-control",
+  "productVersion": "0.3.0-alpha.7",
+  "productVsixSha256": "564d04bb3b49056276497ca7d53f7471ed46c5448227eb4d81b0c8f9a133513a",
+  "captureSourceZipSha256": "e90d66ad1f30094026fc6ea6039c0cdebad62a55b11dbcb0c6f6f9922979fe8b",
+  "platform": "darwin",
+  "arch": "arm64",
+  "syntheticModelTransport": true,
+  "liveLlm": false,
+  "capture": {
+    "file": "first-verify.png",
+    "description": "First result without provider: conformant-within-scope",
+    "sha256": "cefd582b68bd79efb7e4e134e2431afb54825c187e1d5e10bd7a58d6932c552d",
+    "method": "ScreenCaptureKit owned VS Code window; unmodified",
+    "capturedAt": "2026-10-19T07:44:16.921Z",
+    "publishedAs": "project.png"
+  },
+  "sourceFiles": {
+    "architecture/workspace.json": "f13dba83b72cfbafc24f8b27608f940f2d52db7c20b3b5ece192e01e61381c8e",
+    "architecture/overlay/relationships.md": "048966073988999f5cae9872f81b99dd8352326a0256ee2c72958806933586da"
+  },
+  "images": [
+    {
+      "file": "18-verify-flow.png",
+      "sha256": "280644d478ba14f6289941c3b9ff6c8f1af426498b906fa262bfae05766b8dc5"
+    },
+    {
+      "file": "19-knowledge-browser.png",
+      "sha256": "db216f3ced2464c55189905db71b032b084680fc2f203796d8c965cbe1ca63bf"
+    },
+    {
+      "file": "20-configuration.png",
+      "sha256": "4a52d2a8c0549753099639de13eb7957b404285a334433fc265fdec14c6a096a"
+    },
+    {
+      "file": "architecture.png",
+      "sha256": "0e9d5786c42756f0c9c87a0269693db2d55bd701a59adaa04854808c662d8d24"
+    },
+    {
+      "file": "mcp-directions.png",
+      "sha256": "ef5e2cfbf3adfee94b77b9963bae6715adef836496df5957c5f2f89085b9b7ae"
+    },
+    {
+      "file": "project.png",
+      "sha256": "cefd582b68bd79efb7e4e134e2431afb54825c187e1d5e10bd7a58d6932c552d"
+    }
+  ]
+}

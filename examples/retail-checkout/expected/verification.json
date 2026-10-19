@@ -1,0 +1,163 @@
+{
+  "sourceId": "retail-checkout",
+  "systemId": "retail",
+  "counts": {
+    "actors": 1,
+    "systems": 6,
+    "relationships": 6
+  },
+  "alias": {
+    "mention": "Magazynem",
+    "targetOriginalId": "inventory",
+    "canonicalName": "Retail Checkout / Inventory"
+  },
+  "cases": [
+    {
+      "file": "inputs/pl/01-good.puml",
+      "exitCodeBeforeAlias": 0,
+      "assessmentBeforeAlias": "conformant-within-scope",
+      "findingCodes": [
+        "source-not-covered"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/pl/02-direction.puml",
+      "exitCodeBeforeAlias": 1,
+      "assessmentBeforeAlias": "discrepancies",
+      "findingCodes": [
+        "source-not-covered",
+        "direction-mismatch",
+        "relationship-not-in-model"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/pl/03-mode.puml",
+      "exitCodeBeforeAlias": 1,
+      "assessmentBeforeAlias": "discrepancies",
+      "findingCodes": [
+        "source-not-covered",
+        "interaction-mode-conflict"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/pl/04-unknown.puml",
+      "exitCodeBeforeAlias": 2,
+      "assessmentBeforeAlias": "inconclusive",
+      "findingCodes": [
+        "source-not-covered",
+        "unknown-element"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/pl/05-partial.puml",
+      "exitCodeBeforeAlias": 2,
+      "assessmentBeforeAlias": "inconclusive",
+      "findingCodes": [
+        "source-not-covered",
+        "syntax-not-covered"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/pl/06-alias-after-save.puml",
+      "exitCodeBeforeAlias": 2,
+      "assessmentBeforeAlias": "inconclusive",
+      "findingCodes": [
+        "source-not-covered",
+        "unknown-element"
+      ],
+      "afterAlias": {
+        "exitCode": 0,
+        "assessment": "conformant-within-scope"
+      },
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/en/01-good.puml",
+      "exitCodeBeforeAlias": 0,
+      "assessmentBeforeAlias": "conformant-within-scope",
+      "findingCodes": [
+        "source-not-covered"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/en/02-direction.puml",
+      "exitCodeBeforeAlias": 1,
+      "assessmentBeforeAlias": "discrepancies",
+      "findingCodes": [
+        "source-not-covered",
+        "direction-mismatch",
+        "relationship-not-in-model"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/en/03-mode.puml",
+      "exitCodeBeforeAlias": 1,
+      "assessmentBeforeAlias": "discrepancies",
+      "findingCodes": [
+        "source-not-covered",
+        "interaction-mode-conflict"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/en/04-unknown.puml",
+      "exitCodeBeforeAlias": 2,
+      "assessmentBeforeAlias": "inconclusive",
+      "findingCodes": [
+        "source-not-covered",
+        "unknown-element"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/en/05-partial.puml",
+      "exitCodeBeforeAlias": 2,
+      "assessmentBeforeAlias": "inconclusive",
+      "findingCodes": [
+        "source-not-covered",
+        "syntax-not-covered"
+      ],
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/en/06-alias-after-save.puml",
+      "exitCodeBeforeAlias": 2,
+      "assessmentBeforeAlias": "inconclusive",
+      "findingCodes": [
+        "source-not-covered",
+        "unknown-element"
+      ],
+      "afterAlias": {
+        "exitCode": 0,
+        "assessment": "conformant-within-scope"
+      },
+      "interfaceType": "REST_API"
+    },
+    {
+      "file": "inputs/pl/09-async-good.puml",
+      "exitCodeBeforeAlias": 0,
+      "assessmentBeforeAlias": "conformant-within-scope",
+      "findingCodes": [
+        "source-not-covered"
+      ],
+      "interfaceType": "EVENT"
+    },
+    {
+      "file": "inputs/en/09-async-good.puml",
+      "exitCodeBeforeAlias": 0,
+      "assessmentBeforeAlias": "conformant-within-scope",
+      "findingCodes": [
+        "source-not-covered"
+      ],
+      "interfaceType": "EVENT"
+    }
+  ],
+  "commonFinding": "source-not-covered: Structurizr views stay outside the imported projection; does not invalidate a conformant supported step"
+}
