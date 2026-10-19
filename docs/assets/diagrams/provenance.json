@@ -1,0 +1,102 @@
+{
+  "renderer": "Mermaid CLI 12.0.0 / local Chrome",
+  "networkRendering": false,
+  "diagrams": [
+    {
+      "source": "docs/en/architecture.md",
+      "diagram": "en-A",
+      "status": "PASS",
+      "sha256Source": "39b136d30a8884689ff9dfcdf21311aed3edda85f812b7a2e1a01e4ddb6953e3",
+      "sha256Svg": "da7557add9542627fbeb14320815fbf54f4af42904d23dd7049eb9616ade2439",
+      "sha256Png": "7cad00614d903152f7697ed8db89af86b39e8d811aea4bbfdae0375576c0c005"
+    },
+    {
+      "source": "docs/en/architecture.md",
+      "diagram": "en-B",
+      "status": "PASS",
+      "sha256Source": "6b665703b18d73555f5c7bc3cafca0fd1d7e15a63cc50c7e79a69311c84f42b4",
+      "sha256Svg": "09db0f626779e98ba5c40a66f54d11bd3629a97b811d22ca92be460c7d0f80ce",
+      "sha256Png": "666a5d87b9649024510b57d9be109f792e96dd7d6fe55f40ef42e3f498ae9287"
+    },
+    {
+      "source": "docs/en/architecture.md",
+      "diagram": "en-C",
+      "status": "PASS",
+      "sha256Source": "930dedeefdcd5700af73cc9d7ea5e9b481467b5e37d32d1d3a4ffacca8bdb5cd",
+      "sha256Svg": "39951e29c53fe45ca757ca296ecdb9728f53bc7337eaad5baa9a3d608c1b6c3f",
+      "sha256Png": "eac7658266d633ebd1daadddd13dabee6c1ef84d1dc0edf78e36667875f66282"
+    },
+    {
+      "source": "docs/en/architecture.md",
+      "diagram": "en-D",
+      "status": "PASS",
+      "sha256Source": "1546ea60b09c7295e9e273f41b994f8e2ccb2ae7fc068a28d8209be473f9f65b",
+      "sha256Svg": "6c583b7654ee187cee0d07b290a4aedeb06ca863a881cc015773cf97c9263dff",
+      "sha256Png": "493e71a2a63f56d6209541628c8e4c00e77c7d052c41a8d2f47b0945d8e371fb"
+    },
+    {
+      "source": "docs/en/architecture.md",
+      "diagram": "en-E",
+      "status": "PASS",
+      "sha256Source": "b0a8f5118513209b8074128e0978bd8e3e398f7f4b6a9cedcc94b4baf6999b79",
+      "sha256Svg": "1b94a2172a73f19c39bfad5aa7762574b435ec4fc71cf388e4c4dc30736db443",
+      "sha256Png": "61ea248a0a56949feeca86a76c6e8caef63ba152f00495b2bd93bea23e9a9f92"
+    },
+    {
+      "source": "docs/en/architecture.md",
+      "diagram": "en-F",
+      "status": "PASS",
+      "sha256Source": "09dddfd1f0bac1357da88c560c666c1e70a744f440ba9ceffef11da4583d93d7",
+      "sha256Svg": "366de7240537c3bd27720443cd736da24d182689809d0f8b15731a02741af525",
+      "sha256Png": "c5b4a3d28df2783515a4af3ff6a95ed882af31268110a48b8d44d16934c4434f"
+    },
+    {
+      "source": "docs/pl/architecture.md",
+      "diagram": "pl-A",
+      "status": "PASS",
+      "sha256Source": "b1e1a32cf6c3bf7a26e6c2e715f6a07fac8daf5f28a8ff0fda3b949722e8facf",
+      "sha256Svg": "9b0a9620ff7c0ad651295bcb85bbec227e8da5764c8efcfb73c86e25f35fee2e",
+      "sha256Png": "132bf2d8405ca736341a1e2451748b054436ee2facb4b25155825afe6ace450e"
+    },
+    {
+      "source": "docs/pl/architecture.md",
+      "diagram": "pl-B",
+      "status": "PASS",
+      "sha256Source": "20f776e2409b43c4a9b081afb05a71287aa58ec5c83595874cb82e7602bc7106",
+      "sha256Svg": "9a63a82f26668156630cbcba6db740f454b45c3501b86f9346518b862f96475d",
+      "sha256Png": "7f880a9fd6d182273cfe04a1c9186957deea8ceba78e5eb9cd67863d4e2e6d5b"
+    },
+    {
+      "source": "docs/pl/architecture.md",
+      "diagram": "pl-C",
+      "status": "PASS",
+      "sha256Source": "3ba3884c7e83641cb4c5c747b66f175a2ab05d37bc5cb41303a6f0544237c325",
+      "sha256Svg": "ae0b7f7b35d4d480dd2560d8e8afe07a32ad783219adf6eae861570f9934856a",
+      "sha256Png": "f8c1a1c9af0242815a246a3b7dabfa27f2fae7d080f8724bc49a7a23e402a470"
+    },
+    {
+      "source": "docs/pl/architecture.md",
+      "diagram": "pl-D",
+      "status": "PASS",
+      "sha256Source": "0fa721fb8bff146ab6cacc85e8538e7ef5b8e8c012be3fa9fd13fa102eb32f1a",
+      "sha256Svg": "debf4beb0e04b995dd97aa6f549c5b50363adb8846ecd2b1cac17fed2d888354",
+      "sha256Png": "89d08ae8d8b9b53248e8a3f7872e557d34e12687ba66dd79eaf158a67541a71f"
+    },
+    {
+      "source": "docs/pl/architecture.md",
+      "diagram": "pl-E",
+      "status": "PASS",
+      "sha256Source": "0b7e5385d927a3f9f774caecdf78de9cab96099ca497aed0512d9c52800ee2f5",
+      "sha256Svg": "fad9d51cfe8eced7563d7857c78cbd8bb401a1b6b8625aac7a197c65fdbc5ccd",
+      "sha256Png": "1f97006574e24c9931b404652e8539dd28d7c0225c7df7b9c7b6361be02c0b03"
+    },
+    {
+      "source": "docs/pl/architecture.md",
+      "diagram": "pl-F",
+      "status": "PASS",
+      "sha256Source": "4f47a60545943c6eefba984495ceb5024706ef14e600e708dd653d1b3274206b",
+      "sha256Svg": "c72ac76345010abe83647edacce686dab4ba74d06761c810d4021a4c96f40c1f",
+      "sha256Png": "13c9d97e20f1ef84f270039139066a869ec51051d5f82a64d7cc331c11d87fe0"
+    }
+  ]
+}

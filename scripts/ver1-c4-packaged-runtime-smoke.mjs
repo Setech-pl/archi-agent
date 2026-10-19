@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import path from 'node:path';
+const require=createRequire(import.meta.url),runtime=require(path.resolve(process.argv[2])),fixture=require('./ver1-c4-fixture.cjs');
+const fixturePath=path.resolve(process.argv[3]),reportPath=path.resolve(process.argv[4]),root=path.join(path.dirname(reportPath),'packaged-fixture');mkdirSync(root,{recursive:true});
+const {config}=fixture.prepare(root,fixturePath),generator={kind:'openai-compatible-local',baseUrl:'http://127.0.0.1:1234/v1',modelId:'synthetic'},calls=[],results=[];
+const app=runtime.createArchiAgentRuntime({diagramClientFactory:()=>({clientType:'openai-compatible-local',generationMetadata:{modelId:'synthetic',temperature:0,seed:42,attemptCount:1,structuredOutput:true},async complete(r){const input=JSON.parse(r.messages[1].content);calls.push(input);return {source:'content',value:fixture.answer(input)};}})});
+async function check(id,fn){try{await fn();results.push({id,status:'PASS',layer:'exact VSIX runtime outside repository'});}catch(e){results.push({id,status:'FAIL',error:e.stack});}}
+await check('ver1-plantuml-zero-calls',async()=>{const r=await app.startFlowVerification({input:{format:'plantuml-sequence',text:fixture.diagram()},knowledgePack:config});assert.equal(r.report.assessment,'conformant-within-scope');assert.equal(calls.length,0);});
+await check('ver1-discrepancies-zero-calls',async()=>{const r=await app.startFlowVerification({input:{format:'plantuml-sequence',text:fixture.diagram('A ->> B : read (DB)\nB -> A : reversed (DB)')},knowledgePack:config});assert.equal(r.report.assessment,'discrepancies');assert(r.report.findings.some(f=>f.code==='direction-mismatch'));assert.equal(calls.length,0);});
+await check('ver1-prose-one-call-alias-next-operation',async()=>{const r=await app.startFlowVerification({input:{format:'prose',text:fixture.prose},interpreter:generator,knowledgePack:config});assert.equal(r.status,'needs-resolution');const k=await runtime.inspectArchitectureSource(config),target=k.pack.aliases.find(a=>a.alias==='Banking Database').targetId;
+ const next=await r.session.resolveNames({expectedSnapshotDigest:r.report.snapshot.digest,currentSource:config,decisions:[{mentionId:'p2',expectedSnapshotDigest:r.report.snapshot.digest,targetElementId:target,confirmed:true}]});assert.equal(next.report.assessment,'conformant-within-scope');assert.equal(calls.length,1);
+ const p=await r.session.prepareAliasSave(config);assert.equal(p.status,'prepared');writeFileSync(p.plan.path,p.plan.proposedText);assert.equal((await r.session.confirmAliasSave(p.plan.id,config)).status,'saved');
+ const again=await app.startFlowVerification({input:{format:'plantuml-sequence',text:fixture.diagram(undefined,'Bazę Płatności')},knowledgePack:config});assert.equal(again.report.assessment,'conformant-within-scope');assert.equal(calls.length,1);});
+for(const type of ['c4-context','c4-container'])await check(type+'-reviewed-original-art1',async()=>{const source=await runtime.inspectC4Source(config),system=source.systems.find(s=>s.name==='Internet Banking System');const before=calls.length;
+ const r=await app.generateDiagram({diagramType:type,flow:{kind:'description',flowName:type,description:'Show source-confirmed bank architecture.'},knowledgePack:config,generator,c4Selection:{systemId:system.id,expectedKnowledgeDigest:source.knowledgeDigest}});assert.equal(r.status,'success');assert.equal(calls.length,before+2);assert.deepEqual(calls.at(-1).snapshot,calls.at(-2).snapshot);
+ assert(!r.plantUml.includes('!include'));if(type==='c4-container')assert(r.plantUml.includes('System Boundary'));
+ writeFileSync(path.join(path.dirname(reportPath),type+'.puml'),r.plantUml);writeFileSync(path.join(path.dirname(reportPath),type+'.report.json'),r.groundingReport);
+ const saved=await runtime.saveDiagramBundle(root,r.artifact,runtime.planDiagramBundle());const report=JSON.parse(readFileSync(path.join(saved.directory,'report.json')));assert.deepEqual(report.generationReport.c4,JSON.parse(r.groundingReport).c4);assert.equal(calls.length,before+2);});
+writeFileSync(reportPath,JSON.stringify({results,calls:calls.length,node:process.version,PATH:process.env.PATH,NODE_PATH:process.env.NODE_PATH},null,2));
+if(results.some(r=>r.status!=='PASS')){console.error(JSON.stringify(results,null,2));process.exitCode=1;}else console.log(`VER1/C4 packaged ${results.length}/${results.length} PASS`);

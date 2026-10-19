@@ -1,0 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+const root = new URL('../',import.meta.url);
+const {node,cli} = JSON.parse(readFileSync(new URL('local-config/runtime.json',root),'utf8'));
+const choices={good:'01-good.puml',direction:'02-direction.puml',partial:'05-partial.puml'};
+const input=choices[process.argv[2]??'good'];
+if(!input)throw new Error('Choose good, direction or partial.');
+const source=process.argv[3]??'mission-local';
+const child=spawn(node,[cli,'flow','verify','--config',fileURLToPath(new URL('local-config/archi-agent.json',root)),'--source',source,'--input','project:inputs/en/'+input,'--input-format','plantuml-sequence','--format','json'],{stdio:'inherit'});
+child.on('error',()=>{process.exitCode=3;});
+child.on('exit',code=>{process.exitCode=code??3;});

@@ -926,3 +926,7 @@ lifecycle issue are fixed with final technical gates PASS. The new candidate and
 UI reruns are documented in [the verification report](art1-audit-fixes-verification.md).
 Independent review PASS has no open HIGH/MEDIUM; the authorized local fix checkpoint closes this loop. MANUAL_SMOKE remains
 DEFERRED; Q-04 remains a manual-test question. This adds no new milestone, UX feature or K4 work.
+
+## Direction before VER1/D3/D4 authorization
+
+Before the owner's 2026-10-17 implementation instruction, the active order was SRC1 → VER1 → MCP1; D3/D4 remained planned. The new instruction inserts D3 and D4 before MCP1 and approves native SRC1 alias saves. Earlier release and CI evidence remains unchanged.

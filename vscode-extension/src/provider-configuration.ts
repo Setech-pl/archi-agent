@@ -1,3 +1,4 @@
+import { assertProfileAvailable } from "./profile-availability.js";
 import * as vscode from "vscode";
 import { settingKeys, settingsSection } from "./contributions.js";
 
@@ -78,6 +79,7 @@ export async function publishProviderConfiguration(snapshot: Snapshot, updates: 
       // No-op updates emit no VS Code change; they must not consume an external event.
       snapshot.observation.ownUpdate = Object.is(previous, value) ? undefined : { key, expected };
       try {
+        assertProfileAvailable();
         await vscode.workspace.getConfiguration(settingsSection).update(key, value, vscode.ConfigurationTarget.Global);
       } finally {
         snapshot.observation.ownUpdate = undefined;

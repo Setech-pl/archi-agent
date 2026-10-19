@@ -93,7 +93,7 @@ try {
         item.status === "passed" ? "assertions passed" : "assertions failed", item.status === "passed" ? undefined : "test-failed");
     }
   } else record("focused-scenarios", "sources", "NOT_RUN", "individual UX3 assertions", "no Vitest JSON report", "report-missing");
-  const candidate = path.join(out, `${manifest.name}-${manifest.version}.vsix`);
+  const candidate = path.join(out, `archi-agent-full-${manifest.version}.vsix`);
   if (existsSync(candidate)) {
     vsix = candidate;
     const verification = verifyVsix(vsix);

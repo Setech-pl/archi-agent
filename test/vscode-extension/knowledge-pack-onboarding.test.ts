@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -26,6 +26,17 @@ beforeEach(resetDouble);
 afterEach(() => { for (const value of roots.splice(0)) rmSync(value, { recursive: true, force: true }); });
 
 describe("Knowledge Pack onboarding", () => {
+  it("uses configured Structurizr without a standalone pack and activates K3 packs explicitly",async()=>{
+    const project=folder();state.workspaceFolders=[project];const fixture=path.join(project.uri.fsPath,"fixture");cpSync("test/fixtures/structurizr/big-bank-plc",fixture,{recursive:true});
+    const config={kind:"structurizr-json",sourceId:"big-bank",modelPath:path.join(fixture,"workspace.json"),overlayPath:path.join(fixture,"overlay")};
+    state.configuration.set("archiAgent.architectureSource",config);
+    expect((await ensureKnowledgePack()).status).toBe("ready");expect(state.quickPicks).toEqual([]);
+    const {preparePackActivation}=await import("../../vscode-extension/src/commands/knowledge-pack-onboarding.js");
+    const destination=path.join(project.uri.fsPath,"new-pack");await createStarterKnowledgePack(destination,system);
+    const activation=await preparePackActivation();expect(await activation!.activate(destination)).toBe(true);
+    expect(workspace.getConfiguration("archiAgent",project.uri).get("architectureSource")).toBeNull();
+  });
+
   it("uses project and Documents defaults without resolving against the process directory", () => {
     expect(defaultKnowledgePackPath("/projects/p", "/home/owner")).toBe(path.join("/projects/p", ".archi-agent", "knowledge"));
     expect(defaultKnowledgePackPath(undefined, "/home/owner")).toBe(path.join("/home/owner", "Documents", "ArchiAgent", "knowledge"));
@@ -288,7 +299,7 @@ describe("Knowledge Pack onboarding", () => {
       listProviderProfiles: () => inner.listProviderProfiles(),
       listProviderModels: (selection, options) => inner.listProviderModels(selection, options),
       listLocalModels: (endpoint, options) => inner.listLocalModels(endpoint, options),
-      generateSequenceDiagram: async (request) => { receivedPath = request.knowledgePack.path;
+      generateSequenceDiagram: async (request) => { receivedPath = request.knowledgePack.kind === "local-directory" ? request.knowledgePack.path : undefined;
         return { status: "failed", stage: "flow", issues: [], ambiguities: [], unconfirmedNewParticipants: [] }; }
     }, output: window.createOutputChannel("test") });
     expect(receivedPath).toBe(defaultKnowledgePackPath(project.uri.fsPath));

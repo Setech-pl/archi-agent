@@ -2,7 +2,7 @@
 """Extract all Mermaid fences, render locally with pinned mmdc and local Chrome."""
 from pathlib import Path
 import json,re,subprocess,sys,hashlib
-cli,out=sys.argv[1:3];selected=sys.argv[3] if len(sys.argv)>3 else 'ABCDE';out=Path(out);out.mkdir(parents=True,exist_ok=True)
+cli,out=sys.argv[1:3];selected=sys.argv[3] if len(sys.argv)>3 else 'ABCDEF';out=Path(out);out.mkdir(parents=True,exist_ok=True)
 config=out/'puppeteer.json';config.write_text(json.dumps({'executablePath':'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','args':['--no-sandbox']}))
 report=[]
 for lang in ['en','pl']:

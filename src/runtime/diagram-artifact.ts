@@ -11,12 +11,12 @@ import type { GenerateSequenceDiagramSuccess, GenerateSequenceDiagramRequest } f
 export interface DiagramArtifact {
   readonly resultId: string;
   readonly createdAt: string;
-  readonly diagramType: "sequence" | "component";
+  readonly diagramType: "sequence" | "component" | "c4-context" | "c4-container";
   readonly plantUml: string;
   readonly report: Readonly<Record<string, CanonicalValue>>;
   readonly metadata: Readonly<Record<string, CanonicalValue>>;
 }
-const sourceLocations = new WeakMap<DiagramArtifact, { pack: string; flow: string | null }>();
+const sourceLocations = new WeakMap<DiagramArtifact, { pack: string|null; model?: string; flow: string | null }>();
 const completed = new WeakSet<DiagramArtifact>();
 const hash = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 function freeze<T>(value: T): T {
@@ -35,12 +35,15 @@ const modelFields = fields("type providerProfileId modelId temperature seed atte
 const warning = { ...fields("origin code severity message path"), location: locator,
   details: { ...fields("order fromId toId elementId newParticipant mention expectedKind limit problem actual name key"), expected: "scalars", problems: "scalars" } } satisfies Projection;
 const reportProjection: Projection = {
+  c4: {...fields("systemId scope omittedRelationships"),limitations:"scalars",elements:[{...fields("id name kind parentId description technology"),provenance:[{...fields("sourceId externalId originalName externalKind parentId"),fields:"scalars",location:locator}]}]},
   ...fields("reportSchemaVersion diagramType generationPath attemptCount diagramName flowName author language generatorType"),
   snapshotDigest: fields("algorithm value"), groundingDigest: fields("algorithm value"),
   generator: modelFields, reviewer: modelFields, modelGeneration: modelFields,
   facts: [{ ...fields("factId label kind requestFactId operationId flowEvidenceId evidenceId evidenceClass interfaceType interfaceName mode fromId toId lineNumber"), source: locator }],
   deterministicValidation: fields("verdict"), semanticReview: { verdict: "scalar", violations: [fields("code factId")] },
   sources: { ...fields("flowFile knowledgePackDirectory flow knowledgePack"), evidence: [fields("id file line evidenceClass elementKind ownership")] },
+  sourceProvenance: { ...fields("version snapshotId digest"), sources: [{...fields("id kind"), scope: fields("systems actors relationships aliases rules"), files: [fields("file sha256")], omissions: [fields("kind count")] }],
+    facts: [{...fields("factId recordKey"), provenance: [{...fields("sourceId externalId originalName externalKind parentId"),fields:"scalars",location:locator}]}] },
   outputs: fields("diagram report"),
   knownParticipants: [{ ...fields("elementId participantType elementKind diagramKind canonicalName usedInDiagram resolution"),
     matchKinds: "scalars", source: locator, flowMentions: [locator] }],
@@ -70,7 +73,7 @@ function project(value: unknown, shape: Projection): CanonicalValue {
 
 /** Called only by runtime success mapping with the already loaded snapshot and actual request. */
 export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, request: GenerateSequenceDiagramRequest,
-  knowledge: KnowledgeSnapshot, diagramType: "sequence" | "component", runId: string | null,
+  knowledge: KnowledgeSnapshot, diagramType: "sequence" | "component" | "c4-context" | "c4-container", runId: string | null,
   extensionVersion: string | null): DiagramArtifact {
   const report = project(JSON.parse(result.groundingReport), reportProjection) as Record<string, CanonicalValue>;
   for (const key of ["generator", "reviewer", "modelGeneration"]) {
@@ -80,6 +83,8 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
     }
   }
   const configuration = {
+    ...("c4Selection" in request && request.c4Selection ? {c4Selection:{systemId:(request.c4Selection as {systemId:string}).systemId,expectedKnowledgeDigest:(request.c4Selection as {expectedKnowledgeDigest:string}).expectedKnowledgeDigest}} : {}),
+    ...(request.knowledgePack.kind !== "local-directory" ? { architectureSource: { kind: request.knowledgePack.kind, sourceId: request.knowledgePack.sourceId } } : {}),
     diagramType, generationPath: report.generationPath ?? "compatibility-sequence",
     generatorKind: request.generator.kind,
     providerProfileId: "profileId" in request.generator ? safeProviderProfileId(request.generator.profileId) : "local-lm-studio",
@@ -104,7 +109,7 @@ export function captureDiagramArtifact(result: GenerateSequenceDiagramSuccess, r
       warnings: result.warnings.map((w) => ({ code: w.code, severity: w.severity, message: w.message,
         ...(w.file ? { file: w.file } : {}), ...(w.line ? { line: w.line } : {}) })) }
   });
-  sourceLocations.set(artifact, { pack: request.knowledgePack.path, flow: request.flow.kind === "file" ? request.flow.path : null });
+  sourceLocations.set(artifact, { pack: request.knowledgePack.kind === "local-directory" ? request.knowledgePack.path : request.knowledgePack.kind === "structurizr-json" ? request.knowledgePack.overlayPath : null, ...(request.knowledgePack.kind === "structurizr-json" ? { model: request.knowledgePack.modelPath } : {}), flow: request.flow.kind === "file" ? request.flow.path : null });
   completed.add(artifact);
   return artifact;
 }
@@ -138,7 +143,7 @@ export async function saveDiagramBundle(project: string, artifact: DiagramArtifa
     return { reference: relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? relative.split(path.sep).join("/") : path.basename(file),
       availability: relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? "project-relative" : "logical-name-only" };
   };
-  const report = { sourceReferences: { knowledgePack: reference(references.pack), flow: reference(references.flow) }, format: "archi-agent-artifact", formatVersion: 1, bundleId: plan.bundleId, resultId: artifact.resultId,
+  const report = { sourceReferences: { knowledgePack: reference(references.pack), ...(references.model ? { model: reference(references.model) } : {}), flow: reference(references.flow) }, format: "archi-agent-artifact", formatVersion: 1, bundleId: plan.bundleId, resultId: artifact.resultId,
     savedAt: new Date().toISOString(), createdAt: artifact.createdAt, diagramType: artifact.diagramType,
     diagram: { file: "diagram.puml", encoding: "utf8", byteLength: diagram.length, sha256: hash(diagram) },
     generationReport: artifact.report, ...artifact.metadata };

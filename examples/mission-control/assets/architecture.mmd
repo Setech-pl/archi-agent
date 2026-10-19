@@ -1,0 +1,14 @@
+flowchart LR
+  actor["Operator"]
+  subgraph system["Mission Control"]
+    n0["Mission Planning / Planowanie misji"]
+    n1["Telemetry / Telemetria"]
+    n2["Command Service / Komendy"]
+    n3["Archive / Archiwum"]
+    n4["Alarms / Alarmy"]
+  end
+  actor -->|REST sync| n0
+  n0 -->|REST sync| n2
+  n1 -->|DB sync| n3
+  n1 -.->|EVENT async| n4
+  n4 -. EVENT async .-> actor

@@ -73,7 +73,7 @@ try {
   readScenarios(path.join(out, "docx-source.json"), 5);
   run("full-gates", "bash", [".agents/skills/archi-agent-gauntlet/scripts/run-gates.sh", "--vsix-out", out]);
   const manifest = JSON.parse(readFileSync(path.join(repo, "vscode-extension/package.json"), "utf8"));
-  const candidate = path.join(out, `${manifest.name}-${manifest.version}.vsix`);
+  const candidate = path.join(out, `archi-agent-full-${manifest.version}.vsix`);
   if (!existsSync(candidate)) throw new Error("candidate-not-built");
   vsix = candidate; vsixSha256 = sha(readFileSync(vsix)); vsixSize = statSync(vsix).size;
   const verified = verifyVsix(vsix);

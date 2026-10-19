@@ -1,3 +1,5 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "../profile-availability.js";
+import { getDocumentConversionCapabilities } from "../../../src/runtime/index.js";
 import * as vscode from "vscode";
 import { KnowledgePackReviewSession, validateDocumentSelection, type DocumentInput, type GeneratorConfig } from "../../../src/runtime/index.js";
 import { settingsSection } from "../contributions.js";
@@ -32,7 +34,9 @@ export async function buildKnowledgePackCommand({ runtime, output, secrets }: Ge
     if (!activeSource || !("kind" in activeSource)) await validateDocumentSelection(documents as { path: string }[]);
     let pdfOcrMode: "none" | "auto" | "all" = "none";
     if (documents.some((d) => "path" in d && /\.pdf$/iu.test(d.path))) {
-      const picked = await vscode.window.showQuickPick(["none", "auto", "all"] as const, { title: title("PDF OCR mode") });
+      const capabilities=await getDocumentConversionCapabilities();
+      const core=capabilities.profile==="core";
+      const picked = await vscode.window.showQuickPick(core?["none", "auto"] as const:["none", "auto", "all"] as const, { title: title(core?"Core PDF: none/text-only or auto (fails on pages needing OCR); all unavailable":capabilities.ocr==="installation-error"?"Full OCR installation error":"Full PDF OCR mode") });
       if (!picked) return; pdfOcrMode = picked as typeof pdfOcrMode;
     }
     const generator = async (signal: AbortSignal): Promise<GeneratorConfig | undefined> => {
@@ -73,6 +77,7 @@ export async function buildKnowledgePackCommand({ runtime, output, secrets }: Ge
       try { return await runtime.extractDocumentCandidates!({ documents: documents.map((d) => "path" in d && /\.pdf$/iu.test(d.path) ? { ...d, pdfOcrMode } : d), onStage: stage => progress.report({ message: stages[stage] ?? "Processing source" }), generator, signal: controller.signal }); }
       finally { subscription.dispose(); }
     });
+    assertProfileAvailable();
     if (outcome.status === "cancelled") return;
     if (outcome.status !== "success") {
       const action = outcome.code === "timeout" ? outcome.stage === "generation" ? "LLM extraction exceeded its 120s deadline or the shorter provider timeout. Choose a faster model or reduce the selected input; retry explicitly. Conversion limits are separate." : `The ${outcome.stage} stage exceeded its deadline. Reduce the input or check the local provider, then retry explicitly.` :

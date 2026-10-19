@@ -327,7 +327,7 @@ export function buildGroundedContext(request: GroundingRequest): GroundingOutcom
           canonicalName: system.canonicalName,
           systemKind: system.kind,
           description: system.description,
-          source: packSourceReference(system.location)
+          source: packSourceReference(system.location,system.provenance)
         })
       );
     } else {
@@ -344,7 +344,7 @@ export function buildGroundedContext(request: GroundingRequest): GroundingOutcom
           canonicalName: actor.canonicalName,
           actorKind: actor.kind,
           description: actor.description,
-          source: packSourceReference(actor.location)
+          source: packSourceReference(actor.location,actor.provenance)
         })
       );
     }
@@ -362,7 +362,7 @@ export function buildGroundedContext(request: GroundingRequest): GroundingOutcom
         interfaceName: relationship.interfaceName ?? null,
         mode: relationship.mode,
         purpose: relationship.purpose,
-        source: packSourceReference(relationship.location)
+        source: packSourceReference(relationship.location,relationship.provenance)
       })
     )
     .sort(compareGroundedRelationships);
@@ -375,7 +375,7 @@ export function buildGroundedContext(request: GroundingRequest): GroundingOutcom
         fromId: rule.fromId,
         toId: rule.toId,
         reason: rule.reason,
-        source: packSourceReference(rule.location)
+        source: packSourceReference(rule.location,rule.provenance)
       })
     )
     .sort(compareGroundedRules);

@@ -1,6 +1,9 @@
+import {canonicalSerialize,type CanonicalValue}from"../util/stable-digest.js";
+import {packSourceReference}from"./ambiguity-report.js";
+import {sourceReferenceSchema}from"../knowledge-pack/source-reference.js";
 import { z } from "zod";
 import { flowLanguages } from "../knowledge-pack/front-matter.js";
-import { knowledgePackFileNames } from "../knowledge-pack/knowledge-pack-source.js";
+import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
 import {
   actorKinds,
   interactionModes,
@@ -21,6 +24,7 @@ import {
   groundedContextSchemaVersion,
   groundingMatchKinds,
   participantResolutions,
+  type PackSourceReference,
   type GroundedContext
 } from "./grounded-context.js";
 import { isSafeNewParticipantName, normalizeReferenceText, ParticipantDictionary } from "./participant-resolver.js";
@@ -64,10 +68,11 @@ export const flowReferenceSchema = z.strictObject({
   length: positiveInteger
 });
 
-export const packSourceReferenceSchema = z.strictObject({
-  file: z.enum(knowledgePackFileNames),
+const provenanceSchema=z.strictObject({sourceId:z.string().min(1).max(64),externalId:z.string().max(256).optional(),reference:sourceReferenceSchema.optional(),location:z.strictObject({file:z.string().max(256),line:positiveInteger}).optional(),fields:z.array(z.string().max(64)).max(32).optional(),originalName:z.string().max(256).optional(),externalKind:z.string().max(256).optional(),parentId:z.string().max(256).optional()});
+export const packSourceReferenceSchema = z.union([z.strictObject({
+  file: z.string().refine(v => validateRelativePath(v).ok, "invalid-source-path"),
   line: positiveInteger
-});
+}),z.strictObject({provenance:z.array(provenanceSchema).min(1).max(10000)})]);
 
 const matchKindsSchema = z
   .array(z.enum(groundingMatchKinds))
@@ -256,8 +261,7 @@ export function knowledgePackProblems(context: GroundedContext, pack: KnowledgeP
   const problems: string[] = [];
   const systems = new Map(pack.systems.map((record) => [record.id, record]));
   const actors = new Map(pack.actors.map((record) => [record.id, record]));
-  const sameSource = (left: { file: string; line: number }, right: { file: string; line: number }): boolean =>
-    left.file === right.file && left.line === right.line;
+  const sameSource = (left: PackSourceReference, right: PackSourceReference): boolean => canonicalSerialize(left as unknown as CanonicalValue)===canonicalSerialize(right as unknown as CanonicalValue);
 
   context.systems.forEach((system, index) => {
     const record = systems.get(system.id);
@@ -269,7 +273,7 @@ export function knowledgePackProblems(context: GroundedContext, pack: KnowledgeP
     } else if (
       record.kind !== system.systemKind ||
       record.description !== system.description ||
-      !sameSource(record.location, system.source)
+      !sameSource(packSourceReference(record.location,record.provenance), system.source)
     ) {
       problems.push(`systems.${index} element-mismatch`);
     }
@@ -285,7 +289,7 @@ export function knowledgePackProblems(context: GroundedContext, pack: KnowledgeP
     } else if (
       record.kind !== actor.actorKind ||
       record.description !== actor.description ||
-      !sameSource(record.location, actor.source)
+      !sameSource(packSourceReference(record.location,record.provenance), actor.source)
     ) {
       problems.push(`actors.${index} element-mismatch`);
     }
@@ -300,7 +304,7 @@ export function knowledgePackProblems(context: GroundedContext, pack: KnowledgeP
         (record.interfaceName ?? null) === relationship.interfaceName &&
         record.mode === relationship.mode &&
         record.purpose === relationship.purpose &&
-        sameSource(record.location, relationship.source)
+        sameSource(packSourceReference(record.location,record.provenance), relationship.source)
     );
 
     if (!declared) {
@@ -315,7 +319,7 @@ export function knowledgePackProblems(context: GroundedContext, pack: KnowledgeP
         record.fromId === rule.fromId &&
         record.toId === rule.toId &&
         record.reason === rule.reason &&
-        sameSource(record.location, rule.source)
+        sameSource(packSourceReference(record.location,record.provenance), rule.source)
     );
 
     if (!declared) {

@@ -248,11 +248,15 @@ export const workspace = {
       const inspected = resource === undefined ? state.configurationInspect.get(fullKey(key)) : state.configurationInspect.get(folderKey(key));
       const global = state.configurationInspect.get(fullKey(key));
 
-      if (inspected !== undefined) {
-        return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? global?.workspaceValue ?? global?.globalValue ?? global?.defaultValue;
+      // VS Code merges object values across scopes; null is an explicit override, not absence.
+      const candidates = inspected !== undefined ? [global?.defaultValue, state.configuration.get(fullKey(key)), global?.globalValue, global?.workspaceValue, inspected.workspaceValue, inspected.workspaceFolderValue] :
+        [state.configuration.get(fullKey(key)),global?.globalValue,global?.workspaceValue];
+      let result: unknown;
+      for (const value of candidates) {
+        if (value === undefined) continue;
+        result = value && typeof value === "object" && !Array.isArray(value) && result && typeof result === "object" && !Array.isArray(result) ? {...result,...value} : value;
       }
-
-      return global?.workspaceValue ?? global?.globalValue ?? state.configuration.get(fullKey(key));
+      return result;
     };
 
     return {
@@ -414,3 +418,5 @@ Object.assign(window, {
 
 /** VS Code display language used by offline help. */
 export const env = { language: "en" };
+
+export const extensions = { getExtension(_id:string) { return undefined; }, onDidChange(_callback:()=>void) { return {dispose(){}}; } };

@@ -79,7 +79,7 @@ try {
   metadata.fullGateCommands = (fullGates.stdout ?? "").split("\n").filter((line) => line.startsWith("+ "))
     .map((line) => ({ command: line.slice(2), exitCode: fullGates.status === 0 ? 0 : null }));
   const manifest = JSON.parse(readFileSync(path.join(repo, "vscode-extension/package.json"), "utf8"));
-  const candidate = path.join(out, `${manifest.name}-${manifest.version}.vsix`);
+  const candidate = path.join(out, `archi-agent-full-${manifest.version}.vsix`);
   if (!existsSync(candidate)) throw new Error("candidate-not-built");
   vsix = candidate; vsixSha256 = sha(readFileSync(vsix)); vsixSize = statSync(vsix).size;
   const verified = verifyVsix(vsix);

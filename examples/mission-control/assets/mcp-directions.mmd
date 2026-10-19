@@ -1,0 +1,11 @@
+flowchart LR
+ subgraph knowledge["1. Knowledge client / Klient wiedzy"]
+   aa["Archi Agent · VSIX / CLI"] -->|"get_knowledge_snapshot"| ks["Knowledge MCP server / Serwer wiedzy"]
+   ks --> adapter["Structurizr adapter"]
+   adapter --> model["workspace.json + overlay"]
+ end
+ subgraph functions["2. Function server / Serwer funkcji"]
+   client["External MCP client / Zewnętrzny klient"] -->|"verify_flow · inspect_knowledge
+generate_diagram · resolve_flow_names"| functionsAA["Archi Agent MCP function server"]
+   functionsAA --> runtime["Shared runtime / Wspólny runtime"]
+ end

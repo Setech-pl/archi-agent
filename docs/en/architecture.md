@@ -2,9 +2,9 @@
 
 **English** · [Polski](../pl/architecture.md) · [Home](../../README.md)
 
-This is the implemented architecture at the current UX4-FU2 branch build, not the published UX2 package. [Detailed stable architecture](../architecture.md) describes current boundaries; a separate history preserves earlier explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
+This is the architecture of the local SRC1/VER1/D3/D4/MCP1 candidate, not the earlier published alpha.6. [Detailed stable architecture](../architecture.md) describes current boundaries; a separate history preserves earlier explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition supports local Structurizr JSON with an ID-bound overlay, standalone Markdown packs and selected documents to build a new pack; a Node MCP knowledge client fetches normalized partial contributions from one explicitly configured stdio server. The standalone example reuses production SRC1 parsing/mapping and K1 validation. No EA adapter or DSL parser exists. Sequence and Component use separate plans/validators/renderers. C4 Context/Container use source-bound Structurizr metadata and separate plans/validators/renderers; VER1 checks Sequence/prose. ArchiMate remains planned. The compatibility sequence renderer is a separate older path.
 
-Core is deterministic and has no Node/VS Code I/O; orchestration calls injected ports and Node adapters. Runtime is host-neutral; the editor imports only `src/runtime/index.ts`. Providers are interchangeable adapters for StructuredChatClient. Documents/model responses are untrusted data. Only bounded relevant diagram snapshots or bounded selected extraction text reach a model. Settings and SecretStorage stay at the VS Code boundary.
+Core is deterministic and has no Node/VS Code I/O; orchestration calls injected ports and Node adapters. Runtime is host-neutral; the editor imports only `src/runtime/index.ts`. Providers are interchangeable adapters for StructuredChatClient. Documents/model responses are untrusted data. Only bounded relevant diagram snapshots or bounded selected extraction text reach a model. VS Code settings and SecretStorage stay at the editor boundary; CLI/MCP use process configuration, pinned readRoots and named environment credentials. The four-tool function server and knowledge client have separate roles; all hosts compose the same runtime.
 
 UX4 adds a singleton Configuration editor with Knowledge Management / LLM Provider and a linked K3 review webview. Both delegate to existing runtime services; a closed host protocol, nonce CSP and text-only rendering guard untrusted data. Keys remain in SecretStorage; the screen receives presence only. [UX4 contract](../configuration-workbench.md).
 
@@ -12,32 +12,38 @@ UX4 adds a singleton Configuration editor with Knowledge Management / LLM Provid
 
 ```mermaid
 flowchart TB
-  subgraph Host["VS Code extension boundary"]
-    direction TB
-    UI["Commands / Configuration-Review webviews / Knowledge Browser / offline Help"] --> Settings["Settings / SecretStorage"]
+  subgraph Host["VS Code host"]
+    UI["Commands / Configuration / Browser / Help"] --> Settings["Settings / SecretStorage"]
   end
-  subgraph Runtime["Host-neutral runtime"]
-    direction TB
-    App["archi-agent-runtime / extract-document-candidates"] --> Review["knowledge-pack-review / diagram-artifact"]
-  end
-  subgraph Core["Deterministic core — no I/O"]
-    direction TB
-    Knowledge["Pack loader / K1 snapshot / grounding / KPB-A"] --> Pipeline["Plans / validators / renderers / report"]
-  end
-  subgraph Adapters["Node and packaged local adapters"]
-    direction TB
-    Pack["NodeKnowledgePackSource"] --> Files["Local filesystem: bounded reads / exclusive writes / cleanup"]
-    Conversion["Private input copies / conversion worker"] --> OCR["PDF.js / canvas / Tesseract WASM + PL/EN"]
-    Providers["LM Studio / Ollama / Anthropic / OpenAI / OpenRouter"]
-  end
+  CLI["CLI adapter / src/cli"] --> Ops["Local host composition / readRoots / env credentials"]
+  MCP["Function MCP server / four tools / src/mcp"] --> Ops
+  Ops --> App
   UI -->|src/runtime/index.ts| App
+  subgraph Runtime["Host-neutral runtime / src/runtime"]
+    App["Generation / VER1 / acquisition / original artifacts"]
+  end
+  subgraph Core["Deterministic core / no Node or VS Code I/O"]
+    Knowledge["K1 snapshot / grounding / provenance"] --> Pipeline["Type-specific plans / validators / renderers / comparison"]
+  end
+  subgraph Node["Node adapters / src/node"]
+    Local["Pack / Structurizr JSON + overlay"] --> Files["Bounded filesystem reads / exclusive writes"]
+    Client["Knowledge MCP client / fixed get_knowledge_snapshot"]
+    Providers["StructuredChatClient / local or cloud provider"]
+    Conversion["Document worker / local conversion"]
+  end
   App --> Knowledge
-  Review --> Knowledge
-  App --> Pack
+  App --> Local
+  App --> Client
+  Client --> KS["Separate knowledge MCP server / source adapter"]
+  KS --> Model["Architecture model / example: production SRC1 + K1"]
   App --> Conversion
-  Pipeline -->|StructuredChatClient| Providers
-  App -->|StructuredChatClient| Providers
-  Review -->|ART1 / K3 / UX3| Files
+  App --> Files
+  Pipeline --> Providers
+  App --> Providers
+  Build["One shared codebase / three identical runtime bundles"] --> CP["Core VSIX / text conversion / no OCR"]
+  Build --> FP["Full VSIX / pinned offline PL-EN OCR"]
+  FP --> OCR["PDF.js / canvas / Tesseract WASM / model resources"]
+  Conversion -->|Full only when OCR needed| OCR
 ```
 
 ## B. Documents and frozen input
@@ -50,6 +56,8 @@ flowchart LR
   Extract --> Evidence["Deterministic schema / evidence / references"]
   Evidence --> Review["User decisions / edits / validated preview"]
   Review --> Pack["NEW five-file Knowledge Pack / provenance"]
+  Structurizr["Structurizr workspace.json + overlay / original IDs"] --> Snapshot
+  MCPSource["Knowledge MCP / normalized contributions / scope"] --> Snapshot
   Pack --> Snapshot["Loader / K1 snapshot / deterministic grounding"]
   Flow["Flow description / explicit decisions"] --> Snapshot
   Snapshot --> Plan["ONE generator request / type-specific plan"]
@@ -108,7 +116,7 @@ sequenceDiagram
   Core-->>UI: Reject, zero generation calls
   else Valid context
   Core->>G: One type-specific plan request
-  G-->>Core: Untrusted Sequence v3 / Component v1 plan
+  G-->>Core: Untrusted Sequence / Component / C4 Context / Container plan
   Core->>Core: Validate, resolve, render, subset checks
   alt Local rejection
   Core-->>UI: Reject after one call, no review
@@ -187,6 +195,45 @@ Standalone conversion accepts one file up to 50 MiB and 8 MiB Markdown; non-OCR 
 
 ## Self-contained build and package
 
-`npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then appends pinned offline OCR resources with their license/hash manifest. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
+`npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then, for Full only, appends pinned offline OCR resources with their license/hash manifest. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
 
 `npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](../project-state-history.md); current checks and the auditor handoff are in [project state](../project-state.md).
+
+MCP1 packaging defaults to Core, with no OCR dependencies/assets. Full retains the existing ID and pinned offline OCR, with explicit installation integrity checks. Both profiles use identical runtime bundles. See [CLI/MCP and profiles](cli-mcp.md) for the strict versioned result/source contracts and setup.
+
+## F. VER1 — snapshot and provenance
+
+```mermaid
+sequenceDiagram
+  participant H as VS Code / CLI / function MCP
+  participant R as Shared verification runtime
+  participant S as Local source or knowledge MCP
+  participant C as Deterministic core
+  participant L as Interpretation model
+  H->>R: Sequence PlantUML or prose
+  R->>S: Load one immutable source snapshot
+  S-->>R: Facts, digest, scope and provenance
+  alt Sequence PlantUML
+  R->>C: Bounded parser, zero model calls
+  else Prose
+  R->>L: One bounded interpretation request
+  L-->>R: Untrusted interpretation with evidence
+  R->>C: Validate interpretation
+  end
+  R->>C: Resolve names and compare with the frozen snapshot
+  C-->>H: Assessment, steps, omissions, provenance and digests
+  opt Explicit name decisions / alias save
+  H->>R: Confirm decisions against expected digests
+  R->>S: Read source again and check version
+  alt Changed source or input
+  R-->>H: Stale result, restart verification
+  else Same source and input
+  R->>C: Apply explicit decisions without LLM
+  C-->>H: Updated report with provenance
+  end
+  end
+```
+
+SRC1 overlay alias saving is a separate VS Code adapter operation: minimal edit and native save after version and dirty-buffer checks. Pack and MCP decisions remain session-only; CLI/MCP do not write sources. VER1 does not verify C4.
+
+Rendered copies (SVG / PNG): [A SVG](../assets/diagrams/en-A.svg) / [PNG](../assets/diagrams/en-A.png) · [B SVG](../assets/diagrams/en-B.svg) / [PNG](../assets/diagrams/en-B.png) · [C SVG](../assets/diagrams/en-C.svg) / [PNG](../assets/diagrams/en-C.png) · [D SVG](../assets/diagrams/en-D.svg) / [PNG](../assets/diagrams/en-D.png) · [E SVG](../assets/diagrams/en-E.svg) / [PNG](../assets/diagrams/en-E.png) · [F SVG](../assets/diagrams/en-F.svg) / [PNG](../assets/diagrams/en-F.png)

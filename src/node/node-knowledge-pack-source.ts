@@ -1,3 +1,5 @@
+import path from "node:path";
+import { assertLocalReadPath, type LocalReadPolicy } from "./local-read-policy.js";
 import {
   knowledgePackFileNames,
   throwIfCancelled,
@@ -42,14 +44,15 @@ export class NodeKnowledgePackSource implements KnowledgePackSource {
   readonly #root: string;
   readonly #directory: string;
 
-  private constructor(canonicalRoot: string, packDirectory: string) {
+  private constructor(canonicalRoot: string, packDirectory: string, private readonly localReadPolicy?: LocalReadPolicy) {
     this.#root = canonicalRoot;
     this.#directory = packDirectory;
   }
 
   /** Opens a pack directory given relative to the project root; both must be real directories. */
-  public static async open(projectRoot: string, packDirectory: string): Promise<NodeKnowledgePackSource> {
+  public static async open(projectRoot: string, packDirectory: string, localReadPolicy?: LocalReadPolicy): Promise<NodeKnowledgePackSource> {
     try {
+      if (localReadPolicy) await assertLocalReadPath(path.join(projectRoot, packDirectory), localReadPolicy);
       const root = await canonicalDirectory(projectRoot);
       const resolved = await resolveContainedPath(root, packDirectory);
 
@@ -57,7 +60,7 @@ export class NodeKnowledgePackSource implements KnowledgePackSource {
         throw packError("invalid-path");
       }
 
-      return new NodeKnowledgePackSource(root, packDirectory);
+      return new NodeKnowledgePackSource(root, packDirectory, localReadPolicy);
     } catch (error) {
       throw error instanceof KnowledgePackError ? error : packError(error instanceof LocalPathError && error.code === "not-found" ? "missing-file" : "invalid-path");
     }
@@ -76,6 +79,7 @@ export class NodeKnowledgePackSource implements KnowledgePackSource {
       let resolved;
 
       try {
+        if (this.localReadPolicy) await assertLocalReadPath(path.join(this.#root, this.#directory), this.localReadPolicy);
         resolved = await resolveContainedPath(this.#root, `${this.#directory}/${file}`, { allowMissing: true });
       } catch {
         throw packError("invalid-path", file);
@@ -102,7 +106,7 @@ export class NodeKnowledgePackSource implements KnowledgePackSource {
     const maxBytes = Math.min(options?.maxBytes ?? knowledgePackLimits.maxFileBytes, knowledgePackLimits.maxFileBytes);
 
     try {
-      const file = await readBoundedTextFile(this.#root, `${this.#directory}/${relativePath}`, { maxBytes });
+      const file = await readBoundedTextFile(this.#root, `${this.#directory}/${relativePath}`, { localReadPolicy: this.localReadPolicy, maxBytes, ...(options?.signal ? { signal: options.signal } : {}) });
       throwIfCancelled(options?.signal);
       return file.text;
     } catch (error) {

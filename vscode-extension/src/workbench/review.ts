@@ -1,3 +1,4 @@
+import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "../profile-availability.js";
 import path from "node:path";
 import * as vscode from "vscode";
 import { KnowledgePackReviewSession, type PackPreview } from "../../../src/runtime/index.js";
@@ -23,6 +24,7 @@ export async function openKnowledgePackReview(session: KnowledgePackReviewSessio
       project: `Project: ${scope.folder ? scope.folder.name + " — " + scope.folder.uri.fsPath : "No project — User scope"}. Save and use writes ${scope.folder ? "Workspace Folder" : "User"} settings.` });
   };
   const receive = async (value: unknown) => {
+    if(profileConflict()){controller.abort();panel.dispose();return;}
     if (!plainMessage(value, ["ready", "decide", "edit", "preview", "destination", "save", "save-use", "cancel"]) || closed) return;
     const m = value;
     if (m.op === "cancel") { controller.abort(); panel.dispose(); return; }
@@ -58,7 +60,7 @@ export async function openKnowledgePackReview(session: KnowledgePackReviewSessio
         if (m.op === "save-use" && scope.folder && !vscode.workspace.workspaceFolders?.some((f) => f.uri.toString() === scope.folder!.uri.toString())) throw { code: "project-changed" };
         const activation = m.op === "save-use" ? await preparePackActivation(scope) : undefined;
         if (m.op === "save-use" && !activation) throw { code: "activation-unavailable" };
-        await session.save(preview, directory, { signal: controller.signal }); completed = true;
+        await session.save(preview, directory, { signal: withProfileSignal(controller.signal) }); completed = true;
         let used = false;
         if (activation) { try { used = await activation.activate(directory); } catch { /* The committed files survive. */ } }
         busy = ""; await publish(activation && !used ? `Saved, not activated: ${directory}. Check Knowledge Pack settings.` : `Saved${used ? " and activated" : ""}: ${directory}`);
@@ -75,6 +77,8 @@ export async function openKnowledgePackReview(session: KnowledgePackReviewSessio
       await publish("", message);
     }
   };
-  const subscriptions = [panel.webview.onDidReceiveMessage((m: unknown) => receive(m)), panel.onDidDispose(() => { closed = true; controller.abort(); subscriptions.forEach((s) => s.dispose()); finish(); })];
+  const stop=()=>{controller.abort();panel.dispose();};
+  profileLifetimeSignal.addEventListener("abort",stop,{once:true});
+  const subscriptions = [{dispose:()=>profileLifetimeSignal.removeEventListener("abort",stop)},panel.webview.onDidReceiveMessage((m: unknown) => receive(m)), panel.onDidDispose(() => { closed = true; controller.abort(); subscriptions.forEach((s) => s.dispose()); finish(); })];
   await done;
 }

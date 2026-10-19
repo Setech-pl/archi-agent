@@ -18,11 +18,11 @@ npm run typecheck
 npm run extension:typecheck
 npm run extension:test
 npm run extension:build
-npm run extension:package -- --out build/docs-pl-en/<unique-run>/candidate
-npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-0.3.0-alpha.4.vsix
+npm run extension:package -- --profile core --out build/docs-pl-en/<unique-run>/candidate
+npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.7.vsix
 ```
 
-Zastąp `<unique-run>` nową nazwą katalogu; nie używaj ponownie celów wcześniejszych kandydatów. `npm ci` zachowuje opcjonalne bindingi platformowe z lockfile; unikaj zwykłego `npm install` w repo. Pakowanie przebudowuje bundle rozszerzenia/runtime/konwertera i zasoby OCR offline. Potrzebne są zależności root oraz OCR. Pakowanie/gauntlety współdzielące staging OCR uruchamiaj sekwencyjnie. `extension:verify` sprawdza allowlistę dokładnego VSIX, granice bundle i hashe zasobów. Zapisz rozmiar i SHA-256 z commitem/tree źródeł oraz rzeczywistymi zmianami; sama wersja pakietu nie wystarcza.
+Zastąp `<unique-run>` nową nazwą katalogu; nie używaj ponownie celów wcześniejszych kandydatów. `npm ci` zachowuje opcjonalne bindingi platformowe z lockfile; unikaj zwykłego `npm install` w repo. Pakowanie przebudowuje bundle rozszerzenia/runtime/konwertera. Domyślny Core potrzebuje tylko zależności root; Full wymaga dodatkowo zależności OCR i przypiętych zasobów. Dla niego wskaż jawnie --profile full. Pakowanie/gauntlety współdzielące staging OCR uruchamiaj sekwencyjnie. `extension:verify` sprawdza allowlistę dokładnego VSIX, granice bundle i hashe zasobów. Zapisz rozmiar i SHA-256 z commitem/tree źródeł oraz rzeczywistymi zmianami; sama wersja pakietu nie wystarcza.
 
 Do rutynowych zmian dobieraj celowane kontrole. Kod produktu wymaga właściwych testów, typechecków i builda; runtime/bundling także package/verify. Checkpoint funkcjonalny wymaga pełnych właściwych bramek. Komendy `ux3:gauntlet`, `k1:gauntlet`, `k2:gauntlet`, `k3:gauntlet`, `art1:gauntlet`, `ux4:gauntlet` istnieją w głównym manifeście; uruchamiaj te uzasadnione zakresem. DOC1 używa kontroli dokumentacji, walidacji diagramów/mediów, build/package/verify i demonstracji UI dokładnego VSIX; bez powtarzania gauntletów funkcjonalnych i przenoszenia dawnych liczników PASS. [Stabilny workflow](../development-workflow.md) określa proces.
 
@@ -47,3 +47,7 @@ npm run local:models
 npm run demo:llm:dry-run -- qwen/qwen3-14b
 npm run demo:llm -- qwen/qwen3-14b
 ```
+
+## MCP1
+
+Pełny lokalny odbiór uruchom Node 22.12.0: `npm run mcp1:verify -- build/mcp1/<unique-run>`. Obejmuje świeże Core/Full i tarball CLI, niezależną parity bundle, rzeczywisty Host/UI, integralność OCR i aktualizacje profili między wersjami. Poprzednik Full musi być dokładnym lokalnym alpha.6 wskazanym w planie. Każda próba zachowuje własne raporty; błędów nie nadpisujemy. Owner smoke i jakość żywego modelu pozostają osobnymi wynikami. [Instrukcja CLI/MCP](cli-mcp.md).

@@ -1,3 +1,4 @@
+import type { SourceReference } from "./source-reference.js";
 import type { DocumentProvenance } from "./document-provenance.js";
 import { z } from "zod";
 import { parseMarkdownTable, type ParsedTable } from "./markdown-table-parser.js";
@@ -119,44 +120,69 @@ export interface SourceLocation {
   readonly line: number;
 }
 
+export interface RecordProvenance {
+  readonly reference?: SourceReference;
+  readonly sourceId: string;
+  readonly location?: SourceLocation;
+  readonly fields?: readonly string[];
+  readonly externalId?: string;
+  readonly originalName?: string;
+  readonly externalKind?: string;
+  readonly parentId?: string;
+}
+
 export interface SystemRecord {
+  readonly architecture?: SourceArchitectureMetadata;
+  readonly provenance?: readonly RecordProvenance[];
   readonly id: string;
   readonly canonicalName: string;
   readonly kind: SystemKind;
   readonly description: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface ActorRecord {
+  readonly architecture?: SourceArchitectureMetadata;
+  readonly provenance?: readonly RecordProvenance[];
   readonly id: string;
   readonly canonicalName: string;
   readonly kind: ActorKind;
   readonly description: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
+}
+
+/** Optional source facts; never inferred from Markdown kinds or names. */
+export interface SourceArchitectureMetadata {
+  readonly kind: "person" | "software-system" | "container";
+  readonly parentId?: string;
+  readonly technology?: string;
 }
 
 export interface RelationshipRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly fromId: string;
   readonly toId: string;
   readonly interfaceType: InterfaceType;
-  readonly interfaceName: string | undefined;
+  readonly interfaceName?: string;
   readonly mode: InteractionMode;
   readonly purpose: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface AliasRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly alias: string;
   readonly targetId: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface RuleRecord {
+  readonly provenance?: readonly RecordProvenance[];
   readonly rule: RuleType;
   readonly fromId: string;
   readonly toId: string;
   readonly reason: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 /** Validated content of one pack, assembled by the loader in a later phase. */

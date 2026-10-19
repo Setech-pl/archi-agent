@@ -83,10 +83,11 @@ try {
   metadata.fullGateCommands = (fullGates.stdout ?? "").split("\n").filter((line) => line.startsWith("+ "))
     .map((line) => ({ command: line.slice(2), exitCode: fullGates.status === 0 ? 0 : null }));
   const manifest = JSON.parse(readFileSync(path.join(repo, "vscode-extension/package.json"), "utf8"));
-  const candidate = path.join(out, `${manifest.name}-${manifest.version}.vsix`);
+  const candidate = path.join(out, `archi-agent-full-${manifest.version}.vsix`);
   if (!existsSync(candidate)) throw new Error("candidate-not-built");
   vsix = candidate; vsixSha256 = sha(readFileSync(vsix)); vsixSize = statSync(vsix).size;
-  run("documentation",process.execPath,["scripts/docs/check-docs.mjs",out,vsix,"--functional"]);
+  const documentationBaseline=path.join(out,"documentation-baseline");run("documentation-baseline","npm",["run","extension:package","--","--profile","full","--out",documentationBaseline]);
+  run("documentation",process.execPath,["scripts/docs/check-docs.mjs",out,vsix,"--mcp1",path.join(documentationBaseline,`archi-agent-full-${manifest.version}.vsix`)]);
   const verified = verifyVsix(vsix);
   scenarios.push({ id: "candidate-verification", status: verified.ok ? "PASS" : "FAIL", entries: verified.entries.length });
   const extracted = realpathSync(mkdtempSync(path.join(realpathSync(tmpdir()), "archi-ux4-extracted-")));

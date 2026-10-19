@@ -17,7 +17,7 @@ export type LookupStatus = "missing" | "unique" | "ambiguous";
 export interface NamedRecord {
   readonly id: string;
   readonly canonicalName: string;
-  readonly location: SourceLocation;
+  readonly location?: SourceLocation;
 }
 
 export interface IndexCandidate<TRecord> {
@@ -38,7 +38,7 @@ export function lookupStatusFor(count: number): LookupStatus {
 const noRecords: readonly never[] = Object.freeze([]);
 
 function frozenCopy<TRecord extends NamedRecord>(record: TRecord): TRecord {
-  return Object.freeze({ ...record, location: Object.freeze({ ...record.location }) }) as TRecord;
+  return Object.freeze({ ...record, ...(record.location?{location:Object.freeze({ ...record.location })}:{}) }) as TRecord;
 }
 
 function addTo<TValue>(map: Map<string, TValue[]>, key: string, value: TValue): void {

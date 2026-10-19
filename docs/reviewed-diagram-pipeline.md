@@ -1,6 +1,6 @@
 # Reviewed diagram pipeline — active target contract
 
-Current local candidate also implements D2 Component and ART1. Historical milestone statements below retain their original context; see the [current bilingual architecture](en/architecture.md) and [Component profile](diagram-profiles.md). MCP, Context/Container and ArchiMate remain planned.
+Current local candidate also implements D2 Component and ART1. Historical milestone statements below retain their original context; see the [current bilingual architecture](en/architecture.md) and [Component profile](diagram-profiles.md). D3/D4 Context/Container now use their own source-bound snapshots/plans/renderers under the [C4 contract](c4-diagrams.md). MCP and ArchiMate remain planned. VER1 is a separate verification operation.
 
 Status: R2 accepted; D1.2 Sequence completed; S1 manual smoke PASS on 2026-09-23. The D1.1 code used
 `{ plantUml }`; it was superseded after failed S1 manual smoke. Its exact

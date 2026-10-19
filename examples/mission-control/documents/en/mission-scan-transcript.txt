@@ -1,0 +1,4 @@
+Mission Control
+Operator supervises missions.
+Mission Planning stores plans in Archive.
+Telemetry publishes events to Alarms.

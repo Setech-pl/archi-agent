@@ -29,6 +29,7 @@ export const remoteTransportLimits = Object.freeze({
 });
 
 export type RemoteProviderErrorCode =
+  | "sensitive-provider-response"
   | "credential-required"
   | "invalid-credential"
   | "unsafe-model-id"

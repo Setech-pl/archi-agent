@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "commit": "3af45f4914b4e96697d65afc27440bd9b2e86aab",
+  "vsixSha256": "96715aeb6e5583337af178fc337644b8d61ce868795a554b9f559eac444739bb",
+  "platform": "darwin",
+  "arch": "arm64",
+  "syntheticTransport": true,
+  "generationRequests": 6,
+  "screens": [
+    {
+      "file": "15-sequence.png",
+      "screen": "Sequence rendered from original saved PlantUML by separate local PlantUML 1.2026.6 / Smetana; original report alongside",
+      "sha256": "5c7a423eadb06a1ade37465481482d0caf3d6eaaac1f0aa68f6bf9f04613ba18",
+      "method": "ScreenCaptureKit, isolated installed VS Code PID; no image modification",
+      "windowID": 18448,
+      "capturedAt": "2026-10-19T05:35:54.740Z",
+      "originalPlantUmlSha256": "5d01d958d8b858a78b54bddd1a97e5e4a605dcc20be8467e99299108e5080b85",
+      "originalReportSha256": "21ba204f99f313c5638ee39bec4bd1e862d39b42692151722098a5ce60a6e9bf"
+    },
+    {
+      "file": "16-c4-context.png",
+      "screen": "C4 Context rendered from original saved PlantUML by separate local PlantUML 1.2026.6 / Smetana; original report alongside",
+      "sha256": "87ebe408c8b1166a46f94f62d8508f4a77f1c1985f9c413799d0a03dc22d6e2b",
+      "method": "ScreenCaptureKit, isolated installed VS Code PID; no image modification",
+      "windowID": 18448,
+      "capturedAt": "2026-10-19T05:36:02.889Z",
+      "originalPlantUmlSha256": "2f01b3fa285c2119207d890ea03afc755ac30a46a8fb8271c26d949f2be290e5",
+      "originalReportSha256": "218613e044979def5bcc49209c9a6f50bea9f6cbe07860317b2325461c5e5719"
+    },
+    {
+      "file": "17-c4-container.png",
+      "screen": "C4 Container rendered from original saved PlantUML by separate local PlantUML 1.2026.6 / Smetana; full-width diagram for readability",
+      "sha256": "531e587703b534fb229b0b43fc22dc30047bfa041015a0f5dbe9f950de8e24b7",
+      "method": "ScreenCaptureKit, isolated installed VS Code PID; no image modification",
+      "windowID": 18448,
+      "capturedAt": "2026-10-19T05:36:11.498Z",
+      "originalPlantUmlSha256": "ad2a686fb0210b23d98b6ee615cc51db64ce9347b1ecc5d575605e78be6fca77",
+      "originalReportSha256": "aee2ff0cf181ecffe17cef89cb8d745b6f1f4b301f507ece033b043607c9caf7"
+    },
+    {
+      "file": "18-verify-flow.png",
+      "screen": "Verify Flow discrepancies; Sequence parsing without LLM",
+      "sha256": "280644d478ba14f6289941c3b9ff6c8f1af426498b906fa262bfae05766b8dc5",
+      "method": "ScreenCaptureKit, isolated installed VS Code PID; no image modification",
+      "windowID": 18448,
+      "capturedAt": "2026-10-19T05:36:14.940Z"
+    },
+    {
+      "file": "20-configuration.png",
+      "screen": "Configuration: Structurizr JSON with ID-bound overlay",
+      "sha256": "4a52d2a8c0549753099639de13eb7957b404285a334433fc265fdec14c6a096a",
+      "method": "ScreenCaptureKit, isolated installed VS Code PID; no image modification",
+      "windowID": 18448,
+      "capturedAt": "2026-10-19T05:36:17.386Z"
+    },
+    {
+      "file": "19-knowledge-browser.png",
+      "screen": "Knowledge Browser: public Big Bank systems, original IDs and source scope",
+      "sha256": "db216f3ced2464c55189905db71b032b084680fc2f203796d8c965cbe1ca63bf",
+      "method": "ScreenCaptureKit, isolated installed VS Code PID; no image modification",
+      "windowID": 18448,
+      "capturedAt": "2026-10-19T05:36:21.338Z"
+    }
+  ],
+  "sourceFixture": "test/fixtures/structurizr/big-bank-plc",
+  "sourceFixtureNotice": "Public Structurizr Big Bank fixture; see fixture LICENSE and provenance.json",
+  "captureTool": "scripts/docs/capture-doc2.mjs",
+  "review": "Six actual screens visually inspected; C4 Container uses full-width preview for readable text. No secrets or customer data."
+}

@@ -1,3 +1,4 @@
+import { containsCredential } from "../sensitive-response.js";
 import { parseChatCompletion } from "../../core/llm/strict-json-response.js";
 import {
   isSafeModelId,
@@ -109,6 +110,7 @@ export class OpenAiCompatibleRemoteChatClient implements StructuredChatClient {
     this.#provider = options.provider;
     this.#modelId = options.modelId;
     this.#apiKey = checkedApiKey(options.apiKey);
+    if (containsCredential(options.modelId, [this.#apiKey])) throw new RemoteProviderError("sensitive-provider-response");
     this.#timeoutMs = checkedRemoteTimeout(options.timeoutMs);
     this.#transport = options.transport ?? new NodeHttpsJsonTransport();
     this.clientType = providerConfiguration[options.provider].generatorType;
@@ -143,6 +145,7 @@ export class OpenAiCompatibleRemoteChatClient implements StructuredChatClient {
     validateRemoteEnvelope(text);
     const parsed = parseChatCompletion(text);
     if (!parsed.ok) throw new RemoteProviderError(parsed.code);
+    if (containsCredential(parsed.value, [this.#apiKey])) throw new RemoteProviderError("sensitive-provider-response");
     return Object.freeze({ value: parsed.value, source: "content" });
   }
 }
@@ -202,5 +205,7 @@ export async function listOpenAiCompatibleRemoteModels(options: ListOpenAiCompat
     maxResponseBytes: remoteTransportLimits.maxModelsResponseBytes,
     ...(options.signal === undefined ? {} : { signal: options.signal })
   });
-  return parseModelList(text, options.provider);
+  const ids = parseModelList(text, options.provider);
+  if (containsCredential(ids, [apiKey])) throw new RemoteProviderError("sensitive-provider-response");
+  return ids;
 }

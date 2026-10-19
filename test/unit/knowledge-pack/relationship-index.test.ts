@@ -18,7 +18,7 @@ describe("RelationshipIndex", () => {
   it("is directional and never creates reverse relationships", () => {
     const index = RelationshipIndex.from(relationships());
     expect(index.find("a", "b")).toHaveLength(2);
-    expect(index.find("b", "a").map((record) => record.location.line)).toEqual([5]);
+    expect(index.find("b", "a").map((record) => record.location!.line)).toEqual([5]);
     expect(index.find("c", "a")).toEqual([]);
     expect(index.has("a", "c")).toBe(true);
     expect(index.has("c", "a")).toBe(false);

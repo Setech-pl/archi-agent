@@ -81,7 +81,7 @@ export function buildGenerationRequest(
 
   return Object.freeze({
     flow,
-    knowledgePack: Object.freeze({ kind: "local-directory", path: settings.knowledgePackPath }),
+    knowledgePack: Object.freeze(settings.architectureSource ?? { kind: "local-directory", path: settings.knowledgePackPath }),
     generator,
     ...(signal === undefined ? {} : { signal })
   });

@@ -9,7 +9,7 @@ import type { RuleRecord, RuleType } from "../knowledge-pack.schema.js";
 const noRules: readonly RuleRecord[] = Object.freeze([]);
 
 function frozenCopy(record: RuleRecord): RuleRecord {
-  return Object.freeze({ ...record, location: Object.freeze({ ...record.location }) });
+  return Object.freeze({ ...record, ...(record.location?{location:Object.freeze({ ...record.location })}:{}) });
 }
 
 function compareRules(left: RuleRecord, right: RuleRecord): number {
@@ -17,8 +17,8 @@ function compareRules(left: RuleRecord, right: RuleRecord): number {
     stableCompare(left.fromId, right.fromId) ||
     stableCompare(left.toId, right.toId) ||
     stableCompare(left.rule, right.rule) ||
-    stableCompare(left.location.file, right.location.file) ||
-    left.location.line - right.location.line
+    stableCompare(left.location?.file??"", right.location?.file??"") ||
+    (left.location?.line??0) - (right.location?.line??0)
   );
 }
 

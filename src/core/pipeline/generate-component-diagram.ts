@@ -106,10 +106,10 @@ export async function generateComponentDiagram(request: GenerateDiagramRequest):
   diagnostics?.emit("reviewer.accepted", { verdict: "accept" });
   const diagramFileName = `${request.artifactBaseName}${artifactExtensions.diagram}`;
   const reportFileName = `${request.artifactBaseName}${artifactExtensions.report}`;
-  const evidence = [...snapshot.elements.map((item) => ({ id: item.id, file: item.source.file, line: item.source.line,
+  const evidence = [...snapshot.elements.map((item) => ({ id: item.id, ...item.source,
     evidenceClass: item.kind === "new" ? "user-stated" : "source-confirmed", elementKind: item.elementKind,
     ownership: item.ownership })),
-    ...snapshot.relationships.map((item) => ({ id: item.evidenceId, file: item.source.file, line: item.source.line, evidenceClass: "source-confirmed" })),
+    ...snapshot.relationships.map((item) => ({ id: item.evidenceId, ...item.source, evidenceClass: "source-confirmed" })),
     ...snapshot.flowEvidence.map((item) => ({ id: item.flowEvidenceId, file: snapshot.flowFile, line: item.line, evidenceClass: "user-stated" }))];
   const report = JSON.stringify({ reportSchemaVersion: 2, diagramType: "component", generationPath: "reviewed-plan-rendered",
     snapshotDigest: { algorithm: "sha256", value: snapshot.digest },

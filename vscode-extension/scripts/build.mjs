@@ -77,11 +77,14 @@ export async function buildExtensionBundles(options = {}) {
   const extensionFile = path.join(outDir, bundleFileNames.extension);
   const converterWorkerFile = path.join(outDir, bundleFileNames.converterWorker);
 
-  await build({ ...commonOptions(), entryPoints: [runtimeEntry], outfile: runtimeFile });
+  const runtimeBuild=await build({ ...commonOptions(), metafile:true,entryPoints: [runtimeEntry], outfile: runtimeFile,
+    // jsonc-parser's UMD main uses dynamic factory(require), which cannot be bundled safely.
+    // Resolve only this package to its published ESM entry; other dependency resolution is unchanged.
+    plugins: [{name:"zod-single-entry",setup(b){b.onResolve({filter:/^zod(?:\/v4)?$/},()=>({path:path.join(projectRoot,"node_modules/zod/index.js")}));}}, { name: "jsonc-parser-esm", setup(b) { b.onResolve({filter:/^jsonc-parser$/}, () => ({path:path.join(projectRoot,"node_modules/jsonc-parser/lib/esm/main.js")})); } }] });
   await build({ ...commonOptions(), entryPoints: [converterWorkerEntry], outfile: converterWorkerFile, minify: true });
   await build({ ...commonOptions(), entryPoints: [extensionEntry], outfile: extensionFile, external: ["vscode"], plugins: [runtimeBundlePlugin] });
 
-  return Object.freeze({ outDir, runtimeFile, extensionFile, converterWorkerFile });
+  return Object.freeze({ outDir, runtimeFile, extensionFile, converterWorkerFile,runtimeMetafile:runtimeBuild.metafile });
 }
 
 function parseArguments(argv) {

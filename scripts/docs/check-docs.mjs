@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import {openVsix} from '../../vscode-extension/scripts/vsix-zip.mjs';
 import {createHash} from 'node:crypto';
 const [outArg,vsixArg,mode,baselineArg]=process.argv.slice(2),out=path.resolve(outArg),vsix=path.resolve(vsixArg);
-const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/product-roadmap.md','docs/configuration-workbench.md','docs/ux4-model-selection.md','docs/ux4-owner-findings.md'];
+assert.ok(['--docs','--help','--functional','--mcp1'].includes(mode),'Unknown documentation check mode');
+const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/doc2-pub1-verification.md','docs/product-roadmap.md','docs/en/cli-mcp.md','docs/pl/cli-mcp.md','examples/knowledge-server/README.md','docs/configuration-workbench.md','docs/ux4-model-selection.md','docs/ux4-owner-findings.md'];
 const issues=[],checks=[];const hash=b=>createHash('sha256').update(b).digest('hex');
 const content=f=>readFileSync(f,'utf8');
 function anchors(text){const counts=new Map();return new Set([...text.matchAll(/^#{1,6} (.+)$/gm)].map(m=>{const a=m[1].toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu,'').replace(/\s/g,'-');const n=counts.get(a)||0;counts.set(a,n+1);return a+(n?`-${n}`:'');}));}
@@ -17,6 +18,8 @@ for(const file of files){
   const [target,anchor]=link.split('#');let p=path.resolve(path.dirname(file),decodeURIComponent(target||path.basename(file)));
   // vsce canonicalizes EN README to readme.md; the Polish standalone guide targets that package name.
   if(file==='vscode-extension/README.pl.md'&&target==='readme.md')p=path.resolve('vscode-extension/README.md');
+  // Help images are copied into each package stage, not the tracked extension tree.
+  if(file.startsWith('vscode-extension/README')&&target?.startsWith('help-assets/'))p=path.resolve('docs/assets/screenshots',path.basename(target));
   if(file.startsWith('vscode-extension/README')&&target==='ux2-ocr/TRIAL_NOTICES.md')p=path.resolve('experiments/ux2-ocr/TRIAL_NOTICES.md');
   if(!existsSync(p)){issues.push(`broken link ${file}: ${link}`);continue;}
   if(anchor&&!anchors(content(p)).has(anchor))issues.push(`broken anchor ${file}: ${link}`);
@@ -29,7 +32,7 @@ for(const name of ['user-guide','development']){
 }
 const diagrams=l=>[...content(`docs/${l}/architecture.md`).matchAll(/```mermaid\n([\s\S]*?)```/g)].map(m=>m[1]);
 const topology=s=>s.split('\n').map(line=>line.replace(/\[".*?"\]/g,'[]').replace(/(participant \w+ as ).*/,'$1LABEL').replace(/(: ).*/,'$1LABEL').replace(/^(\s*(?:alt|else|opt|loop)) .*/,'$1 LABEL')).join('\n');
-assert.equal(diagrams('en').length,5);assert.deepEqual(diagrams('en').map(topology),diagrams('pl').map(topology));
+assert.equal(diagrams('en').length,6);assert.deepEqual(diagrams('en').map(topology),diagrams('pl').map(topology));
 checks.push({id:'same-PL-EN-examples-and-diagram-topology',status:'PASS'});
 const manifest=JSON.parse(content('vscode-extension/package.json'));
 const settings=manifest.contributes.configuration.properties;
@@ -52,12 +55,17 @@ for(const [language,entry] of [['en','extension/readme.md'],['pl','extension/REA
 }
 const provenance=JSON.parse(content('docs/assets/screenshots/provenance.json'));
 for(const screen of provenance.screens)assert.equal(hash(readFileSync('docs/assets/screenshots/'+screen.file)),screen.sha256,'screenshot provenance hash: '+screen.file);
+const currentProvenance=JSON.parse(content('docs/assets/screenshots/provenance-doc2.json'));
+assert.equal(currentProvenance.status,'PASS');assert.equal(currentProvenance.screens.length,6);
+for(const screen of currentProvenance.screens)assert.equal(hash(readFileSync('docs/assets/screenshots/'+screen.file)),screen.sha256,'current screenshot provenance hash: '+screen.file);
 assert.equal(archive.read('extension/LICENSE.txt').toString(),content('LICENSE'));
 assert.equal(content('vscode-extension/LICENSE.txt'),content('LICENSE'));
 assert.equal(manifest.license,'MIT');assert.equal(JSON.parse(content('package.json')).license,'MIT');assert.equal(JSON.parse(content('package-lock.json')).packages[''].license,'MIT');
-for(const required of ['extension/THIRD_PARTY_NOTICES.md','extension/ux2-ocr/TRIAL_NOTICES.md','extension/ux2-ocr/licenses/SKIA-LICENSE','extension/ux2-ocr/assets/lang/LICENSE-tessdata-fast'])assert.ok(entries.includes(required),required);
+const coreProfile=entries.includes('extension/distribution-profile.json')&&JSON.parse(archive.read('extension/distribution-profile.json')).profile==='core';
+for(const required of ['extension/THIRD_PARTY_NOTICES.md',...(coreProfile?[]:['extension/ux2-ocr/TRIAL_NOTICES.md','extension/ux2-ocr/licenses/SKIA-LICENSE','extension/ux2-ocr/assets/lang/LICENSE-tessdata-fast'])])assert.ok(entries.includes(required),required);
 assert.ok(entries.every(e=>!e.endsWith('.gif')&&!e.includes('audits/')&&!e.includes('scripts/docs/')));
-// Confirm documentation-only packaging did not change executable code or OCR resources.
+// --mcp1 compares all executable/OCR bytes with an independently rebuilt same-candidate baseline.
+// Older documentation-only modes retain their original baseline policy.
 assert.ok(baselineArg,'Supply the exact verified baseline VSIX explicitly; no historical default.');
 const baseline=openVsix(baselineArg);
 const runtimeEntries=entries.filter(e=>e.startsWith('extension/ux2-ocr/')||(mode==='--help'?e.startsWith('extension/dist/')&&e!=='extension/dist/extension.js':mode==='--functional'?e==='extension/dist/archi-agent-converter-worker.js':e.startsWith('extension/dist/')));

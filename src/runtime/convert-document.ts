@@ -1,3 +1,4 @@
+import { getDocumentConversionCapabilities, distributionDirectory } from "./document-conversion-capabilities.js";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
@@ -12,6 +13,8 @@ const ocrErrors = new Set<ConvertErrorCode>([
 
 export interface ConvertDocumentOptions {
   readonly signal?: AbortSignal;
+  /** Trusted installation composition seam; never supplied by a source/tool argument. */
+  readonly distributionDirectory?: string;
   /** Allows an embedding host or isolated test to point at its sibling worker bundle. */
   readonly workerFile?: string;
   readonly timeoutMs?: number;
@@ -27,8 +30,18 @@ export async function convertDocument(filePath: string, options: ConvertDocument
   const mode = options.pdfOcrMode ?? "none";
   if (mode !== "none" && mode !== "auto" && mode !== "all") return { status: "failed", code: "conversion-failed" };
   if (formatFromPath(filePath) === "pdf" && mode !== "none") {
+    const capabilities=await getDocumentConversionCapabilities({distributionDirectory:options.distributionDirectory,validateOcr:true,signal:options.signal});
+    if(options.signal?.aborted)return {status:"cancelled"};
+    if(capabilities.ocr==="installation-error")return {status:"failed",code:capabilities.code==="installation-invalid"?"installation-invalid":"ocr-installation-invalid"};
+    if(capabilities.profile==="core") {
+      if(mode==="all")return {status:"failed",code:"ocr-unavailable",reason:"not-installed"};
+      const text=await convertDocument(filePath,{...options,pdfOcrMode:"none"});
+      if(text.status!=="success")return text;
+      const pages=text.coverage?.pages??[];const missing=pages.filter(p=>p.source==="requires-ocr").map(p=>p.page);
+      return missing.length?{status:"failed",code:"ocr-unavailable",reason:"not-installed",pagesRequiringOcr:missing,coverage:{pages:pages.map(p=>({page:p.page,source:p.source==="text"?"text":"requires-ocr",...(p.source==="requires-ocr"?{reason:"no-extractable-text" as const}:{})})),warnings:["no-extractable-text"]}}:text;
+    }
     try {
-      const parentFile = options.ocrParentFile ?? path.join(__dirname, "..", "ux2-ocr", "ocr-parent.mjs");
+      const parentFile = options.ocrParentFile ?? path.join(options.distributionDirectory ?? distributionDirectory(), "ux2-ocr", "ocr-parent.mjs");
       const module = await import(pathToFileURL(parentFile).href) as {
         convertPdfIsolated: (file: string, settings: { fullPage: boolean; signal?: AbortSignal; onStage?: (stage: string) => void }) =>
           Promise<{ markdown: string; pages: readonly { page: number; source: "text" | "ocr" | "blank" }[] }>;

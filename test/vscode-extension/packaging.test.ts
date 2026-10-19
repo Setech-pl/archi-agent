@@ -1,3 +1,4 @@
+import {builtinModules}from"node:module";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,7 +26,7 @@ interface BuildModule {
 }
 
 interface PackageModule {
-  packageExtension(options?: { outDir?: string; bundleDir?: string }): Promise<string>;
+  packageExtension(options?: { outDir?: string; bundleDir?: string; profile?: "core" | "full" }): Promise<string>;
 }
 
 interface VerifyModule {
@@ -80,15 +81,17 @@ describe("bundles", () => {
     expect(text).not.toContain("src/runtime/index");
   });
 
-  it("keeps the runtime bundle free of the editor API, source maps and repository paths", () => {
+  it("keeps the runtime bundle free of the editor API, source maps and repository paths", async () => {
     const text = readFileSync(bundles.runtimeFile, "utf8");
-    const specifiers = [...text.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g)].map((match) => match[1] ?? "");
+    const {requireSpecifiers}=await import(scriptUrl("verify-vsix.mjs"));
+    const specifiers:string[] = requireSpecifiers(text);
 
-    expect(specifiers.every((specifier) => specifier.startsWith("node:"))).toBe(true);
+    expect(specifiers.every((specifier) => [...builtinModules,...builtinModules.map(n=>`node:${n}`)].includes(specifier))).toBe(true);
     expect(text).not.toMatch(/require\(\s*["']vscode["']\s*\)/);
     expect(text).not.toContain("sourceMappingURL");
     expect(text.toLowerCase()).not.toContain(projectRoot.toLowerCase().replace(/[\\/]+$/, ""));
-    expect(text).not.toContain("child_process");
+    expect(text).toContain("get_knowledge_snapshot");
+    expect(text).toContain("shell: false");
     expect(text).not.toMatch(/\bnpm\s+run\b/);
     expect(text).toContain("createArchiAgentRuntime");
   });
@@ -255,7 +258,7 @@ describe("VSIX", () => {
   beforeAll(async () => {
     const packageModule = (await import(scriptUrl("package-vsix.mjs"))) as PackageModule;
     verifyModule = (await import(scriptUrl("verify-vsix.mjs"))) as VerifyModule;
-    vsixPath = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-vsix-") });
+    vsixPath = await packageModule.packageExtension({ outDir: temporaryDirectory("archi-agent-vsix-"), profile:"full" });
   }, 180_000);
 
   it("packages the runtime and verified local OCR resources", () => {
@@ -275,7 +278,7 @@ describe("VSIX", () => {
       expect(result.entries).toContain(entry);
     }
     const manifest = JSON.parse(readFileSync(path.join(extensionRoot, "package.json"), "utf8"));
-    expect(path.basename(vsixPath)).toBe(`${manifest.name}-${manifest.version}.vsix`);
+    expect(path.basename(vsixPath)).toBe(`archi-agent-full-${manifest.version}.vsix`);
   });
 
   it.each(["win32-x64-msvc", "win32-arm64-msvc"])("rejects a VSIX missing %s ICU even if removed from its manifest", async (platform) => {
@@ -295,7 +298,8 @@ describe("VSIX", () => {
     const result = verifyModule.verifyVsix(archive);
     expect(result.ok).toBe(false);
     expect(result.violations).toContain(`trial-resource-missing: ${resource}`);
-  });
+    // Copying/rewriting the full OCR archive and hashing it twice is disk-bound on CI.
+  }, 30_000);
 
   it("packages the corrected D1.2 plan-validation mapping in the runtime bundle", async () => {
     const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };
@@ -310,7 +314,7 @@ describe("VSIX", () => {
     writeFileSync(path.join(directory, "placeholder"), "synthetic");
     const archive = path.join(directory, "missing-ocr.vsix");
     expect(spawnSync("zip", ["-q", archive, "placeholder"], { cwd: directory }).status).toBe(0);
-    expect(verifyModule.verifyVsix(archive).violations).toContain("ocr-resources-missing: product VSIX must include local OCR");
+    expect(verifyModule.verifyVsix(archive).violations).toContain("distribution-profile-invalid");
     expect(verifyModule.verifyVsix(archive, { legacy: true }).violations).not.toContain("ocr-resources-missing: product VSIX must include local OCR");
   });
 

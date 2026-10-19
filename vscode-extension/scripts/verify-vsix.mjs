@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {buildSync}from"esbuild";
 // Verifies the content of a built Archi Agent VSIX.
 //
 //   node vscode-extension/scripts/verify-vsix.mjs [<file.vsix>]
@@ -27,11 +28,11 @@ const noticesEntry = "extension/THIRD_PARTY_NOTICES.md";
 const trialManifestEntry = "extension/ux2-trial/resource-manifest.json";
 const productManifestEntry = "extension/ux2-ocr/resource-manifest.json";
 
-export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Content_Types].xml", manifestEntry, extensionBundleEntry, runtimeBundleEntry, converterWorkerEntry, noticesEntry]);
+export const requiredEntries = Object.freeze(["extension.vsixmanifest", "[Content_Types].xml", manifestEntry, extensionBundleEntry, runtimeBundleEntry, converterWorkerEntry, noticesEntry, "extension/distribution-profile.json"]);
 
 /** Optional entries that vsce adds from the allow-listed files; their names may be lower-cased by vsce. */
 const optionalEntryPatterns = Object.freeze([/^extension\/readme(?:\.pl)?\.md$/i, /^extension\/changelog\.md$/i, /^extension\/licen[cs]e(?:\.md|\.txt)?$/i,
-  /^extension\/help-assets\/(?:01-open|02-provider|03-knowledge|04-browser|05-review|06-edit|07-pack-preview|08-sequence|09-component|10-save|11-conversion|12-help|13-ocr|14-help-pl)\.png$/]);
+  /^extension\/help-assets\/(?:01-open|02-provider|03-knowledge|04-browser|05-review|06-edit|07-pack-preview|08-sequence|09-component|10-save|11-conversion|12-help|13-ocr|14-help-pl|15-sequence|16-c4-context|17-c4-container|18-verify-flow|19-knowledge-browser|20-configuration)\.png$/]);
 
 /** Explicit rejections, reported with their own rule identifier even though the allow-list would reject them anyway. */
 export const prohibitedEntryRules = Object.freeze([
@@ -54,16 +55,10 @@ export const bundleLimits = Object.freeze({ maxBundleBytes: 3 * 1024 * 1024 });
 
 const builtins = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
 
-function requireSpecifiers(text) {
-  const specifiers = new Set();
-  const pattern = /\brequire\(\s*["']([^"']+)["']\s*\)/g;
-  let match;
-
-  while ((match = pattern.exec(text)) !== null) {
-    specifiers.add(match[1]);
-  }
-
-  return [...specifiers].sort();
+export function requireSpecifiers(text) {
+  // Parse code with the existing bundler; regex also mistakes AJV standalone-code strings for imports.
+  const parsed=buildSync({stdin:{contents:text,sourcefile:"bundle.cjs"},bundle:true,platform:"node",format:"cjs",packages:"external",external:["vscode","./archi-agent-runtime.js"],write:false,metafile:true,treeShaking:false,logLevel:"silent"});
+  return [...new Set(Object.values(parsed.metafile.inputs).flatMap(input=>input.imports.filter(i=>i.external&&i.kind==="require-call").map(i=>i.path)))].sort();
 }
 
 function containsRepositoryPath(text) {
@@ -93,7 +88,17 @@ export function verifyVsix(filePath, options = {}) {
   const names = archive.entries.map((entry) => entry.name);
   let trialEntries = new Set();
   const productOcr = names.includes(productManifestEntry);
-  if (!productOcr && !options.ux2Trial && !options.legacy) violations.push("ocr-resources-missing: product VSIX must include local OCR");
+  let profile;
+  if(!options.ux2Trial&&!options.legacy)try{
+    profile=JSON.parse(archive.read("extension/distribution-profile.json").toString("utf8"));
+    if(profile.schemaVersion!==1||!["core","full"].includes(profile.profile)||Object.keys(profile).sort().join(",")!=="ocr,profile,schemaVersion"||!profile.ocr||profile.ocr.required!==(profile.profile==="full"))throw Error();
+    if(profile.profile==="core"&&(productOcr||names.some(n=>/ux2-ocr|tesseract|traineddata|canvas.*\.node|\.wasm$/i.test(n))))violations.push("core-ocr-resource");
+    if(profile.profile==="core"&&Object.keys(profile.ocr).join(",")!=="required")throw Error();
+    if(profile.profile==="full"){
+      if(!productOcr)violations.push("ocr-resources-missing: Full must include local OCR");
+      if(Object.keys(profile.ocr).sort().join(",")!=="manifestSha256,required"||profile.ocr.manifestSha256!==createHash("sha256").update(archive.read(productManifestEntry)).digest("hex"))violations.push("ocr-manifest-hash");
+    }
+  }catch{violations.push("distribution-profile-invalid");}
   const ocrPrefix = productOcr ? "extension/ux2-ocr/" : "extension/ux2-trial/";
   const ocrManifestEntry = productOcr ? productManifestEntry : trialManifestEntry;
   if (options.ux2Trial || productOcr) {
@@ -246,10 +251,12 @@ export function verifyVsix(filePath, options = {}) {
         violations.push("manifest-engine: engines.vscode is missing");
       }
 
-      if (manifest.name !== "archi-agent" || manifest.publisher !== "setech-pl") {
+      if (manifest.name !== (profile?.profile === "core" ? "archi-agent-core" : "archi-agent") || manifest.publisher !== "setech-pl") {
         violations.push("manifest-identity: unexpected name or publisher");
       }
 
+      if(profile && !path.basename(filePath).startsWith(`archi-agent-${profile.profile}-`))violations.push("distribution-filename-profile");
+      if(profile && manifest.displayName!==`Archi Agent ${profile.profile==="core"?"Core":"Full"}`)violations.push("distribution-display-name");
       const commands = Array.isArray(manifest.contributes?.commands) ? manifest.contributes.commands.map((entry) => entry.command) : [];
 
       const requiredCommands = [
@@ -335,7 +342,7 @@ export function verifyVsix(filePath, options = {}) {
       violations.push(`bundle-repository-path: ${entry}`);
     }
 
-    if (/\bnpm\s+run\b/.test(text) || specifiers.some((specifier) => /child_process$/.test(specifier))) {
+    if (/\bnpm\s+run\b/.test(text) || (!expectVscode && entry!==runtimeBundleEntry && specifiers.some((specifier) => /child_process$/.test(specifier)))) {
       violations.push(`bundle-process-spawn: ${entry}`);
     }
 
@@ -347,21 +354,13 @@ export function verifyVsix(filePath, options = {}) {
   return Object.freeze({ ok: violations.length === 0, entries: Object.freeze(names), violations: Object.freeze(violations) });
 }
 
-/** The newest .vsix in the default build directory, when the caller names none. */
+/** Default packaging produces Core; Full and nondefault directories always use an explicit path. */
 export function defaultVsixPath() {
-  const buildDir = path.join(extensionRoot, "build");
-
-  if (!existsSync(buildDir)) {
-    return undefined;
-  }
-
-  const candidates = readdirSync(buildDir)
-    .filter((name) => name.endsWith(".vsix"))
-    .sort()
-    .reverse();
-  const first = candidates[0];
-  return first === undefined ? undefined : path.join(buildDir, first);
+  const manifest=JSON.parse(readFileSync(path.join(extensionRoot,"package.json"),"utf8"));
+  const file=path.join(extensionRoot,"build",`archi-agent-core-${manifest.version}.vsix`);
+  return existsSync(file)?file:undefined;
 }
+
 
 function invokedDirectly() {
   const entry = process.argv[1];

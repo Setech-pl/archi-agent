@@ -2,9 +2,9 @@
 
 [English](../en/architecture.md) · **Polski** · [Strona główna](../../README.pl.md)
 
-To architektura zaimplementowana w bieżącym buildzie gałęzi UX4-FU2, nie w publicznym pakiecie UX2. [Szczegółowa stabilna architektura](../architecture.md) opisuje bieżące granice; osobna historia zachowuje wcześniejsze wyjaśnienia; [roadmapa](../product-roadmap.md) określa plany. Obecne pozyskiwanie używa lokalnych packów Markdown oraz jawnie wskazanych dokumentów do budowy nowego packa; nie ma adaptera pobierania EA/MCP. Sequence i Component mają osobne plany/walidatory/renderery. Context/Container/ArchiMate są planowane. Renderer zgodności sequence jest osobną starszą ścieżką.
+To architektura lokalnego kandydata SRC1/VER1/D3/D4/MCP1, nie wcześniejszej publicznej paczki alpha.6. [Szczegółowa stabilna architektura](../architecture.md) opisuje bieżące granice; osobna historia zachowuje wcześniejsze wyjaśnienia; [roadmapa](../product-roadmap.md) określa plany. Obecne źródła to lokalny JSON Structurizr z nakładką wiązaną po ID, samodzielne packi Markdown oraz dokumenty wskazane do budowy nowego packa; klient wiedzy MCP w Node pobiera częściowe normalized contributions z jednego jawnie skonfigurowanego serwera stdio. Samodzielny przykład reużywa produkcyjnego parsera/mappera SRC1 i walidacji K1. Nie ma adaptera EA ani parsera DSL. Sequence i Component mają osobne plany/walidatory/renderery. C4 Context/Container korzystają z metadanych Structurizr i osobnych planów/walidatorów/rendererów; VER1 sprawdza Sequence/prozę. ArchiMate pozostaje planowane. Renderer zgodności sequence jest osobną starszą ścieżką.
 
-Core jest deterministyczny, bez Node/VS Code I/O; orkiestracja wywołuje wstrzyknięte porty i adaptery Node. Runtime jest niezależny od hosta; edytor importuje tylko `src/runtime/index.ts`. Providerzy są wymiennymi adapterami StructuredChatClient. Dokumenty/odpowiedzi modeli są nieufnymi danymi. Do modelu trafiają ograniczone właściwe snapshoty diagramów lub ograniczony wybrany tekst ekstrakcji. Ustawienia i SecretStorage pozostają na granicy VS Code.
+Core jest deterministyczny, bez Node/VS Code I/O; orkiestracja wywołuje wstrzyknięte porty i adaptery Node. Runtime jest niezależny od hosta; edytor importuje tylko `src/runtime/index.ts`. Providerzy są wymiennymi adapterami StructuredChatClient. Dokumenty/odpowiedzi modeli są nieufnymi danymi. Do modelu trafiają ograniczone właściwe snapshoty diagramów lub ograniczony wybrany tekst ekstrakcji. Ustawienia i SecretStorage VS Code pozostają na granicy edytora; CLI/MCP używają konfiguracji procesu, przypiętych readRoots i nazwanych credentiali środowiskowych. Serwer czterech funkcji i klient wiedzy MCP mają osobne role; wszystkie hosty komponują wspólny runtime.
 
 UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i powiązany webview review K3. Oba delegują do istniejących usług runtime; zamknięty protokół hosta, nonce CSP i renderowanie tekstu chronią granicę danych. Klucze pozostają w SecretStorage; ekran otrzymuje tylko obecność. [Kontrakt UX4](../configuration-workbench.md).
 
@@ -12,32 +12,38 @@ UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i po
 
 ```mermaid
 flowchart TB
-  subgraph Host["Granica rozszerzenia VS Code"]
-    direction TB
-    UI["Polecenia / webview Configuration-Review / Knowledge Browser / Help offline"] --> Settings["Ustawienia / SecretStorage"]
+  subgraph Host["Host VS Code"]
+    UI["Komendy / Configuration / Browser / Help"] --> Settings["Ustawienia / SecretStorage"]
   end
-  subgraph Runtime["Runtime niezależny od hosta"]
-    direction TB
-    App["archi-agent-runtime / extract-document-candidates"] --> Review["knowledge-pack-review / diagram-artifact"]
-  end
-  subgraph Core["Deterministyczny core — bez I/O"]
-    direction TB
-    Knowledge["Loader packa / snapshot K1 / grounding / KPB-A"] --> Pipeline["Plany / walidatory / renderery / raport"]
-  end
-  subgraph Adapters["Adaptery Node i lokalne zasoby pakietu"]
-    direction TB
-    Pack["NodeKnowledgePackSource"] --> Files["Lokalne pliki: odczyt w limitach / zapis exclusive / cleanup"]
-    Conversion["Prywatne kopie / worker konwersji"] --> OCR["PDF.js / canvas / Tesseract WASM + PL/EN"]
-    Providers["LM Studio / Ollama / Anthropic / OpenAI / OpenRouter"]
-  end
+  CLI["Adapter CLI / src/cli"] --> Ops["Kompozycja hosta / readRoots / sekrety środowiska"]
+  MCP["Serwer funkcji MCP / cztery tools / src/mcp"] --> Ops
+  Ops --> App
   UI -->|src/runtime/index.ts| App
+  subgraph Runtime["Runtime niezależny od hosta / src/runtime"]
+    App["Generowanie / VER1 / dokumenty / oryginalne artefakty"]
+  end
+  subgraph Core["Deterministyczny core / bez I-O Node i VS Code"]
+    Knowledge["Snapshot K1 / grounding / provenance"] --> Pipeline["Plany typów / walidatory / renderery / porównanie"]
+  end
+  subgraph Node["Adaptery Node / src/node"]
+    Local["Pack / Structurizr JSON + nakładka"] --> Files["Ograniczone odczyty / wyłączny zapis"]
+    Client["Klient wiedzy MCP / stałe get_knowledge_snapshot"]
+    Providers["StructuredChatClient / dostawca lokalny lub chmurowy"]
+    Conversion["Worker dokumentów / lokalna konwersja"]
+  end
   App --> Knowledge
-  Review --> Knowledge
-  App --> Pack
+  App --> Local
+  App --> Client
+  Client --> KS["Osobny serwer wiedzy MCP / adapter źródła"]
+  KS --> Model["Model architektury / przykład: produkcyjne SRC1 + K1"]
   App --> Conversion
-  Pipeline -->|StructuredChatClient| Providers
-  App -->|StructuredChatClient| Providers
-  Review -->|ART1 / K3 / UX3| Files
+  App --> Files
+  Pipeline --> Providers
+  App --> Providers
+  Build["Wspólny kod / trzy identyczne bundle runtime"] --> CP["Core VSIX / konwersja tekstu / bez OCR"]
+  Build --> FP["Full VSIX / przypięty offline OCR PL-EN"]
+  FP --> OCR["PDF.js / canvas / Tesseract WASM / model resources"]
+  Conversion -->|Full only when OCR needed| OCR
 ```
 
 ## B. Dokumenty i zamrożone wejście
@@ -50,6 +56,8 @@ flowchart LR
   Extract --> Evidence["Deterministyczna walidacja schematu / dowodów / referencji"]
   Evidence --> Review["Decyzje użytkownika / edycje / zwalidowany podgląd"]
   Review --> Pack["NOWY Knowledge Pack pięciu plików / provenance"]
+  Structurizr["Structurizr workspace.json + nakładka / oryginalne ID"] --> Snapshot
+  MCPSource["Wiedza MCP / znormalizowane dane / zakres"] --> Snapshot
   Pack --> Snapshot["Loader / snapshot K1 / deterministyczny grounding"]
   Flow["Opis przepływu / jawne decyzje"] --> Snapshot
   Snapshot --> Plan["JEDNO żądanie generatora / plan typu diagramu"]
@@ -108,7 +116,7 @@ sequenceDiagram
   Core-->>UI: Odrzuć, zero wywołań generacyjnych
   else Poprawny kontekst
   Core->>G: Jedno żądanie planu właściwego dla typu
-  G-->>Core: Nieufny plan Sequence v3 / Component v1
+  G-->>Core: Nieufny plan Sequence / Component / C4 Context / Container
   Core->>Core: Waliduj, rozwiąż, renderuj, sprawdź podzbiór
   alt Lokalne odrzucenie
   Core-->>UI: Odrzuć po jednym wywołaniu, bez review
@@ -187,6 +195,45 @@ Konwersja przyjmuje jeden plik do 50 MiB i wynik do 8 MiB Markdown; deadline bez
 
 ## Samowystarczalny build i pakiet
 
-`npm run extension:build` tworzy przez esbuild trzy sąsiednie bundle CommonJS: rozszerzenie, runtime niezależny od hosta i worker konwersji. Rozszerzenie externalizuje `vscode` i sąsiedni runtime; runtime — tylko moduły wbudowane Node. `npm run extension:package` przebudowuje bundle, używa jawnej allowlisty VSIX i dodaje przypięte zasoby OCR offline z manifestem licencji/hashów. Obie instrukcje trafiają jako `readme.md` i `README.pl.md`. Użytkownik korzysta z Node wbudowanego w VS Code; nie potrzebuje ścieżek repo, npm ani osobnej instalacji Node.
+`npm run extension:build` tworzy przez esbuild trzy sąsiednie bundle CommonJS: rozszerzenie, runtime niezależny od hosta i worker konwersji. Rozszerzenie externalizuje `vscode` i sąsiedni runtime; runtime — tylko moduły wbudowane Node. `npm run extension:package` przebudowuje bundle, używa jawnej allowlisty VSIX i, tylko dla Full, dodaje przypięte zasoby OCR offline z manifestem licencji/hashów. Obie instrukcje trafiają jako `readme.md` i `README.pl.md`. Użytkownik korzysta z Node wbudowanego w VS Code; nie potrzebuje ścieżek repo, npm ani osobnej instalacji Node.
 
 `npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](../project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
+
+Pakowanie MCP1 domyślnie wybiera Core, bez zależności i zasobów OCR. Full zachowuje dotychczasowe ID i przypięte OCR offline, z jawną kontrolą integralności instalacji. Oba profile mają identyczne bundle runtime. [CLI/MCP i profile](cli-mcp.md) opisują ścisłe wersjonowane kontrakty wyniku/źródła oraz konfigurację.
+
+## F. VER1 — snapshot i provenance
+
+```mermaid
+sequenceDiagram
+  participant H as VS Code / CLI / function MCP
+  participant R as Wspólny runtime weryfikacji
+  participant S as Źródło lokalne lub MCP wiedzy
+  participant C as Deterministyczny core
+  participant L as Model interpretacji
+  H->>R: Sequence PlantUML lub proza
+  R->>S: Wczytaj jeden niezmienny snapshot źródła
+  S-->>R: Fakty, digest, zakres i provenance
+  alt Sequence PlantUML
+  R->>C: Ograniczony parser, zero wywołań modelu
+  else Proza
+  R->>L: Jedno ograniczone żądanie interpretacji
+  L-->>R: Nieufna interpretacja z dowodami
+  R->>C: Waliduj interpretację
+  end
+  R->>C: Rozstrzygnij nazwy i porównaj z zamrożonym snapshotem
+  C-->>H: Ocena, kroki, pominięcia, provenance i digesty
+  opt Jawne decyzje nazw / zapis aliasów
+  H->>R: Potwierdź decyzje względem oczekiwanych digestów
+  R->>S: Odczytaj źródło ponownie i sprawdź wersję
+  alt Zmienione źródło lub wejście
+  R-->>H: Nieaktualny wynik, ponów weryfikację
+  else To samo źródło i wejście
+  R->>C: Zastosuj jawne decyzje bez LLM
+  C-->>H: Zaktualizowany raport z provenance
+  end
+  end
+```
+
+Zapis aliasów do nakładki SRC1 jest osobną operacją adaptera VS Code: minimalna edycja i natywny zapis po sprawdzeniu wersji oraz dirty buffer. Dla packa i MCP decyzje pozostają sesyjne; CLI/MCP nie zapisują źródeł. VER1 nie weryfikuje C4.
+
+Wyrenderowane kopie (SVG / PNG): [A SVG](../assets/diagrams/pl-A.svg) / [PNG](../assets/diagrams/pl-A.png) · [B SVG](../assets/diagrams/pl-B.svg) / [PNG](../assets/diagrams/pl-B.png) · [C SVG](../assets/diagrams/pl-C.svg) / [PNG](../assets/diagrams/pl-C.png) · [D SVG](../assets/diagrams/pl-D.svg) / [PNG](../assets/diagrams/pl-D.png) · [E SVG](../assets/diagrams/pl-E.svg) / [PNG](../assets/diagrams/pl-E.png) · [F SVG](../assets/diagrams/pl-F.svg) / [PNG](../assets/diagrams/pl-F.png)

@@ -1,3 +1,4 @@
+import type {PackSourceReference}from"../grounding/grounded-context.js";
 import { z } from "zod";
 import type { JsonSchemaObject } from "../llm/structured-chat-client.js";
 import { participantDeclarationKeywords, type ParticipantKind } from "../model/types.js";
@@ -25,7 +26,7 @@ export interface AllowedOperation {
   readonly operationId: string; readonly kind: "request" | "response" | "asynchronous";
   readonly fromId: string; readonly toId: string; readonly relationshipEvidenceId: string;
   readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: "synchronous" | "asynchronous";
-  readonly requestOperationId: string | null; readonly source: { readonly file: string; readonly line: number };
+  readonly requestOperationId: string | null; readonly source: PackSourceReference;
   readonly purpose: string;
 }
 export function createOperationCatalog(snapshot: ArchitectureSnapshot): readonly AllowedOperation[] {
@@ -54,7 +55,7 @@ export interface ResolvedSequenceFact {
   readonly requestFactId: string | null; readonly operationId: string | null; readonly flowEvidenceId: string | null;
   readonly evidenceId: string; readonly evidenceClass: "source-confirmed" | "user-stated";
   readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: "synchronous" | "asynchronous";
-  readonly fromId: string; readonly toId: string; readonly source: { readonly file: string; readonly line: number };
+  readonly fromId: string; readonly toId: string; readonly source: PackSourceReference;
 }
 export interface ResolvedSequencePlan {
   readonly version: 3; readonly snapshotDigest: string; readonly participantIds: readonly string[];

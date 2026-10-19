@@ -19,8 +19,8 @@ describe("RuleIndex", () => {
     expect(index.isForbidden("operator", "relay")).toBe(true);
     expect(index.isRequired("service", "queue")).toBe(true);
     expect(index.isForbidden("service", "queue")).toBe(false);
-    expect(index.forbidden().map((record) => record.location.line)).toEqual([3]);
-    expect(index.required().map((record) => record.location.line)).toEqual([5, 4]);
+    expect(index.forbidden().map((record) => record.location!.line)).toEqual([3]);
+    expect(index.required().map((record) => record.location!.line)).toEqual([5, 4]);
   });
 
   it("is directional", () => {

@@ -1,5 +1,6 @@
+import { validateRelativePath } from "../knowledge-pack/knowledge-pack-source.js";
 import { knowledgePackFileNames, type KnowledgePackFileName } from "../knowledge-pack/knowledge-pack-source.js";
-import type { KnowledgePack, SourceLocation } from "../knowledge-pack/knowledge-pack.schema.js";
+import type { KnowledgePack, SourceLocation, RecordProvenance } from "../knowledge-pack/knowledge-pack.schema.js";
 import { stableCompare } from "../util/ordering.js";
 import { createValidationIssue, isSafeDetailText, type ValidationIssue } from "../validation/validation-issue.js";
 import {
@@ -34,12 +35,10 @@ export interface AmbiguitySelectionResult {
 
 const maxDetailCandidates = 50;
 
-export function packSourceReference(location: SourceLocation): PackSourceReference {
-  if (!(knowledgePackFileNames as readonly string[]).includes(location.file)) {
-    throw new Error("A pack record must come from one of the five pack files.");
-  }
-
-  return Object.freeze({ file: location.file as KnowledgePackFileName, line: location.line });
+export function packSourceReference(location: SourceLocation|undefined,provenance?:readonly RecordProvenance[]): PackSourceReference {
+  if(!location){if(!provenance?.length)throw new Error("source-provenance-missing");return Object.freeze({provenance});}
+  if (!validateRelativePath(location.file).ok || !Number.isSafeInteger(location.line) || location.line < 1) throw new Error("invalid-source-location");
+  return Object.freeze({ file: location.file, line: location.line });
 }
 
 function candidateCatalog(pack: KnowledgePack): ReadonlyMap<string, AmbiguityCandidate> {
@@ -53,7 +52,7 @@ function candidateCatalog(pack: KnowledgePack): ReadonlyMap<string, AmbiguityCan
         participantType: "system",
         elementKind: system.kind,
         canonicalName: system.canonicalName,
-        source: packSourceReference(system.location)
+        source: packSourceReference(system.location,system.provenance)
       })
     );
   }
@@ -66,7 +65,7 @@ function candidateCatalog(pack: KnowledgePack): ReadonlyMap<string, AmbiguityCan
         participantType: "actor",
         elementKind: actor.kind,
         canonicalName: actor.canonicalName,
-        source: packSourceReference(actor.location)
+        source: packSourceReference(actor.location,actor.provenance)
       })
     );
   }

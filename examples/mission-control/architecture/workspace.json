@@ -1,0 +1,116 @@
+{
+  "id": 2,
+  "name": "Mission Control",
+  "description": "Synthetic standalone Archi Agent demonstration; MIT.",
+  "model": {
+    "people": [
+      {
+        "id": "operator",
+        "name": "Operator",
+        "description": "Operator using Mission Control",
+        "relationships": [
+          {
+            "id": "r1",
+            "sourceId": "operator",
+            "destinationId": "mission",
+            "description": "Operates missions",
+            "interactionStyle": "Synchronous"
+          },
+          {
+            "id": "r2",
+            "sourceId": "operator",
+            "destinationId": "planning",
+            "description": "Plans mission",
+            "interactionStyle": "Synchronous"
+          }
+        ]
+      }
+    ],
+    "softwareSystems": [
+      {
+        "id": "mission",
+        "name": "Mission Control",
+        "description": "Mission Control demonstration system",
+        "relationships": [],
+        "containers": [
+          {
+            "id": "planning",
+            "name": "Mission Planning",
+            "description": "Plans orbital missions",
+            "technology": "Synthetic service",
+            "relationships": [
+              {
+                "id": "r3",
+                "sourceId": "planning",
+                "destinationId": "commands",
+                "description": "Submits approved command",
+                "interactionStyle": "Synchronous"
+              }
+            ]
+          },
+          {
+            "id": "telemetry",
+            "name": "Telemetry",
+            "description": "Processes spacecraft telemetry",
+            "technology": "Synthetic service",
+            "relationships": [
+              {
+                "id": "r4",
+                "sourceId": "telemetry",
+                "destinationId": "archive",
+                "description": "Persists telemetry",
+                "interactionStyle": "Synchronous"
+              },
+              {
+                "id": "r5",
+                "sourceId": "telemetry",
+                "destinationId": "alarms",
+                "description": "Publishes limit exceeded",
+                "interactionStyle": "Asynchronous"
+              }
+            ]
+          },
+          {
+            "id": "commands",
+            "name": "Command Service",
+            "description": "Validates spacecraft commands",
+            "technology": "Synthetic service",
+            "relationships": []
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "description": "Stores telemetry history",
+            "technology": "Synthetic service",
+            "relationships": []
+          },
+          {
+            "id": "alarms",
+            "name": "Alarms",
+            "description": "Raises operator alarms",
+            "technology": "Synthetic service",
+            "relationships": [
+              {
+                "id": "r6",
+                "sourceId": "alarms",
+                "destinationId": "operator",
+                "description": "Notifies operator",
+                "interactionStyle": "Asynchronous"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "views": {
+    "systemContextViews": [],
+    "containerViews": [],
+    "configuration": {
+      "styles": {
+        "elements": [],
+        "relationships": []
+      }
+    }
+  }
+}

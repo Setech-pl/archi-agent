@@ -1,0 +1,7 @@
+# Adapter / Adapter źródła
+
+The runnable local Structurizr adapter is bundled in the CLI release asset. `adapter.ts` is an exact copy of `src/knowledge-server/adapter.ts` for inspection, not a second runtime. It uses the production loader, readRoots, original IDs and SRC1 overlay. `tools/knowledge-server.mjs` launches that packaged server without npm.
+
+To add your own adapter (developer exercise, optional): use the release tag source tree, implement `KnowledgeAdapter.load(sourceId, signal)` in a new module beside `src/knowledge-server/adapter.ts`, compose it explicitly in `main.ts`, reuse `createKnowledgeResponse` / `validateKnowledgeResponse`, and build with `npm ci` then `npm run cli:package`. Keep server.ts transport unchanged. Preserve stable original IDs, version, partial scope, omissions and actual provenance. A remote record may have a real URI without a local line; do not invent Structurizr files or locations. Run the contract/parity tests in `test/runtime/mcp-knowledge.test.ts`. This development path needs Node >=22.12 and the source tree; normal VSIX use does not.
+
+Uruchamialny adapter lokalnego Structurizr jest w paczce CLI. Plik `adapter.ts` to identyczna kopia źródła do przeglądu. Własny adapter: w źródłach tagu wydania zaimplementuj `KnowledgeAdapter.load`, skomponuj go jawnie w main.ts, zachowaj wspólny transport i walidację odpowiedzi. Wersja, zakres, oryginalne ID i rzeczywiste provenance należą do źródła. Budowanie własnego adaptera jest opcjonalnym ćwiczeniem programistycznym, odrębnym od użycia gotowego VSIX.

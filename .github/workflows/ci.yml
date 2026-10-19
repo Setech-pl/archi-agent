@@ -62,8 +62,45 @@ jobs:
       # Packaging tests mutate dist/ and the OCR stage; keep both suites and steps sequential.
       - run: npm test -- --no-file-parallelism
       - run: npm run extension:test -- --no-file-parallelism
-      - run: npm run extension:package
-      - run: npm run extension:verify
+      - name: Package and verify Core, Full and CLI/MCP
+        run: |
+          npm run extension:package -- --profile core --out build/ci/core
+          npm run extension:verify -- build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix
+          npm run extension:package -- --profile full --out build/ci/full
+          npm run extension:verify -- build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix
+          npm run cli:package -- build/ci/cli
+          npm run cli:verify -- build/ci/cli/archi-agent-cli-0.3.0-alpha.7.tgz
+      - name: Check bilingual offline documentation
+        run: |
+          mkdir -p build/ci/docs-core build/ci/docs-full
+          # Self-baselines check documentation, not historical C5 byte parity.
+          node scripts/docs/check-docs.mjs build/ci/docs-core build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix --docs build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix
+          node scripts/docs/check-docs.mjs build/ci/docs-full build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix --docs build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix
+      - name: Build and verify standalone DEMO1 archives
+        run: |
+          python3 scripts/check-demo-docs.py
+          python3 scripts/build-demo-archives.py --out build/ci/demos
+          node scripts/demo1-verify.mjs build/ci/core/archi-agent-core-0.3.0-alpha.7.vsix build/ci/full/archi-agent-full-0.3.0-alpha.7.vsix build/ci/cli/archi-agent-cli-0.3.0-alpha.7.tgz build/ci/demos build/ci/demo-verification
+      - name: Record package checksums and source revision
+        run: |
+          node --input-type=module -e 'import{readFileSync,writeFileSync}from"node:fs";import{createHash}from"node:crypto";import{execFileSync}from"node:child_process";const files=["core/archi-agent-core-0.3.0-alpha.7.vsix","full/archi-agent-full-0.3.0-alpha.7.vsix","cli/archi-agent-cli-0.3.0-alpha.7.tgz"];const artifacts=files.map(file=>{const b=readFileSync("build/ci/"+file);return{file,bytes:b.length,sha256:createHash("sha256").update(b).digest("hex")}});writeFileSync("build/ci/packages.json",JSON.stringify({testedSha:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),platform:process.platform,arch:process.arch,artifacts},null,2)+"\n");writeFileSync("build/ci/SHA256SUMS",artifacts.map(a=>a.sha256+"  "+a.file).join("\n")+"\n")'
+      - name: Upload verified PR candidate packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: archi-agent-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            build/ci/core/*.vsix
+            build/ci/full/*.vsix
+            build/ci/cli/*.tgz
+            build/ci/packages.json
+            build/ci/SHA256SUMS
+            build/ci/docs-*/documentation-check.json
+            build/ci/demos/*.zip
+            build/ci/demos/demos.json
+            build/ci/demo-verification/report.json
       - name: Verify lockfiles and tracked files remain unchanged
         if: always()
         run: |

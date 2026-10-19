@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 const base = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const { definePDFJSModule, getDocumentProxy } = await import('unpdf');
-const { createWorker } = require('tesseract.js');
+
 let canvasLib, officialPdf, imageOps, backendPromise, pdfModulePromise;
 let activeOcr = false;
 
@@ -159,6 +159,7 @@ export async function convert(file, { dpi = 200, fullPage = false, maxPages = 30
             catch { throw new Error('ocr-model-unavailable'); }
             if (createHash('sha256').update(model).digest('hex') !== expectedHash) throw new Error('ocr-model-corrupt');
           }
+          const { createWorker } = require('tesseract.js');
           ocr = await createWorker(['pol', 'eng'], 1, {
             workerPath: workerAsset, corePath: coreAssets, langPath: languageAssets,
             gzip: false, cacheMethod: 'none', logger: () => {}, errorHandler: () => {}

@@ -10,3 +10,5 @@
 !dist/archi-agent-converter-worker.js
 !THIRD_PARTY_NOTICES.md
 !help-assets/*.png
+
+!distribution-profile.json

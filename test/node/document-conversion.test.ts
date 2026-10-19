@@ -46,7 +46,7 @@ describe("local document conversion", () => {
       expect(result.markdown).not.toMatch(/<[^>]+>/);
     }
     expect(sha(readFileSync(fixture("two-pages.pdf")))).toBe(before);
-    expect(await convertLocalDocument(fixture("no-text.pdf"))).toEqual({ status: "failed", code: "no-text-layer" });
+    expect(await convertLocalDocument(fixture("no-text.pdf"))).toMatchObject({ status: "success", coverage:{pages:[{page:1,source:"requires-ocr"}],warnings:["layout-not-preserved","no-extractable-text"]} });
   });
 
   it("converts DOCX headings, list, table and Unicode", async () => {
@@ -100,7 +100,7 @@ describe("local document conversion", () => {
     const oversized = path.join(temporary, "large.pdf");
     writeFileSync(oversized, Buffer.alloc(conversionLimits.inputBytes + 1));
     await expect(readDocument(oversized)).rejects.toMatchObject({ code: "input-too-large" });
-    await expect(convertPdf(pdf(conversionLimits.pages))).rejects.toMatchObject({ code: "no-text-layer" });
+    expect(await convertPdf(pdf(conversionLimits.pages))).toMatchObject({status:"success",counts:{pages:conversionLimits.pages}});
     await expect(convertPdf(pdf(conversionLimits.pages + 1))).rejects.toMatchObject({ code: "too-many-pages" });
   });
 });

@@ -1,3 +1,4 @@
+import type { PackSourceReference } from "../grounding/grounded-context.js";
 import { buildGroundedContext, type FlowDocument, type GroundingKnowledgePack, type GroundingRequest } from "../grounding/grounded-context-builder.js";
 import type { GroundedContext, GroundingOutcome } from "../grounding/grounded-context.js";
 import { allocateAliases } from "../render/alias-allocator.js";
@@ -12,11 +13,11 @@ export interface ArchitectureSnapshot {
   readonly knowledge: SelectedKnowledgeContext;
   readonly flowFile: string;
   readonly metadata: GroundedContext["metadata"];
-  readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: string; readonly elementKind: string; readonly names: readonly string[]; readonly description: string; readonly source: { readonly file: string; readonly line: number } }[];
-  readonly relationships: readonly { readonly evidenceId: string; readonly evidenceClass: "source-confirmed"; readonly fromId: string; readonly toId: string; readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: string; readonly purpose: string; readonly source: { readonly file: string; readonly line: number } }[];
-  readonly rules: readonly { readonly evidenceId: string; readonly rule: string; readonly fromId: string; readonly toId: string; readonly reason: string; readonly source: { readonly file: string; readonly line: number } }[];
+  readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: string; readonly elementKind: string; readonly names: readonly string[]; readonly description: string; readonly source: PackSourceReference }[];
+  readonly relationships: readonly { readonly evidenceId: string; readonly evidenceClass: "source-confirmed"; readonly fromId: string; readonly toId: string; readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: string; readonly purpose: string; readonly source: PackSourceReference }[];
+  readonly rules: readonly { readonly evidenceId: string; readonly rule: string; readonly fromId: string; readonly toId: string; readonly reason: string; readonly source: PackSourceReference }[];
   readonly flowEvidence: readonly { readonly flowEvidenceId: string; readonly evidenceClass: "user-stated"; readonly line: number; readonly text: string }[];
-  readonly sources: readonly { readonly id: string; readonly file: string; readonly line: number; readonly evidenceClass: "source-confirmed" | "user-stated" }[];
+  readonly sources: readonly { readonly id: string; readonly file?: string; readonly line?: number; readonly provenance?: PackSourceReference["provenance"]; readonly evidenceClass: "source-confirmed" | "user-stated" }[];
 }
 
 /** The D1.1 provider wraps already validated Knowledge Pack grounding; no new source I/O. */
@@ -44,10 +45,10 @@ export function buildArchitectureSnapshot(context: GroundedContext, pack: Ground
     interfaceType: entry.interfaceType, interfaceName: entry.interfaceName, mode: entry.mode, purpose: entry.purpose, source: entry.source }));
   const rules = context.rules.map((entry, index) => ({ evidenceId: `rule:${index + 1}`, rule: entry.rule, fromId: entry.fromId, toId: entry.toId, reason: entry.reason, source: entry.source }));
   const flowEvidence = flow.body.split("\n").flatMap((text, index) => text.trim() === "" ? [] : [{ flowEvidenceId: `flow:${flow.bodyStartLine + index}`, evidenceClass: "user-stated" as const, line: flow.bodyStartLine + index, text: text.trim() }]);
-  const sources = [...elements.map((entry) => ({ id: entry.id, file: entry.source.file, line: entry.source.line,
+  const sources = [...elements.map((entry) => ({ id: entry.id, ...entry.source,
       evidenceClass: entry.kind === "new" ? "user-stated" as const : "source-confirmed" as const })),
-    ...relationships.map((entry) => ({ id: entry.evidenceId, file: entry.source.file, line: entry.source.line, evidenceClass: "source-confirmed" as const })),
-    ...rules.map((entry) => ({ id: entry.evidenceId, file: entry.source.file, line: entry.source.line, evidenceClass: "source-confirmed" as const })),
+    ...relationships.map((entry) => ({ id: entry.evidenceId, ...entry.source, evidenceClass: "source-confirmed" as const })),
+    ...rules.map((entry) => ({ id: entry.evidenceId, ...entry.source, evidenceClass: "source-confirmed" as const })),
     ...flowEvidence.map((entry) => ({ id: entry.flowEvidenceId, file: flow.file ?? "flow", line: entry.line, evidenceClass: "user-stated" as const }))];
   const knowledge = selectKnowledgeContext(pack.knowledge ?? knowledgeSnapshotFromPack(pack.pack), known.map((entry) => entry.id));
   const payload = { knowledge, flowFile: flow.file ?? "flow", metadata: { ...context.metadata },

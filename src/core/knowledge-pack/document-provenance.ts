@@ -11,7 +11,7 @@ const sourceSchema = z.strictObject({
   type: z.enum(["md", "txt", "pdf", "docx", "xlsx"]), scope: z.enum(["explicit-file", "editor-buffer"]), editorUri: z.string().min(1).max(8192).optional(), knowledgeCoverage: z.literal("partial"),
   conversion: z.strictObject({ engine: z.enum(["utf8", "local-converter"]), ocrMode: z.enum(["none", "auto", "all"]),
     counts: z.record(z.string().max(80), z.number().nonnegative()),
-    pages: z.array(z.strictObject({ page: z.number().int().positive(), source: z.enum(["text", "ocr", "blank"]) })).max(300),
+    pages: z.array(z.strictObject({ page: z.number().int().positive(), source: z.enum(["text", "ocr", "blank", "requires-ocr"]) })).max(300),
     warnings: z.array(z.string().max(80)).max(32), locations: z.literal("normalized-text-offsets") })
 }).superRefine((source, context) => {
   if (source.scope === "editor-buffer" ? !source.editorUri || !/^(file|untitled):/u.test(source.editorUri) || !["md", "txt"].includes(source.type) : source.editorUri !== undefined)

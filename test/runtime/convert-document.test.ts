@@ -1,3 +1,4 @@
+import { syntheticDistribution } from "../support/distribution-profile.js";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -5,14 +6,15 @@ import { afterAll, describe, expect, it } from "vitest";
 import { convertDocument } from "../../src/runtime/convert-document.js";
 
 const directory = mkdtempSync(path.join(tmpdir(), "archi-ux1-worker-test-"));
+const distributionDirectory=syntheticDistribution(path.join(directory,"distribution"));
 const slowWorker = path.join(directory, "slow.cjs");
 writeFileSync(slowWorker, "while (true) {}\n");
 const ocrParent = path.join(directory, "ocr-parent.mjs");
 writeFileSync(ocrParent, `export async function convertPdfIsolated(_file, { fullPage, signal, onStage }) {
   onStage?.('recognize');
   if (signal?.aborted) throw new Error('cancelled');
-  if (fullPage) return { markdown: 'all', pages: [{ page: 1 }] };
-  return { markdown: 'auto', pages: [{ page: 1 }] };
+  if (fullPage) return { markdown: 'all', pages: [{ page: 1, source: "ocr" }] };
+  return { markdown: 'auto', pages: [{ page: 1, source: "ocr" }] };
 }\n`);
 const failedOcrParent = path.join(directory, "failed-ocr-parent.mjs");
 writeFileSync(failedOcrParent, "export async function convertPdfIsolated() { throw new Error('embedded-image-limit'); }\n");
@@ -44,20 +46,20 @@ describe("one-request converter worker", () => {
 
   it("passes OCR mode and progress through the runtime and returns one complete result", async () => {
     const stages: string[] = [];
-    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: ocrParent,
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", distributionDirectory, ocrParentFile: ocrParent,
       onProgress: (stage) => stages.push(stage) })).toMatchObject({ status: "success", markdown: "auto", counts: { pages: 1 } });
-    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "all", ocrParentFile: ocrParent })).toMatchObject({ status: "success", markdown: "all" });
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "all", distributionDirectory, ocrParentFile: ocrParent })).toMatchObject({ status: "success", markdown: "all" });
     expect(stages).toEqual(["recognize"]);
   });
 
   it("maps OCR failure safely and allows the next conversion", async () => {
-    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: failedOcrParent }))
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", distributionDirectory, ocrParentFile: failedOcrParent }))
       .toEqual({ status: "failed", code: "embedded-image-limit" });
     const controller = new AbortController();
     controller.abort();
-    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: ocrParent,
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", distributionDirectory, ocrParentFile: ocrParent,
       signal: controller.signal })).toEqual({ status: "cancelled" });
-    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", ocrParentFile: ocrParent }))
+    expect(await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", distributionDirectory, ocrParentFile: ocrParent }))
       .toMatchObject({ status: "success", markdown: "auto" });
   });
 });

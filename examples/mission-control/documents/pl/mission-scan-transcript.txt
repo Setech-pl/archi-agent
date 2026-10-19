@@ -1,0 +1,4 @@
+Centrum sterowania misją
+Operator nadzoruje misje.
+Planowanie misji zapisuje plany w Archiwum.
+Telemetria wysyła zdarzenia do Alarmów.

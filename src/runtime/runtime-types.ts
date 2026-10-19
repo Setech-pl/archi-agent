@@ -46,12 +46,12 @@ export type FlowSource =
       readonly language?: FlowLanguage;
     };
 
-/** Where the architecture knowledge comes from. Only a local Markdown Knowledge Pack directory exists today. */
+/** Where the architecture knowledge comes from. A local Markdown Knowledge Pack or Structurizr JSON with its overlay. */
 export type KnowledgePackSourceConfig = {
   readonly kind: "local-directory";
   /** Absolute path of the directory that holds the five pack files. */
   readonly path: string;
-};
+} | { readonly kind: "structurizr-json"; readonly sourceId: string; readonly modelPath: string; readonly overlayPath: string } | { readonly kind:"mcp";readonly sourceId:string;readonly server:import("../node/mcp-knowledge-source.js").McpKnowledgeServerConfig };
 
 /** Endpoint of a local OpenAI-compatible server such as LM Studio; loopback only. */
 export interface LocalModelEndpointConfig {
@@ -111,6 +111,9 @@ export interface GenerateSequenceDiagramRequest {
 }
 
 export interface GenerateDiagramRequest extends GenerateSequenceDiagramRequest {
+  /** Binds explicit host decisions to the snapshot actually loaded by this operation. */
+  readonly expectedKnowledgeDigest?: string;
+  readonly c4Selection?: {readonly systemId:string;readonly expectedKnowledgeDigest:string};
   readonly diagramType: DiagramType;
   readonly diagnosticSink?: DiagnosticSink;
 }
@@ -142,8 +145,9 @@ export interface AmbiguityChoiceCandidate {
   readonly participantType: "actor" | "system";
   readonly elementKind: string;
   readonly canonicalName: string;
-  readonly sourceFile: string;
-  readonly sourceLine: number;
+  readonly sourceFile?: string;
+  readonly sourceProvenance?: readonly import("../core/knowledge-pack/knowledge-pack.schema.js").RecordProvenance[];
+  readonly sourceLine?: number;
 }
 
 /** An ambiguous mention that still needs an explicit selection, with every candidate. */
@@ -209,11 +213,10 @@ export interface ListLocalModelsOptions {
 }
 
 /**
- * The application runtime a host talks to. A later multi-diagram pipeline adds a generic
- * generateDiagram(profile, ...) next to the sequence entry point; hosts written against this
- * interface do not change.
+ * The host-neutral application runtime, shared by the editor, CLI and MCP.
  */
 export interface ArchiAgentRuntime {
+  startFlowVerification?(request: import("./verify-flow.js").VerifyFlowRequest): Promise<import("./verify-flow.js").VerifyFlowStart>;
   /** K2 production entry; optional only for existing host test doubles. */
   extractDocumentCandidates?(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome>;
   /** D1 entry point. Optional on legacy host doubles compiled against the sequence-only contract. */

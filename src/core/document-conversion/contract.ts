@@ -1,6 +1,9 @@
 export type ConvertFormat = "pdf" | "docx" | "xlsx";
 
 export type ConvertErrorCode =
+  | "ocr-unavailable"
+  | "ocr-installation-invalid"
+  | "installation-invalid"
   | "unsupported-format"
   | "non-local-source"
   | "not-a-file"
@@ -32,7 +35,7 @@ export type ConvertOutcome =
       readonly format: ConvertFormat;
       readonly markdown: string;
       readonly coverage?: {
-        readonly pages?: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" }[];
+        readonly pages?: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" | "requires-ocr" }[];
         readonly warnings: readonly string[];
       };
       readonly counts: {
@@ -43,7 +46,7 @@ export type ConvertOutcome =
       };
     }
   | { readonly status: "cancelled" }
-  | { readonly status: "failed"; readonly code: ConvertErrorCode };
+  | { readonly status: "failed"; readonly code: ConvertErrorCode; readonly reason?: "not-installed"; readonly pagesRequiringOcr?: readonly number[]; readonly coverage?: { readonly pages: readonly { readonly page: number; readonly source: "text" | "requires-ocr"; readonly reason?: "no-extractable-text" }[]; readonly warnings: readonly string[] } };
 
 export const conversionLimits = Object.freeze({
   inputBytes: 50 * 1024 * 1024,
