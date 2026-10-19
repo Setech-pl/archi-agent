@@ -6,7 +6,7 @@ Turn a flow description and your architecture knowledge into a Sequence or Compo
 
 Archi Agent helps architects and analysts document service interactions, explain system dependencies and review proposed knowledge from documents inside VS Code. A shared catalog of names and aliases reduces repeated naming work; the report helps you inspect the evidence behind a diagram before sharing it.
 
-![Provider and model configuration in the current Archi Agent UI](docs/assets/screenshots/02-provider.png)
+
 
 ## Download and run
 
@@ -40,15 +40,15 @@ The [user guide](docs/en/user-guide.md#complete-synthetic-five-file-pack) includ
 
 ## See the workflow
 
-![Review knowledge proposals with their evidence](docs/assets/screenshots/05-review.png)
+
 
 Review proposed knowledge before accepting it.
 
-![Sequence diagram and grounding report](docs/assets/screenshots/08-sequence.png)
+
 
 Inspect the PlantUML and linked report side by side.
 
-![Confirm the original diagram and report save](docs/assets/screenshots/10-save.png)
+
 
 Confirm the original result and destination before saving. [Full gallery and capture provenance PL/EN](docs/assets/screenshots/README.md).
 
@@ -66,6 +66,6 @@ The next direction is verification against existing architecture models, followe
 
 ## Technical information and license
 
-[Architecture](docs/architecture.md) · [Development](docs/en/development.md) · [Knowledge Pack format](docs/knowledge-pack-format.md) · [CI evidence](docs/ci-clean-clone-icu.md) · [Technical state](docs/project-state.md)
+[Architecture](docs/architecture.md) · [Development](docs/en/development.md) · [Knowledge Pack format](docs/knowledge-pack-format.md) · [CI evidence](https://github.com/Setech-pl/archi-agent/blob/0c29d055da31acabaf197298fd245d7c914cccb0/docs/ci-clean-clone-icu.md) · [Technical state](docs/project-state.md)
 
 Archi Agent code is licensed under [MIT](LICENSE). Bundled components have their own [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR notices](experiments/ux2-ocr/TRIAL_NOTICES.md).

@@ -189,4 +189,30 @@ Konwersja przyjmuje jeden plik do 50 MiB i wynik do 8 MiB Markdown; deadline bez
 
 `npm run extension:build` tworzy przez esbuild trzy sąsiednie bundle CommonJS: rozszerzenie, runtime niezależny od hosta i worker konwersji. Rozszerzenie externalizuje `vscode` i sąsiedni runtime; runtime — tylko moduły wbudowane Node. `npm run extension:package` przebudowuje bundle, używa jawnej allowlisty VSIX i dodaje przypięte zasoby OCR offline z manifestem licencji/hashów. Obie instrukcje trafiają jako `readme.md` i `README.pl.md`. Użytkownik korzysta z Node wbudowanego w VS Code; nie potrzebuje ścieżek repo, npm ani osobnej instalacji Node.
 
-`npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](../project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
+`npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](https://github.com/Setech-pl/archi-agent/blob/0c29d055da31acabaf197298fd245d7c914cccb0/docs/project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
+
+## Spójność konfiguracji dostawcy
+
+Credential jest rozwiązywany dla ostatecznie wybranego profilu/modelu tuż przed operacją.
+Generowanie i review używają tej samej niezmiennej konfiguracji mimo późniejszych zmian ustawień.
+Host obserwuje zdarzenia konfiguracji we właściwym scope przed pierwszym await; monotoniczna rewizja
+unieważnia stary wybór także po zewnętrznym A→B→A. Tylko jeden writer rozszerzenia publikuje naraz.
+Każdy zapis sprawdza oczekiwany scope przed i po await; konsumuje wyłącznie własną oczekiwaną
+notyfikację. Inne zdarzenie, zmiana zaufania/workspace lub nowsza publikacja anulują stary wybór.
+Obserwacje są zwalniane w finally, również po błędzie i anulowaniu.
+
+Kolejność bindingu pozostaje fail-closed, jawny profil jest aktywowany na końcu, a wynik odczytywany
+ponownie. Częściowy zapis może pozostawić model bez bindingu. Wiele aktualizacji VS Code nie jest
+atomowe; nie ma rollbacku nad nowszymi wartościami, crash recovery ani CAS wobec obcych writerów.
+Sekrety pozostają w SecretStorage, poza webview, diagnostyką i raportami.
+
+## Niezmienniki snapshotu wiedzy
+
+Contribution deklaruje tożsamość źródła i zakres partial/complete dla każdej tabeli; pominięcie
+oznacza brak dostarczonych danych. Complete dotyczy deklarowanego zakresu, nie zamkniętego świata
+architektury. Brak file/line pozostaje jawną luką. Równoważne twierdzenia zachowują całe provenance.
+Sprzeczne fakty/reguły, kolizje actor/system ID i forbidden relationships są jawnymi konfliktami
+z referencjami wszystkich stron; nie ma pierwszeństwa źródła ani domyślnego zwycięzcy.
+Wieloznaczne aliasy nadal wymagają decyzji. Digest SHA-256 obejmuje fakty semantyczne, zakresy,
+provenance, luki, niejednoznaczności i konflikty; ID zawiera pełny digest. Zmiana kolejności źródeł
+lub rekordów nie zmienia zserializowanych bajtów. Szczegóły rekordów określa kontrakt packa.

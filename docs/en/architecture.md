@@ -2,7 +2,7 @@
 
 **English** · [Polski](../pl/architecture.md) · [Home](../../README.md)
 
-This is the implemented architecture at the current UX4-FU2 branch build, not the published UX2 package. [Detailed stable architecture](../architecture.md) describes current boundaries; a separate history preserves earlier explanations; [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
+This is the implemented architecture at the current UX4-FU2 branch build, not the published UX2 package. [roadmap](../product-roadmap.md) owns plans. Current acquisition uses local Markdown packs and explicitly selected documents to build a new pack; no EA/MCP acquisition adapter exists. Sequence and Component use separate plans/validators/renderers. Context/Container/ArchiMate remain planned. The compatibility sequence renderer is a separate older path.
 
 Core is deterministic and has no Node/VS Code I/O; orchestration calls injected ports and Node adapters. Runtime is host-neutral; the editor imports only `src/runtime/index.ts`. Providers are interchangeable adapters for StructuredChatClient. Documents/model responses are untrusted data. Only bounded relevant diagram snapshots or bounded selected extraction text reach a model. Settings and SecretStorage stay at the VS Code boundary.
 
@@ -189,4 +189,36 @@ Standalone conversion accepts one file up to 50 MiB and 8 MiB Markdown; non-OCR 
 
 `npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then appends pinned offline OCR resources with their license/hash manifest. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
 
-`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](../project-state-history.md); current checks and the auditor handoff are in [project state](../project-state.md).
+`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](https://github.com/Setech-pl/archi-agent/blob/0c29d055da31acabaf197298fd245d7c914cccb0/docs/project-state-history.md); current checks and the auditor handoff are in [project state](../project-state.md).
+
+## Provider configuration consistency
+
+Resolve credentials for the final selected provider/model immediately before starting the operation.
+Generation and review share that immutable operation configuration despite later setting changes.
+The host observes relevant scoped configuration events before the first await; a monotonic revision
+invalidates stale interactions even after external A→B→A changes. Only one extension writer publishes
+at a time. Each setting write checks expected scoped state before and after await; only its own
+expected notification is consumed. Unexpected events, trust/workspace changes or a newer publication
+cancel stale selection. Dispose observations in finally, including failure and cancellation.
+
+Keep fail-closed binding order, activate an explicit profile last, and re-read the effective result.
+Partial publication can leave an unbound model. Multiple VS Code updates are non-atomic: there is
+no rollback over newer values, crash recovery or CAS against arbitrary in-flight external writers.
+Secrets stay in SecretStorage and never enter webviews, diagnostics or reports.
+
+## Knowledge snapshot invariants
+
+`src/core/knowledge-pack/knowledge-snapshot.ts` assembles a provider-neutral, immutable
+knowledge snapshot using the existing pack record semantics and validators. Contributions
+declare a logical source identity, kind and per-table scope (`partial` or `complete`;
+omission means not provided). Complete describes the source's declared scope, never a
+closed-world claim about architecture. A contribution may contain only systems and no
+file positions. Source identity is retained for each claim; file/line provenance appears
+only when supplied. Missing positions, categories and references remain explicit gaps.
+
+Equivalent claims retain all their provenance. Incompatible entity/relationship/rule
+claims, actor/system ID collisions, conflicting rules and forbidden relationships remain
+explicit conflicts with references to every claim. There is no source precedence or
+implicit winner. Multi-target aliases remain ambiguous. The sorted snapshot has a SHA-256
+digest over semantic facts, source scopes, provenance, gaps, ambiguities and conflicts;
+its ID contains that full digest. Source and record order do not change serialized bytes.

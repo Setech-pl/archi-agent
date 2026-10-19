@@ -66,135 +66,13 @@ flow and the bare directory name of the pack.
 
 ## Commands
 
-`Archi Agent: Open` has Create Diagram, Save Diagram and Report, Configuration,
-Knowledge Management (same screen shortcut), Convert to Markdown and Help.
-`Archi: Create Diagram` asks for Sequence / Component before generation; Cancel does nothing.
-`Archi: Configuration` reveals one editor panel with Knowledge Management and LLM Provider.
-Configure Knowledge Pack and provider/model shortcuts reveal the corresponding tab.
-The old Sequence ID is hidden and delegates to the same diagram selection.
-See [UX4](configuration-workbench.md) for fields, Apply/Discard, scopes, secrets and protocol.
-
-Build Knowledge Pack from Documents uses native document selection and the linked review
-webview backed by the existing KnowledgePackReviewSession. Its five previews and Save/Save and
-use retain [K3 contracts](knowledge-pack-review.md). There is no separate configuration tree.
-
-`Archi Agent: Convert to Markdown` (`archiAgent.convertToMarkdown`) is also directly callable.
-It selects one local PDF, DOCX or XLSX file and opens a single unsaved Markdown editor after full
-success. It needs no configured provider, model, API key or Knowledge Pack, makes no LLM or network
-request, and never edits or automatically saves the source. Cancellation and errors open no result.
-
-
-`Archi Agent: Select Provider Profile` lists LM Studio, Ollama, Anthropic, OpenAI and OpenRouter
-without contacting any provider or reading `SecretStorage`. It shows the current profile but no
-saved/not-saved key status. Changing profile clears `selectedModel`, then clears its `selectedModelProfile` binding,
-then stores the new profile; selecting the same explicit profile preserves both values. A failure
-stops that sequence, and the new profile is never activated with an old model. Cancellation writes
-nothing.
-
-`Archi Agent: Set or Update API Key` uses a password input and writes only to provider-specific VS
-Code `SecretStorage`. `Archi Agent: Delete Saved API Key` requires confirmation. Neither command
-contacts a provider; local profiles never request or read a key. Values are accepted only when they
-contain 1–1024 characters, have no edge whitespace and contain no control character.
-
-`Archi Agent: Select Model` performs exactly one explicit bounded model-list GET, preserves the
-runtime's deterministic identifier order and stores the chosen model with a binding to the current
-profile. If no profile was explicitly stored, the command lists legacy LM Studio models, stores the
-model and binding, and stores the profile last so only a complete choice activates profile mode.
-For a cloud profile, a missing key blocks the GET before network I/O. The key is read only after
-the profile has been resolved, directly before the explicit listing call. The returned model list
-is required to construct the picker, so dismissing an already displayed cloud model picker occurs
-after one `SecretStorage.get` and one model-list GET. That cancellation writes no model or binding
-and does not start generation.
-
-`Archi Agent: Check Provider Configuration` checks the selected profile without changing any
-setting or producing a diagram. Local settings or a missing cloud key block the check before
-network I/O. Otherwise it makes at most one bounded model-list request through the existing
-transport, with no retry or pagination. It does not send a generation or review request. The
-notification and Archi Agent output show a safe `ProviderDiagnostic` even when
-`archiAgent.diagnostics.verbose` is false. The result separates execution (`not-attempted`,
-`attempted`, `cancelled`) from findings (`positive`, `negative`, `unchecked`, `indeterminate`,
-`not-applicable`) for configuration, credentials, connection, listing, selected model, generation,
-review, billing and quota. A saved key by itself does not prove validity. A successful list leaves
-credential validation unchecked because the response does not prove the server verified the key.
-It proves only that listing worked; it does not establish billing, quota or generation readiness. A selected
-model missing from the returned list remains indeterminate because provider lists may be filtered
-or incomplete. Cancellation stays cancellation. Diagnostics contain closed codes and fixed text,
-never keys, model IDs, response bodies, prompts or local paths. Existing Select Model and Generate
-Diagram request counts and pipeline decisions are unchanged.
-
-`Archi: Create Diagram` (`archiAgent.generateDiagram`) first asks for a diagram type.
-The picker offers Sequence and Component. Sequence runs the D1.2 Wire Plan v3 path;
-Component runs the D2 component plan and renderer. Each uses one strict plan request,
-local validation and deterministic PlantUML rendering, then one independent semantic
-review request. Verified success opens PlantUML and report v2. If review rejects or
-fails after all local checks, one modal offers the unverified candidate. **Show unverified
-candidate** opens one untitled PlantUML document with a fixed warning header and no report;
-**Cancel** or dismissal opens nothing. User cancellation during review never offers a candidate.
-No retry, repair, fallback or third request occurs. The verified manual smoke on 2026-09-23 made
-S1 PASS; earlier failed attempts remain historical.
-The three
-reserved types remain unsupported through direct runtime calls before any credential read or
-provider I/O. `Archi Agent: Generate
-Sequence Diagram` (`archiAgent.generateSequenceDiagram`) remains the compatible command and
-retains its existing output and report behavior.
-
-1. Settings are read and checked. Problems name the setting and offer **Open Settings**.
-2. The flow source is chosen: the active editor document, a flow file from the open dialog, or a
-   flow name and a one-line description typed in (the runtime composes the front matter with the
-   configured default author and a diagram name derived from the flow name).
-3. When no model is configured, the models reported by the selected profile are listed only after
-   this explicit generate command; the choice is stored in machine-scoped user settings.
-4. Dismissing the flow-source picker happens before any cloud secret read or provider I/O. When no
-   model is configured, continuing past the flow choice reads the cloud key and performs one
-   model-list GET before displaying the model picker; dismissing that picker writes no settings and
-   performs no generation POST. With an already selected model there is no listing GET, and the
-   cloud key is read directly before generation.
-5. Generation runs under a cancellable progress notification.
-6. If grounding is blocked by ambiguity, one quick pick per ambiguous mention shows every candidate
-   (canonical name, identifier, kind, pack source line). Nothing is chosen automatically; dismissing
-   the pick cancels the command. If the flow contains unconfirmed `[NEW: Name]` markers, a
-   multi-select quick pick asks which to confirm; a marker left unselected keeps the flow blocked.
-   Resolution is bounded to three rounds.
-7. On verified success the PlantUML opens in an untitled editor (language `plantuml` when an extension
-   registered it, otherwise plain text) and the grounding report opens as JSON beside it. A
-   notification shows the summary counts; the output channel **Archi Agent** lists the digest, the
-   generator and every warning.
-8. On unverified review, a modal offers one marked PlantUML candidate. Cancel opens no document.
-   No grounding report is created on this path.
-9. On earlier failure a notification explains the stage; **Show Details** opens the output channel with the
-   issue lines.
-
-Nothing is written to disk. Save the editors where you want the artifacts; versioned writing through
-the existing artifact writer is a later checkpoint.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Settings
 
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| `archiAgent.knowledgePackPath` | (empty) | Absolute path of the Knowledge Pack directory holding the five pack files. An explicit value takes precedence. The onboarding flow saves a project pack in the selected workspace folder's resource scope, or in user scope without a project. Relative paths are rejected. |
-| `archiAgent.localModel.profile` | `local-lm-studio` | Explicit local or cloud profile. Scope `machine`: not synchronized and not overridable by workspace settings. The manifest default is not an explicit migration. |
-| `archiAgent.localModel.selectedModel` | (empty) | Model for the explicit profile. Scope `machine`; written through `ConfigurationTarget.Global`. Cloud IDs may contain a namespace slash. |
-| `archiAgent.localModel.selectedModelProfile` | (empty) | Extension-managed binding of `selectedModel` to its profile. Scope `machine`; written through `ConfigurationTarget.Global`. |
-| `archiAgent.localModel.baseUrl` | `http://127.0.0.1:1234/v1` | Legacy LM Studio loopback URL and compatible LM Studio override. Ollama ignores it and uses `http://127.0.0.1:11434/v1`. |
-| `archiAgent.localModel.model` | (empty) | Legacy LM Studio model only. New profile-aware choices are never stored here. |
-| `archiAgent.localModel.timeoutSeconds` | `120` | Time limit of one model request (1 to 600). |
-| `archiAgent.defaultAuthor` | `Archi Agent` | Author written into the front matter of a typed description. |
-| `archiAgent.diagnostics.verbose` | `false` | Machine-scoped safe JSON Lines pipeline diagnostics in the existing **Archi Agent** Output Channel. |
-
-In an untrusted workspace the path and model settings are read from user settings only
-(`restrictedConfigurations`), so a workspace cannot point the extension at another directory or
-port. Cloud API keys are not settings at all; they exist only in `SecretStorage`.
-
-Only `inspect("localModel.profile").globalValue === undefined` selects legacy LM Studio mode, where
-effective `baseUrl` and `model` values retain normal VS Code precedence. Every present global value
-is explicit: an unknown, empty or malformed profile produces `unknown-provider-profile` before any
-model-list or generation request and does not use legacy values. With a registered explicit profile,
-the extension reads only global `selectedModel` and accepts it only when global
-`selectedModelProfile` exactly matches the active profile. Workspace values cannot override any of
-these three machine-scoped settings. A manual profile change leaves a stale model/binding stored but
-inactive, so generation asks for a model rather than moving one between profiles. Existing legacy
-settings are retained. Machine scope keeps a Windows LM Studio choice independent from a MacBook
-Ollama choice even when Settings Sync is enabled.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Security and privacy
 
@@ -214,215 +92,43 @@ Ollama choice even when Settings Sync is enabled.
 
 ## Development build
 
-Requires Node.js 22.12 or later and the repository dependencies:
-
-```bash
-npm ci
-npm run extension:typecheck   # tsc over vscode-extension/src and src/runtime
-npm run extension:build       # esbuild -> vscode-extension/dist/{extension.js,archi-agent-runtime.js}
-npm run extension:test        # runtime, editor-layer and packaging tests
-```
-
-Press F5 in VS Code with this repository open: the launch configuration builds the bundles and
-starts an Extension Development Host with `vscode-extension` as the extension.
-
-### Bundling
-
-Three CommonJS bundles are produced by `vscode-extension/scripts/build.mjs`:
-
-| Bundle | Entry | Content |
-| --- | --- | --- |
-| `dist/archi-agent-runtime.js` | `src/runtime/index.ts` | Core, Node adapters, runtime API and `zod`; requires only `node:` built-ins. |
-| `dist/extension.js` | `vscode-extension/src/extension.ts` | Editor layer; requires `vscode`, `node:path` and `./archi-agent-runtime.js`. |
-| `dist/archi-agent-converter-worker.js` | `src/node/document-conversion/worker.ts` | Minified local PDF/DOCX/XLSX parsers; one request, one result, no editor API or external runtime files. |
-
-The build rewrites the import of `src/runtime/index.ts` in the editor layer to the sibling runtime
-bundle, so the extension links to the packaged runtime and never to the source tree. No source map is
-emitted, so the bundles carry no machine path. `node_modules` is never packaged: all runtime
-dependencies are bundled. Third-party license texts are shipped in `THIRD_PARTY_NOTICES.md`.
-
-### Node and VS Code target
-
-| Item | Value |
-| --- | --- |
-| `engines.vscode` | `^1.91.0` |
-| Extension host runtime | Node 20 (VS Code 1.91 ships Electron 29) |
-| esbuild target | `node20`, format `cjs` |
-| `@types/vscode` | `1.91.0`, pinned to the engine so no newer API is used |
-| Development Node | 22.12 or later (root `engines.node`); the development version does not affect the bundle target |
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## VSIX packaging
 
-```bash
-npm run extension:package     # builds, then vsce (library mode) -> vscode-extension/build/archi-agent-<version>.vsix
-npm run extension:verify      # inspects the newest VSIX in vscode-extension/build
-```
-
-`vsce` runs with dependency detection disabled, without a license prompt and without a marketplace
-call; it needs no `node_modules` inside `vscode-extension`. The package is ignored by Git.
-
-### Verification
-
-`vscode-extension/scripts/verify-vsix.mjs` reads the VSIX as a ZIP (own minimal reader, no archive
-dependency) and requires exactly:
-
-```text
-extension.vsixmanifest
-[Content_Types].xml
-extension/package.json
-extension/dist/extension.js
-extension/dist/archi-agent-runtime.js
-extension/dist/archi-agent-converter-worker.js
-extension/THIRD_PARTY_NOTICES.md
-extension/readme.md            (optional; the extension README)
-```
-
-Any other entry fails verification, and these are also rejected by name: Git metadata, `.env`
-files, `node_modules`, TypeScript sources, test directories, coverage, nested archives, samples and
-Knowledge Packs, generated `.puml` or `.grounding.json` artifacts, source maps, logs and dumps,
-credential material and editor-local configuration. The packaged manifest must declare no
-dependencies and no scripts; the extension bundle must link to `vscode` and the runtime bundle and to
-nothing else; the runtime and worker bundles must not link to `vscode`; all may require only Node built-ins and
-must not contain the repository path, an npm invocation or `child_process`.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Installation
 
-1. Build the VSIX as above, or take one that was built for you.
-2. In VS Code: **Extensions** view, `...` menu, **Install from VSIX...**, choose the file.
-   Or from a shell: `code --install-extension archi-agent-0.3.0-alpha.1.vsix` from the download directory.
-3. Open **Settings**, search for `Archi Agent`, set `archiAgent.knowledgePackPath`.
-
-The installed extension needs neither the repository nor npm.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Local model configuration
 
-1. Start LM Studio on port 1234 or Ollama's OpenAI-compatible endpoint on port 11434, and prepare an
-   instruction model that supports structured JSON output. Very small models
-   often fail the structured-output contract or the grounding rules.
-2. Run **Archi Agent: Select Provider Profile**.
-3. Run **Archi Agent: Select Model**. The choice stays local to this computer.
-
-Legacy LM Studio users need no manual migration: existing effective `baseUrl` and `model` values
-continue to work until either selection command establishes the profile path.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Cloud model configuration
 
-Select Anthropic, OpenAI or OpenRouter, run **Set or Update API Key**, then **Select Model**. The
-profile/model binding and key survive restart in their separate stores; deleting one provider's key
-does not affect another provider or the selected profile/model. Full endpoints, request contracts,
-failure policy and cost-warning smoke flows are in [`cloud-models.md`](cloud-models.md).
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Knowledge Pack configuration
 
-Generate Diagram validates the configured directory through the production loader before selecting a model
-or reading an API key. A missing or invalid pack displays a safe cause and actions to open Settings,
-create a pack, choose an existing pack or cancel. An empty directory is invalid. You can also run
-**Configure Knowledge Pack** from Configuration, Knowledge Management or the Command Palette; this
-opens the Knowledge Management screen even when the current pack is valid. Cancel
-keeps the existing setting. In a multi-root workspace, first choose the project folder. **Create**
-shows the proposed absolute location and lets you change it before asking for one real system's
-identifier, name, kind and description. It then creates
-`systems.md`, `actors.md`, `relationships.md`, `aliases.md` and `rules.md`. The other four tables start
-empty; no relationship is invented. The default directory is `.archi-agent/knowledge` in the selected
-project, or `Documents/ArchiAgent/knowledge` in the user home directory when no project is open.
-An explicit valid `archiAgent.knowledgePackPath` takes precedence during generation. **Choose Existing** validates a selected
-local directory. Both paths are checked with the production Knowledge Pack loader before the setting
-is saved. Create accepts a new or existing empty destination. A nonempty directory reports a collision
-and offers another location. Missing parent directories are created without following links. Failures
-show a closed cause code and a next action. Existing files are never overwritten. On a failed creation or setting write, cleanup removes
-only unchanged files created by that attempt and directories that are both empty and still the ones created by it.
-The wizard checks the selected settings scope before prompting and again before saving; a detected
-change ends in a conflict. Its own operations for one folder are serialized. VS Code's configuration
-API has no atomic compare-and-swap, so an external change in the final read/write window cannot be
-fully excluded. If a write rejects after applying, the extension leaves the current setting alone
-instead of risking an overwrite during rollback. A pack still referenced by the current setting is
-kept. File cleanup also uses identity and content checks but is not an atomic filesystem transaction.
-Once the path is saved,
-later model cancellation or provider/generation failure leaves the pack and setting in place.
-
-You can also set `archiAgent.knowledgePackPath` to the absolute path of a directory holding `systems.md`,
-`actors.md`, `relationships.md`, `aliases.md` and `rules.md` (see `docs/knowledge-pack-format.md`).
-The directory may be anywhere; it is not part of the VSIX and not resolved relative to a workspace.
-The repository sample `samples/space-mission/architecture` works as a first pack when its absolute
-path is configured. The pack directory must be a real directory reached without symbolic links or
-junctions.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Manual smoke flows (optional)
 
-LM Studio flow: package and verify the VSIX, install it in a clean VS Code profile, configure the
-sample Knowledge Pack, select **LM Studio**, select a model, generate from the sample flow, and
-verify the PlantUML and grounding report. Confirm the server observed one model-list GET (when the
-model picker was used) and one chat-completions POST.
-
-Ollama flow: repeat in a separate clean VS Code profile or computer, select **Ollama**, select a
-tagged model such as `qwen3:8b`, generate, and verify the same outputs and one POST through
-`http://127.0.0.1:11434/v1`. Confirm that LM Studio's legacy workspace model and base URL are not
-used.
-
-The earlier LM Studio-only procedure remains useful for checking legacy migration:
-
-```text
-1. npm ci
-2. npm run extension:package && npm run extension:verify
-3. Install archi-agent-0.3.0-alpha.1.vsix into VS Code
-   (a clean profile is best: code --profile archi-agent-smoke)
-4. Set archiAgent.knowledgePackPath to the absolute path of samples/space-mission/architecture
-5. Start LM Studio with its local server on port 1234
-6. Load a structured-output capable instruction model; leave archiAgent.localModel.model empty
-7. Open samples/space-mission/flows/telemetry-command-flow.md, run
-   "Archi Agent: Generate Sequence Diagram", choose "Use the active editor document",
-   pick the model when asked
-8. Verify that an untitled PlantUML document opens with @startuml ... @enduml, that the
-   grounding report opens beside it, and that the notification reports the counts
-```
-
-Steps 1 and 2 are for building the VSIX; the installed extension itself needs neither. Automated
-tests never contact LM Studio: they use a fake generator and a loopback server double.
-
-### CL1 `alpha.2` manual smoke
-
-Install the exact `vscode-extension/build/cl1-candidate/archi-agent-0.3.0-alpha.2.vsix` in a
-fresh VS Code profile and separate extensions directory. Its SHA-256 is
-`0120f2c0d3e69f3852af6e330573c1d0566c9ed74121ee46cad92e3144fdf1c9`.
-The candidate is already installed in the disposable local profile at
-`/private/tmp/archi-cl1-vscode-user` with extensions under
-`/private/tmp/archi-cl1-vscode-extensions`; launch VS Code with both `code --user-data-dir`
-and `--extensions-dir` pointing to those directories to use that installation.
-Generate synthetic inputs outside the repository with
-`node scripts/cl1-owner-smoke-fixtures.mjs /private/tmp/archi-cl1-owner-smoke`.
-Use **Archi Agent: Convert to Markdown** on `large.pdf`, `large.docx`, and `large.xlsx`;
-each exceeds the old 10 MiB input limit and should open exactly one untitled Markdown editor.
-Record source checksums before and after. `over-limit.pdf` must report the 50 MiB limit and
-open no editor. Cancel a conversion in progress and confirm that it opens no editor. This is a
-manual VS Code check; the script `node scripts/cl1-candidate-smoke.mjs <candidate.vsix>
-<fixture-directory>` separately checks the exact packaged runtime outside the repository.
-
-The manual test reported PASS for large PDF, XLSX and Word conversion in that exact `alpha.2` VSIX;
-no separate manual result was reported for Cancel or the input limit. The final `alpha.3` VSIX
-corrects the packaged README and has the same three executable bundles. Its path is
-`vscode-extension/build/cl1-final-alpha.3/archi-agent-0.3.0-alpha.3.vsix` and SHA-256 is
-`7b9cc84b9ce7070abee33fe08cc19636efe2c2271d9aea3f4cd6bd0a1bad1056`.
-Before publishing `alpha.3`, this exact file was installed in a fresh profile. Its version,
-packaged README and conversion UI were checked. Manual smoke was recorded as PASS; see
-[`project-state.md`](project-state.md) for the released CL1 checkpoint.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## UX2 phase 2 manual smoke (PASS, 2026-10-02)
 
-Install `build/ux2-ocr/phase2/candidate/archi-agent-0.3.0-alpha.3.vsix` in a fresh
-VS Code user profile and extensions directory. Its SHA-256 is
-`b80c861deaf233343ceaa105969ba5c3e7a625f0b5be040c94d6e21a57c9ef4b`.
-Generate safe local PDFs with `node experiments/ux2-ocr/make-fixtures.mjs <directory>`.
-Use **Archi Agent: Convert to Markdown** for `text-only.pdf` with No OCR; `pl-clean-200.pdf`
-and `en-clean-200.pdf` with Auto OCR; `mixed.pdf` with Auto OCR and OCR all pages;
-`blank-only.pdf`; and `image-over-16mp.pdf`, which must show a safe limit message
-without opening Markdown. Check page order and `(OCR)`/`(blank)` headings. Cancel a
-longer OCR conversion while the notification is visible, confirm no Markdown opens,
-then convert a scan again. Convert synthetic DOCX/XLSX without an OCR prompt. This
-was recorded as PASS on 2026-10-02 in a clean VS Code profile on Mac
-ARM, including Cancel with no partial document, a conversion after Cancel and the
-DOCX/XLSX regression. No host version details were supplied for this manual run.
-The automated extracted-VSIX smoke is
-`node experiments/ux2-ocr/product-smoke.mjs <extracted-extension> <pdf-fixtures> test/fixtures/document-conversion`.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## Tests
 
@@ -440,36 +146,8 @@ The automated extracted-VSIX smoke is
 
 ## Known limitations
 
-- The description input is a single line; multi-line flows need a flow document in an editor or a
-  file.
-- Artifacts are opened as untitled editors and not written to disk; versioned writing is deferred.
-- Only one Knowledge Pack directory can be configured; model profiles are limited to LM Studio,
-  Ollama, Anthropic, OpenAI and OpenRouter.
-- The minified diagram runtime bundle is about 1 MB because it carries `zod`; the separate
-  conversion worker adds about 2.4 MB before VSIX compression.
-- PDF conversion offers **Auto OCR**, **No OCR** and **OCR all pages** after selecting a PDF.
-  Auto keeps readable text per page and uses the bundled offline PL/EN OCR for pages without
-  text. The Markdown headings mark OCR and blank pages. No OCR retains the CL1 text path.
-  DOCX and XLSX do not ask for an OCR mode. PDF layout and tables, and DOCX merged cells or
-  complex layout, may lose fidelity.
-  XLSX formula results are the saved cache; formulas are never recalculated. DOC and XLS are deferred.
-- Conversion limits in the CL1 development build: 50 MiB input, 300 PDF pages, 1000 Office ZIP
-  entries, 100 MiB inflated total, 25 MiB per entry, compression ratio 100:1, 40 sheets,
-  20000 rows, 150 columns, 250000 cells, 8 MiB Markdown and 120 seconds. XLSX XML is also
-  bounded before parsing. No partial result is opened on failure or Cancel.
-- The UX2 OCR path allows 20 recognized pages, a 10 MP rendered canvas and a 16 MP embedded
-  image. Its deadline is 300 seconds from conversion start once a page without text becomes an
-  OCR candidate; an all-text PDF keeps the 120-second deadline. Cancel closes the OCR child
-  before the command completes. The VSIX includes the OCR engine, WASM, PL/EN data and canvas
-  bindings; no runtime download, npm, separate Node.js or repository checkout is needed.
-- The PlantUML editor has no preview; a PlantUML extension, if installed, provides language support
-  and preview independently.
-- Package names in the root project (`archground`, `ArchGround`) remain unchanged; only the
-  extension and its user-facing text use `Archi Agent`. Renaming the root package is deferred.
-- Deferred by design at this checkpoint: Enterprise Architect XML and API sources, MCP, Confluence,
-  Google Drive, OneDrive and SharePoint, C4 and ArchiMate profiles,
-  the repair loop and marketplace publishing. Semantic review is implemented for D1.2 Sequence
-  and D2 Component.
+See [user guide](en/user-guide.md), [development](en/development.md),
+[architecture](en/architecture.md) and [current limits](project-state.md).
 
 ## ART1 controlled save
 

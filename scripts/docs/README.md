@@ -1,44 +1,31 @@
-# DOC1 local tooling
+# Documentation tools / Narzędzia dokumentacji
 
-English / Polski: these contributor tools check documentation and record actual UI. / Narzędzia wykonawcy sprawdzają dokumentację i nagrywają prawdziwe UI.
-
-Render dependencies are pinned in `render/package.json` and `render/package-lock.json`. They are outside the root/extension dependency sets and never shipped in the VSIX. Four low-severity npm advisories were reported by the isolated render-tool install; no audit fix or runtime dependency change was made. / Zależności renderowania są osobne; instalacja zgłosiła cztery advisory LOW. Nie zmieniono zależności runtime ani nie wykonano audit fix.
-
-Use a new temporary tool folder, copy these two manifest files there, then install the lock with `PUPPETEER_SKIP_DOWNLOAD=1 npm ci --ignore-scripts`. Use local Chrome; no diagram or project source is sent to a rendering service. / Skopiuj oba manifesty do nowego folderu tymczasowego, instaluj lock i używaj lokalnego Chrome. Kod/diagramy nie trafiają do serwisu renderującego.
-
-From the repo root / z root repo:
+Edit docs/en/user-guide.md and docs/pl/user-guide.md as the single instruction source per language.
+Synchronize the extension README files before packaging:
 
 ```bash
-python3 scripts/docs/render-diagrams.py /private/tmp/doc1-render-tools/node_modules/.bin/mmdc build/docs-pl-en/<unique-run>/diagrams
-node scripts/docs/record-ui.mjs build/docs-pl-en/<unique-run>/candidate/archi-agent-0.3.0-alpha.4.vsix /private/tmp/doc1-record-<unique-run>
-python3 scripts/docs/encode-media.py /private/tmp/doc1-record-<unique-run> docs/assets build/docs-pl-en/<unique-run>/media
-node scripts/docs/check-docs.mjs build/docs-pl-en/<unique-run> build/docs-pl-en/<unique-run>/candidate/archi-agent-0.3.0-alpha.4.vsix
+node scripts/docs/sync-help.mjs
 ```
 
-Replace placeholder directory names. Do not overwrite an earlier candidate or capture. Encoding intentionally replaces the three named final media only after a successful capture. / Zastąp nazwy placeholderów. Nie nadpisuj wcześniejszych kandydatów/nagrań. Kodowanie zastępuje nazwane media finalne tylko po poprawnym nagraniu.
+Package and verify sequentially, using the scripts/profiles that exist in this branch's package.json.
+Keep a baseline from the exact original branch sources and provide it explicitly to the checker:
 
-Recording needs macOS ScreenCaptureKit (macOS 14+ for SCScreenshotManager), VS Code at `/Applications/Visual Studio Code.app`, `code` in PATH, Xcode Command Line Tools/Swift, Accessibility and Screen Recording permission for the harness launcher, plus ffmpeg/ffprobe for encoding. macOS 14+ is a recorder requirement, not a new product support declaration. GUI tools need execution outside the filesystem sandbox. It installs the exact VSIX using existing `prepareVscode`, verifies installed bytes, then uses existing CDP input and native Accessibility picker/confirmation helpers. Only a new `/private/tmp/ux3-*` user/extension profile and synthetic project are changed. ScreenCaptureKit filters windows by that process PID and keeps that isolated app foreground while recording; no personal VS Code settings change. Do not run another GUI harness or Chrome renderer during capture.
+```bash
+node scripts/docs/check-docs.mjs <new-output-directory> <candidate.vsix> --help <baseline.vsix>
+```
 
-Nagrywanie wymaga powyższych lokalnych narzędzi oraz zgód macOS Accessibility/Screen Recording. macOS 14+ dotyczy nagrywarki, nie nowej deklaracji wsparcia produktu. GUI działa poza sandboxem. Używa istniejących helperów CDP/Accessibility oraz nowego profilu/projektu w `/private/tmp`. Capture filtruje okna według PID i utrzymuje izolowane okno na pierwszym planie. Nie uruchamiaj równocześnie innego harnessu GUI ani renderera Chrome.
+The checker validates links/anchors, PL/EN examples and diagram topology, offline language links,
+packaged images/licenses and unchanged runtime/worker/OCR bytes. --help permits the changed Help
+inside the extension bundle; the complete runtime and converter must remain byte-identical.
+It does not replace semantic/translation review, owner smoke or functional tests.
 
-`record-ui.mjs` sends actual UI input; the loopback server alone supplies synthetic StructuredChat responses. It asserts two Sequence requests, one extraction request, zero additional ART1/review/edit/save requests, actual file counts/digests and setting scope. Raw PNG frames preserve measured capture times; encoding keeps order/timing, with 1 fps output and a 96-color palette. Inspect decoded first/middle/last images and all native dialog transitions. No drawn UI, AI-generated animation, live-model quality claim or manual smoke is involved. / Skrypt steruje rzeczywistym UI; tylko transport odpowiada syntetycznie. Sprawdza liczbę żądań, pliki, hashe i scope. Surowe PNG mają czasy przechwycenia; kolejność i czas są zachowane. Sprawdź klatki i dialogi; nie jest to dowód jakości LLM ani manual smoke.
+Use render-diagrams.py with the separately locked render/package.json and package-lock.json;
+install that tool environment with npm ci in a new folder. It is not a product dependency.
+Capture scripts use real isolated VS Code windows, synthetic projects and the exact supplied VSIX.
+macOS ScreenCaptureKit, Swift, Accessibility/Screen Recording and existing native picker helpers
+are capture prerequisites; they do not change the product support claim. Never run GUI harnesses
+concurrently or capture personal profiles. Current images keep original hashes and provenance.
 
-`check-docs.mjs` checks current entrypoint links/anchors, exact PL/EN fenced examples, diagram topology, settings, packaged links/licenses/notices and unchanged runtime/OCR bytes against the explicitly supplied verified candidate. It does not replace human semantic/translation/media review or functional product tests. The packaged English README is normalized by vsce to `readme.md`; the Polish packaged language switch intentionally uses that spelling. / Checker nie zastępuje review treści, tłumaczeń, mediów ani testów produktu. vsce normalizuje nazwę README EN do `readme.md`; polski przełącznik pakietu używa tej nazwy.
-
-Native picker frames are cropped to their actual content and action buttons, excluding the system sidebar with personal home/network labels. The crop uses local macOS Vision only to identify picker frames; no UI is redrawn and no OCR text is saved. Full owned-window capture is used for other frames. / Klatki natywnych pickerów są kadrowane do rzeczywistej zawartości i przycisków, bez systemowego paska z osobistymi etykietami katalogu domowego/sieci. Lokalny Vision tylko rozpoznaje klatki pickera; UI nie jest odrysowywane i tekst OCR nie jest zapisywany. Pozostałe klatki pokazują własne okno.
-
-The recorder reactivates only an inactive owned app. ScreenCaptureKit error -3811 is retried at most three consecutive times against the same owned window; other errors stop capture. Failed samples are never invented; frame timestamps retain actual gaps. / Nagrywarka aktywuje tylko nieaktywne własne okno. Błąd ScreenCaptureKit -3811 ponawia najwyżej trzy razy pod rząd na tym samym oknie; inne błędy przerywają capture. Nie tworzy brakujących klatek, a znaczniki czasu zachowują rzeczywiste przerwy.
-
-Cropping also covers two adjacent raw samples around detected pickers, so translucent presentation/dismissal frames exclude the personal sidebar too. / Kadrowanie obejmuje też po dwie sąsiednie surowe klatki wokół rozpoznanych pickerów, aby wyłączyć osobisty sidebar podczas półprzezroczystego otwierania/zamykania okna.
-
-For a help-only checkpoint, use `node scripts/docs/check-docs.mjs <output-directory> <candidate.vsix> --help <baseline.vsix>`. Supply the exact technically verified baseline: this checks runtime, worker and OCR byte parity while allowing the localized Help change in the extension bundle. It also checks bundled PL/EN examples against repository guides. An explicit verified baseline is required for every invocation.
-
-## Current test-release screenshots
-
-Use `node scripts/docs/record-ui.mjs <verified.vsix> <new-output-directory> --screenshots` for current UX4 screens. `--tail`, `--browser-only` and `--help-only` capture those specific groups serially. The default recorder above remains historical DOC1 tooling and is not current UI evidence. / Opcja `--screenshots` używa aktualnych ekranów; domyślna ścieżka wyżej pozostaje historycznym narzędziem DOC1.
-
-Use the same ScreenCaptureKit/Accessibility prerequisites and isolated `prepareVscode` installation. `capture-current-ui.mjs` uses visible controls and the existing native picker/confirmation helpers. Listing, extraction, diagram and semantic-review responses are synthetic loopback data. PDF OCR is executed by the installed product. Pack review/preview is cancelled; original diagram/report saving verifies actual files and their digest. The synthetic project/profile remains separate from personal settings. Final images and per-image provenance are in `docs/assets/screenshots/`. Failed capture attempts are retained; a failed run does not become a functional PASS merely because some images are usable. / Capture jest rzeczywisty, modele syntetyczne, OCR lokalny; zachowaj również nieudane próby.
-
-Run `node scripts/docs/sync-help.mjs` after editing the two online user guides. It adapts links to the existing offline Help files and local packaged PNGs. Supplementary technical links remain online. Package/verify then validates the bounded screenshot allowlist. / Synchronizacja zachowuje treść instrukcji, zmieniając tylko miejsca docelowe odnośników.
-
-Current documentation check: `node scripts/docs/check-docs.mjs <new-output-directory> <candidate.vsix> --docs <exact-verified-baseline.vsix>`. Always supply the current exact baseline; there is no default FU-01 baseline. `--docs` checks all three executable bundles and all OCR resources; it permits only the changed source-patch hash in the resource manifest after GNU-compatible context regeneration, while requiring all resulting resource bytes to remain equal. Also checks online/offline instruction equivalence, local/packaged links, code examples, screenshots and provenance hashes. / Nie używaj FU-01 jako dowodu bieżącej zgodności; baseline musi być jawny i aktualny.
+Historical DOC1 GIF encoding/recording tools remain available for reproduction; their output is
+local and ignored. Do not add the retired media back to product instructions. Keep new evidence,
+raw frames, earlier failures, packages and report matrices outside tracked documentation.
