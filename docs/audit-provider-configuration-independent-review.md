@@ -20,7 +20,7 @@ Ten katalog zawiera także `reviewed.diff`, reprodukcję i wyniki bieżących ko
 Wszystkie **445/445** plików zgodne z
 `build/audit-provider-config/run-20261012/evidence/final-manifest.json`.
 Względem manifestu gauntletu różnią się wyłącznie `docs/project-state.md` i
-`docs/audit-provider-configuration-fixes.md`, zgodnie z udokumentowanym uzupełnieniem
+[docs/audit-provider-configuration-fixes.md](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/audit-provider-configuration-fixes.md), zgodnie z udokumentowanym uzupełnieniem
 wyników po gauntlecie. Źródła wykonywalne i testy zgodne. Pole `base` gauntletu nadal
 wskazuje historyczną bazę FU2 `d5fb95a4d060ef501566792d80b346e0fe1a79cb`;
 jego `head` i `finalHead` oraz baza finalnego manifestu naprawy wskazują oczekiwany `20a1acb…`.

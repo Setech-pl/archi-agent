@@ -1,12 +1,10 @@
-# Architektura
+# Architektura — przegląd
 
-[English](../en/architecture.md) · **Polski** · [Strona główna](../../README.pl.md)
+[English](../en/architecture.md) · **Polski** · [Instrukcja użytkownika](user-guide.md)
 
-To architektura lokalnego kandydata SRC1/VER1/D3/D4/MCP1, nie wcześniejszej publicznej paczki alpha.6. [Szczegółowa stabilna architektura](../architecture.md) opisuje bieżące granice; osobna historia zachowuje wcześniejsze wyjaśnienia; [roadmapa](../product-roadmap.md) określa plany. Obecne źródła to lokalny JSON Structurizr z nakładką wiązaną po ID, samodzielne packi Markdown oraz dokumenty wskazane do budowy nowego packa; klient wiedzy MCP w Node pobiera częściowe normalized contributions z jednego jawnie skonfigurowanego serwera stdio. Samodzielny przykład reużywa produkcyjnego parsera/mappera SRC1 i walidacji K1. Nie ma adaptera EA ani parsera DSL. Sequence i Component mają osobne plany/walidatory/renderery. C4 Context/Container korzystają z metadanych Structurizr i osobnych planów/walidatorów/rendererów; VER1 sprawdza Sequence/prozę. ArchiMate pozostaje planowane. Renderer zgodności sequence jest osobną starszą ścieżką.
+Archi Agent zachowuje cienką warstwę edytora. Core odpowiada za deterministyczną wiedzę, grounding, walidację i renderowanie; adaptery Node zapewniają ograniczony odczyt plików, konwersję i transport do modeli. Wspólny runtime składa te operacje dla VS Code, CLI i MCP. Do modelu trafiają tylko wybrane dowody. Importowane dane i odpowiedzi modelu pozostają nieufne.
 
-Core jest deterministyczny, bez Node/VS Code I/O; orkiestracja wywołuje wstrzyknięte porty i adaptery Node. Runtime jest niezależny od hosta; edytor importuje tylko `src/runtime/index.ts`. Providerzy są wymiennymi adapterami StructuredChatClient. Dokumenty/odpowiedzi modeli są nieufnymi danymi. Do modelu trafiają ograniczone właściwe snapshoty diagramów lub ograniczony wybrany tekst ekstrakcji. Ustawienia i SecretStorage VS Code pozostają na granicy edytora; CLI/MCP używają konfiguracji procesu, przypiętych readRoots i nazwanych credentiali środowiskowych. Serwer czterech funkcji i klient wiedzy MCP mają osobne role; wszystkie hosty komponują wspólny runtime.
-
-UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i powiązany webview review K3. Oba delegują do istniejących usług runtime; zamknięty protokół hosta, nonce CSP i renderowanie tekstu chronią granicę danych. Klucze pozostają w SecretStorage; ekran otrzymuje tylko obecność. [Kontrakt UX4](../configuration-workbench.md).
+Diagramy poniżej objaśniają zaimplementowane przepływy. Szczegółowe interfejsy, limity i kontrakty błędów opisuje [architektura techniczna](../architecture.md). [Profile diagramów](../diagram-profiles.md) pomagają wybrać właściwy widok.
 
 ## A. Komponenty i granice
 
@@ -164,43 +162,6 @@ sequenceDiagram
   Note over UI,FS: Bez LLM i odświeżania źródeł, bez atomowej publikacji/crash recovery/gwarancji fsync
 ```
 
-Staging przechwycenia jest tymczasowy; K2 czeka na cleanup przed zwrotem kandydatów. Zamrożony bundle powstaje przed ekstrakcją i jest źródłem dowodów całego review. Walidacja zapisu Buildera obejmuje produkcyjny load przed niezmiennym preview i po finalnym zapisie. Aktywacja jest osobną operacją ustawienia.
-
-Odrzucenie review diagramu może zaproponować unverified candidate dopiero po lokalnej walidacji; Cancel użytkownika niczego nie proponuje. Generator/reviewer współdzielą wybrany model, ale używają osobnych kontekstów. Sequence zgodności ma jedno żądanie i raport v1.
-
-Rejestr menu/palety ART1 przechowuje wyniki, gdy co najmniej jeden powiązany podgląd pozostaje otwarty; zamknięcie obu usuwa wpis z listy. Nadal oczekujące powiadomienie generacji zachowuje własny oryginał i może wywołać zapis bezpośrednio po zamknięciu obu podglądów. Restart/reload usuwa wyniki i powiadomienia z pamięci. Zmiana języka nie jest zamknięciem. Zapis dwóch plików jest stopniowo widoczny, a rollback warunkowy; bez atomowego rename katalogu, crash recovery i gwarancji fsync.
-
-## Mapa źródeł
-
-| Step / krok | Modules / moduły |
-| --- | --- |
-| UI navigation / nawigacja | [open-menu.ts](../../vscode-extension/src/commands/open-menu.ts), [build-knowledge-pack.ts](../../vscode-extension/src/commands/build-knowledge-pack.ts), [generate-sequence-diagram.ts](../../vscode-extension/src/commands/generate-sequence-diagram.ts), [save-diagram-and-report.ts](../../vscode-extension/src/commands/save-diagram-and-report.ts) |
-| Boundary / granica | [index.ts](../../src/runtime/index.ts), [archi-agent-runtime.ts](../../src/runtime/archi-agent-runtime.ts) |
-| Acquisition / przechwycenie | [extract-document-candidates.ts](../../src/runtime/extract-document-candidates.ts), [convert-document.ts](../../src/runtime/convert-document.ts), [convert.mjs](../../experiments/ux2-ocr/convert.mjs), [ocr-parent.mjs](../../experiments/ux2-ocr/ocr-parent.mjs), [ocr-child.mjs](../../experiments/ux2-ocr/ocr-child.mjs) |
-| K1 / source / źródło | [knowledge-snapshot.ts](../../src/core/knowledge-pack/knowledge-snapshot.ts), [node-knowledge-pack-source.ts](../../src/node/node-knowledge-pack-source.ts) |
-| Extraction evidence / dowody | [document-candidates.ts](../../src/core/knowledge-pack/builder/document-candidates.ts), [knowledge-pack-builder.ts](../../src/core/knowledge-pack/builder/knowledge-pack-builder.ts) |
-| Review/save | [knowledge-pack-review.ts](../../src/runtime/knowledge-pack-review.ts), [knowledge-pack-onboarding.ts](../../src/runtime/knowledge-pack-onboarding.ts), [document-provenance.ts](../../src/core/knowledge-pack/document-provenance.ts) |
-| ART1 | [diagram-artifact.ts](../../src/runtime/diagram-artifact.ts), [local-file-path.ts](../../src/node/local-file-path.ts) |
-| Provider transports / transporty | [local](../../src/node/llm/openai-compatible-local-chat-client.ts), [remote OpenAI-compatible](../../src/node/llm/openai-compatible-remote-chat-client.ts), [Anthropic](../../src/node/llm/anthropic-remote-chat-client.ts) |
-
-Sequence: [reviewed-sequence.ts](../../src/core/pipeline/reviewed-sequence.ts), [sequence-diagram-plan.ts](../../src/core/pipeline/sequence-diagram-plan.ts). Component: [generate-component-diagram.ts](../../src/core/pipeline/generate-component-diagram.ts), [component-diagram-plan.ts](../../src/core/pipeline/component-diagram-plan.ts).
-
-## Konfiguracja, limity i błędy
-
-Configuration oddziela widoczny draft od zastosowanych ustawień User. Refresh Models używa profilu/endpointu/timeoutu draftu, waliduje ograniczoną odpowiedź i nie zapisuje modelu. Available models zmienia Selected model; Apply zapisuje profil i binding modelu sekwencyjnie. Discard odtwarza zastosowane ustawienia i unieważnia katalog draftu. Zmiana zewnętrzna blokuje nieaktualny Apply; częściowy błąd zapisu powoduje odczyt rzeczywistego stanu. Check Provider Configuration używa zastosowanych ustawień. Profil/model/binding mają zakres machine, wybór packa — resource. Endpoint LM Studio i timeout mogą mieć efektywne nadpisania workspace, z ograniczeniami Workspace Trust. Lokalne URL wymagają dosłownego loopback; adaptery chmurowe używają stałych allowlist HTTPS.
-
-Klucze są oddzielnymi wpisami VS Code SecretStorage dla providerów. Wprowadza się je przez maskowane pola natywne; webview dostaje tylko obecność, nigdy sekret. Help korzysta z języka wyświetlania VS Code i bundlowanego Markdown; nie wysyła żądań do providera ani nie wprowadza przełącznika języka aplikacji. Browser czyta aktywny pack produkcyjnym loaderem; nawigacja używa linii packa i zamrożonego provenance dokumentów, sprawdzając digest przed otwarciem evidence w żywym edytorze.
-
-Konwersja przyjmuje jeden plik do 50 MiB i wynik do 8 MiB Markdown; deadline bez OCR to 120 sekund, OCR — 300 sekund i najwyżej 20 stron OCR. Builder przyjmuje osiem źródeł, po 10 MiB/20 MiB łącznie, 64 KiB tekstu na źródło/160 KiB serializowanego bundle, 256 KiB gotowego żądania i 128 kandydatów. Łączny deadline Buildera to 360 sekund; ekstrakcja ma limit 120 sekund albo krótszy timeout providera. AbortSignals docierają do żądań/workerów/zapisów; zamknięcie procesów i warunkowy cleanup mogą zakończyć się po deadline pracy. Progress pokazuje odczyt, konwersję/OCR, wybór providera, generację i walidację dowodów. Błędy zwracają ograniczone kody/etapy; bez częściowej konwersji/kandydatów ani automatycznego retry/repair/fallbacku. Pełne limity: [kontrakt dokumentów](../document-candidates.md).
-
-## Samowystarczalny build i pakiet
-
-`npm run extension:build` tworzy przez esbuild trzy sąsiednie bundle CommonJS: rozszerzenie, runtime niezależny od hosta i worker konwersji. Rozszerzenie externalizuje `vscode` i sąsiedni runtime; runtime — tylko moduły wbudowane Node. `npm run extension:package` przebudowuje bundle, używa jawnej allowlisty VSIX i, tylko dla Full, dodaje przypięte zasoby OCR offline z manifestem licencji/hashów. Obie instrukcje trafiają jako `readme.md` i `README.pl.md`. Użytkownik korzysta z Node wbudowanego w VS Code; nie potrzebuje ścieżek repo, npm ani osobnej instalacji Node.
-
-`npm run extension:verify` sprawdza wpisy archiwum, importy/limity bundle, ujawnienie ścieżki repo, hashe OCR i zasoby platform. Dane produktu, fixture'y, testy i skrypty developerskie są wykluczone. Dowody Mac ARM nie potwierdzają równoważnego wykonania na wszystkich pakowanych platformach. Historyczne wyniki i pakiety są w [historii stanu projektu](../project-state-history.md); bieżące kontrole i przekazanie audytorowi — w [stanie projektu](../project-state.md).
-
-Pakowanie MCP1 domyślnie wybiera Core, bez zależności i zasobów OCR. Full zachowuje dotychczasowe ID i przypięte OCR offline, z jawną kontrolą integralności instalacji. Oba profile mają identyczne bundle runtime. [CLI/MCP i profile](cli-mcp.md) opisują ścisłe wersjonowane kontrakty wyniku/źródła oraz konfigurację.
-
 ## F. VER1 — snapshot i provenance
 
 ```mermaid
@@ -234,6 +195,8 @@ sequenceDiagram
   end
 ```
 
-Zapis aliasów do nakładki SRC1 jest osobną operacją adaptera VS Code: minimalna edycja i natywny zapis po sprawdzeniu wersji oraz dirty buffer. Dla packa i MCP decyzje pozostają sesyjne; CLI/MCP nie zapisują źródeł. VER1 nie weryfikuje C4.
+## Kontrakty techniczne
+
+[Host i pakowanie](../vscode-extension.md) · [Źródła](../src1-structurizr-source.md) · [Weryfikacja przepływu](../ver1-flow-verification.md) · [C4](../c4-diagrams.md) · [Ekstrakcja dokumentów](../document-candidates.md) · [Review i zapis nowego packa](../knowledge-pack-review.md) · [Zapis oryginalnej pary](../diagram-artifact-save.md) · [CLI/MCP](cli-mcp.md) · [Decyzje architektoniczne](../adr/0002-deterministic-diagram-plan-renderers.md).
 
 Wyrenderowane kopie (SVG / PNG): [A SVG](../assets/diagrams/pl-A.svg) / [PNG](../assets/diagrams/pl-A.png) · [B SVG](../assets/diagrams/pl-B.svg) / [PNG](../assets/diagrams/pl-B.png) · [C SVG](../assets/diagrams/pl-C.svg) / [PNG](../assets/diagrams/pl-C.png) · [D SVG](../assets/diagrams/pl-D.svg) / [PNG](../assets/diagrams/pl-D.png) · [E SVG](../assets/diagrams/pl-E.svg) / [PNG](../assets/diagrams/pl-E.png) · [F SVG](../assets/diagrams/pl-F.svg) / [PNG](../assets/diagrams/pl-F.png)

@@ -5,7 +5,7 @@ Status: **AUD-002 PASS / CLOSED IN LOCAL REPAIR**, following the
 on 2026-10-13. AUD-001 retains its independent PASS and is also closed in this
 local repair. AUD-003–006 remain open and outside this correction. M1 is not
 closed. The original [independent review](audit-provider-configuration-independent-review.md)
-and [first repair report](audit-provider-configuration-fixes.md) are historical evidence.
+and [first repair report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/audit-provider-configuration-fixes.md) are historical evidence.
 
 The old guard advanced its publication counter only for participating writers.
 An external A→B→A restored the captured values without advancing that counter, so

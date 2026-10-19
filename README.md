@@ -106,4 +106,6 @@ The VS Code extension includes its runtime: no repository clone, npm or separate
 
 [User guide](docs/en/user-guide.md) · [Architecture](docs/en/architecture.md) · [Developer guide](docs/en/development.md) · [Technical status](docs/project-state.md)
 
+Documentation on main follows current source code; published packages are identified by their release manifest and bundled Help.
+
 Archi Agent is available under the [MIT license](LICENSE). Bundled components retain their [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR notices](experiments/ux2-ocr/TRIAL_NOTICES.md).

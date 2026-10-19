@@ -1,15 +1,15 @@
-# CLI and local MCP — MCP1 candidate
+# CLI and local MCP
 
 **English** · [Polski](../pl/cli-mcp.md)
 
-The local MCP1 candidate supplies the same Archi Agent runtime through a CLI, a stdio MCP
-server, and two VS Code profiles. This candidate has not been published. It verifies Sequence
+Archi Agent supplies the same Archi Agent runtime through a CLI, a stdio MCP
+server, and two VS Code profiles. It is available in the [demonstration prerelease](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Documentation on main can advance beyond a package; the release manifest identifies its source snapshot. It verifies Sequence
 PlantUML and prose; it does not verify Component or C4 diagrams. Generation supports the four
 existing types: Sequence, Component, C4 Context and C4 Container.
 
 ## Install a local package
 
-Check the SHA-256 in the candidate verification report, then install the supplied tarball:
+Download the [CLI/MCP tarball](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-cli-0.3.0-alpha.7.tgz), check its SHA-256 against the same release's [checksums](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS), then install it:
 
 ```bash
 npm install --global ./archi-agent-cli-0.3.0-alpha.7.tgz
@@ -135,7 +135,7 @@ Core (`setech-pl.archi-agent-core`) is recommended for new users. Full (`setech-
 adds offline PL/EN OCR and retains the existing extension identity. Updates keep each identity;
 an existing Full installation is never automatically replaced by Core. Both use the same runtime.
 
-Install one candidate VSIX with Install from VSIX. You may keep both installed, with exactly one
+Install one published VSIX with Install from VSIX. You may keep both installed, with exactly one
 enabled. Both enabled is an unsupported conflict: VS Code processes duplicate static declarations
 before activation, and Archi Agent blocks operations. Disable one yourself and Reload Window.
 To change profiles, disable the old profile, reload, enable/install the chosen profile and reload.
@@ -197,7 +197,7 @@ Implement `KnowledgeAdapter.load` in adapter.ts or a sibling module, compose it 
 main.ts, and rebuild. Use the shared createKnowledgeResponse/validateKnowledgeResponse contracts.
 The versioned normalized contributions retain original IDs, source version, scope, omissions and
 provenance. Future API/EA/database adapters can be partial; no fictitious Structurizr is required.
-They are not implemented in this candidate. URI references contain no userinfo, query or hash;
+They are not implemented. URI references contain no userinfo, query or hash;
 fragment is a separate field. Missing local locators are explicit and never replaced with line 1.
 The knowledge response is bounded to a complete 64 MiB frame, including text-copy escaping.
 

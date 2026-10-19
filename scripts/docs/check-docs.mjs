@@ -1,46 +1,62 @@
 // DOC1 checks, independent of production runtime and third-party Markdown libraries.
-import {readFileSync,writeFileSync,existsSync,readdirSync} from 'node:fs';
+import {readFileSync,writeFileSync,existsSync} from 'node:fs';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {openVsix} from '../../vscode-extension/scripts/vsix-zip.mjs';
 import {createHash} from 'node:crypto';
 const [outArg,vsixArg,mode,baselineArg]=process.argv.slice(2),out=path.resolve(outArg),vsix=path.resolve(vsixArg);
 assert.ok(['--docs','--help','--functional','--mcp1'].includes(mode),'Unknown documentation check mode');
-const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/doc2-pub1-verification.md','docs/product-roadmap.md','docs/en/cli-mcp.md','docs/pl/cli-mcp.md','examples/knowledge-server/README.md','docs/configuration-workbench.md','docs/ux4-model-selection.md','docs/ux4-owner-findings.md'];
+const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/doc2-pub1-verification.md','docs/product-roadmap.md','docs/en/cli-mcp.md','docs/pl/cli-mcp.md','examples/knowledge-server/README.md','docs/configuration-workbench.md','docs/diagram-profiles.md','docs/vscode-extension.md','docs/plans/ea1-capability-map.md'];
 const issues=[],checks=[];const hash=b=>createHash('sha256').update(b).digest('hex');
 const content=f=>readFileSync(f,'utf8');
 function anchors(text){const counts=new Map();return new Set([...text.matchAll(/^#{1,6} (.+)$/gm)].map(m=>{const a=m[1].toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu,'').replace(/\s/g,'-');const n=counts.get(a)||0;counts.set(a,n+1);return a+(n?`-${n}`:'');}));}
-for(const file of files){
+// Include every tracked/unignored Markdown file, including new plans. Deleted files are absent.
+const markdownFiles=execFileSync('git',['ls-files','--cached','--others','--exclude-standard','-z','--','*.md'],{encoding:'utf8'})
+ .split('\0').filter(f=>f&&existsSync(f));
+function checkLocalLink(file,link){
+ const repoLink=link.match(/^https:\/\/github\.com\/Setech-pl\/archi-agent\/blob\/main\/(.+)$/);
+ if(/^(https?:|mailto:)/.test(link)&&!repoLink)return;
+ const [target,anchor]=(repoLink?repoLink[1]:link).split('#');
+ let p=repoLink?path.resolve(decodeURIComponent(target)):path.resolve(path.dirname(file),decodeURIComponent(target||path.basename(file)));
+ // vsce canonicalizes EN README; Help assets/notices are copied into package stages.
+ if(file==='vscode-extension/README.pl.md'&&target==='readme.md')p=path.resolve('vscode-extension/README.md');
+ if(file.startsWith('vscode-extension/README')&&target?.startsWith('help-assets/'))p=path.resolve('docs/assets/screenshots',path.basename(target));
+ if(file.startsWith('vscode-extension/README')&&target==='ux2-ocr/TRIAL_NOTICES.md')p=path.resolve('experiments/ux2-ocr/TRIAL_NOTICES.md');
+ if(!existsSync(p)){issues.push(`broken link ${file}: ${link}`);return;}
+ if(anchor&&!anchors(content(p)).has(decodeURIComponent(anchor)))issues.push(`broken anchor ${file}: ${link}`);
+}
+for(const file of [...new Set([...files,...markdownFiles])]){
  if(!existsSync(file)){issues.push('missing '+file);continue;}
  const text=content(file).replace(/```[\s\S]*?```/g,'');
- for(const m of text.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)){
-  const link=m[1];if(/^(https?:|mailto:)/.test(link))continue;
-  const [target,anchor]=link.split('#');let p=path.resolve(path.dirname(file),decodeURIComponent(target||path.basename(file)));
-  // vsce canonicalizes EN README to readme.md; the Polish standalone guide targets that package name.
-  if(file==='vscode-extension/README.pl.md'&&target==='readme.md')p=path.resolve('vscode-extension/README.md');
-  // Help images are copied into each package stage, not the tracked extension tree.
-  if(file.startsWith('vscode-extension/README')&&target?.startsWith('help-assets/'))p=path.resolve('docs/assets/screenshots',path.basename(target));
-  if(file.startsWith('vscode-extension/README')&&target==='ux2-ocr/TRIAL_NOTICES.md')p=path.resolve('experiments/ux2-ocr/TRIAL_NOTICES.md');
-  if(!existsSync(p)){issues.push(`broken link ${file}: ${link}`);continue;}
-  if(anchor&&!anchors(content(p)).has(anchor))issues.push(`broken anchor ${file}: ${link}`);
- }
+ for(const m of text.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g))checkLocalLink(file,m[1]);
 }
+// Generated sources must match, including their link destinations, before inspecting any VSIX.
+execFileSync(process.execPath,['scripts/docs/sync-help.mjs','--check']);
 checks.push({id:'local-links-and-anchors',status:issues.length?'FAIL':'PASS'});
-for(const name of ['user-guide','development']){
- const codes=l=>[...content(`docs/${l}/${name}.md`).matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(m=>m[1]);
+for(const name of ['user-guide','development','cli-mcp']){
+ const codes=l=>[...content(`docs/${l}/${name}.md`).matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(m=>{
+  // CLI examples intentionally request the guide's own report language; everything else is exact.
+  if(name==='cli-mcp'&&m[1].includes('--language ')){assert.ok(m[1].includes(`--language ${l} --format`));return m[1].replace(`--language ${l} --format`,'--language LANGUAGE --format');}
+  return m[1];
+ });
  if(JSON.stringify(codes('en'))!==JSON.stringify(codes('pl')))issues.push('PL/EN code examples differ: '+name);
 }
 const diagrams=l=>[...content(`docs/${l}/architecture.md`).matchAll(/```mermaid\n([\s\S]*?)```/g)].map(m=>m[1]);
 const topology=s=>s.split('\n').map(line=>line.replace(/\[".*?"\]/g,'[]').replace(/(participant \w+ as ).*/,'$1LABEL').replace(/(: ).*/,'$1LABEL').replace(/^(\s*(?:alt|else|opt|loop)) .*/,'$1 LABEL')).join('\n');
 assert.equal(diagrams('en').length,6);assert.deepEqual(diagrams('en').map(topology),diagrams('pl').map(topology));
-checks.push({id:'same-PL-EN-examples-and-diagram-topology',status:'PASS'});
+checks.push({id:'same-PL-EN-examples-and-diagram-topology',status:issues.some(i=>i.startsWith('PL/EN'))?'FAIL':'PASS'});
 const manifest=JSON.parse(content('vscode-extension/package.json'));
 const settings=manifest.contributes.configuration.properties;
 for(const file of files)if(existsSync(file))for(const m of content(file).matchAll(/`(archiAgent\.[A-Za-z.]+)`/g))if(!(m[1] in settings)&&!manifest.contributes.commands.some(c=>c.command===m[1]))issues.push(`unknown setting ${file}: ${m[1]}`);
 const archive=openVsix(vsix),entries=archive.entries.map(e=>e.name);
 for(const name of ['extension/readme.md','extension/README.pl.md']){
  const text=archive.read(name).toString('utf8');
- for(const m of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g))if(!/^https?:/.test(m[1])) {
+ const generated=content(name==='extension/readme.md'?'vscode-extension/README.md':'vscode-extension/README.pl.md');
+ const isCore=JSON.parse(archive.read('extension/distribution-profile.json')).profile==='core';
+ assert.equal(text,isCore?generated.replace('](ux2-ocr/TRIAL_NOTICES.md)','](https://github.com/Setech-pl/archi-agent/blob/main/experiments/ux2-ocr/TRIAL_NOTICES.md)'):generated,'packaged Help differs from generated source: '+name);
+ for(const m of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)){
+  if(/^https?:/.test(m[1])){checkLocalLink(name,m[1]);continue;}
   const [target,anchor]=m[1].split('#'),entry=target?'extension/'+target:name;
   if(!entries.includes(entry))issues.push(`broken VSIX link ${name}: ${m[1]}`);
   else if(anchor&&!anchors(archive.read(entry).toString('utf8')).has(anchor))issues.push(`broken VSIX anchor ${name}: ${m[1]}`);
@@ -68,6 +84,8 @@ assert.ok(entries.every(e=>!e.endsWith('.gif')&&!e.includes('audits/')&&!e.inclu
 // Older documentation-only modes retain their original baseline policy.
 assert.ok(baselineArg,'Supply the exact verified baseline VSIX explicitly; no historical default.');
 const baseline=openVsix(baselineArg);
+const protectedEntry=e=>e.startsWith('extension/dist/')||e.startsWith('extension/ux2-ocr/');
+assert.deepEqual(entries.filter(protectedEntry).sort(),baseline.entries.map(e=>e.name).filter(protectedEntry).sort(),'runtime/OCR inventory changed');
 const runtimeEntries=entries.filter(e=>e.startsWith('extension/ux2-ocr/')||(mode==='--help'?e.startsWith('extension/dist/')&&e!=='extension/dist/extension.js':mode==='--functional'?e==='extension/dist/archi-agent-converter-worker.js':e.startsWith('extension/dist/')));
 for(const e of runtimeEntries) {
  if(mode==='--docs'&&e==='extension/ux2-ocr/resource-manifest.json') {
@@ -81,5 +99,5 @@ checks.push({id:mode==='--help'?'help-links-and-runtime-worker-OCR-byte-parity':
 const privacyPatterns=[/\/Users\//,/sk-[A-Za-z0-9]{16}/,/linkedin\.com/i];
 for(const file of files)if(existsSync(file)&&privacyPatterns.some(p=>p.test(content(file))))issues.push('private data pattern: '+file);
 const candidate={path:vsixArg,bytes:readFileSync(vsix).length,sha256:hash(readFileSync(vsix)),entries:entries.length};
-writeFileSync(path.join(out,'documentation-check.json'),JSON.stringify({status:issues.length?'FAIL':'PASS',checks,issues,candidate,files},null,2)+'\n');
+writeFileSync(path.join(out,'documentation-check.json'),JSON.stringify({status:issues.length?'FAIL':'PASS',checks,issues,candidate,files,markdownFiles},null,2)+'\n');
 console.log(JSON.stringify({issues,checks,candidate},null,2));if(issues.length)process.exitCode=1;

@@ -13,6 +13,7 @@ Przeczytaj [AGENTS.md](../../AGENTS.md), [stan projektu](../project-state.md), [
 ```bash
 npm ci
 npm ci --prefix experiments/ux2-ocr
+node scripts/prepare-ci-ocr.mjs
 npm test
 npm run typecheck
 npm run extension:typecheck
@@ -21,6 +22,8 @@ npm run extension:build
 npm run extension:package -- --profile core --out build/docs-pl-en/<unique-run>/candidate
 npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.7.vsix
 ```
+
+`prepare-ci-ocr.mjs` pobiera i weryfikuje SRI ośmiu przypiętych tarballi canvas 0.1.97 oraz przygotowuje zasoby Full, w tym uzupełnienie ICU z tej samej wersji. Uruchom go przed testami pakującymi Full; same dwie instalacje npm nie dostarczają tych archiwów. [Szczegóły buildu OCR](../../experiments/ux2-ocr/README.md).
 
 Zastąp `<unique-run>` nową nazwą katalogu; nie używaj ponownie celów wcześniejszych kandydatów. `npm ci` zachowuje opcjonalne bindingi platformowe z lockfile; unikaj zwykłego `npm install` w repo. Pakowanie przebudowuje bundle rozszerzenia/runtime/konwertera. Domyślny Core potrzebuje tylko zależności root; Full wymaga dodatkowo zależności OCR i przypiętych zasobów. Dla niego wskaż jawnie --profile full. Pakowanie/gauntlety współdzielące staging OCR uruchamiaj sekwencyjnie. `extension:verify` sprawdza allowlistę dokładnego VSIX, granice bundle i hashe zasobów. Zapisz rozmiar i SHA-256 z commitem/tree źródeł oraz rzeczywistymi zmianami; sama wersja pakietu nie wystarcza.
 

@@ -1,12 +1,12 @@
-# UX4 configuration and review workbench
+# Configuration and review workbench
 
-Current behavior includes UX4-FU1/FU2 (`6863a30`) and PL/EN offline Help. It is a branch build, not a new release. Historical results below refer only to their original candidates. Current verification and next audit: [project state](project-state.md).
+Host contract for settings, native knowledge navigation and the review webview. User instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md).
 
 ## Visible navigation
 
 | Entry | Destination |
 | --- | --- |
-| Archi: Open → Create Diagram | Sequence / Component selection, then the existing reviewed generation |
+| Archi: Open → Create Diagram | Sequence / Component / C4 Context / C4 Container selection, then the existing reviewed generation |
 | Archi: Create Diagram | Same type selection; Cancel makes no provider request or configuration change |
 | Configuration / Archi: Configuration | Singleton editor panel: Knowledge Management / LLM Provider |
 | Configure Knowledge Pack compatibility ID | Knowledge tab in that same panel; hidden from palette |
@@ -20,7 +20,7 @@ Current behavior includes UX4-FU1/FU2 (`6863a30`) and PL/EN offline Help. It is 
 | Check Provider Configuration compatibility ID | Existing OBS1 applied-configuration check in Provider tab; hidden from palette |
 
 The old Sequence command ID is hidden and delegates to Create Diagram. The older runtime
-compatibility API is retained internally. No C4 or MCP option is exposed.
+compatibility API is retained internally. C4 selection uses the source-bound hierarchy. MCP knowledge is configured through User settings; see [CLI/MCP](en/cli-mcp.md).
 
 ## Knowledge Management
 
@@ -90,22 +90,74 @@ transports, which establish no live LLM quality or acceptance review.
 Independent read-only GPT-6.1 Sol/high review and no open HIGH/MEDIUM are required before the
 local checkpoint. Required FAIL/NOT_RUN also block it. Historical test forms retain their original NOT_RUN observations.
 
-## Verified local candidate (2026-10-09)
+## Model-list contract
 
-Evidence: `build/ux4/gauntlet-2026-10-09T12-26-40-457Z-37727/`. Full gauntlet272/272 PASS without FAIL/NOT_RUN; root1670,
-extension514, focused433, clean installs/audits0, both typechecks, build/package/verify531,
-demo, packaged runtime regressions, real Host99 and native UI37. The exact candidate is
-119869441 bytes, SHA-256 `358c31ffdd985b0612136b975cd80ea39b3d55304fc2ef2c3538003d2f573647`.
-Independent read-only GPT-6.1 Sol/high review round3: no HIGH/MEDIUM remain. Earlier rounds
-remain preserved and blocked; their Apply/lifetime findings are closed. Final manifest
-records only status-documentation changes after the gauntlet and reconfirms bundle parity.
-The new isolated manual-test handoff retains33 earlier cases and adds12 UX4, all NOT_RUN.
-Manual smoke NOT_COMPLETED; no live model quality inferred. No release/version change.
+Every local list entry still passes the existing safe-ID check. Raw response size, entry count, content type, UTF-8, JSON, timeout, cancellation, redirects and literal-loopback validation remain unchanged. Repeated exact safe local IDs become one sorted choice; no trimming, aliasing, skipped unsafe entry or new model identity. Cloud parsers are unchanged.
 
-## UX4-FU1 follow-up
+Refresh Models captures the visible form's profile, endpoint and timeout without writing configuration. Fixed provider endpoints remain fixed. SecretStorage credentials are captured for that profile only; no values enter webview/state/logs. Check Provider Configuration retains applied settings and requires Apply/Discard when dirty. No generation, retry/fallback or implicit refresh.
 
-Current navigation, draft-profile keys, active-file input and native knowledge tree: [reported findings and contract](ux4-owner-findings.md). The verified candidate above remains historical evidence for its original SHA. The follow-up uses a fresh artifact and manual-test handoff; no PASS is transferred.
+Available models is a visible select with exact IDs and an explicit empty placeholder; Selected model retains manual exact-ID entry. A selection updates only the draft; Apply persists the existing selectedModel/selectedModelProfile binding. No automatic model choice. Discard/reopen/restart use saved settings. Model-only edits retain the catalog; profile/endpoint/timeout/settings/key/panel changes cancel/invalidate it. Publication sequence is separate from semantic request invalidation, so an unrelated state publication does not discard a current response. Loading ends on success, empty, invalid and failed response; recovery is explicit Refresh. New list-status messages are provided in English and Polish, without raw provider responses.
 
-## UX4-FU2 model-list follow-up
+## Operation contract
 
-[Reproduction and current listing contract](ux4-model-selection.md) supersede the original applied-only Refresh rule. Native Available models provides visible exact-ID options. New listing outcomes have EN/PL text; this is distinct from the still missing persistent EN | PL UI switch.
+Sequence and Component resolve the credential from the final model selection used
+to build their request. Once established, this immutable operation configuration
+survives subsequent setting changes and supplies both generation and review. An
+initial configuration without a model can adopt a fresh, successful selection;
+it cannot combine that selection with the initial provider's credential.
+Document extraction follows the same final-selection rule. The model picker now
+retains the caller's resource when reading project endpoint and timeout settings.
+
+## Publication contract
+
+`provider-configuration.ts` is a host-only guard shared by Select Model,
+legacy model materialization, Select Provider and Configuration Apply. It captures
+provider settings in all inspected scopes, workspace identity/trust and a host
+publication counter. Long-running interactions verify this snapshot after secret
+reads, listing and QuickPick. A completed or attempted publication invalidates
+older interactions even when the final settings happen to equal their initial
+values (ABA).
+
+Only one participating writer can publish at a time. A competing publication is
+rejected and must be explicitly retried. Every individual Global update compares
+the expected scoped values before and after awaiting VS Code. Unexpected changes
+stop subsequent writes. There is no compensating rollback over newer values.
+The existing fail-closed binding order is retained, including activating an
+explicit profile last when materializing legacy settings. `selected` requires
+that the effective profile, model, endpoint and timeout match the chosen result.
+
+The guard does not turn VS Code's multiple updates into a filesystem transaction.
+A failed/cancelled publication can leave a partial, unbound model. It does not
+provide CAS against arbitrary other extensions modifying the same settings while
+a single VS Code update is in flight. It serializes this extension's writers and
+detects observed external changes between updates; crash recovery is unchanged.
+
+The current guard also observes relevant external configuration events monotonically, so A→B→A cannot revive a stale interaction. See the [ABA correction](audit-provider-configuration-aba-fix.md) and [independent re-review](audit-provider-configuration-aba-independent-review.md).
+
+## Active input and native knowledge navigation
+
+MD/TXT captures exact editor text synchronously, including dirty and untitled buffers, before any
+picker/yield. K2 accepts an explicit editor-buffer input with true URI and hashes the captured UTF-8
+content separately from normalized extraction text. Review/save retains that origin and URI locally;
+URI is omitted from extraction requests and subsequent diagram knowledge-context projections. No temporary file poses as the source and no editor save occurs.
+Stable TabInputText/TabInputCustom URI supports local PDF/DOCX/XLSX preview files through existing
+conversion/OCR. Other tabs fail explicitly, without using a different/stale editor. Installed preview
+extensions vary; only a real local file URI is accepted. All paths use the same K2/K3 review and five-file save.
+
+## Native Knowledge tree
+
+Explorer view **Archi Agent — Knowledge** uses production source inspection and the K1 snapshot.
+The selected source can be a five-file pack, Structurizr JSON + overlay or MCP knowledge. Each
+workspace root has its own source selection; expanding it never changes settings or invokes a model.
+Source scope, omissions and actual provenance remain visible; missing local locators stay explicit.
+Systems show aliases and flat incoming/outgoing relation references; Relations, Rules, Actors and
+five Files retain native record/line locations. Sources/Evidence appear when K3 metadata is available.
+The loaded contract does not retain original file paths or frozen source text for ordinary file sources;
+those entries open local metadata/evidence details, without pretending to locate the original page. Editor-buffer entries can navigate their real local URI and evidence line only when the current normalized digest matches; changed or closed sources open frozen metadata details instead.
+Configuration activation, workspace changes, pack-file saves and Refresh invalidate the tree.
+Invalid/missing/unreadable packs replace old knowledge with an explicit state. No CRUD or merge.
+Browse Knowledge on Knowledge Management reveals this same view.
+
+## Language and observed limits
+
+Help selects bundled PL/EN instructions from the VS Code display language. Configuration defaults to English; bilingual list-status text does not implement a persistent application language switch. Live scanned-PDF knowledge extraction has no confirmed full end-to-end PASS: evidence locations passed, but a malformed model row was rejected. The earlier Markdown timeout was not reproduced. Selecting a model by native keyboard automation remains unconfirmed. These limits are retained in [project state](project-state.md).

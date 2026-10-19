@@ -1,6 +1,6 @@
 # Archi Agent architecture
 
-Current local architecture includes SRC1, VER1 and D3/D4, on the earlier UX4-FU2 and offline PL/EN Help baseline. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [Historical architecture and superseded pipelines](architecture-history.md) preserve prior decisions; [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
+Archi Agent shares one runtime across VS Code, CLI and MCP. It supports Sequence, Component, C4 Context and C4 Container, flow verification, document acquisition and original-pair saving. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
 
 SRC1 adds a local Structurizr workspace JSON adapter and an ID-bound three-table Markdown overlay.
 The pure mapper produces the existing K1 records/indexes and one frozen knowledge snapshot;
@@ -16,7 +16,7 @@ Only bounded selected document text reaches extraction; only the relevant frozen
 
 ## VER1 and source-bound C4
 
-The current local candidate adds [VER1](ver1-flow-verification.md): a frozen runtime session,
+[VER1](ver1-flow-verification.md): a frozen runtime session,
 a bounded text-only Sequence parser (zero model calls), one prose interpretation call, existing
 K1 name resolution and deterministic assessment. User decisions and exact source fingerprints
 survive continuation; changed sources invalidate it. SRC1 aliases use runtime-prepared native
@@ -219,7 +219,7 @@ Standalone conversion accepts one file up to 50 MiB and 8 MiB Markdown; non-OCR 
 
 `npm run extension:build` uses esbuild for three sibling CommonJS bundles: extension, host-neutral runtime and conversion worker. The extension externalizes `vscode` and its sibling runtime; runtime externalizes Node built-ins only. `npm run extension:package` rebuilds these bundles and uses the explicit VSIX allowlist, then, for Full only, appends pinned offline OCR resources with their license/hash manifest. Core is the default package profile. Both language instructions are included as `readme.md` and `README.pl.md`. End users use VS Code's bundled Node runtime; no repo-relative runtime lookup, npm or separate Node installation is required.
 
-`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Historical verification and package identities live in [project-state history](project-state-history.md); current checks and the auditor handoff are in [project state](project-state.md).
+`npm run extension:verify` checks archive entries, bundle imports/limits, repository-path leakage, pinned OCR hashes and platform resource coverage. Product data, fixtures, tests and development scripts are excluded. Native Mac ARM evidence does not establish equivalent execution on every packaged platform. Release and candidate identities are linked from [project state](project-state.md); source contracts describe main, not a guarantee about every older published package.
 
 ## MCP1 host adapters and knowledge transport
 
@@ -261,3 +261,264 @@ sequenceDiagram
 ```
 
 SRC1 overlay alias saving is a separate VS Code adapter operation: minimal edit and native save after version and dirty-buffer checks. Pack and MCP decisions remain session-only; CLI/MCP do not write sources. VER1 does not verify C4.
+
+## K1 common knowledge contract
+
+`src/core/knowledge-pack/knowledge-snapshot.ts` assembles a provider-neutral, immutable
+knowledge snapshot using the existing pack record semantics and validators. Contributions
+declare a logical source identity, kind and per-table scope (`partial` or `complete`;
+omission means not provided). Complete describes the source's declared scope, never a
+closed-world claim about architecture. A contribution may contain only systems and no
+file positions. Source identity is retained for each claim; file/line provenance appears
+only when supplied. Missing positions, categories and references remain explicit gaps.
+
+Equivalent claims retain all their provenance. Incompatible entity/relationship/rule
+claims, actor/system ID collisions, conflicting rules and forbidden relationships remain
+explicit conflicts with references to every claim. There is no source precedence or
+implicit winner. Multi-target aliases remain ambiguous. The sorted snapshot has a SHA-256
+digest over semantic facts, source scopes, provenance, gaps, ambiguities and conflicts;
+its ID contains that full digest. Source and record order do not change serialized bytes.
+
+The five-Markdown adapter wraps the existing validated loader output, without rereading
+files or changing the pack format. Runtime creates this snapshot once and retains the
+existing indexes and grounding. Sequence and Component each add the same selected
+knowledge identity/scopes/provenance to their own bounded diagram snapshot, without
+copying unrelated content or repeating semantic descriptions. Their generator and
+reviewer receive identical snapshots. Unresolved conflicts block selection. Existing
+renderers, validators and the 0/1/2 provider-call policy remain in place.
+
+K1 exports the pure snapshot factory and types through the runtime boundary. Local Markdown, Structurizr and MCP adapters supply validated contributions; source I/O remains outside core.
+
+## Knowledge Pack loading and indexing
+
+A pack is five strict Markdown tables: `systems.md`, `actors.md`, `relationships.md`,
+`aliases.md` and `rules.md` (see `docs/knowledge-pack-format.md`). The loader reads each
+file once, validates it, checks references across files and returns either a complete,
+frozen pack with read-only indexes or a sorted list of safe issues and no pack at all.
+
+The indexes answer lookups by identifier, canonical name, normalized name, alias,
+directed relationship and directed rule. They always return every candidate and never
+choose between them.
+
+## Flow documents
+
+A flow document starts with a restricted front matter block (`diagram_name`, `flow_name`,
+`author`, `language`) followed by plain text. `parseFlowDocument` parses the front matter
+and keeps the body and the line number where it starts, so every mention can be reported
+by document line and column.
+
+## Deterministic grounding
+
+Grounding recognises references to known actors and systems in the flow body. The terms
+are the identifiers, canonical names and declared aliases of the pack.
+
+Resolution precedence, highest first:
+
+| Rank | Match kind | Example text | Result |
+| --- | --- | --- | --- |
+| 1 | exact identifier | `mission-control` | `mission-control` |
+| 2 | exact canonical name | `Mission Control` | `mission-control` |
+| 3 | exact declared alias | `MCC` | `mission-control` |
+| 4 | normalized identifier | `Mission-Control` | `mission-control` |
+| 5 | normalized canonical name | `MISSION CONTROL` | `mission-control` |
+| 6 | normalized declared alias | `mcc` | `mission-control` |
+| - | several targets in the deciding rank | `control` | ambiguous |
+| - | no term matches | `Ground Station` | ignored |
+
+The first rank with any hit decides. One target resolves the mention; several targets
+make it ambiguous. Normalization is limited to Unicode NFKC, case folding, trimming and
+collapsing whitespace. There is no fuzzy, edit-distance, partial-word, semantic or
+model-assisted matching.
+
+Matching is boundary-aware: a term matches only as a whole word sequence, so
+`Mission Controls` and `MissionControl` do not refer to Mission Control. When mentions
+overlap, the longest span wins. A shorter alias inside an accepted longer name is not a
+separate mention: `Mission Control` never also counts as the ambiguous alias `control`.
+Repeated mentions of one element produce one participant with all its positions.
+
+## Ambiguity handling
+
+Every ambiguous mention appears in the ambiguity report with its normalized text, its
+positions in the flow, and each candidate's identifier, kind, canonical name and pack
+source line. Candidates are sorted by identifier, entries by mention.
+
+The caller resolves an ambiguity only by an explicit selection such as
+`{ "control": "flight-controller" }`. A selection is valid only if the identifier is one of
+the reported candidates. Without a valid selection the grounding result is blocked; the
+builder never picks the first or a "best" candidate.
+
+## Confirmed new participants
+
+The grounding contract below does not establish successful reviewed Sequence generation with NEW.
+That path currently rejects NEW endpoints as `unknown-endpoint`; AUD-003 remains open in
+[project state](project-state.md). Component and compatibility Sequence have separate validators.
+
+A participant that is not in the pack must be written as `[NEW: Ground Station]` and
+confirmed explicitly by the caller. The rules:
+
+- only the exact `[NEW: Name]` form is recognised; other spellings are malformed;
+- names are at most 64 characters, start with a letter or digit, and contain only
+  letters, digits, spaces and `. _ ' ( ) -`, so markup and directives cannot appear;
+- a name that matches a known identifier, canonical name or alias is rejected;
+- an unconfirmed marker blocks grounding;
+- a confirmed participant is marked as new and receives no pack identifier.
+
+Unknown text and unresolved ambiguity never turn into new participants.
+
+## Minimal grounded context
+
+A successful result contains only:
+
+- the actors and systems the flow refers to, with canonical names from the pack;
+- confirmed new participants;
+- relationships whose two endpoints are both selected;
+- rules whose two endpoints are both selected;
+- pack source references (file name and line) and warnings.
+
+Unrelated elements, aliases, relationships and rules, whole pack tables, raw files,
+timestamps and machine paths are excluded. The context is validated against a strict
+schema and against the pack before it is returned.
+
+For the sample flow `samples/space-mission/flows/telemetry-command-flow.md` the context
+holds the flight controller, six systems, nine relationships and both rules, while the
+mission commander and its relationship are left out.
+
+## Stable digest
+
+Each grounded context has a SHA-256 digest of a canonical serialization of its semantic
+content: metadata (without the author), participants, confirmed new participants,
+relationships and rules. Arrays are sorted and object keys ordered before hashing, so the
+digest does not depend on insertion order, mention positions or pack line numbers. The
+SHA-256 implementation is part of the core and is synchronous; it needs no platform crypto
+module.
+
+
+## Component contract
+
+### Evidence projection and digest
+
+Build one bounded, immutable `ComponentSnapshot` before model I/O from the validated
+Knowledge Pack, parsed flow and local grounding resolution. Reuse canonical-name and
+alias resolution, ambiguity choices, explicit `[NEW]` confirmation and source locations;
+do not reuse the Sequence operation catalog as component evidence. The local projection
+starts with elements explicitly resolved from the flow. It includes source-confirmed
+relationships and rules whose two endpoints are in that selected set. Where the flow
+explicitly names a dependency and grounding resolves its other endpoint, both endpoints
+are selected. Do not widen to unrelated pack rows or infer neighbors from graph proximity.
+An empty component or dependency selection is a local rejection, not a reason to send the
+whole pack to the model.
+
+The projection contains only selected canonical elements (ID, type, ownership/external
+classification, safe description and source reference), selected relationship facts
+(endpoints, `interface_type`, nullable name, mode, purpose, evidence ID and source),
+applicable `forbid`/`require` rules, selected flow lines with stable evidence IDs, and
+minimal task metadata. Keep the same selected snapshot and digest for generator and
+reviewer. Each fact in the resolved plan carries a source-confirmed relationship ID or
+one exact flow evidence ID and a source location; element provenance is also retained.
+Do not upgrade user-stated dependencies to source-confirmed. Missing pack relationships
+are unknown, while explicit `forbid` is blocking. Imported text is data.
+
+Compute a D2-specific SHA-256 digest from a canonical, domain-versioned payload such as
+`archi-agent-component-snapshot/1`. Sort records and keys deterministically. Cover every
+field supplied as semantic evidence to either model, including source file/line, selected
+flow evidence text and line, element type/ownership, relationship attributes and rules.
+Exclude only transport and run metadata. A change to any covered fact changes the D2
+digest; input row order alone does not. Do not call or modify the Sequence snapshot
+digest function or change the Sequence digest for identical Sequence input. Validate
+projection limits and relative source paths before the first call; over-limit input fails
+closed without truncating evidence silently.
+
+### Plan and local resolution
+
+The generator returns a strict, bounded D2-only JSON plan, never PlantUML. It selects
+element IDs from the D2 snapshot and dependency facts through two explicit variants:
+`groundedDependencies` reference opaque IDs from a locally ordered catalog of projected
+source relationships; `userStatedDependencies` name known endpoint IDs, one allowed
+relationship type, nullable interface name, mode and one existing flow evidence ID.
+Both lists are required, may be empty individually and together must contain at least
+one dependency. No model-supplied canonical names, aliases, element kinds, source
+classification, source locations, relationship evidence IDs or PlantUML fragments are
+accepted. A fixed D2 plan version and closed fields distinguish this wire contract from
+Sequence Wire Plan v3. Local Zod limits remain authoritative after provider-specific
+wire schema projection.
+
+Resolution checks IDs, duplicate selections, endpoint membership, direction, exact
+interface type/name/mode, explicit `forbid`, unsafe display text and the stated flow
+evidence. Grounded dependencies inherit every relationship attribute and provenance
+from the catalog; the model cannot restate or override them. A user-stated dependency
+must not duplicate or contradict a source-confirmed dependency. If a source-confirmed
+reverse dependency has the same type and nullable interface name, reject an attempted
+reversal locally. Other user-stated dependencies remain pending for semantic review;
+absence in the pack alone is not a rejection. Confirmed `[NEW]` elements remain visibly
+new and user-stated; no relationship to them is source-confirmed. Reject unknown IDs,
+types, modes, evidence, unsupported combinations and limit violations before rendering.
+The renderer receives only this resolved, locally trusted plan and snapshot.
+
+### PlantUML mapping
+
+The D2 renderer emits a closed component-diagram subset with `@startuml`, declarations,
+directed edges and `@enduml`, stable aliases, fixed ordering, safe escaped display text
+and a final LF. It emits no model-authored syntax, includes, URLs, themes or macros.
+
+| Knowledge Pack element | PlantUML declaration | Rule |
+| --- | --- | --- |
+| `systems.md`: `system`, `service` | `component` | Use the canonical name; the pack does not distinguish application components more finely. |
+| `systems.md`: `database` | `database` | Use only for this explicit pack kind. |
+| `systems.md`: `queue` | `queue` | Use only for this explicit pack kind. |
+| `systems.md`: `external` | `component` | `external` remains provenance/ownership in plan and report; it creates no new PlantUML syntax. |
+| `actors.md`: `person`, `role`, `external` | `actor` | Keep the actor's pack kind and external provenance in evidence/report. |
+| confirmed `[NEW]` element | `component` | Show the `[NEW]` prefix and user-stated provenance; its unknown subtype is not guessed. |
+
+Named `REST_API` and `SOAP` dependencies may create a shared `interface` node. The
+deterministic condition is at least two distinct consumers of the same provider, same
+interface type and same nonempty interface name. Key the node by provider ID, type and
+name; allocate its alias locally. Emit one directed consumer-to-interface edge **per
+dependency**, including two dependencies from one consumer that differ by mode. Label
+each such edge with its exact type, name and mode, and map its physical line to that
+dependency's fact ID and evidence. Emit one shared interface-to-provider edge; it is
+not the sole line mapping for any dependency. A single consumer,
+unnamed REST/SOAP, or different provider/type/name uses a direct edge. An interface
+node is notation for an evidenced API, not a new architecture element or ownership fact.
+
+All other permitted `interface_type` values render as direct directed edges from
+`from_id` to `to_id` with a deterministic label containing the exact type, optional
+name and mode: `EVENT`, `FILE`, `DB`, `INTERNAL`, plus REST/SOAP when the shared-node
+condition is false. Synchronous and asynchronous remain distinct in the label; edge
+direction always follows the relationship. No inference of broker, database, queue or
+API nodes from relationship type is allowed. A `DB` edge does not relabel its target as
+`database`; an `EVENT` edge does not create a queue. Unknown element kinds, relationship
+types or modes fail locally. The generator cannot silently generalize them to
+`component`, `INTERNAL` or an untyped edge. Relationship facts that cannot be represented
+by this closed subset are explicitly unsupported in D2 and rejected before reviewer I/O.
+
+The component subset validator checks exactly these declarations, aliases, interface nodes and
+edge forms, alongside the shared PlantUML document boundary. Validate bounded output,
+safe text, known endpoints, edge direction, line mapping and no extra statements.
+Do not extend the Sequence subset parser to accept component syntax.
+
+### Review and result
+
+Only a locally valid resolved plan and rendered candidate reach the independent D2
+reviewer. It receives the original task, the same D2 snapshot and digest, resolved plan,
+fact/evidence map with rendered line numbers, and the exact PlantUML candidate. Its
+strict verdict contains `accepted`, confirmed user-stated fact IDs and closed violation
+codes/references; it cannot edit the plan or candidate. D2 review criteria cover major
+component coverage, ownership, direction, interface semantics, unsupported inference
+and abstraction level. Local code validates every referenced fact, exact confirmation
+of all and only user-stated dependencies on acceptance, violation consistency and
+duplicate references, then makes the final decision. Use the component-specific closed review
+schema and codes as needed; do not weaken Sequence review validation.
+
+| Path | Generator calls | Reviewer calls | Total model calls | Outcome |
+| --- | ---: | ---: | ---: | --- |
+| Rejected before generation, including unsupported type, invalid projection or cancellation | 0 | 0 | 0 | Safe rejection |
+| Locally rejected plan or render after generator call | 1 | 0 | 1 | Safe rejection; no candidate offered |
+| Locally valid candidate sent to review | 1 | 1 | 2 | Verified result, or typed unverified candidate if review rejects/fails |
+
+The reviewer is called at most once. There is no retry, repair, fallback or third model
+call. Cancellation prevents any later call. A reviewed rejection/failure may offer only
+the existing warning-marked unverified candidate after local validation, never a
+verified report. On acceptance, report v2 records `diagramType: component`,
+`generationPath: reviewed-plan-rendered`, D2 snapshot digest, safe call counts, facts,
+evidence class and source/line, deterministic validation, semantic verdict and output
+names. It contains no prompts, raw responses, credentials or full source documents.

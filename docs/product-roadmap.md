@@ -1,49 +1,65 @@
 # Archi Agent — Product Roadmap
 
-## Current implemented product
+## Implemented product
 
-The current branch includes the locally verified SRC1 Structurizr JSON source with an ID-bound Markdown overlay, plus OBS1 diagnostics, UX3 onboarding, K1 shared knowledge/provenance, K2 bounded document extraction, K3 user review/new-pack saving, ART1 controlled original diagram/report saving, DOC1 bilingual documentation, UX4 Configuration and its FU1/FU2 corrections. Sequence, Component, C4 Context and C4 Container are implemented. VER1 verifies bounded Sequence PlantUML without LLM and prose with one interpretation call; alias decisions remain explicit. Local profiles are LM Studio/Ollama; cloud profiles are Anthropic/OpenAI/OpenRouter with SecretStorage keys. Offline conversion/OCR and PL/EN help are bundled. Knowledge Browser and active-buffer extraction are available; one model is selected explicitly with Apply/Discard.
+Archi Agent verifies Sequence PlantUML deterministically and prose with one interpretation
+request. It generates reviewed Sequence, Component, C4 Context and C4 Container diagrams.
+Local Markdown Knowledge Packs, Structurizr JSON + overlay and a deterministic MCP knowledge
+client supply canonical names, aliases, explicit ambiguity/NEW decisions and provenance.
+Document conversion, offline OCR in Full, candidate review/new-pack saving, original diagram/report
+saving, Knowledge Browser and PL/EN Help are implemented. VS Code, CLI and the four-tool MCP
+function server share one runtime. Local model profiles are LM Studio/Ollama; cloud profiles
+are Anthropic/OpenAI/OpenRouter.
 
-The earlier UX4-FU2 baseline `6863a30` passed its 294/294 automatic profile and independent review; those results remain historical. SRC1 checkpoint `3e33a6a` and the current locally accepted VER1/D3/D4 candidate have separate evidence in [project state](project-state.md) and [verification](ver1-c4-verification.md).
+Distribution: [demonstration prerelease v0.3.0-alpha.7-demo.1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1),
+with Core (recommended), Full (offline PL/EN OCR), CLI and two prepared project ZIPs.
+Main and release packages have distinct source identities. Exact evidence and unresolved issues
+belong in [project state](project-state.md), not in product descriptions.
 
-The implemented product is available as a GitHub test prerelease: [downloads](https://github.com/Setech-pl/archi-agent/releases), [README](../README.md) and [PL/EN owner tests](testing/owner-smoke.md). AUD-001/002 fixes and clean-clone CI are integrated; publication status and exact validation evidence are maintained in [project state](project-state.md). The earlier public alpha.4 remains the UX2 artifact. Release publication does not establish M1 or production readiness; AUD-003–006 remain OPEN.
+## Enterprise Architecture / Architektura korporacyjna
 
-## Known limits
+This is the next planned diagram group. It begins with a small separate business catalog,
+not a universal metamodel or a capability encoded as a software system.
+[EA1 plan](plans/ea1-capability-map.md) is ready for review; implementation requires a separate task.
 
-- Native end-to-end evidence is Mac ARM; other bundled platform resources do not establish equivalent tested support.
-- Knowledge Pack saves create new folders only: no existing-pack merge/update, persistent review drafts, autosave or acceptance history. SRC1 overlay aliases have a separate controlled native-editor save path.
-- Diagram/editor results are held in Extension Host memory; ART1 saves the original frozen pair, not later manual edits.
-- Saves use exclusive creation and conditional cleanup; no atomic multi-file publication, crash recovery or fsync guarantee.
-- Local checks verify a renderer subset; graphical PlantUML preview requires separate support.
-- Full live scanned-PDF knowledge build and model-selector keyboard automation remain unconfirmed by the earlier technical evidence. The original MD timeout was not reproduced.
-- Help is PL/EN; most controls are English, without a persistent whole-application language switch.
+| Order | View | Scope and dependencies |
+| --- | --- | --- |
+| EA1 | Capability Map | Local versioned enterprise.json; business capability IDs, L1–L3 hierarchy, provenance and optional explicit-scale assessments; deterministic projection, zero LLM; existing Create Diagram and ART1 |
+| EA1b | CLI/MCP and MCP knowledge source | Explicit enterprise contract/version discovery; retain existing knowledge v1 servers and functions; no invented capabilities when enterprise data is missing |
+| EA2 | Capability–Application Map | Explicit application IDs and capability support mappings with provenance and coverage; builds on the capability catalog |
+| EA3 | Value Stream | Explicit ordered stages, delivered value and capability mappings; no inferred process order |
+| EA4 | Application Landscape | Application portfolio, ownership/domains and optional explicit assessments; depends on the application contract |
 
-## Backlog and approved direction
+## Other planned and deferred work
 
-The owner's current direction is **SRC1 → VER1 → D3 → D4 → MCP1**. The clean-clone CI gate
-has a local checkpoint with clean-clone validation PASS on macOS ARM64 / Node 22.12.0.
-The approved packaging repair supplies the missing Windows ARM64 ICU from the SRI-verified
-Windows x64 canvas 0.1.97 tarball, retaining both lockfiles and all eight platforms.
-Linux x64 and macOS ARM64 GitHub jobs passed for main `152542f35c839c06a9bd0eed05a8a7e8e2523752`
-([run 38611666025](https://github.com/Setech-pl/archi-agent/actions/runs/38611666025)).
-This satisfies the CI prerequisite for SRC1; it is not evidence for the SRC1 implementation.
-SRC1 is locally implemented and verified under the [approved corrected contract](src1-structurizr-source.md); [verification](src1-verification.md) is separate from base CI and from the unchanged published alpha.6. VER1, D3 and D4 are implemented in the current local candidate; their passing local gates are recorded separately in [verification](ver1-c4-verification.md). MCP1 is implemented and locally verified; [MCP1 verification](mcp1-verification.md) records the exact candidate. Owner smoke remains DEFERRED; remote CI and Windows ARM64 runtime remain NOT_RUN.
-AUD-001/002 remain closed; AUD-003–006 remain OPEN. Windows ARM64 runtime is NOT_RUN.
-This does not establish M1 or production readiness.
+The order below is not a commitment and does not authorize implementation.
 
-| Step | Status / scope |
+| Area | Direction / boundary |
 | --- | --- |
-| CI | Local clean-clone PASS after the approved ICU packaging repair: 1824 root tests, 662 extension tests, package/verify 532 entries. GitHub Linux/macOS PASS for main 152542f (run 38611666025); Windows ARM64 runtime NOT_RUN. |
-| SRC1 → VER1 → D3 → D4 → MCP1 | Active owner-approved order. SRC1, VER1, D3 and D4 locally accepted; MCP1 implemented and locally verified; owner smoke DEFERRED. |
-| M1 | Historical MCP milestone; not resumed or declared ready. Active MCP work follows SRC1 and VER1 as MCP1. |
-| C1 | Deferred VS Code Chat participant; no current Chat integration or authorization to resume. |
-| D3 / D4 | C4 Context and Container in Create Diagram, source-bound local Structurizr hierarchy; see [contract](c4-diagrams.md). |
-| D5 | ArchiMate HLD remains planned. |
-| Knowledge updates | Existing-pack update/merge, additional sources and richer retrieval require separate approved scope. |
-| EA / external documents | EA XML remains deferred without a safe fixture. EA API, Prolaborate and external artifact providers remain future direction. |
-| Quality modes | Retry, repair, fallback or extra model calls require an explicit approved task. |
-| REL | Broader demo/branding/provider comparison/release preparation remains separate. Root package codename is preserved. |
+| Existing knowledge | Controlled existing-pack update/merge, persistent review drafts and richer retrieval need separate scope; current saves create new packs only |
+| Architecture sources | Additional API/database/EA/Prolaborate adapters behind validated source contracts; Enterprise Architect XML remains deferred until a safe representative fixture exists |
+| Document sources | Requirements/context remain distinct from canonical architecture; selected Confluence/Jira content through adapters is future work |
+| External artifacts | HTTPS, Google Drive, OneDrive and SharePoint are future artifact access, separate from parsing architecture or interpreting documents |
+| ArchiMate HLD | Planned small supported subset, with explicit concepts/relationships and no external includes; not complete language support |
+| VS Code Chat | Deferred participant integration; current MCP support does not imply a Chat participant |
+| Quality policies | Additional review modes, bounded repair, retry/fallback and extra model calls need explicit approval; no economy/balanced/quality setting exists |
+| Other views | Broader user-edited PlantUML validation and knowledge visualisation remain future work; Verify Flow currently covers Sequence/prose only. ST1 remains an unscoped backlog item |
+| Distribution | Marketplace/stable production release, wider native-platform validation and broader branding/provider comparison need separate acceptance; root package codename remains unchanged |
 
-The product remains a grounded architecture assistant with local deterministic names, aliases, explicit ambiguity resolution, confirmed NEW elements, provenance and partial coverage. Missing source relationships do not prove nonexistence. Runtime remains host-neutral and the installed VSIX self-contained. KISS/BUZI and ADR 0002 remain binding; the documentation task does not change architecture or request budgets.
+## Product constraints
 
-[Historical roadmap, milestones and detailed future scope](product-roadmap-history.md) preserve the previous record. Historical “next” sections are not active implementation instructions. Every new functional increment still requires approved scope under [development workflow](development-workflow.md).
+Grounding remains local and deterministic. Source-confirmed facts stay distinct from user-stated
+facts; missing relationships do not prove nonexistence. Only minimal selected evidence reaches
+a model. Untrusted results pass strict local validation. The four reviewed generation paths keep
+their two-call success budget; no retry/repair/fallback is implicit. EA1 proposes a separate
+zero-LLM projection. Core/runtime remain independent of VS Code and installed VSIX self-contained.
+
+Results and review sessions are in memory until saved. New-pack and ART1 saves use exclusive
+creation and conditional cleanup, with no atomic multi-file publication or crash recovery.
+Graphical PlantUML support is separate. Full supports pinned offline OCR, with known vector-page
+limitations recorded in project state. Help is PL/EN; a persistent whole-application language
+switch remains outside implemented scope. Native E2E evidence is strongest on macOS ARM64;
+packaged resources alone do not establish equivalent execution elsewhere.
+
+[Technical architecture](architecture.md) · [Architecture decisions](adr/0002-deterministic-diagram-plan-renderers.md)
+· [Development workflow](development-workflow.md).

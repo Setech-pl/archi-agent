@@ -12,7 +12,7 @@ for(const [language,name]of [['en','README.md'],['pl','README.pl.md']]){
   if(/^(https?:|#)/.test(target))return `${label}(${target})`;
   if(target===`../${language==='en'?'pl':'en'}/cli-mcp.md`)return `${label}(${language==='en'?'README.pl.md':'README.md'})`;
   const [relative,anchor]=target.split('#'),repoFile=path.relative(process.cwd(),path.resolve(sourceDir,relative)).split(path.sep).join('/');
-  return `${label}(https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/${repoFile}${anchor?'#'+anchor:''})`;
+  return `${label}(https://github.com/Setech-pl/archi-agent/blob/main/${repoFile}${anchor?'#'+anchor:''})`;
  }));
 }
 writeFileSync(path.join(stage,'distribution-profile.json'),JSON.stringify({schemaVersion:1,profile:'core',ocr:{required:false}})+'\n');

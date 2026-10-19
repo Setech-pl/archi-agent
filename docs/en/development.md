@@ -6,13 +6,14 @@
 
 Clone [Setech-pl/archi-agent](https://github.com/Setech-pl/archi-agent) into a development directory, then inspect Git before changing anything. The historical root package name remains `archground`. The root manifest requires Node.js `>=22.12.0`; use a supported installed Node/npm combination and the committed lockfiles. End users install a VSIX and do not run these commands.
 
-Read [AGENTS.md](../../AGENTS.md), [project state](../project-state.md), [workflow](../development-workflow.md), [roadmap](../product-roadmap.md), and the relevant contracts. Do not merge report-only audit branches into the product. Local checkpoints require authorization; push/merge/tag/publication are separate separate authorized actions.
+Read [AGENTS.md](../../AGENTS.md), [project state](../project-state.md), [workflow](../development-workflow.md), [roadmap](../product-roadmap.md), and the relevant contracts. Do not merge report-only audit branches into the product. Local checkpoints require authorization; push/merge/tag/publication are separately authorized actions.
 
 ## Build and verification
 
 ```bash
 npm ci
 npm ci --prefix experiments/ux2-ocr
+node scripts/prepare-ci-ocr.mjs
 npm test
 npm run typecheck
 npm run extension:typecheck
@@ -21,6 +22,8 @@ npm run extension:build
 npm run extension:package -- --profile core --out build/docs-pl-en/<unique-run>/candidate
 npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.7.vsix
 ```
+
+`prepare-ci-ocr.mjs` fetches and SRI-verifies all eight pinned canvas 0.1.97 platform tarballs and prepares Full resources, including the same-version ICU supplement. Run it before tests that package Full; the two npm installs alone do not supply these archives. [OCR build details](../../experiments/ux2-ocr/README.md).
 
 Replace `<unique-run>` with a new run directory name; do not reuse candidate outputs. `npm ci` preserves locked optional platform bindings; avoid ordinary `npm install` in this repo. Packaging rebuilds the extension/runtime/converter bundles. Core is the default and needs only root dependencies; Full additionally requires the OCR dependency set and pinned assets. Use --profile full explicitly for that package. Packaging/gauntlets sharing OCR staging directories run sequentially. `extension:verify` checks the exact VSIX allowlist, bundle boundaries and resource hashes. Record size and SHA-256 with the source commit/tree and actual changes; package version alone is insufficient.
 

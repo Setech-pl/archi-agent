@@ -106,4 +106,6 @@ Rozszerzenie VS Code zawiera potrzebny runtime: korzystanie z niego nie wymaga k
 
 [Instrukcja użytkownika](docs/pl/user-guide.md) · [Architektura](docs/pl/architecture.md) · [Dla programistów](docs/pl/development.md) · [Stan techniczny](docs/project-state.md)
 
+Dokumentacja main opisuje aktualny kod; opublikowane paczki identyfikują manifest wydania i dołączony Help.
+
 Archi Agent jest dostępny na [licencji MIT](LICENSE). Dołączone komponenty zachowują własne [informacje licencyjne](vscode-extension/THIRD_PARTY_NOTICES.md) oraz [informacje o komponentach OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).

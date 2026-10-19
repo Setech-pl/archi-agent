@@ -1,15 +1,15 @@
-# CLI i lokalny MCP — kandydat MCP1
+# CLI i lokalny MCP
 
 [English](../en/cli-mcp.md) · **Polski**
 
-Lokalny kandydat MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
-oraz dwa profile VS Code. Kandydat nie został opublikowany. Weryfikacja dotyczy Sequence
+Archi Agent udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
+oraz dwa profile VS Code. Jest dostępny w [wydaniu demonstracyjnym](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Dokumentacja main może wyprzedzać paczkę; manifest wydania identyfikuje jej snapshot źródeł. Weryfikacja dotyczy Sequence
 PlantUML i prozy, nie diagramów Component ani C4. Generowanie obsługuje cztery istniejące
 typy: Sequence, Component, C4 Context i C4 Container.
 
 ## Instalacja lokalnej paczki
 
-Sprawdź SHA-256 z raportu weryfikacji kandydata, następnie zainstaluj dostarczony tarball:
+Pobierz [tarball CLI/MCP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-cli-0.3.0-alpha.7.tgz), sprawdź SHA-256 według [sum kontrolnych](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) tego samego wydania i zainstaluj:
 
 ```bash
 npm install --global ./archi-agent-cli-0.3.0-alpha.7.tgz
@@ -201,7 +201,7 @@ Przykład rozdziela `src/knowledge-server/server.ts` (transport) i `adapter.ts` 
 Dodaj implementację KnowledgeAdapter.load w adapter.ts lub osobnym module, jawnie skomponuj
 ją w main.ts i przebuduj paczkę. Użyj wspólnych createKnowledgeResponse/validateKnowledgeResponse.
 Wersjonowane contributions zachowują oryginalne ID, wersję, zakres, pominięcia i provenance.
-Przyszłe adaptery API/EA/bazy danych mogą być częściowe, bez fikcyjnego Structurizr. Ten kandydat
+Przyszłe adaptery API/EA/bazy danych mogą być częściowe, bez fikcyjnego Structurizr. Obecna wersja
 ich nie implementuje. URI nie zawiera userinfo, query ani hash; fragment jest osobnym polem.
 Brak lokalnego lokatora jest jawny i nie jest zastępowany linią 1. Odpowiedź wiedzy ma limit
 pełnej ramki 64 MiB, wliczając escaping kopii tekstowej.
