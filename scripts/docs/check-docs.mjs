@@ -1,17 +1,19 @@
 // DOC1 checks, independent of production runtime and third-party Markdown libraries.
 import {readFileSync,writeFileSync,existsSync,readdirSync} from 'node:fs';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {openVsix} from '../../vscode-extension/scripts/vsix-zip.mjs';
 import {createHash} from 'node:crypto';
 const [outArg,vsixArg,mode,baselineArg]=process.argv.slice(2),out=path.resolve(outArg),vsix=path.resolve(vsixArg);
 assert.ok(['--docs','--help','--functional','--mcp1'].includes(mode),'Unknown documentation check mode');
-const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/doc2-pub1-verification.md','docs/product-roadmap.md','docs/en/cli-mcp.md','docs/pl/cli-mcp.md','examples/knowledge-server/README.md','docs/configuration-workbench.md','docs/ux4-model-selection.md','docs/ux4-owner-findings.md'];
+const files=['README.md','README.pl.md','vscode-extension/README.md','vscode-extension/README.pl.md',...['en','pl'].flatMap(l=>['user-guide','architecture','development'].map(n=>`docs/${l}/${n}.md`)),'docs/assets/README.md','docs/assets/screenshots/README.md','docs/testing/owner-smoke.md','scripts/docs/README.md','docs/architecture.md','docs/project-state.md','docs/product-roadmap.md','docs/en/cli-mcp.md','docs/pl/cli-mcp.md','examples/knowledge-server/README.md','docs/configuration-workbench.md','docs/mcp-knowledge-source.md',];
+const tracked=new Set(execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean));
 const issues=[],checks=[];const hash=b=>createHash('sha256').update(b).digest('hex');
 const content=f=>readFileSync(f,'utf8');
 function anchors(text){const counts=new Map();return new Set([...text.matchAll(/^#{1,6} (.+)$/gm)].map(m=>{const a=m[1].toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu,'').replace(/\s/g,'-');const n=counts.get(a)||0;counts.set(a,n+1);return a+(n?`-${n}`:'');}));}
 for(const file of files){
- if(!existsSync(file)){issues.push('missing '+file);continue;}
+ if(!tracked.has(file)||!existsSync(file)){issues.push('missing '+file);continue;}
  const text=content(file).replace(/```[\s\S]*?```/g,'');
  for(const m of text.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)){
   const link=m[1];if(/^(https?:|mailto:)/.test(link))continue;
@@ -21,7 +23,7 @@ for(const file of files){
   // Help images are copied into each package stage, not the tracked extension tree.
   if(file.startsWith('vscode-extension/README')&&target?.startsWith('help-assets/'))p=path.resolve('docs/assets/screenshots',path.basename(target));
   if(file.startsWith('vscode-extension/README')&&target==='ux2-ocr/TRIAL_NOTICES.md')p=path.resolve('experiments/ux2-ocr/TRIAL_NOTICES.md');
-  if(!existsSync(p)){issues.push(`broken link ${file}: ${link}`);continue;}
+  if(!tracked.has(path.relative(process.cwd(),p).split(path.sep).join('/'))||!existsSync(p)){issues.push(`broken link ${file}: ${link}`);continue;}
   if(anchor&&!anchors(content(p)).has(anchor))issues.push(`broken anchor ${file}: ${link}`);
  }
 }
@@ -78,6 +80,15 @@ for(const e of runtimeEntries) {
  } else assert.ok(archive.read(e).equals(baseline.read(e)),'runtime bytes changed: '+e);
 }
 checks.push({id:mode==='--help'?'help-links-and-runtime-worker-OCR-byte-parity':mode==='--functional'?'license-and-package-links-notices-preserved-worker-OCR':'license-and-exact-package-links-notices-runtime-byte-parity',status:'PASS',runtimeEntries:runtimeEntries.length});
+if(existsSync('docs/assets/readme/provenance.json')) {
+ const crops=JSON.parse(content('docs/assets/readme/provenance.json'));
+ for(const image of crops.images) {
+  assert.equal(hash(readFileSync('docs/assets/readme/'+image.file)),image.sha256,'README crop hash: '+image.file);
+  const source=path.posix.normalize(path.posix.join('docs/assets/readme',image.source));
+  const bytes=image.sourceDocumentationCommit?execFileSync('git',['show',image.sourceDocumentationCommit+':'+source]):readFileSync(source);
+  assert.equal(hash(bytes),image.sourceSha256,'README source hash: '+image.file);
+ }
+}
 const privacyPatterns=[/\/Users\//,/sk-[A-Za-z0-9]{16}/,/linkedin\.com/i];
 for(const file of files)if(existsSync(file)&&privacyPatterns.some(p=>p.test(content(file))))issues.push('private data pattern: '+file);
 const candidate={path:vsixArg,bytes:readFileSync(vsix).length,sha256:hash(readFileSync(vsix)),entries:entries.length};

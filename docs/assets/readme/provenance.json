@@ -1,5 +1,5 @@
 {
-  "purpose": "README-only crops of actual current UI captures. Original screenshots and packaged Help assets remain unchanged.",
+  "purpose": "README crops of actual UI captures. Original hashes and capture identity are preserved; source paths are historical, resolved by historicalSourceUrl.",
   "images": [
     {
       "file": "knowledge-browser.png",
@@ -22,7 +22,9 @@
         },
         "redrawn": false,
         "rescaled": false
-      }
+      },
+      "sourceDocumentationCommit": "fa586dd6f0398f72cdab4925bf5db907e00ebb23",
+      "historicalSourceUrl": "https://github.com/Setech-pl/archi-agent/blob/fa586dd6f0398f72cdab4925bf5db907e00ebb23/docs/assets/screenshots/04-browser.png"
     },
     {
       "file": "component-report.png",
@@ -45,7 +47,9 @@
         },
         "redrawn": false,
         "rescaled": false
-      }
+      },
+      "sourceDocumentationCommit": "fa586dd6f0398f72cdab4925bf5db907e00ebb23",
+      "historicalSourceUrl": "https://github.com/Setech-pl/archi-agent/blob/fa586dd6f0398f72cdab4925bf5db907e00ebb23/docs/assets/screenshots/09-component.png"
     }
   ]
 }

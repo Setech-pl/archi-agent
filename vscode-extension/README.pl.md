@@ -4,7 +4,7 @@
 
 ## Kandydat PR: profile i wiedza
 
-Nieopublikowany kandydat **0.3.0-alpha.7** dodaje CLI, serwer czterech funkcji MCP oraz klienta wiedzy MCP. Użyj dokładnych plików i SHA-256 z [raportu DOC2/PUB1](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/doc2-pub1-verification.md) albo manifestu artefaktów zaliczonego CI PR. Alpha.6 pozostaje wcześniejszym publicznym wydaniem. [Instalacja CLI/MCP, polecenia i kontrakty](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/pl/cli-mcp.md).
+Nieopublikowany kandydat **0.3.0-alpha.7** dodaje CLI, serwer czterech funkcji MCP oraz klienta wiedzy MCP. Użyj dokładnych plików i SHA-256 z [raportu DOC2/PUB1](https://github.com/Setech-pl/archi-agent/blob/fa586dd6f0398f72cdab4925bf5db907e00ebb23/docs/doc2-pub1-verification.md) albo manifestu artefaktów zaliczonego CI PR. Alpha.6 pozostaje wcześniejszym publicznym wydaniem. [Instalacja CLI/MCP, polecenia i kontrakty](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/pl/cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) jest rekomendowany nowym użytkownikom. Zawiera wspólny runtime oraz tekstową konwersję PDF/DOCX/XLSX, bez zależności i modeli OCR. **Full** (`setech-pl.archi-agent`) dodaje przypięte lokalne OCR PL/EN. Istniejący Full pozostaje Full. Żaden profil nie pobiera OCR. W Core Auto OCR działa dla tekstowych PDF; strona wymagająca OCR zatrzymuje konwersję z jawnym pokryciem, bez częściowego Markdown. OCR all pages wymaga Full. Uszkodzony Full zgłasza błąd instalacji: zainstaluj ponownie zweryfikowany VSIX Full.
 
@@ -57,7 +57,7 @@ Rzeczywiste zainstalowane UI, publiczny przykład Big Bank, syntetyczne odpowied
 
 ## Instalacja na Macu i Windows
 
-Pobierz VSIX Core lub Full z artefaktu zaliczonego Clean-clone CI PR. Porównaj SHA-256 z `SHA256SUMS` / `packages.json` artefaktu; hashe lokalnego kandydata są w [raporcie DOC2/PUB1](https://github.com/Setech-pl/archi-agent/blob/feature/mcp1-cli-mcp-core-full/docs/doc2-pub1-verification.md). Archiwum CI może mieć inny hash; użyj manifestu z tego samego pobrania. Nie opublikowano wydania alpha.7.
+Pobierz VSIX Core lub Full z artefaktu zaliczonego Clean-clone CI PR. Porównaj SHA-256 z `SHA256SUMS` / `packages.json` artefaktu; hashe lokalnego kandydata są w [raporcie DOC2/PUB1](https://github.com/Setech-pl/archi-agent/blob/fa586dd6f0398f72cdab4925bf5db907e00ebb23/docs/doc2-pub1-verification.md). Archiwum CI może mieć inny hash; użyj manifestu z tego samego pobrania. Nie opublikowano wydania alpha.7.
 
 Mac:
 
@@ -83,7 +83,7 @@ Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**
 
 ## Zacznij tutaj — pierwsze użycie
 
-![Menu zadań Archi: Open](help-assets/01-open.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -110,7 +110,7 @@ PDF może więc stać się tekstem po konwersji, potem kandydatami i zaakceptowa
 
 ## Provider, profil i model
 
-![Wybór dostawcy i modelu](help-assets/02-provider.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -142,7 +142,7 @@ Wybór profilu/modelu ma scope machine: Settings Sync go nie synchronizuje, a wo
 
 ## Wybór lub utworzenie aktywnego Knowledge Pack
 
-![Zarządzanie aktywną wiedzą](help-assets/03-knowledge.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -201,17 +201,17 @@ Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configurati
 
 Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.docx` lub `.xlsx` i obejrzyj niezapisany Markdown. Dla PDF wybierz **No OCR**, **Auto OCR** lub, w Full, **OCR all pages**. Auto zachowuje strony tekstowe i wykonuje OCR stron bez użytecznego tekstu. W Full modele OCR PL/EN są w paczce i działają offline; polecenie nie wysyła żądań do dostawcy i nie potrzebuje Knowledge Pack. Aby zachować Markdown, użyj zwykłego Save edytora. Sprawdź błędy OCR przed wykorzystaniem tekstu jako evidence. Konwersja nie tworzy packa ani diagramu.
 
-![Wybór trybu OCR PDF](help-assets/13-ocr.png)
+
 
 Historyczny przykład UI alpha.6.
 
-![Wynik lokalnej konwersji](help-assets/11-conversion.png)
+
 
 Historyczny przykład UI alpha.6.
 
 ## Dokumenty → nowy pack
 
-![Przegląd proponowanej wiedzy](help-assets/05-review.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -224,11 +224,11 @@ Historyczny przykład UI alpha.6.
 7. Wybierz istniejący folder nadrzędny i jedną **nową nazwę folderu packa**. Rozwiń pięć podglądów tylko do odczytu na tym samym ekranie: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. Zamrożony podgląd to dokładna treść zapisu.
 8. **Save** tworzy nowy pack i zachowuje aktywne ustawienie. **Save and use** najpierw zapisuje/wczytuje, potem aktywuje w wybranym scope UX3 (Global bez projektu). **saved, not activated** oznacza zachowane poprawne pliki przy błędzie konfiguracji; wybierz je później przez Choose Existing Knowledge Pack. Decyzje pozostają nad podglądami; **Cancel** lub zamknięcie panelu kończy przed zapisem. Po kolizji **Choose new pack folder** wybiera inny nowy cel bez ekstrakcji.
 
-![Edycja proponowanego wiersza](help-assets/06-edit.png)
+
 
 Historyczny przykład UI alpha.6.
 
-![Podgląd pięciu plików i lokalizacja](help-assets/07-pack-preview.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -247,7 +247,7 @@ Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowane
 
 ## Aktywny plik i Knowledge Browser
 
-![Przeglądarka aktywnej wiedzy](help-assets/04-browser.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -262,7 +262,7 @@ Drzewo zawiera także **Actors**. Po zewnętrznej edycji plików użyj **Refresh
 
 ## Generowanie i odczyt diagramu
 
-![Sequence i raport grounding](help-assets/08-sequence.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -284,13 +284,13 @@ Błąd wejścia/groundingu daje zero żądań generacyjnych; odrzucenie generato
 
 Gdy review odrzuci wynik/nie powiedzie się po lokalnych kontrolach, **Show unverified candidate** może otworzyć oznaczony kandydat bez raportu; Cancel niczego nie otwiera. Nie jest to ukończony wynik ART1. Anulowanie przez użytkownika nie proponuje kandydata. Stary identyfikator `archiAgent.generateSequenceDiagram` jest niewidocznym delegatem **Create Diagram**. Starsze API runtime z jednym wywołaniem pozostaje wewnętrzną ścieżką zgodności, bez osobnego wejścia użytkownika ani fallbacku.
 
-![Diagram Component i raport](help-assets/09-component.png)
+
 
 Historyczny przykład UI alpha.6.
 
 ## Zapis oryginalnego diagramu i raportu
 
-![Potwierdzenie zapisu oryginalnej pary](help-assets/10-save.png)
+
 
 Historyczny przykład UI alpha.6.
 
@@ -346,7 +346,7 @@ Na macOS natywny picker może zwrócić `/tmp` zamiast `/private/tmp`. Kontrolow
 
 ## Screenshoty, Help i licencja
 
-![Help offline z paczki](help-assets/14-help-pl.png)
+
 
 Historyczny przykład UI alpha.6.
 

@@ -6,7 +6,7 @@
 
 Clone [Setech-pl/archi-agent](https://github.com/Setech-pl/archi-agent) into a development directory, then inspect Git before changing anything. The historical root package name remains `archground`. The root manifest requires Node.js `>=22.12.0`; use a supported installed Node/npm combination and the committed lockfiles. End users install a VSIX and do not run these commands.
 
-Read [AGENTS.md](../../AGENTS.md), [project state](../project-state.md), [workflow](../development-workflow.md), [roadmap](../product-roadmap.md), and the relevant contracts. Do not merge report-only audit branches into the product. Local checkpoints require authorization; push/merge/tag/publication are separate separate authorized actions.
+Read [AGENTS.md](../../AGENTS.md), [project state](../project-state.md), [workflow](../development-workflow.md), [roadmap](../product-roadmap.md), and the relevant contracts. Do not merge report-only audit branches into the product. Local checkpoints require authorization; push/merge/tag/publication are separate authorized actions.
 
 ## Build and verification
 
@@ -28,7 +28,7 @@ Use focused checks for routine changes. Product code needs relevant tests, typec
 
 ## Documentation tools
 
-The PL/EN entrypoints are README, user-guide, architecture and development; shared media live in `docs/assets`. Technical contracts, roadmap and project-state keep their original paths. Diagram source is Mermaid in the two architecture guides. [Local tooling instructions](../../scripts/docs/README.md) pin a separate render environment; its npm packages never enter runtime/VSIX. Render locally, inspect every diagram, decode GIFs and inspect first/middle/last frames. [Capture reproduction and hashes](../assets/README.md) describe actual VS Code recording with synthetic responses. Raw frames/profiles stay outside tracked product files.
+The PL/EN entrypoints are README, user-guide, architecture and development; shared media live in `docs/assets`. Technical contracts, roadmap and project-state keep their original paths. Diagram source is Mermaid in the two architecture guides. [Local tooling instructions](../../scripts/docs/README.md) pin a separate render environment; its npm packages never enter runtime/VSIX. Render locally and inspect every diagram. [Capture reproduction and hashes](../assets/README.md) describe actual VS Code recording with synthetic responses. Raw frames/profiles stay outside tracked product files.
 
 The extension includes complete standalone English/Polish README files, MIT and third-party notices. Its strict package allowlist excludes root guides, GIFs, raw frames and audit reports. Keep both license copies identical. SPDX MIT applies to own packages, not all bundled components. Lockfile changes for DOC1 affect only own license metadata.
 
@@ -51,3 +51,32 @@ npm run demo:llm -- qwen/qwen3-14b
 ## MCP1
 
 Run the complete local acceptance with Node 22.12.0: `npm run mcp1:verify -- build/mcp1/<unique-run>`. It includes fresh Core/Full packages and CLI tarball, independent bundle parity, actual Host/UI, OCR integrity and previous-version profile upgrades. The Full predecessor must be the exact locally verified alpha.6 identified in the plan. Each run preserves its own reports; failures are never overwritten. Owner smoke and real-model quality remain separate. [CLI/MCP instructions](cli-mcp.md).
+
+## OCR preparation and ICU provenance
+
+Install both committed lockfiles with npm ci. Prepare OCR before packaging Full (or the single
+OCR profile on older branches). The preparation command below verifies all eight canvas 0.1.97
+platform tarballs against lockfile SRI and creates product assets; it does not require old results
+JSON or the historical external trial manifest. Missing resources fail closed.
+
+```bash
+node scripts/prepare-ci-ocr.mjs
+```
+
+Windows ARM64's missing icudtl.dat is supplied only from the SRI-verified Windows x64 canvas
+0.1.97 tarball. Both ICU files must have identical bytes and SHA-256; canvasResourceSupplements
+records donor/version/resolved/SRI/archive entry/paths/hashes. The upstream
+[release script](https://github.com/Brooooooklyn/canvas/commit/e1a75d1aa888dcdf44467875829d58ea19c6cdd7)
+uses the same ICU source for both architectures. No newer canvas or modified native binding is used.
+The pinned PDF.js display patch applies with zero fuzz and full GNU-compatible context; the worker,
+licenses and all platform resources keep their verified hashes. Packaging and verification are sequential.
+
+## Release procedure
+
+Use a fresh clone and explicit source SHA. Run the applicable tests, both typechecks, OCR preparation,
+package and verify for each existing distribution profile; preserve logs, failed attempts and exact
+artifact sizes/SHA-256 outside tracked documentation. Never reuse an earlier candidate directory.
+Only an explicitly authorized release may create a tag/prerelease or upload assets. CI package
+artifacts alone do not publish a release. Download published files and compare bytes/checksums with
+the verified candidates; retain the release manifest/source identity separately from a merge commit.
+Do not replace existing assets or infer owner smoke, live-model quality or platform execution from CI.
