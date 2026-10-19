@@ -1,16 +1,10 @@
 # Development workflow
 
-Proces pracy nad Archi Agent przy wymiennych wykonawcach (Claude Code, Codex). Zasady stałe są
-w [`AGENTS.md`](../AGENTS.md); bieżący stan w [`project-state.md`](project-state.md); kierunek
-produktu w [`product-roadmap.md`](product-roadmap.md).
+[AGENTS.md](../AGENTS.md) zawiera stałe reguły, [project-state](project-state.md) bieżący stan,
+[roadmapa](product-roadmap.md) kierunek.
 
-```text
-A. PLANOWANIE  →  B. weryfikacja planu  →  C. IMPLEMENTACJA  →  D. decyzja właściciela
-   (wykonawca)     (właściciel + przegląd    (wykonawca)           (commit / push / merge)
-                    zewnętrzny)
-```
-
-Każda faza to osobny prompt. Zakończenie fazy nie uruchamia automatycznie następnej.
+PLANOWANIE → niezależny review planu → IMPLEMENTACJA → odbiór/checkpoint/publikacja.
+Planowanie nie upoważnia do implementacji; roadmapa ani następny krok nie zastępują polecenia.
 
 ## Preflight (fazy A i C)
 
@@ -24,91 +18,28 @@ git diff --cached --stat      # staging area
 
 Następnie przeczytaj `docs/project-state.md` i porównaj go z wynikami powyżej.
 
-## Faza A — planowanie
 
-1. Właściciel przekazuje zadanie oznaczone **PLANOWANIE**.
-2. Wykonawca wykonuje preflight i czyta stan projektu.
-3. Analizuje kod i dokumentację istotne dla zadania.
-4. Przygotowuje plan **bez implementacji**: pliki, kontrakty, testy, ryzyka, non-goals, DoD.
-5. Kończy raportem z markerem `PLAN READY FOR REVIEW`.
 
-W tej fazie nie zmienia się kodu. Plan może zostać zapisany w raporcie; nie jest źródłem prawdy
-o stanie repo.
+## Implementacja i przekazanie
 
-## Faza B — weryfikacja planu
+Wdrażaj mały zatwierdzony zakres. Ponownie sprawdź założenia planu względem Git.
+Istotną zmianę architektury lub produktu zatrzymaj do decyzji właściciela.
+Raport ma wskazywać bazę, zakres/diff, wykonane kontrole i ich wyniki, NOT_RUN,
+otwarte ustalenia i stan Git. Przy planie użyj PLAN READY FOR REVIEW, przy implementacji
+IMPLEMENTATION READY FOR REVIEW. Nie przypisuj nowej sesji wyników historycznych.
 
-- Właściciel przekazuje plan do przeglądu zewnętrznego (np. ChatGPT) i sam go ocenia.
-- Wynik: plan zaakceptowany, poprawiony albo odrzucony.
-- Wpis w roadmapie lub w project-state nie oznacza akceptacji planu.
+Commit wymaga autoryzacji; push/merge/tag/publikacja mają osobny zakres autoryzacji.
+Przed końcem sprawdź diff i git diff --check. Aktualizuj krótki project-state;
+raporty, paczki i historię testów zachowuj lokalnie poza śledzoną dokumentacją.
 
-## Faza C — implementacja
+## Weryfikacja
 
-1. Wykonawca otrzymuje osobny prompt **IMPLEMENTACJA** z zatwierdzonym planem. Prompt:
-   - zawiera zatwierdzony plan lub pełne odwołanie do jego trwałej wersji;
-   - zawiera wszystkie decyzje i korekty wynikające z przeglądu planu;
-   - jest samowystarczalny dla Claude Code lub Codexa;
-   - nie zakłada dostępu do historii rozmowy poprzedniego wykonawcy.
-2. Ponownie wykonuje preflight.
-3. Sprawdza aktualność planu wobec bieżącego HEAD; różnice wskazuje w raporcie i dostosowuje tylko
-   elementy konieczne.
-4. Wdraża wyłącznie zatwierdzony zakres.
-5. Wykonuje wymaganą weryfikację (patrz „Weryfikacja” w `AGENTS.md`).
-6. Aktualizuje `docs/project-state.md`; roadmapę tylko przy zmianie zakresu lub stanu etapu.
-7. Kończy kompletnym raportem z markerem `IMPLEMENTATION READY FOR REVIEW`.
+Komendy i dostępne profile bierz z package.json tej gałęzi. Dla dokumentacji sprawdź
+linki, kotwice, zgodność PL/EN, obrazy, licencje i wejścia Help/pakowania.
+Dla kodu wykonaj odpowiednie testy, typecheck i build; runtime/bundling wymaga package/verify.
+Pełne bramki są wymagane dla checkpointu funkcjonalnego. Nie uruchamiaj wielokrotnie
+gauntletu dla samych porządków dokumentacji. Pakowanie wykonuj sekwencyjnie i zachowuj
+wcześniejsze kandydaty oraz ich sumy. Wymagane FAIL/NOT_RUN blokują PASS;
+niezależny review nie jest własną kontrolą autora.
 
-## Faza D — decyzja właściciela
-
-- Właściciel przegląda diff i wyniki weryfikacji.
-- Dopiero osobna decyzja zezwala na commit, push lub merge — wykonywane przez właściciela albo
-  na jego wyraźne polecenie.
-
-## Szablon raportu planowania
-
-```markdown
-## Raport planowania — <zadanie>
-
-**Preflight:** branch, HEAD, working tree, staging (stan zastany)
-**Stan wyjściowy:** co ustalono z kodu i Git (rozbieżności z project-state)
-
-### Cel i zakres
-### Non-goals
-### Proponowane zmiany
-| Plik | Zmiana |
-### Kontrakty i interfejsy
-(nowe/zmienione typy, porty, formaty; zgodność wstecz)
-### Testy
-(nowe testy, dotknięte testy, komendy weryfikacji)
-### Ryzyka i otwarte decyzje
-(pytania do właściciela — bez rozstrzygania na domysłach)
-### Definition of Done
-
-PLAN READY FOR REVIEW
-```
-
-## Szablon raportu implementacji
-
-```markdown
-## Raport implementacji — <zadanie>
-
-**Preflight:** branch, HEAD, working tree, staging (stan zastany)
-**Plan:** odniesienie do zatwierdzonego planu; odstępstwa i ich powód
-
-### Zmienione pliki
-| Plik | Zmiana |
-### Weryfikacja wykonana w tej sesji
-| Komenda | Wynik |
-### Nie wykonano / nie zweryfikowano
-(np. smoke test poza repo, LM Studio — z powodem)
-### Aktualizacja dokumentacji
-(project-state, roadmapa, dokumenty tematyczne)
-### Ryzyka i otwarte decyzje
-### Stan Git na koniec
-(`git status --short`, `git diff --stat`; brak commit/push/merge)
-
-IMPLEMENTATION READY FOR REVIEW
-```
-
-## Handoff przy utracie kontekstu
-
-Zaktualizuj w `docs/project-state.md`: aktywne zadanie i fazę, co jest zrobione, co niezweryfikowane,
-stan working tree i jeden następny krok. Nie wpisuj wyników testów, których nie uruchomiono.
+Szczegóły pakowania: [rozszerzenie](vscode-extension.md).
