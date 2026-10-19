@@ -2,85 +2,108 @@
 
 # Archi Agent
 
-Zamień przepływ i wiedzę o architekturze w diagram **Sequence, Component, C4 Context lub C4 Container** z raportem użytych nazw, relacji i dowodów. Sprawdź istniejący Sequence lub prozę względem tej samej wiedzy w VS Code, CLI albo pipeline PR.
+## Sprawdź integrację, zanim zaczniesz ją budować.
 
-![Sequence PlantUML i raport groundingu](docs/assets/screenshots/15-sequence.png)
+Porównaj projektowany przepływ z modelem architektury. Znajdź nierozpoznane systemy, połączenia nieobecne w modelu i rozbieżności w komunikacji synchronicznej oraz asynchronicznej. Przy każdym ustaleniu zobaczysz odwołania do źródeł.
 
-Przeczytaj wygenerowany Sequence obok oryginalnego raportu. Trzy ekrany diagramów używają **osobnego lokalnego renderu PlantUML 1.2026.6 / Smetana**, otwartego jako PNG w VS Code. Archi Agent sam otwiera tekst PlantUML; podgląd graficzny wymaga tego dodatkowego narzędzia lub rozszerzenia.
+Następnie przedstaw rozwiązanie na diagramie **Sequence, Component, C4 Context lub C4 Container**, korzystając z tej samej wiedzy o architekturze.
 
-## Tutoriale — gotowe projekty
+**[Pobierz Core — rekomendowany start](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix)** · [Pobierz Full — zawiera OCR offline](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix)
 
-Pobierz ZIP, zainstaluj Core lub Full, otwórz folder i uzyskaj pierwszy **wynik Verify Flow bez LLM**. Syntetyczna wiedza, nakładki i wejścia PL/EN są gotowe. Generowanie, proza i ekstrakcja dokumentów korzystają z Twojego providera.
+**[Wypróbuj gotowe projekty](docs/pl/tutorials.md)** · [Zacznij w VS Code](docs/pl/user-guide.md) · [Skorzystaj z CLI i MCP](docs/pl/cli-mcp.md)
 
-| Projekt | Pobranie | Tutoriale |
-| --- | --- | --- |
-| Retail Checkout — klient, zamówienia, płatności, magazyn i powiadomienia | [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-retail-checkout-0.3.0-alpha.7-demo.1.zip) | [Polski](examples/retail-checkout/START-HERE.pl.md) · [English](examples/retail-checkout/START-HERE.en.md) |
-| Mission Control — planowanie, telemetria, komendy, archiwum i alarmy; CLI, oba kierunki MCP, K3 i opcjonalny OCR | [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-mission-control-0.3.0-alpha.7-demo.1.zip) | [Polski](examples/mission-control/START-HERE.pl.md) · [English](examples/mission-control/START-HERE.en.md) |
+## Przyjdź na przegląd architektury z konkretnymi ustaleniami
 
-![Retail Checkout w Archi Agent](examples/retail-checkout/assets/project.png)
+Projekt integracji często obejmuje opis procesu, model systemów i kilka dokumentów. Archi Agent łączy je w jeden tok pracy: sprawdzasz przepływ, analizujesz różnice i udostępniasz diagram wraz z informacjami, na których się opiera.
 
-![Mission Control w Archi Agent](examples/mission-control/assets/project.png)
+- **Znajdź rozbieżności przed implementacją.** Sprawdź nazwy systemów, kierunki połączeń i sposób komunikacji względem podłączonego modelu.
+- **Ułatw rozmowę o rozwiązaniu.** Pokaż kolejność interakcji albo strukturę systemu na właściwym poziomie szczegółowości.
+- **Uporządkuj nazewnictwo.** Świadomie rozstrzygaj niejednoznaczne nazwy i zapisuj zatwierdzone aliasy w nakładce Structurizr do kolejnych sprawdzeń.
+- **Zachowaj podstawę decyzji.** Zapisz wygenerowany diagram i powiązany raport razem w projekcie.
 
-To rzeczywiste ekrany zainstalowanego UI na syntetycznych danych demo i z syntetycznym modelem. PNG diagramu wymagał osobnego lokalnego renderera PlantUML. [Indeks tutoriali](docs/pl/tutorials.md) · [Pokrycie i dowody](docs/demo1-verification.md).
+Połączenie nieobecne w modelu jest wskazywane jako brak w dostępnej wiedzy. Ty decydujesz, czy uzupełnienia wymaga model, czy zmiany potrzebuje projektowany przepływ.
 
-[VSIX Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix) · [VSIX Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix) · [CLI/MCP (Node 22.12+)](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-cli-0.3.0-alpha.7.tgz) · [SHA-256](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) · [Wybór paczek](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/DOWNLOADS.md).
+## Pokaż przepływ. Wyjaśnij strukturę.
 
-## Zobacz w działaniu
+![Diagram Sequence i raport źródeł w VS Code](docs/assets/screenshots/15-sequence.png)
 
-![C4 Context i raport powiązany ze źródłem](docs/assets/screenshots/16-c4-context.png)
+### Prześledź komunikację od początku do końca
 
-Pokaż użytkowników systemu i bezpośrednio połączone systemy wraz z ID źródła i pochodzeniem hierarchii.
+Przygotuj diagram Sequence na podstawie opisu albo sprawdź istniejący diagram sekwencji względem architektury.
 
-![C4 Container i raport](docs/assets/screenshots/17-c4-container.png)
+![Weryfikacja przepływu wskazuje rozbieżności i ich powiązanie z modelem](docs/assets/screenshots/18-verify-flow.png)
 
-Pokaż kontenery w granicy wybranego systemu i obsługiwane otoczenie zewnętrzne.
+### Umieść system w jego otoczeniu
 
-![Rozbieżności Verify Flow](docs/assets/screenshots/18-verify-flow.png)
+Diagram C4 Context pokazuje użytkowników systemu i połączenia z pozostałymi systemami.
 
-Znajdź rozbieżności i sprawdź pokrycie oraz provenance. Weryfikacja Sequence PlantUML wykonuje **zero żądań LLM**; proza używa jednego żądania interpretacji. Weryfikacja C4 nie jest zaimplementowana.
+![C4 Context pokazuje system i jego otoczenie](docs/assets/screenshots/16-c4-context.png)
 
-![Knowledge Browser z wiedzą Structurizr](docs/assets/screenshots/19-knowledge-browser.png)
+### Pokaż, co znajduje się wewnątrz
 
-Przeglądaj aktywną architekturę, oryginalne ID, obsługiwany zakres i pominięcia.
+C4 Container pomaga wyjaśnić strukturę systemu, a diagram Component — omówić zależności między elementami rozwiązania. Diagramy C4 wymagają w źródle metadanych typów i hierarchii.
 
-![Konfiguracja źródła Structurizr](docs/assets/screenshots/20-configuration.png)
+![C4 Container pokazuje granicę wybranego systemu i jego kontenery](docs/assets/screenshots/17-c4-container.png)
 
-Użyj JSON Structurizr z nakładką powiązaną po ID, samodzielnego packa Markdown albo jawnie skonfigurowanego źródła wiedzy MCP.
+Wynikiem generowania jest edytowalny PlantUML. Podgląd graficzny zapewnia osobne narzędzie lub rozszerzenie PlantUML. [Zobacz galerię](docs/assets/screenshots/README.md).
 
-To rzeczywiste ekrany zainstalowanego **0.3.0-alpha.7** na publicznych danych Big Bank, przechwycone na macOS ARM64. Odpowiedzi modelu są syntetyczne; UI i runtime są rzeczywiste. [Galeria i pochodzenie zrzutów PL/EN](docs/assets/screenshots/README.md).
+## Wykorzystaj wiedzę, którą już masz
 
-## Instalacja prerelease demonstracyjnego
+- **Structurizr JSON:** pracuj na istniejącym modelu z nakładką zawierającą aliasy, reguły i metadane interfejsów.
+- **Lokalne pakiety wiedzy:** przechowuj systemy, relacje i nazewnictwo w uporządkowanych plikach Markdown.
+- **Dokumenty:** wydobywaj propozycje wiedzy z PDF, DOCX, XLSX, Markdown i tekstu, a następnie przeglądaj je przed zapisem nowego pakietu.
+- **Źródła wiedzy MCP:** podłącz własny serwer i przygotuj adapter do API, bazy danych lub repozytorium architektury.
 
-Pełny przyrost SRC1 → VER1 → C4 → MCP1 i projekty DEMO1 są dostępne w [prerelease demonstracyjnym v0.3.0-alpha.7-demo.1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Pobierz publiczne assets i sprawdź `SHA256SUMS`. [Powiązanie źródeł, testowanego checkoutu i dowodów](docs/demo1-verification.md). Wcześniejsze alpha.6 nie zawiera tych dodatków.
+![Knowledge Browser przedstawia systemy i ich połączenia](docs/assets/screenshots/19-knowledge-browser.png)
 
-1. Wybierz **Core** (`setech-pl.archi-agent-core`) dla wspólnego runtime i tekstowej konwersji PDF/DOCX/XLSX. Wybierz **Full** (`setech-pl.archi-agent`), gdy potrzebujesz bundlowanego OCR PL/EN offline.
-2. Sprawdź SHA-256, następnie wybierz **Extensions → … → Install from VSIX…** w desktopowym VS Code. Żaden profil nie wymaga repozytorium, npm ani osobnej instalacji Node.js.
-3. Włącz dokładnie jeden profil i przeładuj okno. Oba mogą pozostać zainstalowane, lecz przy obu włączonych kolidują statyczne komendy/ustawienia/widoki. Przy zmianie profilu wspólne ustawienia pozostają; wprowadź klucze chmurowe ponownie dla wybranego ID. Klucze nie są przenoszone.
-4. Otwórz lokalny projekt, uruchom **Archi: Open**, skonfiguruj providera/model i wybierz źródło w **Configuration**. **Archi: Help** otwiera bundlowaną instrukcję PL/EN.
+[Poznaj źródła architektury](docs/pl/user-guide.md) · [Rozbuduj przykładowy serwer wiedzy](examples/knowledge-server/README.md)
 
-Full dodaje przypięte zasoby offline; OCR nie jest automatycznie pobierane. Core zatrzymuje konwersję, gdy strona PDF wymaga OCR, bez częściowego Markdown. Uszkodzony Full zgłasza błąd instalacji. [Instalacja, profile i konfiguracja](docs/pl/user-guide.md).
+## Wybierz, gdzie pracuje Twój model
 
-## Dostępne możliwości
+Użyj lokalnego modelu przez **LM Studio lub Ollama** albo połącz się z **Anthropic, OpenAI lub OpenRouter**, podając własny klucz API.
 
-- **Istniejąca architektura:** lokalny Structurizr `workspace.json` z nakładką `relationships.md`, `aliases.md`, `rules.md`; samodzielny pięcioplikowy pack Markdown; albo znormalizowana wiedza z jednego skonfigurowanego serwera MCP stdio. Bezpośrednia obsługa DSL Structurizr i import EA nie są zaimplementowane.
-- **Pozyskiwanie wiedzy z dokumentów:** lokalna konwersja PDF/DOCX/XLSX, ekstrakcja ograniczonego tekstu MD/TXT lub dokumentów z dowodami, review/edycja kandydatów i podgląd pięciu plików przed utworzeniem nowego packa. Istniejące packi nie są scalane ani aktualizowane.
-- **Cztery typy diagramów:** Sequence, Component, C4 Context i C4 Container. C4 wymaga metadanych typów/hierarchii; płaski pack bez nich daje jawne ograniczenie. Poprawna generacja używa jednego planu i jednego review na tym samym snapshotcie, bez retry/repair.
-- **Weryfikacja przepływów:** ograniczony Sequence PlantUML bez LLM, proza z jednym żądaniem interpretacji; jawne decyzje nazw i raport potwierdzeń, rozbieżności oraz pominiętego zakresu. Brak relacji w źródle nie dowodzi jej nieistnienia.
-- **Provenance i kontrolowany zapis:** fakty źródłowe pozostają odróżnialne od podanych przez użytkownika. ART1 zapisuje oryginalną zamrożoną parę diagram/raport do nowego folderu po potwierdzeniu; późniejsze zmiany edytora nie podmieniają jej po cichu. Aliasy SRC1 mają osobny chroniony zapis natywny.
-- **Wybór dostawcy:** LM Studio, Ollama, Anthropic, OpenAI lub OpenRouter. Klucze VS Code używają SecretStorage; CLI/MCP używa nazwanych zmiennych środowiska.
+Weryfikacja obsługiwanego podzbioru Sequence PlantUML działa bez LLM. Przy opisie tekstowym model rozpoznaje przepływ, a kod porównuje jego interpretację z architekturą.
 
-## CLI, pipeline PR i dwa kierunki MCP
+![Konfiguracja źródła architektury i modelu w VS Code](docs/assets/screenshots/20-configuration.png)
 
-Samodzielna paczka CLI/MCP wymaga **Node 22.12+**; zawiera bundlowany kod wykonywalny, bez repozytorium i instalacji zależności runtime. `knowledge inspect`, `flow verify` i `diagram generate` używają tego samego runtime co VS Code. W pipeline PR uruchom weryfikację Sequence z jawną konfiguracją/readRoots i sprawdź ocenę JSON oraz kod procesu: 0 zgodność w zakresie, 1 rozbieżności, 2 nierozstrzygnięte/częściowe/nieobsługiwane, 3 błąd wykonania. Tylko 0 zalicza bramkę weryfikacji.
+## Zacznij od kompletnego przykładu
 
-**Serwer funkcji Archi Agent** (`archi-agent mcp serve`) udostępnia zewnętrznemu klientowi MCP `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram`. **Klient wiedzy Archi Agent** wywołuje natomiast `get_knowledge_snapshot` na jawnie skonfigurowanym serwerze wiedzy. To odrębne kierunki; model nie wybiera tools ani programu. Dostarczony przykład `archi-agent-knowledge-server` współdzieli produkcyjne SRC1/K1 i rozdziela transport od adaptera źródła.
+Otwórz gotowy projekt z wiedzą architektoniczną, przykładowymi przepływami i instrukcją krok po kroku.
 
-[Instalacja CLI/MCP, pełna konfiguracja, polecenia i przykład PR](docs/pl/cli-mcp.md) · [Przykład adaptera serwera wiedzy](examples/knowledge-server/README.md).
+| Projekt | Co sprawdzisz | Pobieranie | Tutorial |
+| --- | --- | --- | --- |
+| **Retail Checkout** | Zamówienia, płatności i realizacja zakupu. Weryfikacja przepływów, cztery typy diagramów i źródła stojące za projektem. | [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-retail-checkout-0.3.0-alpha.7-demo.1.zip) | [Tutorial po polsku](examples/retail-checkout/START-HERE.pl.md) |
+| **Mission Control** | Telemetria, komendy i alarmy. Źródło wiedzy MCP, sprawdzanie przez CLI i pozyskiwanie wiedzy z dokumentów. | [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-mission-control-0.3.0-alpha.7-demo.1.zip) | [Tutorial po polsku](examples/mission-control/START-HERE.pl.md) |
 
-## Pomoc, ograniczenia i status
+Pierwsze sprawdzenie korzysta z Sequence PlantUML i **nie wymaga LLM**. Własny model skonfigurujesz, gdy przejdziesz do generowania diagramów, opisów tekstowych lub ekstrakcji wiedzy z dokumentów.
 
-[Instrukcja polska](docs/pl/user-guide.md) · [English guide](docs/en/user-guide.md) · [Zbiorczy owner smoke](docs/testing/mcp1-owner-smoke.md) · [Architektura](docs/pl/architecture.md) · [Development](docs/pl/development.md).
+[Przejdź do tutoriali](docs/pl/tutorials.md)
 
-**Owner smoke DEFERRED; rzeczywisty LLM NOT_RUN; Windows ARM64 runtime NOT_RUN; AUD-003–006 OPEN.** Historyczne C5 i bieżące kontrole dokumentacji/paczek są rozdzielone w [raporcie publikacji](docs/doc2-pub1-verification.md). Dowody natywnego UI dotyczą macOS ARM64; bundlowane zasoby platform nie potwierdzają równoważnego wykonania wszędzie. Help podąża za językiem VS Code i działa offline; większość kontrolek jest angielska. Zapis nowych folderów ma warunkowy cleanup, bez atomowej publikacji wielu plików i crash recovery. Bez wydania Marketplace i deklaracji M1/gotowości produkcyjnej. [Roadmapa](docs/product-roadmap.md).
+## Korzystaj z tych samych funkcji poza VS Code
 
-Kod Archi Agent jest objęty [MIT](LICENSE). Bundlowane komponenty zachowują własne [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) i [notices OCR Full](experiments/ux2-ocr/TRIAL_NOTICES.md).
+**CLI:** sprawdzaj diagramy sekwencji w pipeline PR i otrzymuj raport do dalszego przetwarzania oraz kod zakończenia procesu. [Pobierz CLI/MCP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-cli-0.3.0-alpha.7.tgz).
+
+**Serwer funkcji MCP:** udostępnij innemu klientowi MCP przeglądanie wiedzy, weryfikację przepływów i generowanie diagramów przez Archi Agent.
+
+**Klient wiedzy MCP:** pobieraj do Archi Agent wiedzę architektoniczną z własnego serwera.
+
+[Instrukcja CLI i MCP](docs/pl/cli-mcp.md)
+
+## Uruchom Archi Agent
+
+Pobierz [prerelease demonstracyjny v0.3.0-alpha.7-demo.1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). [Wybór paczek](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/DOWNLOADS.md) · [Sumy kontrolne SHA-256](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS).
+
+1. Wybierz **[Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix)** jako rekomendowany start do diagramów, weryfikacji i pracy ze źródłami architektury. Wybierz **[Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix)**, jeśli potrzebujesz także lokalnego OCR PL/EN dla skanowanych PDF-ów.
+2. Sprawdź sumę SHA-256 i zainstaluj wybrany profil w desktopowym VS Code 1.91+ przez **Extensions → … → Install from VSIX…**. Pozostaw włączony dokładnie jeden profil Core/Full i przeładuj okno.
+3. Otwórz projekt demonstracyjny, wybierz przygotowane źródło i uruchom **Archi: Verify Flow (Sequence / prose)**.
+4. Skonfiguruj model, gdy zechcesz generować diagramy lub pracować z opisami tekstowymi.
+
+Rozszerzenie VS Code zawiera potrzebny runtime: korzystanie z niego nie wymaga klonowania repozytorium, npm ani osobnej instalacji Node.js. CLI/MCP korzysta z Node.js 22.12 lub nowszego.
+
+[Instalacja i pobieranie](docs/pl/user-guide.md) · [Tutoriale](docs/pl/tutorials.md) · [Konfiguracja](docs/pl/user-guide.md#provider-profil-i-model)
+
+## Dokumentacja
+
+[Instrukcja użytkownika](docs/pl/user-guide.md) · [Architektura](docs/pl/architecture.md) · [Dla programistów](docs/pl/development.md) · [Stan techniczny](docs/project-state.md)
+
+Archi Agent jest dostępny na [licencji MIT](LICENSE). Dołączone komponenty zachowują własne [informacje licencyjne](vscode-extension/THIRD_PARTY_NOTICES.md) oraz [informacje o komponentach OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).
