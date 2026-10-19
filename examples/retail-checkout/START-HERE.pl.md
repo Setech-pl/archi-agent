@@ -91,3 +91,7 @@ Podmień **kopię** `architecture/workspace.json` na własny Structurizr JSON, z
 Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/demo1-verification.md).
 
 W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję views poza projekcją importu. Nie zmienia zgodnej oceny obsługiwanego kroku; tabela ćwiczeń wymienia dodatkowy izolowany problem.
+
+## Mapa zdolności — tylko bieżący checkout i lokalny VSIX EA1
+
+Powyższe opublikowane ZIP/VSIX nie zawierają EA1. Z nowym lokalnym kandydatem EA1 otwórz ten bieżący folder i wykonaj [tutorial mapy zdolności](../../docs/pl/capability-map.md). Wskaż `architecture/enterprise.json`; bez setup, źródła oprogramowania i providera. [Wyrenderowana mapa](assets/capability-map.png) · [PlantUML](assets/capability-map.puml).

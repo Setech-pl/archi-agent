@@ -19,41 +19,50 @@ i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0
 identyfikują dokładne publiczne pliki. VSIX nie wymaga repo/npm/Node; CLI/MCP wymaga Node >=22.12.
 Nie deklarujemy wydania stabilnego ani Marketplace.
 
-## Aktywne zadanie: DOC3 + plan EA1
+## Aktywne zadanie: IMPLEMENTACJA EA1 — Capability Map
 
-Gałąź `docs/doc3-ea1`, baza/HEAD `d723af09dacc71746a82c0fddcad97beb2cece8e`.
-Preflight: poprzednia gałąź feature na `fa586dd6f0398f72cdab4925bf5db907e00ebb23`,
-working tree czysty, staging pusty. Remote nazywa się `github`, nie `origin`.
-Zakres: konsolidacja dokumentów, bieżące instrukcje i Help PL/EN, celowane narzędzia oraz
-[plan Capability Map](plans/ea1-capability-map.md). Bez implementacji EA, zależności,
-commit/push/merge/tagów/publikacji i bez modyfikacji istniejących release assets.
+Gałąź `docs/doc3-ea1`, baza `d723af09dacc71746a82c0fddcad97beb2cece8e`.
+Osobny lokalny checkpoint DOC3: `ec3939cbcc9ca0ceaa9791c4378ae2f1c4fa6920`.
+Preflight EA1 potwierdził pusty staging i wyłącznie zastany przyrost DOC3; cudzych zmian nie cofano.
+DOC3 sprawdzono względem wszystkich zapisanych fingerprintów i diffu, ponownie wykonano
+kontrole linków/parytetu Help PL/EN, verify dokładnych Core/Full i 4 testy otwierania Help — PASS.
+Historyczne szersze dowody DOC3 pozostają w `build/doc3/verification-summary.json`.
+Review planu EA1: 0 HIGH, 2 MEDIUM zamknięte (istniejący limit JSON 1 MiB / 100 000 tokenów,
+wymagane version w SourceReference). Implementacja autoryzowana przez właściciela wraz
+z osobnym lokalnym checkpointem EA1; bez push/merge/tagów/publikacji i zmian release assets.
 
-Usunięto trzy historie, dawny plan D2, relacje FU1/FU2, ART1/FU-01 i pierwszy opis naprawy
-providerów. Aktualne kontrakty przeniesiono do [architektury](architecture.md),
-[Configuration](configuration-workbench.md), [profilów](diagram-profiles.md),
-[specyfikacji hosta](vscode-extension.md) i roadmapy. Historyczne dowody pozostają w Git;
-potrzebne odsyłacze używają pełnego SHA. Zachowano unikalny historyczny BLOCKER ABA,
-raport ICU i identyfikację publikacji alpha.5/6. Końcowe dowody ABA i re-review pozostają lokalne.
+Zaimplementowano osobny katalog enterprise/1, walidację/provenance, snapshot/digesty, projekcję
+całość/gałąź L1 i L1–L3, bezpieczny renderer, własny raport oraz ART1; routing Create Diagram
+przed packiem i providerem. Zero LLM i odczytów konfiguracji/kluczy providera.
+[Kontrakt](enterprise-catalog.md), [tutorial PL](pl/capability-map.md) / [EN](en/capability-map.md)
+i katalog Retail z rzeczywistym renderem w `examples/retail-checkout/`.
+Końcowy [raport EA1](ea1-verification.md) identyfikuje paczki i osobne warstwy odbioru.
+Bieżące bramki pod Node 22.12 PASS: root 2012/2012, rozszerzenie 745/745, oba typechecki,
+build, npm ci/audity root/OCR, prepare OCR, sekwencyjne package/verify Core (31 wpisów) i Full
+(553), demo dry run, dokumentacja PL/EN/Help i diff. Wyniki: `build/ea1/candidate-final-20261019/`.
+Pierwszy root miał 1 FAIL (stare oczekiwanie 4 typów) / 2010 PASS; poprawiono test. Po znalezieniu
+błędu lokalizacji brakującego pola uzasadniono ponowienie pełnych testów. Zaliczone instalacje/
+audyty z `candidate-20261019/` zachowano bez ponawiania; zależności/lockfile bez zmian.
 
-Bieżące kontrole DOC3 **PASS**: 104 pliki Markdown (linki/kotwice), parytet PL/EN,
-sync-help i testy pozytywne/negatywne narzędzi, Help z dokładnych świeżych Core/Full,
-package/verify (31/553 wpisy), instalacja offline CLI i zgodność czterech plików wykonywalnych
-CLI z DEMO1. Trzy bundle VSIX i 525 pozycji runtime/OCR Full zgodne z publicznym baseline;
-63 pliki mediów/provenance/licencji bez zmian, 12 źródeł Mermaid zgodnych z provenance.
-Cztery testy otwierania Help PASS (57 innych pominiętych). Wyniki lokalne: `build/doc3/`,
-`verification-summary.json`, `final-check-core/`, `final-check-full/`, `tool-checks-final/`.
-Pierwszy checker odrzucił starą paczkę Help; kolejny wykrył dwa stare anchory i zamierzoną
-różnicę języka CLI (poprawiono linki i jawnie uwzględniono tylko argument języka). Pierwszy
-harness porównania dużego bundle przekroczył bufor odczytu; poprawiono wyłącznie harness.
-CLI offline wymagał ponowienia poza sandboxem po odmowie zapisu cache npm; ponowienie PASS.
-Pełnego gauntletu, fresh clean-clone, nowego real Host/UI ani żywego LLM nie uruchamiano dla DOC3.
-Working tree zawiera wyłącznie ten przyrost dokumentów/narzędzi; staging pozostaje pusty.
-`git diff --check` PASS; bez commitów i operacji publikacyjnych.
-Niezależny review planu EA1 2026-10-19: 0 HIGH, 2 MEDIUM rozwiązane: limit istniejącego
-parsera 1 MiB / 100 000 tokenów i wymagane version w SourceReference. Implementacja EA1
-autoryzowana osobnym zadaniem właściciela; w tym checkpointcie wyłącznie DOC3 i plan.
-Przed checkpointem ponownie sprawdzono zgodność fingerprintów wszystkich zastanych plików
-z zapisanym raportem DOC3 oraz bieżące kontrole dokumentów, Help i verify Core/Full.
+Core: `build/ea1/candidate-final-20261019/core/archi-agent-core-0.3.0-alpha.7.vsix`,
+SHA-256 `b43a230992f6c580c9c14875d2f3992e495979f597ebf344fc1e16e38643484b`.
+Full: `build/ea1/candidate-final-20261019/full/archi-agent-full-0.3.0-alpha.7.vsix`,
+SHA-256 `6072f3e539c8efb8af1dc6ee4e3b908a1e6ab9004f243a13933f0f94bc6489d9`.
+Trzy bundle identyczne Core/Full. Dokładny runtime poza repo z pustym PATH/NODE_PATH:
+EA1 Core/Full 4/4 + 4/4 PASS, SRC1 3/3, VER1/C4 5/5, ART1 14/14 PASS.
+Rzeczywisty Extension Host **Core**: 18/18 PASS (single-folder/multi-root/global, providerReads=0),
+VS Code 1.142.0 / embedded Node 24.21.0. Widoczny UI **Core**: EA1 5/5, VER1/C4 7/7,
+SRC1/Sequence/Component/ART1 7/7 PASS; osobne dowody od controlled Host i spakowanego runtime.
+Full Host/UI nie uruchamiano osobno. Syntetyczne transporty regresji nie potwierdzają jakości LLM.
+
+Oględziny czterech rzeczywistych lokalnych renderów PASS. Review planu i implementacji w osobnych
+kontekstach: 0 otwartych HIGH/MEDIUM. Zamknięto tylko ustalenia EA1: wymagania parsera/reference,
+rzeczywiste lokalizacje brakujących pól, offline Help bez linków do nieopublikowanych nowych plików,
+LOW reserved-word legend. Reviewer potwierdził również finalne paczki, logi i prawdziwe Host/UI.
+OWNER_SMOKE: DEFERRED; live LLM/cloud, Windows/Linux wykonanie i fresh clean-clone NOT_RUN.
+Te kontrole nie są deklarowane jako zaliczone. Żadnego dawnego niezwiązanego AUD-ID nie zamknięto.
+Lokalny checkpoint EA1: commit zawierający ten stan i raport EA1; dokładny SHA w Git/raporcie końcowym.
+Po checkpointcie STOP: EA1b i kolejne diagramy poza zakresem, bez push/merge/tagów/publikacji.
 
 ## Otwarte kwestie
 
@@ -76,7 +85,7 @@ z zapisanym raportem DOC3 oraz bieżące kontrole dokumentów, Help i verify Cor
   wybierz regularny folder projektu zamiast obchodzenia walidacji ścieżki.
 - **Q-04 nadal do oceny owner smoke:** wybór kilku wyników tego samego typu pokazuje typ/czas/UUID,
   które trudno skorelować z kartami podglądu; nie dodano nazwy diagramu ani historii wyników.
-- Enterprise Architecture i ArchiMate HLD są planowane. Enterprise Architect XML nadal odłożone
+- EA1 Capability Map jest gotowa w lokalnym kandydacie; EA1b i kolejne widoki enterprise oraz ArchiMate HLD pozostają planowane. Enterprise Architect XML nadal odłożone
   bez bezpiecznego fixture. Historia M1 nie oznacza gotowości produkcyjnej.
 
 ## Istotne dowody (historyczne, nie wyniki DOC3)

@@ -6,6 +6,8 @@ Archi Agent keeps the editor host thin. Core owns deterministic knowledge, groun
 
 The diagrams below explain the implemented flows. Detailed interfaces, limits and failure contracts live in the [technical architecture](../architecture.md). [Diagram profiles](../diagram-profiles.md) explain which view to choose.
 
+The local EA1 candidate adds a separate deterministic enterprise catalog projection for Capability Map. It needs no provider, software pack or model, and uses its own provenance report with ART1. [Enterprise contract](../enterprise-catalog.md). The six software flow diagrams below keep their existing meaning.
+
 ## A. Components and boundaries
 
 ```mermaid

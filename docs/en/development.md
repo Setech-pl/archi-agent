@@ -54,3 +54,14 @@ npm run demo:llm -- qwen/qwen3-14b
 ## MCP1
 
 Run the complete local acceptance with Node 22.12.0: `npm run mcp1:verify -- build/mcp1/<unique-run>`. It includes fresh Core/Full packages and CLI tarball, independent bundle parity, actual Host/UI, OCR integrity and previous-version profile upgrades. The Full predecessor must be the exact locally verified alpha.6 identified in the plan. Each run preserves its own reports; failures are never overwritten. Owner smoke and real-model quality remain separate. [CLI/MCP instructions](cli-mcp.md).
+
+## EA1 verification
+
+The developer-only EA1 runner uses Node 22.12 and the existing local VS Code/macOS harnesses. Run modes sequentially on one unique output directory. `gates` runs clean installs/audits, suites, typechecks/build and sequential Core/Full package/verify; `runtime` extracts those exact files outside the repo with empty PATH/NODE_PATH; `host` runs the actual Extension Host with controlled editor responses. Visible UI is separate. The renderer helper and native UI helpers require the existing local tools described in scripts/docs/README.md. These scripts do not add enterprise commands to the product CLI.
+
+```bash
+node scripts/ea1-verify.mjs gates build/ea1/<unique-run>
+node scripts/ea1-verify.mjs runtime build/ea1/<unique-run>
+node scripts/ea1-verify.mjs host build/ea1/<unique-run>
+node scripts/ea1-real-ui-smoke.mjs build/ea1/<unique-run>/core/archi-agent-core-0.3.0-alpha.7.vsix build/ea1/<unique-run>/ui
+```

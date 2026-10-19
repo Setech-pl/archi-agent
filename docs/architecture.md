@@ -1,6 +1,6 @@
 # Archi Agent architecture
 
-Archi Agent shares one runtime across VS Code, CLI and MCP. It supports Sequence, Component, C4 Context and C4 Container, flow verification, document acquisition and original-pair saving. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
+Archi Agent shares one runtime across VS Code, CLI and MCP. It supports Sequence, Component, C4 Context and C4 Container, flow verification, document acquisition and original-pair saving. The local EA1 VS Code candidate adds deterministic Capability Map from an enterprise catalog. [English guide](en/architecture.md) · [Polski](pl/architecture.md). [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md) records the approved plan/validation/render/review direction.
 
 SRC1 adds a local Structurizr workspace JSON adapter and an ID-bound three-table Markdown overlay.
 The pure mapper produces the existing K1 records/indexes and one frozen knowledge snapshot;
@@ -13,6 +13,17 @@ See the [SRC1 contract](src1-structurizr-source.md) and [local verification](src
 
 Only bounded selected document text reaches extraction; only the relevant frozen architecture snapshot reaches diagram generation/review. Full architecture repositories and raw XML are not sent. Model outputs and imported sources are untrusted. Local schema/semantic checks remain fail-closed. Generator and semantic reviewer share the configured model but use separate requests and the same snapshot. No retry, repair, fallback or additional call is introduced.
 
+
+## EA1 deterministic enterprise projection
+
+The local Capability Map path uses a separate strict enterprise/1 catalog and report;
+[enterprise contract](enterprise-catalog.md). Core validates hierarchy, explicit scales and
+provenance, freezes the snapshot, projects a selected view and emits a closed PlantUML grammar.
+Node reads one bounded file with actual positions/fingerprint. Runtime composes these functions
+and a separate strict ART1 capture; the existing writer/envelope remains compatible.
+The editor routes this type before any software source/provider onboarding. No provider settings,
+keys, model listing, generation or semantic review are used. CLI/MCP enterprise remains EA1b.
+The existing generation sequence diagram below describes software diagrams only.
 
 ## VER1 and source-bound C4
 

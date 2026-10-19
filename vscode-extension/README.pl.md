@@ -20,6 +20,23 @@ Dla MCP ustaw `archiAgent.knowledgeServer` w **ustawieniach User**, następnie `
 
 **Serwer funkcji MCP** (`archi-agent mcp serve`) udostępnia zewnętrznym klientom `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram`. Opisany wyżej **klient wiedzy MCP** pobiera `get_knowledge_snapshot` z osobnego serwera źródła. Dostarczony przykład `archi-agent-knowledge-server` współdzieli produkcyjne SRC1/K1 i rozdziela transport od `KnowledgeAdapter.load`. W żadnym kierunku LLM nie wybiera tools źródła. CLI/serwery wymagają Node 22.12+ oraz jawnych readRoots/sekretów środowiska; VSIX używa Node VS Code i SecretStorage. W pipeline PR użyj `flow verify` i akceptuj tylko exit 0; 1 oznacza rozbieżności, 2 nierozstrzygnięte/częściowe/nieobsługiwane, 3 błąd wykonania. Pełna konfiguracja i polecenia: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
 
+## Mapa zdolności biznesowych — lokalny kandydat EA1
+
+Dostępna w nowym lokalnym kandydacie EA1 Core/Full, **nie w powyższych paczkach DEMO1**.
+Otwórz lokalny projekt i uruchom **Archi: Create Diagram → Architektura korporacyjna → Mapa zdolności biznesowych**.
+Wskaż `enterprise.json`, wybierz całą mapę lub gałąź L1, szczegółowość L1–L3 oraz brak kolorowania
+albo jawną skalę ocen. W multi-root najpierw wybierz projekt źródła. Nie potrzebujesz packa
+oprogramowania, providera, modelu ani klucza API; operacja wykonuje zero wywołań modelu.
+
+Dwa niezapisane edytory pokazują PlantUML i deterministyczny raport provenance. Zapisz oryginalną
+parę przez **Archi: Save Diagram and Report** i potwierdź miejsce; Cancel nie zapisuje częściowej pary.
+Szare „Brak danych” oznacza brak oceny. Oceny rodziców nie są agregowane; wielkość kafla nie jest oceną.
+Legenda/raport pokazują pokrycie źródła i świadome pominięcia zakresu/szczegółowości. Duża mapa wymaga
+jawnego zawężenia widoku. Raport nie jest semantic review ani Verify Flow.
+W bieżącym checkoucie `docs/pl/capability-map.md` zawiera ćwiczenie Retail i mapę referencyjną,
+a `docs/enterprise-catalog.md` opisuje dokładny kontrakt. To nowe lokalne dokumenty kandydata.
+Dostęp enterprise przez CLI/MCP należy do późniejszego EA1b.
+
 ## Verify Flow i C4
 
 Te funkcje są w wydaniu demonstracyjnym. Ekrany 15–20 pokazują ten zakres funkcji; ekrany 01–14 pozostają oznaczone jako historyczne przykłady UI.

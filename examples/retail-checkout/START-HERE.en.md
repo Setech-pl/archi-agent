@@ -91,3 +91,7 @@ Replace a **copy** of `architecture/workspace.json` with your Structurizr JSON, 
 Owner smoke **DEFERRED**; live LLM and Windows ARM64 runtime **NOT_RUN** during preparation; AUD-003–006 **OPEN**. Synthetic transport tests prove integration, not live-model quality. Native UI evidence is macOS ARM64. New-folder saves are guarded, without atomic multi-file publication/crash recovery. [Feature/evidence matrix](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/demo1-verification.md).
 
 Every report also includes the shared informational `source-not-covered` for Structurizr views outside the import projection. It does not invalidate a conformant supported step; the exercise table lists the additional isolated concern.
+
+## Capability Map — current checkout and local EA1 VSIX only
+
+The published ZIP/VSIX above does not contain EA1. With a new local EA1 candidate, open this current folder and follow the [Capability Map tutorial](../../docs/en/capability-map.md). Select `architecture/enterprise.json`; no setup, software source or provider is needed. [Rendered reference](assets/capability-map.png) · [PlantUML](assets/capability-map.puml).

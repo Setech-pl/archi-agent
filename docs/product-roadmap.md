@@ -20,7 +20,10 @@ belong in [project state](project-state.md), not in product descriptions.
 
 This is the next planned diagram group. It begins with a small separate business catalog,
 not a universal metamodel or a capability encoded as a software system.
-[EA1 plan](plans/ea1-capability-map.md) is ready for review; implementation requires a separate task.
+[EA1 plan](plans/ea1-capability-map.md) reviewed and implementation authorized 2026-10-19.
+Local Capability Map implementation and required automated verification are complete; owner smoke
+is deferred. [EA1 verification](ea1-verification.md). No publication; EA1b has not started.
+[Contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) / [PL](pl/capability-map.md).
 
 | Order | View | Scope and dependencies |
 | --- | --- | --- |
@@ -51,7 +54,7 @@ The order below is not a commitment and does not authorize implementation.
 Grounding remains local and deterministic. Source-confirmed facts stay distinct from user-stated
 facts; missing relationships do not prove nonexistence. Only minimal selected evidence reaches
 a model. Untrusted results pass strict local validation. The four reviewed generation paths keep
-their two-call success budget; no retry/repair/fallback is implicit. EA1 proposes a separate
+their two-call success budget; no retry/repair/fallback is implicit. EA1 uses a separate
 zero-LLM projection. Core/runtime remain independent of VS Code and installed VSIX self-contained.
 
 Results and review sessions are in memory until saved. New-pack and ART1 saves use exclusive

@@ -47,6 +47,12 @@ C4 Container pomaga wyjaśnić strukturę systemu, a diagram Component — omów
 
 Wynikiem generowania jest edytowalny PlantUML. Podgląd graficzny zapewnia osobne narzędzie lub rozszerzenie PlantUML. [Zobacz galerię](docs/assets/screenshots/README.md).
 
+## Zobacz zdolności biznesowe
+
+Nowy **lokalny kandydat EA1** tworzy mapę zdolności z lokalnego katalogu: zagnieżdżone kafle
+L1–L3, kolory jawnych ocen i raport źródeł. Nie wymaga modelu ani providera.
+[Wypróbuj mapę zdolności](docs/pl/capability-map.md). Powyższe paczki DEMO1 zachowują dotychczasowy zakres.
+
 ## Wykorzystaj wiedzę, którą już masz
 
 - **Structurizr JSON:** pracuj na istniejącym modelu z nakładką zawierającą aliasy, reguły i metadane interfejsów.

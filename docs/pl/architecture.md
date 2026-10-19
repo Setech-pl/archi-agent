@@ -6,6 +6,8 @@ Archi Agent zachowuje cienką warstwę edytora. Core odpowiada za deterministycz
 
 Diagramy poniżej objaśniają zaimplementowane przepływy. Szczegółowe interfejsy, limity i kontrakty błędów opisuje [architektura techniczna](../architecture.md). [Profile diagramów](../diagram-profiles.md) pomagają wybrać właściwy widok.
 
+Lokalny kandydat EA1 dodaje osobną deterministyczną projekcję katalogu enterprise dla mapy zdolności. Nie wymaga providera, packa oprogramowania ani modelu; ma własny raport provenance i zapis ART1. [Kontrakt enterprise](../enterprise-catalog.md). Sześć poniższych diagramów przepływów oprogramowania zachowuje dotychczasowe znaczenie.
+
 ## A. Komponenty i granice
 
 ```mermaid

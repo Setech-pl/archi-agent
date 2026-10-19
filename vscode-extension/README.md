@@ -20,6 +20,23 @@ For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAg
 
 The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
+## Capability Map — local EA1 candidate
+
+Available in the new local EA1 Core/Full candidate, **not in the published DEMO1 downloads above**.
+Open a local project and run **Archi: Create Diagram → Enterprise Architecture → Capability Map**.
+Select `enterprise.json`, choose the whole map or an L1 branch, L1–L3 detail, and no colors or an
+explicit rating scale. In multi-root workspaces select the source project first. No software pack,
+provider, model or API key is needed; this operation makes zero model calls.
+
+Two unsaved editors show PlantUML and the deterministic provenance report. Save the original pair
+with **Archi: Save Diagram and Report** and confirm the destination; Cancel writes no partial pair.
+Gray “No data” means an absent rating. Parent ratings are not aggregated; tile size is not a rating.
+The legend/report show source coverage and deliberate scope/detail omissions. Large maps require
+an explicit narrower view. This report is not semantic review or Verify Flow.
+In the current checkout, `docs/en/capability-map.md` contains the Retail exercise and reference map;
+`docs/enterprise-catalog.md` describes the exact contract. These new files are local candidate documentation.
+CLI/MCP enterprise access belongs to the later EA1b stage.
+
 ## Verify Flow and C4
 
 These features are included in the demonstration prerelease. Screens 15–20 show this feature set; screens 01–14 remain labelled as historical UI references.

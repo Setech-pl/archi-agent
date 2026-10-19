@@ -54,3 +54,14 @@ npm run demo:llm -- qwen/qwen3-14b
 ## MCP1
 
 Pełny lokalny odbiór uruchom Node 22.12.0: `npm run mcp1:verify -- build/mcp1/<unique-run>`. Obejmuje świeże Core/Full i tarball CLI, niezależną parity bundle, rzeczywisty Host/UI, integralność OCR i aktualizacje profili między wersjami. Poprzednik Full musi być dokładnym lokalnym alpha.6 wskazanym w planie. Każda próba zachowuje własne raporty; błędów nie nadpisujemy. Owner smoke i jakość żywego modelu pozostają osobnymi wynikami. [Instrukcja CLI/MCP](cli-mcp.md).
+
+## EA1 verification
+
+Narzędzie developerskie EA1 używa Node 22.12 oraz istniejących lokalnych harnessów VS Code/macOS. Uruchamiaj tryby kolejno na jednym unikalnym katalogu wyników. `gates` wykonuje czyste instalacje/audyty, zestawy testów, typechecki/build i sekwencyjne package/verify Core/Full; `runtime` rozpakowuje dokładne pliki poza repo z pustymi PATH/NODE_PATH; `host` używa rzeczywistego Extension Host ze sterowanymi odpowiedziami edytora. Widoczny UI to osobna warstwa. Renderer i natywne helpery UI wymagają lokalnych narzędzi opisanych w scripts/docs/README.md. Te skrypty nie dodają poleceń enterprise do produktowego CLI.
+
+```bash
+node scripts/ea1-verify.mjs gates build/ea1/<unique-run>
+node scripts/ea1-verify.mjs runtime build/ea1/<unique-run>
+node scripts/ea1-verify.mjs host build/ea1/<unique-run>
+node scripts/ea1-real-ui-smoke.mjs build/ea1/<unique-run>/core/archi-agent-core-0.3.0-alpha.7.vsix build/ea1/<unique-run>/ui
+```

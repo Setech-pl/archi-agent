@@ -127,3 +127,13 @@ between controlled Host answers, visible native UI, manual smoke and live-model 
 [Documentation tooling](../scripts/docs/README.md) defines Help/link/image/license checks.
 Historical smoke results are not current acceptance evidence; release/candidate reports are
 linked from [project state](project-state.md).
+
+## EA1 Capability Map
+
+Create Diagram adds the Enterprise Architecture group and one Capability Map option. Type
+selection precedes source/provider requirements. The native file picker explicitly selects a local
+enterprise.json after project selection in multi-root; it does not persist source/provider settings.
+Scope, detail and colors use QuickPick. Validation errors include a safe field/code/line, with no
+partial output. The two previews and Save command use the existing ART1 registry and writer.
+No new webview, catalog editor, credentials or model call is involved.
+[Enterprise contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) · [PL](pl/capability-map.md).

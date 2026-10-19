@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultTextAlignment center
+title Mapa zdolności biznesowych
+rectangle "L1 Relacje z klientami\nBrak danych" as cap_0003 #EEEEEE {
+  rectangle "L2 Zarządzanie zgodami klientów\nBrak danych" as cap_0002 #EEEEEE
+  rectangle "L2 Obsługa klienta\n2 - Mierzona" as cap_0004 #CEE0EA
+}
+rectangle "L1 Realizacja zamówień\n3 - Doskonalona" as cap_0006 #B8DAD5 {
+  rectangle "L2 Organizacja dostawy\nBrak danych" as cap_0005 #EEEEEE
+  rectangle "L2 Zarządzanie dostępnością\nproduktów\n0 - Początkowa" as cap_0007 #E8D6E8
+}
+rectangle "L1 Sprzedaż\n2 - Mierzona" as cap_0011 #CEE0EA {
+  rectangle "L2 Finalizacja zakupu\n2 - Mierzona" as cap_0001 #CEE0EA {
+    rectangle "L3 Potwierdzanie zamówień\nBrak danych" as cap_0008 #EEEEEE
+    rectangle "L3 Przyjmowanie i rozliczanie\npłatności za zakupy w kanałach\nsprzedaży\n3 - Doskonalona" as cap_0009 #B8DAD5
+  }
+  rectangle "L2 Obsługa zwrotów\n1 - Powtarzalna" as cap_0010 #E5DFB7
+}
+legend
+Źródło: Retail Checkout - katalog
+Źródło: syntetyczny
+Zakres źródła: Zdolności obsługi zakupów
+Zakres źródła: detalicznych
+Pokrycie: partial
+Widok: cała mapa; L1-L3
+Widoczne / pominięte: 11 / 0
+Skala: Dojrzałość
+|<#E8D6E8> 0 | Początkowa |
+|<#E5DFB7> 1 | Powtarzalna |
+|<#CEE0EA> 2 | Mierzona |
+|<#B8DAD5> 3 | Doskonalona |
+|<#EEEEEE> - | Brak danych |
+Oceny jawne; bez agregacji. Rozmiar kafla nie oznacza oceny.
+Projekcja deterministyczna; LLM: 0
+endlegend
+@enduml

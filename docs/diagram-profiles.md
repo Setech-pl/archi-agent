@@ -1,7 +1,9 @@
 # Diagram profiles
 
 Choose a view by the question it answers and the source data available. The implemented
-profiles are available in Create Diagram and through [CLI/MCP](en/cli-mcp.md).
+software profiles are available in Create Diagram and through [CLI/MCP](en/cli-mcp.md).
+The local EA1 candidate also adds Capability Map in Create Diagram, with zero model calls;
+enterprise CLI/MCP belongs to EA1b. [Capability Map](enterprise-catalog.md).
 [User guide EN](en/user-guide.md) · [Instrukcja PL](pl/user-guide.md).
 
 | Profile | Purpose | Required data | Supported boundary |
@@ -16,7 +18,14 @@ hierarchy: the local Structurizr JSON + overlay adapter supplies it; a knowledge
 may supply the same metadata. Missing hierarchy returns a controlled missing-data result.
 [Source contract](src1-structurizr-source.md) · [C4 contract](c4-diagrams.md).
 
-## Common generation contract
+## Capability Map (EA1)
+
+A separate business catalog supplies stable capability IDs, L1–L3 parents, explicit rating
+scales and provenance. The deterministic view uses no provider or software source. Whole-map
+or L1-branch selection and detail omissions remain explicit in its own provenance report.
+Original pairs use ART1. [Tutorial EN](en/capability-map.md) · [PL](pl/capability-map.md).
+
+## Common software generation contract
 
 The four profiles use a bounded selected snapshot, one type-specific semantic plan request,
 local plan/evidence validation, deterministic rendering, one independent semantic review and

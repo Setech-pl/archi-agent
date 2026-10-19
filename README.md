@@ -47,6 +47,12 @@ Use C4 Container to explain the system's internal structure and Component diagra
 
 Diagram output is editable PlantUML. Graphical previews use a separate PlantUML tool or extension. [View the gallery](docs/assets/screenshots/README.md).
 
+## See your business capabilities
+
+The new **local EA1 candidate** maps business capabilities from a local catalog, with nested
+L1–L3 tiles, explicit rating colors and a source report. It needs no model or provider.
+[Try the Capability Map](docs/en/capability-map.md). Published DEMO1 packages above retain their original features.
+
 ## Work with the knowledge you already have
 
 - **Structurizr JSON:** use your existing model with an overlay for aliases, rules and interface metadata.
