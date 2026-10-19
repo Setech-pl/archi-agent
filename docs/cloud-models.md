@@ -188,19 +188,5 @@ streaming, provider/model fallback or automatic key test.
 
 ## Optional manual smoke flows
 
-These are manual and excluded from automatic Definition of Done. **Each successful generation may
-incur provider cost.** Use a disposable synthetic flow/Knowledge Pack when possible and inspect the
-provider dashboard/logs to confirm one request for the compatibility command or exactly two
-requests for a deterministically valid reviewed sequence (one if local validation rejects it).
-
-1. Package and verify the VSIX, then install it in a clean VS Code profile outside the repository.
-2. Configure a synthetic Knowledge Pack and open a synthetic flow.
-3. Select one of Anthropic, OpenAI or OpenRouter; confirm selection caused no network request.
-4. Set that provider's key; confirm no validation request was made and the key is not visible.
-5. Select a model (one GET), then generate once (at most one POST).
-6. Verify PlantUML, grounding report and the exact provider-specific `generatorType`; verify no key
-   or response body appears in output or artifacts.
-7. Delete the key and confirm the next listing/generation is blocked before provider I/O.
-
-Repeat the flow separately for each cloud provider. For OpenRouter additionally confirm the request
-contains `allow_fallbacks: false`, `require_parameters: true` and no `models` field.
+See the current [user instructions EN](en/user-guide.md) / [PL](pl/user-guide.md)
+and [developer instructions](en/development.md).

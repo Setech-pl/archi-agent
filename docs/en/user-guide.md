@@ -30,7 +30,7 @@ Install the correct VSIX with **Extensions → … → Install from VSIX…**, t
 
 ## Start here — first use
 
-![Archi: Open task menu](../assets/screenshots/01-open.png)
+
 
 1. Download the [test prerelease 0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6), verify its checksum, install through **Extensions → … → Install from VSIX…**, reload if requested and open a local project folder. Confirm **0.3.0-alpha.6** in the extension details.
 2. Run **Archi: Configuration → LLM Provider**. Prepare LM Studio/Ollama or choose a cloud profile. For cloud, use **Set / Replace Key for <provider>** and enter the key in the masked native input.
@@ -55,7 +55,7 @@ A PDF can therefore become converted text, then candidates, then an accepted pac
 
 ## Provider, profile and model
 
-![Provider and model selection](../assets/screenshots/02-provider.png)
+
 
 A provider is the service executing the model. A profile selects its adapter and endpoint policy; the model ID selects one model at that provider.
 
@@ -85,7 +85,7 @@ Machine-scoped profile/model selections are not synchronized by Settings Sync or
 
 ## Choose or create the active Knowledge Pack
 
-![Active Knowledge Pack management](../assets/screenshots/03-knowledge.png)
+
 
 A Knowledge Pack is a local architecture catalog: systems, actors, relationships, aliases and rules. Grounding matches canonical names and aliases to this catalog before model generation.
 
@@ -142,13 +142,13 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or **OCR all pages**. Auto retains text pages and OCRs pages without usable text. Bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
-![Choose a PDF OCR mode](../assets/screenshots/13-ocr.png)
 
-![Local conversion result](../assets/screenshots/11-conversion.png)
+
+
 
 ## Documents to a new pack
 
-![Review proposed knowledge](../assets/screenshots/05-review.png)
+
 
 1. Run **Build Knowledge Pack from Documents** from the palette or the **Build Knowledge Pack from Documents** button in **Configuration → Knowledge Management**. Select explicit local `.md`, `.txt`, `.pdf`, `.docx`, `.xlsx` files. No directory scan or URL retrieval occurs. An existing pack is not needed.
 2. For PDFs the Builder's **PDF OCR mode** picker uses **none**, **auto**, **all**. `auto` keeps text pages and OCRs pages without text; `all` OCRs every page; `none` requires usable text. The separate **Convert to Markdown** command labels these choices **No OCR**, **Auto OCR**, **OCR all pages** and opens one unsaved Markdown editor. It needs neither provider nor pack and makes no network request.
@@ -159,9 +159,9 @@ Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` 
 7. Choose an existing parent folder and one **new pack folder name**. Expand the five read-only previews on the same screen: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. The immutable preview is the exact content saved.
 8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Choose Existing Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
 
-![Edit a proposed row](../assets/screenshots/06-edit.png)
 
-![Five-file preview and destination](../assets/screenshots/07-pack-preview.png)
+
+
 
 There is one active build per Extension Host. Cancel or closing the review panel ends the build; a completed save releases the build guard. There are no persistent drafts, autosave, existing-pack update/merge or acceptance history. A new command means a new extraction. Review/edit/validation/preview/save/activation use **zero additional LLM requests**, even after a save collision and return to review.
 
@@ -178,7 +178,7 @@ Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas,
 
 ## Active file and Knowledge Browser
 
-![Browse the active knowledge](../assets/screenshots/04-browser.png)
+
 
 **Archi: Build Knowledge Pack from Active File** captures unsaved Markdown/TXT text (including untitled) before extraction. It never saves the editor. A local PDF/DOCX/XLSX custom preview must expose its file URI; otherwise open a supported source explicitly. The same evidence review, five previews, Save and Save and use follow.
 
@@ -191,7 +191,7 @@ The tree also includes **Actors**. Use **Refresh Knowledge** in the tree title a
 
 ## Generate and inspect a diagram
 
-![Sequence and grounding report](../assets/screenshots/08-sequence.png)
+
 
 Choose **Create Diagram → Sequence** (ordered interactions) or **Component** (components and dependencies). Select the active flow document, **Choose a flow file**, or type a description. A file needs restricted front matter; a typed description supplies metadata through UI. Use the same synthetic file in either language:
 
@@ -211,11 +211,11 @@ Invalid input/grounding makes zero generation calls; generator/local rejection o
 
 If semantic review rejects/fails after local checks, **Show unverified candidate** may open a marked candidate without a report; Cancel opens nothing. It is not a completed ART1 result. User cancellation does not offer an unverified candidate. The old `archiAgent.generateSequenceDiagram` command ID is an invisible delegate to **Create Diagram**. The older one-call runtime compatibility API remains available internally; it is not a separate user entry or fallback.
 
-![Component diagram and report](../assets/screenshots/09-component.png)
+
 
 ## Save the original diagram and report
 
-![Confirm the original diagram and report pair](../assets/screenshots/10-save.png)
+
 
 Use the generation notification's **Save Diagram and Report**, the palette's **Archi: Save Diagram and Report**, or the Open menu. The menu/palette selects an original result by diagram type, UTC creation time and result UUID. With one local project it is the target; multi-root explicitly asks for the destination project. Without a project, open a local folder first. Confirm the displayed original result, full new folder, `diagram.puml` and `report.json` in the modal. Cancel before save creates nothing.
 
@@ -269,7 +269,7 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 ## Screenshots, Help and license
 
-![Bundled offline Help](../assets/screenshots/12-help.png)
+
 
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](../assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 

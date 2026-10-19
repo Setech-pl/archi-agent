@@ -1,6 +1,6 @@
 # UX4 configuration and review workbench
 
-Current behavior includes UX4-FU1/FU2 (`6863a30`) and PL/EN offline Help. It is a branch build, not a new release. Historical results below refer only to their original candidates. Current verification and next audit: [project state](project-state.md).
+Implemented configuration and review behavior. Distribution and unresolved quality limits: [project state](project-state.md).
 
 ## Visible navigation
 
@@ -79,33 +79,43 @@ operations; a closed panel cannot start a listing or destination picker. Source 
 are assigned with textContent/value, never HTML. Tabs use ARIA roles and arrow/Home/End keyboard
 navigation. VS Code theme variables provide light/dark/high contrast and focus styles; layouts wrap.
 
-Required functional profile is the ART1 superset extended with UX4: clean root/OCR installs,
-audits, root/extension tests, both typechecks, build/package/verify, demo and diff checks; exact
-packaged K1/K2/K3/UX3/DOCX/ART1 runtime; real UX3/K3/ART1/UX4 Extension Host; native configuration,
-review, pickers and ART1 UI. `npm run ux4:gauntlet` stores a unique `build/ux4/gauntlet-…/` with
-source fingerprints, exact VSIX bytes/SHA, command logs, per-case results and screenshots.
-Controlled Host messages are separate from native UI. Tests use synthetic sources/loopback
-transports, which establish no live LLM quality or acceptance review.
+## Model catalog and explicit selection
 
-Independent read-only GPT-6.1 Sol/high review and no open HIGH/MEDIUM are required before the
-local checkpoint. Required FAIL/NOT_RUN also block it. Historical test forms retain their original NOT_RUN observations.
 
-## Verified local candidate (2026-10-09)
+Every local list entry still passes the existing safe-ID check. Raw response size, entry count, content type, UTF-8, JSON, timeout, cancellation, redirects and literal-loopback validation remain unchanged. Repeated exact safe local IDs become one sorted choice; no trimming, aliasing, skipped unsafe entry or new model identity. Cloud parsers are unchanged.
 
-Evidence: `build/ux4/gauntlet-2026-10-09T12-26-40-457Z-37727/`. Full gauntlet272/272 PASS without FAIL/NOT_RUN; root1670,
-extension514, focused433, clean installs/audits0, both typechecks, build/package/verify531,
-demo, packaged runtime regressions, real Host99 and native UI37. The exact candidate is
-119869441 bytes, SHA-256 `358c31ffdd985b0612136b975cd80ea39b3d55304fc2ef2c3538003d2f573647`.
-Independent read-only GPT-6.1 Sol/high review round3: no HIGH/MEDIUM remain. Earlier rounds
-remain preserved and blocked; their Apply/lifetime findings are closed. Final manifest
-records only status-documentation changes after the gauntlet and reconfirms bundle parity.
-The new isolated manual-test handoff retains33 earlier cases and adds12 UX4, all NOT_RUN.
-Manual smoke NOT_COMPLETED; no live model quality inferred. No release/version change.
+Refresh Models captures the visible form's profile, endpoint and timeout without writing configuration. Fixed provider endpoints remain fixed. SecretStorage credentials are captured for that profile only; no values enter webview/state/logs. Check Provider Configuration retains applied settings and requires Apply/Discard when dirty. No generation, retry/fallback or implicit refresh.
 
-## UX4-FU1 follow-up
+Available models is a visible select with exact IDs and an explicit empty placeholder; Selected model retains manual exact-ID entry. A selection updates only the draft; Apply persists the existing selectedModel/selectedModelProfile binding. No automatic model choice. Discard/reopen/restart use saved settings. Model-only edits retain the catalog; profile/endpoint/timeout/settings/key/panel changes cancel/invalidate it. Publication sequence is separate from semantic request invalidation, so an unrelated state publication does not discard a current response. Loading ends on success, empty, invalid and failed response; recovery is explicit Refresh. New list-status messages are provided in English and Polish, without raw provider responses.
 
-Current navigation, draft-profile keys, active-file input and native knowledge tree: [reported findings and contract](ux4-owner-findings.md). The verified candidate above remains historical evidence for its original SHA. The follow-up uses a fresh artifact and manual-test handoff; no PASS is transferred.
 
-## UX4-FU2 model-list follow-up
 
-[Reproduction and current listing contract](ux4-model-selection.md) supersede the original applied-only Refresh rule. Native Available models provides visible exact-ID options. New listing outcomes have EN/PL text; this is distinct from the still missing persistent EN | PL UI switch.
+## Public commands and active editor input
+
+Nine visible commands use category **Archi**: Open, Configuration, Knowledge Browser,
+Build Knowledge Pack from Documents, Build Knowledge Pack from Active File, Create Diagram,
+Save Diagram and Report, Convert to Markdown, Help. Legacy IDs remain hidden delegates; Configure
+Knowledge Pack and Check Provider Configuration are accessed from Configuration. Open is a short hub.
+Sequence/Component remain one type picker. Editor title exposes the active-file command.
+
+MD/TXT captures exact editor text synchronously, including dirty and untitled buffers, before any
+picker/yield. K2 accepts an explicit editor-buffer input with true URI and hashes the captured UTF-8
+content separately from normalized extraction text. Review/save retains that origin and URI locally;
+URI is omitted from extraction requests and subsequent diagram knowledge-context projections. No temporary file poses as the source and no editor save occurs.
+Stable TabInputText/TabInputCustom URI supports local PDF/DOCX/XLSX preview files through existing
+conversion/OCR. Other tabs fail explicitly, without using a different/stale editor. Installed preview
+extensions vary; only a real local file URI is accepted. All paths use the same K2/K3 review and five-file save.
+
+
+
+## Native Knowledge tree
+
+Explorer view **Archi Agent — Knowledge** uses the production five-file loader and K1 snapshot.
+Each workspace root has its own active pack; expanding it never changes settings or invokes a model.
+Systems show aliases and flat incoming/outgoing relation references; Relations, Rules, Actors and
+five Files retain native record/line locations. Sources/Evidence appear when K3 metadata is available.
+The loaded contract does not retain original file paths or frozen source text for ordinary file sources;
+those entries open local metadata/evidence details, without pretending to locate the original page. Editor-buffer entries can navigate their real local URI and evidence line only when the current normalized digest matches; changed or closed sources open frozen metadata details instead.
+Configuration activation, workspace changes, pack-file saves and Refresh invalidate the tree.
+Invalid/missing/unreadable packs replace old knowledge with an explicit state. No CRUD or merge.
+Browse Knowledge on Knowledge Management reveals this same view.

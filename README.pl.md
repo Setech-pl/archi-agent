@@ -6,7 +6,7 @@ Zamień opis przepływu i wiedzę o architekturze w diagram Sequence lub Compone
 
 Archi Agent pomaga architektom i analitykom dokumentować interakcje usług, wyjaśniać zależności systemów i przeglądać wiedzę proponowaną z dokumentów w VS Code. Wspólny katalog nazw i aliasów ogranicza powtarzanie pracy nad nazewnictwem; raport pomaga sprawdzić podstawy diagramu przed jego udostępnieniem.
 
-![Konfiguracja dostawcy i modelu w aktualnym UI Archi Agent](docs/assets/screenshots/02-provider.png)
+
 
 ## Pobierz i uruchom
 
@@ -40,15 +40,15 @@ Pakiet zawiera runtime, lokalną konwersję dokumentów i OCR PL/EN offline. Uż
 
 ## Zobacz przebieg pracy
 
-![Przegląd propozycji wiedzy i evidence](docs/assets/screenshots/05-review.png)
+
 
 Sprawdź proponowaną wiedzę przed akceptacją.
 
-![Diagram Sequence i raport grounding](docs/assets/screenshots/08-sequence.png)
+
 
 Obejrzyj PlantUML i powiązany raport obok siebie.
 
-![Potwierdzenie zapisu oryginalnego diagramu i raportu](docs/assets/screenshots/10-save.png)
+
 
 Potwierdź oryginalny wynik i lokalizację przed zapisem. [Pełna galeria i pochodzenie capture PL/EN](docs/assets/screenshots/README.md).
 
@@ -66,6 +66,6 @@ Następny kierunek to weryfikacja względem istniejących modeli architektury, n
 
 ## Informacje techniczne i licencja
 
-[Architektura](docs/architecture.md) · [Development](docs/pl/development.md) · [Format Knowledge Pack](docs/knowledge-pack-format.md) · [Dowody CI](docs/ci-clean-clone-icu.md) · [Stan techniczny](docs/project-state.md)
+[Architektura](docs/architecture.md) · [Development](docs/pl/development.md) · [Format Knowledge Pack](docs/knowledge-pack-format.md) · [Dowody CI](https://github.com/Setech-pl/archi-agent/blob/8325c6904efe271012ab8cc07304fb700526daef/docs/ci-clean-clone-icu.md) · [Stan techniczny](docs/project-state.md)
 
 Kod Archi Agent jest na licencji [MIT](LICENSE). Składniki mają własne [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) i [notices OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).

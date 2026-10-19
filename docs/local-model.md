@@ -7,7 +7,7 @@ the plan and renders PlantUML, then sends the plan, evidence, snapshot and rende
 independent reviewer using the same selected profile and model. A valid run uses two calls; local
 plan rejection uses one; blocked input uses zero. There is no retry, repair, fallback or streaming.
 `generateSequenceDiagram` and the CLI retain their one-call compatibility path and report v1.
-S1 manual smoke must be repeated on D1.2; earlier D1.1 smoke failed. See
+Current quality limits and owner smoke status are in [project state](project-state.md). See
 [ADR 0002](adr/0002-deterministic-diagram-plan-renderers.md).
 
 ArchGround can let a local language model plan the sequence diagram. The model is reached through
@@ -113,66 +113,18 @@ attempt is worth adding.
 
 ## Prerequisites
 
-1. LM Studio running its OpenAI-compatible server on port 1234, or Ollama exposing its
-   OpenAI-compatible endpoint on port 11434.
-2. A chat or instruction model loaded, capable of structured JSON output. Very small models,
-   roughly below 7B parameters, often fail structured output or the grounding rules; a larger
-   instruction model is recommended.
-3. The ArchGround dependencies installed and Node.js 22.12 or later.
-
-No API key or credential is needed and none is sent: the adapter sends no Authorization header.
-ArchGround never downloads or loads a model. Prepare the model in the selected local provider before
-generation. Provider-specific loading behavior is outside ArchGround.
+See the current [user instructions EN](en/user-guide.md) / [PL](pl/user-guide.md)
+and [developer instructions](en/development.md).
 
 ## VS Code profile and migration behavior
 
-Use **Archi Agent: Select Provider Profile** and **Archi Agent: Select Model**. The
-explicit profile, selected model and the extension-managed `selectedModelProfile` binding are
-machine-scoped user settings: VS Code Settings Sync does not copy them, and workspace or
-workspace-folder settings cannot override them. A Windows computer can therefore keep an LM Studio
-model while a MacBook keeps an Ollama model in the same synced VS Code account.
-
-Legacy LM Studio mode applies only when
-`inspect("localModel.profile").globalValue === undefined`. In that mode the effective
-`archiAgent.localModel.baseUrl` and `archiAgent.localModel.model` retain normal VS Code precedence,
-including workspace and workspace-folder values; the manifest default is not mistaken for an
-explicit choice. Every present explicit profile value must resolve to a registered profile. An
-unknown, empty or malformed explicit value fails with `unknown-provider-profile` before listing or
-generation and never falls back to the legacy URL or model.
-
-After an explicit profile selection, a global `archiAgent.localModel.selectedModel` is active only
-when the global extension-managed `archiAgent.localModel.selectedModelProfile` exactly matches that
-profile. A manual profile change therefore leaves any stale stored model inactive and the next
-explicit generation asks the user to select a model. Ollama always uses its profile default endpoint
-and never inherits the legacy LM Studio URL or model. Legacy settings are not deleted.
+See the current [user instructions EN](en/user-guide.md) / [PL](pl/user-guide.md)
+and [developer instructions](en/development.md).
 
 ## Commands
 
-List the models reported by the server (a bounded GET `/v1/models`; nothing is selected):
-
-    npm run local:models
-
-Run the model-driven demo on the Space Mission sample without writing files:
-
-    npm run demo:llm:dry-run -- "<model-id>"
-
-Run it and write a new versioned artifact pair:
-
-    npm run demo:llm -- "<model-id>"
-
-Through npm, pass the model as one positional argument. Do not use `npm run ... -- --model`: some
-shells (for example PowerShell) remove the `--` separator, and npm then reads `--model` as its own
-configuration option, so the model never reaches ArchGround.
-
-After a build (`npm run build:demo`), the compiled command line can also be called directly, with
-either form, and with another loopback port if needed:
-
-    node dist/demo/lm-studio-demo.js generate --model "<model-id>" --dry-run
-    node dist/demo/lm-studio-demo.js generate "<model-id>" --dry-run --base-url http://127.0.0.1:1234/v1
-
-Exactly one model must be named: there is no default model and ArchGround never picks one from a
-list. A missing model, two models (for example a positional model and `--model`) or an unsafe model
-identifier stops the command before any request; a missing model points to `npm run local:models`.
+See the current [user instructions EN](en/user-guide.md) / [PL](pl/user-guide.md)
+and [developer instructions](en/development.md).
 
 ## Response channel compatibility
 
@@ -244,9 +196,5 @@ No artifact is written for any failure.
 
 ## Scripted demo versus model-driven demo
 
-| | `npm run demo` | `npm run demo:llm` |
-| --- | --- | --- |
-| generator | scripted-demo, fixed script | openai-compatible-local, the selected model |
-| network | none | loopback only |
-| output | deterministic, equal to the golden files | depends on the model; validated the same way |
-| purpose | regression baseline and offline demonstration | real generation for acceptance testing |
+See the current [user instructions EN](en/user-guide.md) / [PL](pl/user-guide.md)
+and [developer instructions](en/development.md).
