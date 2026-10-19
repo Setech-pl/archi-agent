@@ -15,6 +15,37 @@ Baza: `ea3df0a73067f66a7e5fe8d2b8053c6059a8861d`.
 Gałąź przeglądanego working tree: `feature/mcp1-cli-mcp-core-full`. Staging podczas
 kontroli przed końcową edycją raportu był pusty; implementacja pozostawała niezacommitowana.
 
+## Ponowny review wymagań — 2026-10-19
+
+Osobny kontekst read-only: `know_contract_review`. Poniższy wynik przekazał niezależny
+reviewer; zapis w raporcie wykonał główny wykonawca. Przegląd obejmuje kod checkpointu
+`62155f173001168631bf652f2f933034e6cf6306` i uzupełnioną mapę pięciu wymagań w planie.
+
+**PASS — brak potwierdzonych HIGH/MEDIUM.** Nie znaleziono podstaw do przebudowy ukończonych
+części ani dodatkowej decyzji o granicach warstw.
+
+- Lokalny Structurizr i przykład MCP używają produkcyjnego SRC1/K1, istniejącego resolvera
+  i nakładki związanej oryginalnymi ID.
+- Klient stdio pozostaje w Node, komponowany przez runtime; stałe narzędzie wybiera kod.
+  Host odczytuje executable wyłącznie z User scope.
+- Transport przykładu jest oddzielony od adaptera. Wersjonowany kontrakt zachowuje identity,
+  snapshot, scope, omissions i provenance oraz dopuszcza częściowe źródła bez fikcyjnych lokatorów.
+- Operacja używa jednego snapshotu; następna pobiera ponownie. Kontynuacja sprawdza zmianę
+  źródła i konfiguracji. Błąd nie uruchamia fallbacku.
+- Instrukcje opisują start, konfigurację i miejsce własnego adaptera. `--check-source`
+  jest wystarczającym minimalnym testem kontraktu: po `load()` stosuje wspólny
+  `validateKnowledgeResponse()`, również po zmianie kompozycji na własny adapter.
+
+Odczytane testy obejmują parytet VER1 i czterech diagramów, malformed/digest mismatch,
+niedostępność, timeout, anulowanie z zakończeniem dziecka, zmianę snapshotu i partial provenance.
+Reviewer sam wykonał `git diff --check` (PASS), potwierdził pusty staging i zmianę tylko planu
+w chwili swojej kontroli. Nie edytował plików ani historii Git.
+
+Granice: review kodu, kontraktów i testów; bez własnego uruchamiania pełnych testów,
+build/package, Host/UI lub żywego LLM. Bieżące **32/32 PASS** to wykonanie głównego wykonawcy,
+opisane w [project-state](project-state.md); historyczne wyniki C5 poniżej nie są nowym przebiegiem.
+Owner smoke DEFERRED; żywy LLM, remote CI i Windows ARM64 runtime NOT_RUN.
+
 ## Review planu
 
 Przeczytano [AGENTS.md](../AGENTS.md), [workflow](development-workflow.md),

@@ -1066,6 +1066,34 @@ Status: **REVIEWED — IMPLEMENTATION AUTHORIZED**. Zachowujemy wykonaną implem
 serwera funkcji MCP i Core/Full. Nowy zakres implementujemy po zamknięciu ustaleń tego review;
 niezależne prace pierwotnego MCP1 trwają. Lokalny checkpoint autoryzowany; bez publikacji.
 
+### Ponowne uzgodnienie wymagań — 2026-10-19
+
+Powtórzone uzupełnienie porównano z istniejącym checkpointem `62155f173001168631bf652f2f933034e6cf6306`
+na `feature/mcp1-cli-mcp-core-full` (working tree czysty, staging pusty). Zakres KNOW jest już
+zaimplementowany; poniższa mapa wiąże wymagania z istniejącymi kontraktami i dowodami.
+Szczegółowe kontrakty w tej sekcji mają pierwszeństwo przed
+wcześniejszym opisem dystrybucji SDK: klient wiedzy wymaga SDK także w runtime obu VSIX;
+serwery funkcji i wiedzy pozostają tylko w dystrybucji CLI/MCP.
+
+| Wymaganie właściciela | Kontrakt i istniejące miejsce realizacji | Bramka odbioru |
+| --- | --- | --- |
+| 1. Pełnoprawny lokalny Structurizr | `src/runtime/architecture-source.ts`, produkcyjny SRC1 i istniejący resolver; workspace.json + aliases.md/relationships.md/rules.md z oryginalnymi ID. Inspection/Configuration/Browser pokazują walidację, zakres i braki; bez DSL. | Identyczne źródło i nakładka dla odczytu lokalnego i MCP; negatywne SRC1 oraz Host/UI. |
+| 2. Osobny klient wiedzy | `src/node/mcp-knowledge-source.ts` komponowany przez runtime; jeden proces stdio, stałe get_knowledge_snapshot, jedno źródło/operację; cztery tools serwera funkcji bez zmiany. | Rzeczywisty proces SDK, brak wyboru tools przez LLM i brak łączenia źródeł. |
+| 3. Rozwijalny serwer | `src/knowledge-server/adapter.ts` → produkcyjny SRC1/K1, `server.ts` → transport, `main.ts` → kompozycja; `examples/knowledge-server/`. KnowledgeResponseV1 zawiera identity/version, snapshot, format i contributions ze scope/omissions/provenance; źródło częściowe nie musi udawać Structurizr. | `--check-source bank`, kontrakt adaptera i uruchomienie gotowej paczki poza repo. |
+| 4. Snapshot i provenance | Jeden frozen snapshot; nowa operacja pobiera ponownie. Oryginalne ID i wersje; opcjonalna prawdziwa reference bez fikcyjnego file/line; błąd zamyka operację bez fallbacku. | Zmiana snapshotu unieważnia kontynuację, partial source bez locatora, timeout/cancel/unavailable/malformed. |
+| 5. Parytet i instrukcje | `test/runtime/mcp-knowledge.test.ts`, `scripts/mcp1-packaged-smoke.mjs`, instrukcje PL/EN cli-mcp oraz README przykładu. | Grounding/VER1 i Sequence/Component/C4 Context/C4 Container; pełne bramki MCP1 na zmienionym produkcie. |
+
+Wpływ na pliki, zależności i bramki pozostaje opisany poniżej. To uzgodnienie nie dodaje
+zależności, adapterów ani zmiany granic warstw. Wyniki C5 w [raporcie](../mcp1-verification.md)
+są historyczne; bieżące kontrole i niezależny ponowny review należy zapisać osobno.
+Nowa luka kontraktu blokuje zależną implementację do zamknięcia review; istotna zmiana granic
+warstw wymaga rekomendacji i decyzji właściciela.
+
+[Ponowny niezależny review](../mcp1-independent-review.md#ponowny-review-wymagań--2026-10-19):
+**PASS, brak HIGH/MEDIUM**. Nie stwierdzono nowej luki wymagającej zmian implementacji ani
+decyzji o granicach warstw. Bieżące 32/32 testy i kontrole dokumentacji zapisano w project-state;
+pełny odbiór C5 pozostaje osobnym historycznym wynikiem.
+
 ### Dwa kierunki MCP i jeden mechanizm wiedzy
 
 Serwer funkcji Archi Agent nadal oferuje cztery dotychczasowe tools. Osobny klient wiedzy

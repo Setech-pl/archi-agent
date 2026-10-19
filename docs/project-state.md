@@ -2,6 +2,14 @@
 
 Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](product-roadmap.md), reguły: [AGENTS.md](../AGENTS.md), proces: [development-workflow.md](development-workflow.md). [Historia do 2026-10-11](project-state-history.md) zachowuje raporty, checkpointy, wyniki i pierwotne formularze.
 
+## MCP1-KNOW — ponowne uzgodnienie wymagań, 2026-10-19
+
+- Preflight: `feature/mcp1-cli-mcp-core-full`, HEAD `62155f173001168631bf652f2f933034e6cf6306`, working tree czysty, staging pusty. Git potwierdza ukończoną implementację poniżej; ponowione zlecenie nie wymaga drugiego loadera ani przebudowy CLI/MCP/Core/Full.
+- [Plan](plans/mcp1-cli-mcp-core-full.md#ponowne-uzgodnienie-wymagań--2026-10-19) uzupełniono o mapę pięciu wymagań do kontraktów, plików i bramek oraz wyjaśnienie dystrybucji SDK klienta w VSIX. Brak zmian kodu, zależności i granic warstw; roadmapa bez zmiany. [Niezależny ponowny review](mcp1-independent-review.md#ponowny-review-wymagań--2026-10-19) w osobnym kontekście read-only: **PASS, bez HIGH/MEDIUM**. Nie wymaga dodatkowej decyzji właściciela.
+- Bieżąca sesja, Node 22.12.0/macOS ARM64: `node node_modules/vitest/vitest.mjs run test/runtime/mcp-knowledge.test.ts test/runtime/structurizr-source.test.ts test/core/architecture-sources/structurizr.test.ts --no-file-parallelism` **32/32 PASS**, trzy pliki. Obejmuje parytet lokalny/MCP, VER1 PlantUML, cztery diagramy, błędne odpowiedzi, timeout, cancel/cleanup, świeży odczyt, stale snapshot i partial provenance. Bez żywego LLM.
+- Checker dokumentacji `--docs` na zastanym Core C5 jako kandydacie i baseline: **3/3 PASS**, `build/mcp1/requirements-20261019/docs-core/documentation-check.json`. Pierwsza próba nie zapisała raportu przez brak katalogu wyjściowego (ENOENT); po jego utworzeniu ponowiono komendę. To kontrola dokumentacji istniejącej paczki, bez nowego build/package i bez nowego dowodu parytetu niezależnego buildu.
+- Pełne 44/44 C5 poniżej są wynikami historycznymi, nie zostały powtórzone. [Instrukcja PL](pl/cli-mcp.md#klient-mcp-wiedzy-i-przykładowy-serwer) i [przykład](../examples/knowledge-server/README.md) opisują start, konfigurację, własny adapter i `--check-source`. Owner smoke DEFERRED; żywy LLM, remote CI i Windows ARM64 runtime NOT_RUN. Lokalny checkpoint obejmuje wyłącznie dokumentację (SHA odczytaj z Git); bez push/merge/tagów/publikacji. Następny krok: zbiorczy owner smoke dokładnych paczek C5.
+
 ## MCP1 / MCP1-KNOW — pełne lokalne bramki PASS, 2026-10-18
 
 - Branch `feature/mcp1-cli-mcp-core-full`, pełna baza `ea3df0a73067f66a7e5fe8d2b8053c6059a8861d`. Zastane plan/project-state zachowane; lokalny checkpoint autoryzowany zleceniem. Pełny SHA checkpointu odczytaj z Git i `build/mcp1/checkpoint.json`. Bez push/merge/tagów/publikacji.
