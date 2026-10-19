@@ -36,3 +36,6 @@ desktop.ini
 .idea/
 .vscode/settings.json
 *.code-workspace
+
+# Historical materials retained locally (portfolio cleanup)
+/docs/plans/d2-component-diagram.md
