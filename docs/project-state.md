@@ -10,6 +10,11 @@ Operacyjny stan Archi Agent. Porównuj z Git; kierunek produktu: [roadmapa](prod
 - Weryfikacja CLI offline początkowo nie mogła zapisać cache npm w sandboxie; ponowiona poza sandboxem PASS. Wcześniejsze capture 1–3 FAIL zachowano; capture 4 PASS i poprawiający czytelność Container capture 5 PASS. To automatyczny capture, nie owner smoke.
 - Owner smoke **DEFERRED**, żywy LLM i Windows ARM64 runtime **NOT_RUN**, AUD-003–006 **OPEN**; publiczne alpha.6 bez zmiany. Aktualny SHA/PR/CI odczytaj z Git i raportu publikacji. Kontrole lokalne zakończone: verify 31/553/10 wpisów i CLI offline, docs 3/3 na profil, bezpośredni parytet C5 3/525/4 pliki PASS. Następny krok publikacji: autoryzowany checkpoint/push/PR i CI jego SHA; potem zbiorczy owner smoke właściciela.
 
+### Publikacja i korekta CI
+
+- [PR #10](https://github.com/Setech-pl/archi-agent/pull/10) otwarty, pełna gałąź wypchnięta bez force. Pierwszy head `9c522d8e57dc0d4f44fb85dc274976e0c31e3d19`, testowany merge `bab8e27dc57ea24c769baa0ced30a96ab3c6329c`; [CI 39206853923](https://github.com/Setech-pl/archi-agent/actions/runs/39206853923): Linux x64 cały PASS (1954 root / 730 extension / trzy paczki + Help), macOS ARM64 root PASS 1954 i extension FAIL 729/730. Jedyny błąd: negatywny test brakującego ICU trwał 5222 ms przy domyślnym 5000 ms; pakowanie/Help/upload Mac SKIPPED.
+- Zwiększono wyłącznie timeout dwóch istniejących przypadków uszkodzenia ICU do 30 s, bez zmian asercji, produktu i bundle C5. Testy są jedynym wyjątkiem od niezmienności kodu względem C5: ta korekta limitu czasu. Bieżące testy pakowania 16/16 i root typecheck PASS; pobrane paczki pierwszego Linux CI: checksumy i parytet C5 3/525/4 PASS. Końcowy SHA i CI odczytaj z PR; pierwszy FAIL nie jest usuwany. Właściciel nadal ma wykonać zbiorczy owner smoke, status DEFERRED. Bez merge/tagów/release i bez zamknięcia AUD-003–006.
+
 ## MCP1-KNOW — ponowne uzgodnienie wymagań, 2026-10-19
 
 - Preflight: `feature/mcp1-cli-mcp-core-full`, HEAD `62155f173001168631bf652f2f933034e6cf6306`, working tree czysty, staging pusty. Git potwierdza ukończoną implementację poniżej; ponowione zlecenie nie wymaga drugiego loadera ani przebudowy CLI/MCP/Core/Full.

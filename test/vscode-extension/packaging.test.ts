@@ -298,7 +298,8 @@ describe("VSIX", () => {
     const result = verifyModule.verifyVsix(archive);
     expect(result.ok).toBe(false);
     expect(result.violations).toContain(`trial-resource-missing: ${resource}`);
-  });
+    // Copying/rewriting the full OCR archive and hashing it twice is disk-bound on CI.
+  }, 30_000);
 
   it("packages the corrected D1.2 plan-validation mapping in the runtime bundle", async () => {
     const { openVsix } = await import(scriptUrl("vsix-zip.mjs")) as { openVsix(filePath: string): { read(name: string): Buffer } };

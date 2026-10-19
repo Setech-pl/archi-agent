@@ -187,7 +187,7 @@
         "status": "PASS"
       }
     ],
-    "rerun": "NOT_RUN; no executable/product/test/dependency changes"
+    "rerun": "NOT_RUN; executable/product/dependency bytes unchanged. Only later test difference: ICU-corruption per-case timeout 5\u219230 seconds, assertions unchanged."
   },
   "current": {
     "packagingTests": {
@@ -285,6 +285,11 @@
       "englishImagesLoaded": 19,
       "providerRequests": 0,
       "localeNote": "explicit EN\u2192PL\u2192EN links; automatic locale dispatch remains historical unit evidence"
+    },
+    "timeoutFixValidation": {
+      "packagingTests": "16/16 PASS",
+      "rootTypecheck": "PASS",
+      "productBundleChange": false
     }
   },
   "parity": [
@@ -380,5 +385,51 @@
   "ownerSmoke": "DEFERRED",
   "realLlm": "NOT_RUN",
   "windowsArm64Runtime": "NOT_RUN",
-  "AUD003to006": "OPEN"
+  "AUD003to006": "OPEN",
+  "initialCI": {
+    "run": "https://github.com/Setech-pl/archi-agent/actions/runs/39206853923",
+    "head": "9c522d8e57dc0d4f44fb85dc274976e0c31e3d19",
+    "testedMerge": "bab8e27dc57ea24c769baa0ced30a96ab3c6329c",
+    "linuxX64": {
+      "status": "PASS",
+      "rootTests": 1954,
+      "extensionTests": 730,
+      "packageVerifyDocsUpload": "PASS",
+      "downloadedArtifactParity": {
+        "status": "PASS",
+        "testedSha": "bab8e27dc57ea24c769baa0ced30a96ab3c6329c",
+        "artifacts": [
+          {
+            "file": "core/archi-agent-core-0.3.0-alpha.7.vsix",
+            "bytes": 5508318,
+            "sha256": "be465502e19b9e3d8bd901889df0be2c52d36ecca5da3925e7ff0aa869c3cc76"
+          },
+          {
+            "file": "full/archi-agent-full-0.3.0-alpha.7.vsix",
+            "bytes": 128934489,
+            "sha256": "b02cfcc9957454217e47331a2fd9cef9d5c59432655a6d59d0cb189732b207fb"
+          },
+          {
+            "file": "cli/archi-agent-cli-0.3.0-alpha.7.tgz",
+            "bytes": 890042,
+            "sha256": "aaebe8a55a72a2dddee993e1af0a96ade194e86c85a138518dbfffb43883cad9"
+          }
+        ],
+        "counts": {
+          "core/archi-agent-core-0.3.0-alpha.7.vsix": 3,
+          "full/archi-agent-full-0.3.0-alpha.7.vsix": 525,
+          "cli/archi-agent-cli-0.3.0-alpha.7.tgz": 4
+        }
+      }
+    },
+    "macosArm64": {
+      "status": "FAIL",
+      "rootTests": 1954,
+      "extensionTestsPassed": 729,
+      "extensionTestsFailed": 1,
+      "cause": "ICU corruption case copies/rewrites 128 MB archive and hashes twice; 5222 ms exceeded default 5000 ms",
+      "packageVerifyDocsUpload": "SKIPPED (not PASS)"
+    },
+    "fix": "Only the two existing ICU-corruption cases receive 30-second per-test timeout; all rejection assertions unchanged. Product/dependency/bundle bytes unchanged."
+  }
 }

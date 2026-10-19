@@ -89,7 +89,7 @@ Wynik zdalnego CI odczytaj z PR; historia main 152542f nie jest dowodem nowego k
 - Bezpośredni parytet C5 **PASS**: Core 3 bundle, Full 3 bundle + 522 zasoby OCR, CLI/MCP 4 pliki wykonywalne. Bundle runtime VSIX/CLI jest wspólny.
 - Rzeczywisty offline Help końcowego Core: **EN→PL→EN PASS**, po 19/19 obrazów EN i PL załadowanych (20 unikalnych w paczce), zero żądań providera; automatyczny wybór locale pozostaje oddzielnym historycznym testem.
 - Render Mermaid **12/12 PASS** (SVG i PNG) i kontrola wizualna; capture-5 **6/6 ekranów PASS**, sześć syntetycznych żądań generacji/review, zero VER1.
-- `git diff --check` **PASS**; kod produktu/testy/manifesty/zależności względem C5 bez zmian. CI zdalne zostaje oddzielnym wynikiem PR.
+- `git diff --check` **PASS**; kod produktu/manifesty/zależności względem C5 bez zmian; test ICU ma wyłącznie opisany poniżej dłuższy timeout. CI zdalne zostaje oddzielnym wynikiem PR.
 
 Wcześniejsze nieudane próby są zachowane i opisane w dowodzie maszynowym: trzy harnessy capture, sandbox cache npm, limit bufora tar oraz pierwszy checker dokumentów przed mapowaniem staged Help. Po korektach narzędzi wszystkie wymagane kontrole lokalne PASS; nie przepisano ich jako historycznych PASS.
 
@@ -112,3 +112,20 @@ Szczegóły [PL](pl/user-guide.md), [EN](en/user-guide.md), [CLI/MCP](pl/cli-mcp
 decyzje/zmianę źródła, parytet VSIX/CLI/MCP, osobny serwer wiedzy oraz Core↔Full i OCR.
 Zapisz OS/arch, VS Code, provider/model, hashe paczek oraz wynik; bez credentiali.
 Do tego raportu właściciela owner smoke pozostaje **DEFERRED**.
+
+## Publikacja PR i pierwsze CI
+
+[PR #10](https://github.com/Setech-pl/archi-agent/pull/10) udostępnia cały przyrost.
+Pierwszy head `9c522d8e57dc0d4f44fb85dc274976e0c31e3d19`, testowany merge checkout
+`bab8e27dc57ea24c769baa0ced30a96ab3c6329c`, [run 39206853923](https://github.com/Setech-pl/archi-agent/actions/runs/39206853923).
+Linux x64 **PASS**: oba typechecki, root **1954/1954**, extension **730/730**,
+Core/Full/CLI verify, dokumentacja i upload artefaktu.
+macOS ARM64: root **1954/1954 PASS**, extension **729/730 — FAIL**; negatywny test
+brakującego Windows x64 ICU trwał 5222 ms przy domyślnym limicie 5000 ms.
+Pakowanie/docs/upload na Macu **SKIPPED**, nie PASS.
+
+Rutynowa korekta dotyczy tylko timeoutu dwóch istniejących przypadków uszkodzenia ICU:
+30 s na kopiowanie/przepakowanie archiwum OCR i dwukrotne hashowanie. Wszystkie asercje
+odrzucenia uszkodzenia pozostają bez zmiany. Bundle, źródła produktu i zależności są nadal
+identyczne z C5. Po korekcie celowane testy pakowania **16/16 PASS** i root typecheck **PASS**. Pobrane paczki pierwszego Linux CI mają prawidłowe checksumy oraz bezpośredni parytet C5 **3/525/4 PASS**. Wyniki
+końcowego CI poprawionego SHA są w PR. Pierwszy FAIL pozostaje zachowany.
