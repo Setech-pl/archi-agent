@@ -30,7 +30,7 @@ Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**
 
 ## Zacznij tutaj — pierwsze użycie
 
-![Menu zadań Archi: Open](help-assets/01-open.png)
+
 
 1. Pobierz [testowy prerelease 0.3.0-alpha.6](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.6), sprawdź checksumę, zainstaluj przez **Extensions → … → Install from VSIX…**, przeładuj okno, jeśli jest to wymagane, i otwórz lokalny folder projektu. Potwierdź **0.3.0-alpha.6** w szczegółach rozszerzenia.
 2. Uruchom **Archi: Configuration → LLM Provider**. Przygotuj LM Studio/Ollamę albo wybierz profil chmurowy. Dla chmury użyj **Set / Replace Key for <provider>** i wpisz klucz w natywnym maskowanym polu.
@@ -55,7 +55,7 @@ PDF może więc stać się tekstem po konwersji, potem kandydatami i zaakceptowa
 
 ## Provider, profil i model
 
-![Wybór dostawcy i modelu](help-assets/02-provider.png)
+
 
 Provider to usługa uruchamiająca model. Profil wybiera adapter i zasady endpointu; identyfikator modelu wskazuje jeden model u tego providera.
 
@@ -85,7 +85,7 @@ Wybór profilu/modelu ma scope machine: Settings Sync go nie synchronizuje, a wo
 
 ## Wybór lub utworzenie aktywnego Knowledge Pack
 
-![Zarządzanie aktywną wiedzą](help-assets/03-knowledge.png)
+
 
 Knowledge Pack to lokalny katalog architektury: systemy, aktorzy, relacje, aliasy i reguły. Grounding dopasowuje nazwy kanoniczne i aliasy do tego katalogu przed generowaniem przez model.
 
@@ -142,13 +142,13 @@ Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configurati
 
 Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.docx` lub `.xlsx` i obejrzyj niezapisany Markdown. Dla PDF wybierz **No OCR**, **Auto OCR** lub **OCR all pages**. Auto zachowuje strony tekstowe i wykonuje OCR stron bez użytecznego tekstu. Modele OCR PL/EN są w paczce i działają offline; polecenie nie wysyła żądań do dostawcy i nie potrzebuje Knowledge Pack. Aby zachować Markdown, użyj zwykłego Save edytora. Sprawdź błędy OCR przed wykorzystaniem tekstu jako evidence. Konwersja nie tworzy packa ani diagramu.
 
-![Wybór trybu OCR PDF](help-assets/13-ocr.png)
 
-![Wynik lokalnej konwersji](help-assets/11-conversion.png)
+
+
 
 ## Dokumenty → nowy pack
 
-![Przegląd proponowanej wiedzy](help-assets/05-review.png)
+
 
 1. Uruchom **Build Knowledge Pack from Documents** z palety lub przyciskiem **Build Knowledge Pack from Documents** w **Configuration → Knowledge Management**. Wybierz jawnie lokalne pliki `.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`. Nie ma skanowania katalogu ani pobierania URL. Istniejący pack nie jest wymagany.
 2. Dla PDF picker Buildera **PDF OCR mode** używa **none**, **auto**, **all**. `auto` zachowuje strony tekstowe i rozpoznaje strony bez tekstu; `all` rozpoznaje wszystkie; `none` wymaga użytecznego tekstu. Osobne **Convert to Markdown** nazywa te opcje **No OCR**, **Auto OCR**, **OCR all pages** i otwiera jeden niezapisany edytor Markdown. Nie potrzebuje providera ani packa i nie wysyła żądania sieciowego.
@@ -159,9 +159,9 @@ Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.doc
 7. Wybierz istniejący folder nadrzędny i jedną **nową nazwę folderu packa**. Rozwiń pięć podglądów tylko do odczytu na tym samym ekranie: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. Zamrożony podgląd to dokładna treść zapisu.
 8. **Save** tworzy nowy pack i zachowuje aktywne ustawienie. **Save and use** najpierw zapisuje/wczytuje, potem aktywuje w wybranym scope UX3 (Global bez projektu). **saved, not activated** oznacza zachowane poprawne pliki przy błędzie konfiguracji; wybierz je później przez Choose Existing Knowledge Pack. Decyzje pozostają nad podglądami; **Cancel** lub zamknięcie panelu kończy przed zapisem. Po kolizji **Choose new pack folder** wybiera inny nowy cel bez ekstrakcji.
 
-![Edycja proponowanego wiersza](help-assets/06-edit.png)
 
-![Podgląd pięciu plików i lokalizacja](help-assets/07-pack-preview.png)
+
+
 
 W jednym Extension Host działa jeden build. Cancel lub zamknięcie panelu review kończy build; ukończony zapis zwalnia blokadę builda. Nie ma trwałych draftów, autosave, aktualizacji/scalania packów ani historii akceptacji. Nowe polecenie to nowa ekstrakcja. Review/edycja/walidacja/preview/zapis/aktywacja używają **zera dodatkowych żądań LLM**, również po kolizji zapisu i powrocie do review.
 
@@ -178,7 +178,7 @@ Obie ścieżki zachowują limity: 300 stron PDF, 20 stron OCR, 10 MP renderowane
 
 ## Aktywny plik i Knowledge Browser
 
-![Przeglądarka aktywnej wiedzy](help-assets/04-browser.png)
+
 
 **Archi: Build Knowledge Pack from Active File** przechwytuje niezapisany Markdown/TXT (także untitled) przed ekstrakcją. Nie zapisuje edytora. Lokalny podgląd PDF/DOCX/XLSX musi udostępniać URI pliku; w przeciwnym razie wybierz obsługiwane źródło jawnie. Dalej dostępne są te same evidence, pięć podglądów, Save oraz Save and use.
 
@@ -191,7 +191,7 @@ Drzewo zawiera także **Actors**. Po zewnętrznej edycji plików użyj **Refresh
 
 ## Generowanie i odczyt diagramu
 
-![Sequence i raport grounding](help-assets/08-sequence.png)
+
 
 Wybierz **Create Diagram → Sequence** (kolejność interakcji) albo **Component** (komponenty i zależności). Wybierz aktywny dokument, **Choose a flow file** albo wpisz opis. Plik wymaga ograniczonego front matter; dla opisu metadane zbiera UI. W obu językach użyj tego samego syntetycznego pliku:
 
@@ -211,11 +211,11 @@ Błąd wejścia/groundingu daje zero żądań generacyjnych; odrzucenie generato
 
 Gdy review odrzuci wynik/nie powiedzie się po lokalnych kontrolach, **Show unverified candidate** może otworzyć oznaczony kandydat bez raportu; Cancel niczego nie otwiera. Nie jest to ukończony wynik ART1. Anulowanie przez użytkownika nie proponuje kandydata. Stary identyfikator `archiAgent.generateSequenceDiagram` jest niewidocznym delegatem **Create Diagram**. Starsze API runtime z jednym wywołaniem pozostaje wewnętrzną ścieżką zgodności, bez osobnego wejścia użytkownika ani fallbacku.
 
-![Diagram Component i raport](help-assets/09-component.png)
+
 
 ## Zapis oryginalnego diagramu i raportu
 
-![Potwierdzenie zapisu oryginalnej pary](help-assets/10-save.png)
+
 
 Użyj **Save Diagram and Report** w powiadomieniu generacji, **Archi: Save Diagram and Report** w palecie albo menu Open. Menu/paleta wybiera oryginalny wynik według typu, czasu utworzenia UTC i UUID wyniku. Jeden lokalny projekt jest celem; multi-root wymaga jawnego wyboru projektu docelowego. Bez projektu otwórz najpierw lokalny folder. W modalu potwierdź oryginalny wynik, pełny nowy folder, `diagram.puml` i `report.json`. Cancel przed zapisem niczego nie tworzy.
 
@@ -269,7 +269,7 @@ Na macOS natywny picker może zwrócić `/tmp` zamiast `/private/tmp`. Kontrolow
 
 ## Screenshoty, Help i licencja
 
-![Help offline z paczki](help-assets/14-help-pl.png)
+
 
 **Archi: Help** otwiera tę instrukcję z zainstalowanej paczki. Przełącznik **English / Polski** i screenshoty są w VSIX i działają offline. Dodatkowe linki do repozytorium, wydań i dokumentacji technicznej potrzebują sieci. [Galeria aktualnych ekranów PL/EN](https://github.com/Setech-pl/archi-agent/blob/main/docs/assets/screenshots/README.md) podaje czynności i pochodzenie. Syntetyczne odpowiedzi pokazują UI, nie jakość żywego modelu ani wynik owner smoke.
 

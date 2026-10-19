@@ -4,7 +4,7 @@
 
 Turn a flow description and your architecture knowledge into a Sequence or Component diagram with a report showing how names and relationships were grounded.
 
-![Sequence diagram in PlantUML with its linked provenance report](docs/assets/screenshots/08-sequence.png)
+
 
 Review the flow and its grounding report side by side before sharing the result. The screen shows PlantUML source.
 
@@ -42,11 +42,11 @@ The [user guide](docs/en/user-guide.md#complete-synthetic-five-file-pack) includ
 
 ## See it in action
 
-![Choose a provider and model in Configuration](docs/assets/screenshots/02-provider.png)
+
 
 Choose an exact model ID and apply one configuration for diagram generation and review.
 
-![Review architecture knowledge candidates](docs/assets/screenshots/05-review.png)
+
 
 Inspect supporting evidence and decide which proposals become your architecture knowledge.
 
@@ -74,6 +74,6 @@ The next direction is verification against existing architecture models, followe
 
 ## Technical information and license
 
-[Architecture](docs/architecture.md) · [Development](docs/en/development.md) · [Knowledge Pack format](docs/knowledge-pack-format.md) · [CI evidence](docs/ci-clean-clone-icu.md) · [Technical state](docs/project-state.md)
+[Architecture](docs/architecture.md) · [Development](docs/en/development.md) · [Knowledge Pack format](docs/knowledge-pack-format.md) · [CI evidence](https://github.com/Setech-pl/archi-agent/blob/6856ab260a6755c6b975c85abe3ab9cddd7d63f9/docs/ci-clean-clone-icu.md) · [Technical state](docs/project-state.md)
 
 Archi Agent code is licensed under [MIT](LICENSE). Bundled components have their own [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR notices](experiments/ux2-ocr/TRIAL_NOTICES.md).

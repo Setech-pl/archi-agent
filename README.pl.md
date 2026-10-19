@@ -4,7 +4,7 @@
 
 Zamień opis przepływu i wiedzę o architekturze w diagram Sequence lub Component z raportem pokazującym rozpoznane nazwy i pochodzenie relacji.
 
-![Diagram Sequence w PlantUML z powiązanym raportem pochodzenia](docs/assets/screenshots/08-sequence.png)
+
 
 Sprawdź przepływ i raport grounding obok siebie przed udostępnieniem wyniku. Ekran pokazuje tekst PlantUML.
 
@@ -42,11 +42,11 @@ Pakiet zawiera runtime, lokalną konwersję dokumentów i OCR PL/EN offline. Uż
 
 ## Zobacz w działaniu
 
-![Wybór dostawcy i modelu w Configuration](docs/assets/screenshots/02-provider.png)
+
 
 Wybierz dokładny ID modelu i zastosuj jedną konfigurację dla generowania diagramów i review.
 
-![Przegląd kandydatów wiedzy architektonicznej](docs/assets/screenshots/05-review.png)
+
 
 Sprawdź dowody źródłowe i zdecyduj, które propozycje staną się Twoją wiedzą o architekturze.
 
@@ -74,6 +74,6 @@ Następny kierunek to weryfikacja względem istniejących modeli architektury, n
 
 ## Informacje techniczne i licencja
 
-[Architektura](docs/architecture.md) · [Development](docs/pl/development.md) · [Format Knowledge Pack](docs/knowledge-pack-format.md) · [Dowody CI](docs/ci-clean-clone-icu.md) · [Stan techniczny](docs/project-state.md)
+[Architektura](docs/architecture.md) · [Development](docs/pl/development.md) · [Format Knowledge Pack](docs/knowledge-pack-format.md) · [Dowody CI](https://github.com/Setech-pl/archi-agent/blob/6856ab260a6755c6b975c85abe3ab9cddd7d63f9/docs/ci-clean-clone-icu.md) · [Stan techniczny](docs/project-state.md)
 
 Kod Archi Agent jest na licencji [MIT](LICENSE). Składniki mają własne [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) i [notices OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).
