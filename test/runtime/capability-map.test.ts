@@ -1,11 +1,12 @@
-import {mkdtemp,writeFile,readFile,readdir,symlink,rm} from "node:fs/promises";
+import {mkdtemp,writeFile,readFile,readdir,symlink,rm,realpath} from "node:fs/promises";
 import {createHash} from "node:crypto";
 import path from "node:path";
+import {tmpdir} from "node:os";
 import {afterEach,expect,it} from "vitest";
 import {generateCapabilityMap,inspectEnterpriseSource,saveDiagramBundle,planDiagramBundle,isCompletedDiagramArtifact,createLocalReadPolicy} from "../../src/runtime/index.js";
 const roots:string[]=[];
 afterEach(async()=>{for(const r of roots.splice(0))await rm(r,{recursive:true,force:true});});
-async function fixture(){const root=await mkdtemp("/private/tmp/ea1-test-");roots.push(root);const text=await readFile("examples/retail-checkout/architecture/enterprise.json","utf8"),file=path.join(root,"enterprise.json");await writeFile(file,text);return {root,file,text,source:{kind:"enterprise-json" as const,path:file}};}
+async function fixture(){const root=await realpath(await mkdtemp(path.join(tmpdir(),"ea1-test-")));roots.push(root);const text=await readFile("examples/retail-checkout/architecture/enterprise.json","utf8"),file=path.join(root,"enterprise.json");await writeFile(file,text);return {root,file,text,source:{kind:"enterprise-json" as const,path:file}};}
 async function request(f:Awaited<ReturnType<typeof fixture>>){const i=await inspectEnterpriseSource(f.source);expect(i.status).toBe("success");if(i.status!=="success")throw Error(i.code);
  return {source:f.source,selection:{rootIds:[],maxLevel:3 as const,colorBy:{kind:"rating" as const,scaleId:"maturity"},language:"pl" as const,expectedCatalogDigest:i.snapshot.catalogDigest}};}
 it("generates without any provider; captures truthful provenance, exact hashes and the original ART1 pair",async()=>{

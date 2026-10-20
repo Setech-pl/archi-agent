@@ -54,7 +54,7 @@ describe("EA1b real CLI, function MCP and source MCP",()=>{
    const check=spawnSync(process.execPath,[path.join(bin,"archi-agent-knowledge-server.cjs"),"--config",path.join(f.dir,"knowledge.json"),"--check-source","retail-business","--type","enterprise"],{encoding:"utf8"});expect(check.status,check.stderr).toBe(0);expect(JSON.parse(check.stdout).counts.capabilities).toBe(catalog().capabilities.length);
    expect(readdirSync(f.dir).sort()).toEqual(before);expect(connection.stderr()).toBe("");
   }finally{await connection.client.close();}
- });
+ },30000);
  it("rejects foreign arguments for each variant rather than dropping them",async()=>{
   const f=fixture(),c=await connect(f.config);
   const view={rootIds:[],maxLevel:3,colorBy:{kind:"none"},language:"en"};

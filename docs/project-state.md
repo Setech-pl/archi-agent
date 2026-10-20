@@ -44,7 +44,10 @@ Integracja w izolowanym worktree `/private/tmp/archi-ea-integration1`, gałąź
 `feature/ea1-ea1b-integration`, baza `d91bbdebcfbdf0414d64b18343147eb4b6f60278`.
 Zachowana historia DOC3/EA1/EA1b do `7efa83f5fbe3c3c3da637676ff6316f831b9177f`;
 dokumentacja łączy nowe instrukcje z porządkami main. Wycofane raporty i media nie wracają.
-Kod produktu i testy porównywane z kandydatem `2ddcf21367ce5834097859331641be48ce19ff86`.
+Kod produktu identyczny z kandydatem `2ddcf21367ce5834097859331641be48ce19ff86`.
+Po pierwszym CI PR #13 zmieniono wyłącznie trzy pliki testowe: canonical tmpdir zamiast
+macOS-only /private/tmp oraz 30 s dla wieloprocesowego testu parytetu (asercje i limity
+produktu bez zmian). Bieżący head i testowany merge checkout są identyfikowane w CI PR.
 Dowody integracji i kopie historycznych raportów pozostają w ignorowanym `build/ea-integration1/`.
 Bramki z 19.10 oraz późniejszy review EA1b są historyczne; nie są wynikiem nowego merge.
 Bieżąca weryfikacja integracji: oba typechecki, 255 testów celowanych, build, sekwencyjne
@@ -59,4 +62,6 @@ niezależnego review zamknięto w pełnej konfiguracji Help offline i opisie pro
 Końcowy niezależny review dowodów PASS: 0 otwartych nowych HIGH/MEDIUM/LOW. PR/CI do main
 są osobnymi kontrolami; stan oraz tożsamość head/merge checkout są w raporcie poza repo i w PR.
 OWNER_SMOKE: DEFERRED. Nie deklarujemy sprawdzenia importu EA ani COM.
-Po otwarciu PR i sprawdzeniu CI STOP; bez merge/release, AUD-003/004 i EA2.
+PR [#13](https://github.com/Setech-pl/archi-agent/pull/13) jest otwarty. Pierwszy run CI
+wykazał te problemy testów; jego FAIL jest zachowany osobno od następnego przebiegu.
+Po sprawdzeniu CI aktualnego head STOP; bez merge/release, AUD-003/004 i EA2.

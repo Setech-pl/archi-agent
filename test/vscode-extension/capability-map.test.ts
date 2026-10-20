@@ -1,5 +1,6 @@
-import {mkdtemp,readFile,writeFile,readdir,rm} from "node:fs/promises";
+import {mkdtemp,readFile,writeFile,readdir,rm,realpath} from "node:fs/promises";
 import path from "node:path";
+import {tmpdir} from "node:os";
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {generateDiagramCommand} from "../../vscode-extension/src/commands/generate-sequence-diagram.js";
 import {OpenDiagramResults,saveDiagramAndReportCommand,saveDiagramAction} from "../../vscode-extension/src/commands/save-diagram-and-report.js";
@@ -8,7 +9,7 @@ import {resetDouble,state,Uri,window,workspace,secretStorage} from "../doubles/v
 const roots:string[]=[];
 beforeEach(resetDouble);
 afterEach(async()=>{vi.restoreAllMocks();for(const root of roots.splice(0))await rm(root,{recursive:true,force:true});});
-async function fixture(){const root=await mkdtemp("/private/tmp/ea1-host-test-");roots.push(root);const file=path.join(root,"enterprise.json");await writeFile(file,await readFile("examples/retail-checkout/architecture/enterprise.json"));return {root,file};}
+async function fixture(){const root=await realpath(await mkdtemp(path.join(tmpdir(),"ea1-host-test-")));roots.push(root);const file=path.join(root,"enterprise.json");await writeFile(file,await readFile("examples/retail-checkout/architecture/enterprise.json"));return {root,file};}
 const by=(key:string,value:unknown)=>(items:readonly any[])=>items.find(i=>i[key]===value);
 function dependencies(){const runtime=createArchiAgentRuntime();
  const providerSpies=[vi.spyOn(runtime,"listProviderProfiles"),vi.spyOn(runtime,"listProviderModels"),vi.spyOn(runtime,"generateDiagram")];
