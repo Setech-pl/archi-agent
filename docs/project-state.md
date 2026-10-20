@@ -5,8 +5,10 @@ Krótki stan operacyjny. Git, kod i faktyczne wyniki kontroli są źródłem akt
 
 ## Produkt i dystrybucja
 
-Main po merge [PR #10](https://github.com/Setech-pl/archi-agent/pull/10):
-`d723af09dacc71746a82c0fddcad97beb2cece8e` (potwierdzone fetch 2026-10-19).
+Main po porządkach dokumentacji:
+`d91bbdebcfbdf0414d64b18343147eb4b6f60278` (potwierdzone fetch 2026-10-20).
+Ta gałąź EA1/EA1b nadal bazuje na main po [PR #10](https://github.com/Setech-pl/archi-agent/pull/10),
+`d723af09dacc71746a82c0fddcad97beb2cece8e`; nie wykonano integracji.
 Cztery diagramy: Sequence, Component, C4 Context/Container; Verify Flow Sequence/proza;
 źródła Markdown, Structurizr JSON + overlay i MCP; CLI/function MCP; dokumenty, review,
 nowy pack, ART1, Browser, Help PL/EN.
@@ -21,11 +23,23 @@ Nie deklarujemy wydania stabilnego ani Marketplace.
 
 ## EA1b — lokalny checkpoint, STOP po tym etapie
 
+Wznowienie 2026-10-20 zastało gotowy checkpoint EA1b
+`2ddcf21367ce5834097859331641be48ce19ff86`, czysty working tree i pusty staging.
+Nie znaleziono brakującego przyrostu implementacyjnego. Ponownie potwierdzono zgodność 178
+plików produktu i trzech paczek z manifestami oraz komplet zaliczonych warstw Host/UI;
+pełne bramki poniżej pozostają wynikami z 2026-10-19, nie nowym uruchomieniem.
+Bieżące kontrole i niezależny review: [raport EA1b](ea1b-verification.md).
+Dowód wznowienia: `build/ea1b/resume-20261020/`.
+Przy późniejszej, osobno autoryzowanej integracji zachować usunięcia historycznych materiałów,
+skrócone dokumenty, odnośniki publicznego DEMO1 i poprawki skryptów z main `d91bbde`;
+nie zastępować ich całymi wersjami z tej gałęzi. Wtedy ponownie zweryfikować dokumentację,
+Help i paczki zintegrowanego drzewa. Teraz bez merge/rebase, push, tagów, publikacji i EA2.
+
 Zrealizowano zatwierdzony [plan EA1b](plans/ea1b-capability-map-cli-mcp.md).
 Preflight: `docs/doc3-ea1`, HEAD `4f3e8d90d65078835fb32fc477f8a9f6b73414ff`, tylko plan
 EA1b/project-state poza stagingiem; zachowano oba pliki i utworzono `feature/ea1b-cli-mcp`.
-Lokalny checkpoint jest commitem zawierającym ten stan i [raport EA1b](ea1b-verification.md);
-pełny SHA wskazuje Git i raport końcowy. Bez push/merge/tagów/publikacji, zmian release assets
+Lokalny checkpoint implementacji: `2ddcf21367ce5834097859331641be48ce19ff86`,
+z [raportem EA1b](ea1b-verification.md). Bez push/merge/tagów/publikacji, zmian release assets
 ani rozpoczęcia EA2.
 
 Wspólny runtime generuje Capability Map lokalnie oraz przez źródło MCP w VS Code, CLI i serwerze
@@ -36,7 +50,7 @@ ART1 nadal zapisuje oryginalną parę po potwierdzeniu; CLI/function MCP nie zap
 User-only knowledgeServer, readRoots, limity i zamknięcie dziecka zachowane. Gotowy adapter
 Retail i komplet instrukcji PL/EN. Opublikowane DEMO1/ZIP-y oraz zależności/lockfile bez zmian.
 
-Bieżący odbiór Node 22.12 PASS: root 2054/2054, rozszerzenie 768/768, oba typechecki, build,
+Odbiór 2026-10-19, Node 22.12 PASS: root 2054/2054, rozszerzenie 768/768, oba typechecki, build,
 sekwencyjne package/verify Core/Full/CLI i dokumentacja. Dokładne paczki/SHA-256 i osobne
 warstwy: `build/ea1b/candidate-20261019/` oraz raport EA1b. Spakowany CLI/function/source MCP
 poza repo z pustymi PATH/NODE_PATH 8/8, w tym nested cancel/timeout/EOF/SIGTERM i potwierdzenie

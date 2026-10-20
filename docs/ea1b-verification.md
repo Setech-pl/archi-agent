@@ -1,8 +1,8 @@
 # EA1b — Capability Map CLI/MCP verification
 
 Local candidate on `feature/ea1b-cli-mcp`, base EA1
-`4f3e8d90d65078835fb32fc477f8a9f6b73414ff`. The checkpoint is the commit containing this
-report (resolve its exact SHA from Git). The [approved plan](plans/ea1b-capability-map-cli-mcp.md)
+`4f3e8d90d65078835fb32fc477f8a9f6b73414ff`. Implementation checkpoint:
+`2ddcf21367ce5834097859331641be48ce19ff86`. The [approved plan](plans/ea1b-capability-map-cli-mcp.md)
 and its existing project-state change are included. No push, merge, tags, publication or release
 asset changes. Published DEMO1 files/ZIPs are unchanged; package version alone does not identify
 these new local candidates.
@@ -43,10 +43,45 @@ tree. Gates/runtime sourceFingerprint: `938d43bf856e1ecf5780e263fcbfe783b891cc42
 Later edits concern acceptance harnesses and documentation/handoff only; no tested product
 source or packaged bytes changed. No dependency or lockfile changes.
 
-## Current-session verification
+## Resumption verification (2026-10-20)
 
-Evidence root: `build/ea1b/candidate-20261019/`. These are current EA1b results, not inherited EA1
-or DEMO1 PASS claims. Each layer records exact artifacts separately.
+Preflight found implementation checkpoint `2ddcf21367ce5834097859331641be48ce19ff86`
+already complete, with a clean working tree and empty staging area. No implementation gap was
+found. Fetch confirmed `github/main` at `d91bbdebcfbdf0414d64b18343147eb4b6f60278`.
+No integration was attempted; the feature branch retains its original base.
+
+The new identity audit checks the complete 178-file product source set against the successful
+gates/runtime/Host manifests, all three package sizes and SHA-256 values, historical suite
+summaries, and the 12 successful leaf UI cases with their exact VSIX identity. All match.
+Evidence: `build/ea1b/resume-20261020/identity-audit.json`. The first audit-script attempt
+incorrectly assumed a top-level status in leaf UI reports; the corrected audit checks their
+actual per-case results and vsixSha256. That attempt changed no product files.
+
+A new independent read-only review in a separate context (`ea1b_final_review`) returned
+**PASS, 0 new HIGH/MEDIUM/LOW**. It independently checked contracts, transport/cleanup,
+source fingerprints, package contents, installed UI bytes and saved originals. Its own Node 22.12
+check on the exact packaged runtime recomputed the enterprise transfer/frozen snapshot and
+generated the sales L1–L3 maturity map: success, 1044 bytes, modelCalls=0. Local and MCP UI
+originals have identical diagram hashes and the same semantic report projection. The review
+also covered this documentation-only continuation; detailed evidence is retained locally in
+`build/ea1b/resume-20261020/`.
+
+The full suites, typechecks/build, packaging, outside-repo process tests and actual Host/UI
+below were not rerun: their exact product sources and artifact bytes are unchanged. Current
+documentation/Help/link/PL-EN checks, demo-document validation and whitespace checks are recorded
+separately in the resumption evidence directory. Owner smoke remains DEFERRED.
+
+Future integration requires separate authorization and must preserve main's deleted historical
+materials, shortened documents, public DEMO1 links and documentation/package-script corrections.
+Apply the EA1/EA1b documentation additions to those retained versions; do not replace them with
+whole feature-branch files. Recheck integrated documentation, generated Help and packages then.
+This continuation changes only the report/handoff: no product rebuild, restored files, push,
+merge/rebase, tags, publication or EA2 work.
+
+## Checkpoint verification (2026-10-19)
+
+Evidence root: `build/ea1b/candidate-20261019/`. These are EA1b checkpoint results, not inherited EA1
+or DEMO1 PASS claims, nor new executions during the 2026-10-20 resumption. Each layer records exact artifacts separately.
 
 | Layer | Result | Evidence / boundary |
 | --- | --- | --- |
