@@ -2,9 +2,9 @@
 
 **English** · [Polski](../pl/user-guide.md) · [Home](../../README.md)
 
-## PR candidate: profiles and knowledge
+## Public DEMO1: profiles and knowledge
 
-The unpublished **0.3.0-alpha.7** candidate adds CLI, a four-tool MCP function server and an MCP knowledge client. Use the exact files and SHA-256 from the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md) or the successful PR CI artifact manifest. Alpha.6 remains the earlier public release. [CLI/MCP installation, commands and contracts](cli-mcp.md).
+The public prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Main contains these features with later documentation changes; local EA1/EA1b work is outside main and this release. [CLI/MCP installation, commands and contracts](cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
@@ -18,7 +18,7 @@ The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge
 
 ## Verify Flow and C4
 
-These features are in the PR candidate. Screens 15–20 show the current product; screens 01–14 are explicitly historical alpha.6 UI references. The PR does not publish a release.
+Verify Flow and C4 are included in DEMO1. Screens 15–20 illustrate these features; their original capture identities are recorded in the provenance below.
 
 **Archi: Verify Flow (Sequence / prose)** checks entered text, selection or the active buffer.
 Sequence PlantUML uses no LLM; prose uses one interpretation request. The JSON report distinguishes
@@ -58,7 +58,7 @@ Actual installed UI, public Big Bank fixture, synthetic model responses. The fir
 
 ## Installation on Mac and Windows
 
-Download the Core or Full VSIX from the successful PR Clean-clone CI artifact. Compare its SHA-256 with the artifact `SHA256SUMS` / `packages.json`; local candidate hashes are in the [DOC2/PUB1 report](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md). CI packages can have different archive hashes; use the manifest from the same download. No alpha.7 release has been published.
+Download the Core or Full VSIX from [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json). The package version is **0.3.0-alpha.7**; the release tag is **v0.3.0-alpha.7-demo.1**. A local build or CI artifact may have a different hash and is not the published package.
 
 Mac:
 
@@ -74,7 +74,7 @@ Get-FileHash <file.vsix> -Algorithm SHA256
 
 In VS Code, open **Extensions → … → Install from VSIX…**, select the file and reload if requested. Check the version in **Archi Agent** extension details. No repository, npm or separate Node.js installation is needed. If an older version is installed, use the same command to install this identified prerelease.
 
-The earlier public alpha.6 remains available separately. [Collective owner smoke](../testing/mcp1-owner-smoke.md) covers the PR candidate; owner smoke remains DEFERRED.
+The earlier public alpha.6 remains available separately. [Collective owner smoke](../testing/mcp1-owner-smoke.md) gives the acceptance procedure; owner smoke of the exact DEMO1 packages remains **DEFERRED**. Publication does not establish stable/Marketplace readiness.
 
 ### Requirements and first launch
 
@@ -84,11 +84,7 @@ Install the correct VSIX with **Extensions → … → Install from VSIX…**, t
 
 ## Start here — first use
 
-
-
-Historical alpha.6 UI reference.
-
-1. Download the Core or Full PR candidate, verify its checksum, install through **Extensions → … → Install from VSIX…**, enable exactly one profile, reload and open a local project folder. Confirm **0.3.0-alpha.7** in extension details.
+1. Download Core or Full from DEMO1, verify its checksum, install through **Extensions → … → Install from VSIX…**, enable exactly one profile, reload and open a local project folder. Confirm **0.3.0-alpha.7** in extension details.
 2. Run **Archi: Configuration → LLM Provider**. Prepare LM Studio/Ollama or choose a cloud profile. For cloud, use **Set / Replace Key for <provider>** and enter the key in the masked native input.
 3. Click **Refresh Models** before or after Apply. Choose an exact ID in **Available models / Dostępne modele**; it appears in **Selected model**. Click **Apply**, then **Check Provider Configuration**. Refresh does not save anything; **Discard Changes** restores applied fields. There is one selected model, shared by diagram generator and reviewer; there is no multi-model “Selected Models” list.
 4. In **Knowledge Management**, use **Choose Existing Knowledge Pack**, or **Create Knowledge Pack** for a small catalog. The complete Alpha/Beta example below is suitable for a first diagram. Alternatively build from documents, review every candidate, validate the five previews and use **Save and use** to activate the new pack.
@@ -110,10 +106,6 @@ Help opens Polish when the VS Code display language is `pl` (including regional 
 A PDF can therefore become converted text, then candidates, then an accepted pack. A later flow description plus that pack produces a diagram. These are separate operations; converting a file does not automatically extract knowledge or generate a diagram.
 
 ## Provider, profile and model
-
-
-
-Historical alpha.6 UI reference.
 
 A provider is the service executing the model. A profile selects its adapter and endpoint policy; the model ID selects one model at that provider.
 
@@ -142,10 +134,6 @@ Prepare your local server/model yourself; the extension does not download models
 Machine-scoped profile/model selections are not synchronized by Settings Sync or overridden by a workspace. After changing profile, select a model again; stale bindings are inactive. Prefer the UI to editing model settings. Local URLs accept literal `127.0.0.1` or `[::1]` with `/v1`; `localhost`, remote hosts, redirects and credential-bearing URLs are rejected. Details: [local adapters](../local-model.md), [cloud adapters](../cloud-models.md).
 
 ## Choose or create the active Knowledge Pack
-
-
-
-Historical alpha.6 UI reference.
 
 A Knowledge Pack is a local architecture catalog: systems, actors, relationships, aliases and rules. Grounding matches canonical names and aliases to this catalog before model generation.
 
@@ -202,19 +190,7 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
-
-
-Historical alpha.6 UI reference.
-
-
-
-Historical alpha.6 UI reference.
-
 ## Documents to a new pack
-
-
-
-Historical alpha.6 UI reference.
 
 1. Run **Build Knowledge Pack from Documents** from the palette or the **Build Knowledge Pack from Documents** button in **Configuration → Knowledge Management**. Select explicit local `.md`, `.txt`, `.pdf`, `.docx`, `.xlsx` files. No directory scan or URL retrieval occurs. An existing pack is not needed.
 2. For PDFs the Builder's **PDF OCR mode** picker uses **none**, **auto**, **all**. `auto` keeps text pages and OCRs pages without text; `all` OCRs every page; `none` requires usable text. The separate **Convert to Markdown** command labels these choices **No OCR**, **Auto OCR**, **OCR all pages** and opens one unsaved Markdown editor. It needs neither provider nor pack and makes no network request.
@@ -224,14 +200,6 @@ Historical alpha.6 UI reference.
 6. **Validate and preview** blocks while any row is pending, an accepted relationship/alias/rule lacks accepted endpoints, conflicts remain, aliases collide, or the accepted set has no system. Dependencies are not accepted automatically. Change decisions/fields and validate again. Every change invalidates the previous immutable preview.
 7. Choose an existing parent folder and one **new pack folder name**. Expand the five read-only previews on the same screen: `systems.md`, `actors.md`, `relationships.md`, `aliases.md`, `rules.md`. The immutable preview is the exact content saved.
 8. **Save** creates the new pack and leaves the active setting unchanged. **Save and use** saves/loads first, then activates in the selected UX3 project scope (Global without a project). **saved, not activated** means valid files were retained but configuration failed; use Choose Existing Knowledge Pack to choose them later. Decisions remain above the previews; **Cancel** or closing the review panel exits before saving. After a collision, **Choose new pack folder** selects another new destination without extraction.
-
-
-
-Historical alpha.6 UI reference.
-
-
-
-Historical alpha.6 UI reference.
 
 There is one active build per Extension Host. Cancel or closing the review panel ends the build; a completed save releases the build guard. There are no persistent drafts, autosave, existing-pack update/merge or acceptance history. A new command means a new extraction. Review/edit/validation/preview/save/activation use **zero additional LLM requests**, even after a save collision and return to review.
 
@@ -248,10 +216,6 @@ Both conversion paths retain 300 PDF pages, 20 OCR pages, 10 MP rendered canvas,
 
 ## Active file and Knowledge Browser
 
-
-
-Historical alpha.6 UI reference.
-
 **Archi: Build Knowledge Pack from Active File** captures unsaved Markdown/TXT text (including untitled) before extraction. It never saves the editor. A local PDF/DOCX/XLSX custom preview must expose its file URI; otherwise open a supported source explicitly. The same evidence review, five previews, Save and Save and use follow.
 
 **Archi: Knowledge Browser** reveals **Archi Agent — Knowledge** in Explorer. Expand the project and active pack, then Systems, Relations, Rules, Sources/Evidence when available, or Files. Systems show aliases and incoming/outgoing references. Records open their pack file/line; source evidence without an original location opens local details. Refresh and pack-file saves reload production validation; invalid knowledge is not shown as current.
@@ -262,10 +226,6 @@ In Configuration, the profile description and key buttons follow the form select
 The tree also includes **Actors**. Use **Refresh Knowledge** in the tree title after external file edits. Saving a pack file in VS Code, changing the active path or workspace folders refreshes the view automatically. Evidence from an active editor opens that editor only while its normalized text digest matches the captured input; otherwise frozen evidence details open. This is a read-only browser, not a knowledge editor or a pack catalog.
 
 ## Generate and inspect a diagram
-
-
-
-Historical alpha.6 UI reference.
 
 Choose **Create Diagram → Sequence** (ordered interactions) or **Component** (components and dependencies). Select the active flow document, **Choose a flow file**, or type a description. A file needs restricted front matter; a typed description supplies metadata through UI. Use the same synthetic file in either language:
 
@@ -285,15 +245,7 @@ Invalid input/grounding makes zero generation calls; generator/local rejection o
 
 If semantic review rejects/fails after local checks, **Show unverified candidate** may open a marked candidate without a report; Cancel opens nothing. It is not a completed ART1 result. User cancellation does not offer an unverified candidate. The old `archiAgent.generateSequenceDiagram` command ID is an invisible delegate to **Create Diagram**. The older one-call runtime compatibility API remains available internally; it is not a separate user entry or fallback.
 
-
-
-Historical alpha.6 UI reference.
-
 ## Save the original diagram and report
-
-
-
-Historical alpha.6 UI reference.
 
 Use the generation notification's **Save Diagram and Report**, the palette's **Archi: Save Diagram and Report**, or the Open menu. The menu/palette selects an original result by diagram type, UTC creation time and result UUID. With one local project it is the target; multi-root explicitly asks for the destination project. Without a project, open a local folder first. Confirm the displayed original result, full new folder, `diagram.puml` and `report.json` in the modal. Cancel before save creates nothing.
 
@@ -347,16 +299,13 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 ## Screenshots, Help and license
 
-
-
-Historical alpha.6 UI reference.
-
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](../assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits and verification direction: [roadmap](../product-roadmap.md), [technical state](../project-state.md). The earlier public alpha.6 predates these local additions. The current local order is SRC1 → VER1 → D3 → D4 → MCP1; MCP1 is implemented in the local candidate; acceptance is recorded separately.
-## Local Structurizr source — SRC1 candidate
+Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits, open findings and verification status: [roadmap](../product-roadmap.md), [technical state](../project-state.md). SRC1, VER1, C4 and MCP1 are included in DEMO1; local EA1/EA1b functions are not.
 
-This section applies to the local SRC1 candidate, not the downloadable alpha.6 release.
+## Local Structurizr source — SRC1
+
+This source is available in DEMO1.
 Configure a local workspace JSON and a three-file Knowledge Pack overlay in VS Code User
 or project settings. Configuration → Knowledge Management shows validation and omitted content.
 Source Settings opens User JSON; use `.vscode/settings.json` for a project override.
@@ -369,7 +318,7 @@ The overlay contains aliases.md, rules.md and relationships.md. Relationship met
 original relationship ID and expected from_id/to_id. interface_type is explicit. Model
 interactionStyle determines mode; otherwise the overlay must provide it. Conflicts block generation.
 Container names use `System / Container`; original IDs remain stable after renaming.
-Source components and deployment are omitted; Sequence, Component, C4 Context and C4 Container output is supported in the local candidate.
+Source components and deployment are omitted; Sequence, Component, C4 Context and C4 Container output is supported.
 Each operation reads again. The generated pair preserves its original snapshot when saved.
 
 Set `archiAgent.architectureSource` to null to use knowledgePackPath again. K3 Save and use

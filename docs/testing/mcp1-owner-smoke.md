@@ -2,7 +2,7 @@
 
 **Stan: DEFERRED.** Ten dokument jest instrukcją odbioru przez właściciela. Automatyczne
 wyniki wykonawcy nie zastępują wyniku właściciela ani jakości rzeczywistego LLM.
-Bieżące paczki, rozmiary i SHA-256: [DOC2/PUB1](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/doc2-pub1-verification.md); historyczny C5: [raport MCP1](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/mcp1-verification.md).
+Publiczne paczki DEMO1, rozmiary i SHA-256: [wydanie](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1), [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json), [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Historyczny C5: [raport MCP1](https://github.com/Setech-pl/archi-agent/blob/d723af09dacc71746a82c0fddcad97beb2cece8e/docs/mcp1-verification.md). Lokalne funkcje EA1/EA1b nie należą do tego wydania.
 Instrukcje instalacji i konfiguracji: [PL](../pl/cli-mcp.md), [EN](../en/cli-mcp.md).
 
 1. Zapisz OS/architekturę, VS Code, Node (dla CLI/MCP), profil rozszerzenia, dokładne SHA-256

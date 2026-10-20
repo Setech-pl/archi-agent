@@ -40,7 +40,9 @@ pozostają poza tymi gałęziami i poza publicznym wydaniem. Nie deklarujemy sta
 
 ## Aktywne zadanie
 
-PORTFOLIO-CLEANUP: konsolidacja dokumentacji bez zmian zachowania produktu.
+Domknięcie PORTFOLIO-CLEANUP: porównanie PR #11/#12 z main i zamknięcie bez merge;
+aktualizacja statusu publicznego DEMO1 w instrukcjach PL/EN oraz generowanym Help,
+bez zmian zachowania produktu. Odbiór, stan PR i kontrole są w raporcie poza repo.
 Wycofane materiały są zachowane lokalnie poza repo i w historii Git; nie należy
 synchronizować innych checkoutów bez zabezpieczenia ich własnych kopii.
 Wyniki bieżących kontroli i macierz gałęzi pozostają w raporcie poza repo.

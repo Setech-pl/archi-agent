@@ -1,15 +1,15 @@
-# CLI i lokalny MCP — kandydat MCP1
+# CLI i lokalny MCP — MCP1
 
 [English](../en/cli-mcp.md) · **Polski**
 
-Lokalny kandydat MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
-oraz dwa profile VS Code. Kandydat nie został opublikowany. Weryfikacja dotyczy Sequence
+MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
+oraz dwa profile VS Code, dostępne w [publicznym DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Lokalne prace EA1/EA1b są poza tym wydaniem. Weryfikacja dotyczy Sequence
 PlantUML i prozy, nie diagramów Component ani C4. Generowanie obsługuje cztery istniejące
 typy: Sequence, Component, C4 Context i C4 Container.
 
 ## Instalacja lokalnej paczki
 
-Sprawdź SHA-256 z raportu weryfikacji kandydata, następnie zainstaluj dostarczony tarball:
+Pobierz tarball CLI z DEMO1 i sprawdź go z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) tego wydania, następnie zainstaluj:
 
 ```bash
 npm install --global ./archi-agent-cli-0.3.0-alpha.7.tgz

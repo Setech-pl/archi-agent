@@ -1,15 +1,15 @@
-# CLI and local MCP — MCP1 candidate
+# CLI and local MCP — MCP1
 
 **English** · [Polski](../pl/cli-mcp.md)
 
-The local MCP1 candidate supplies the same Archi Agent runtime through a CLI, a stdio MCP
-server, and two VS Code profiles. This candidate has not been published. It verifies Sequence
+MCP1 supplies the same Archi Agent runtime through a CLI, a stdio MCP
+server, and two VS Code profiles, available in [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Local EA1/EA1b work is outside this release. It verifies Sequence
 PlantUML and prose; it does not verify Component or C4 diagrams. Generation supports the four
 existing types: Sequence, Component, C4 Context and C4 Container.
 
 ## Install a local package
 
-Check the SHA-256 in the candidate verification report, then install the supplied tarball:
+Download the CLI tarball from DEMO1 and check it against the release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json), then install it:
 
 ```bash
 npm install --global ./archi-agent-cli-0.3.0-alpha.7.tgz
