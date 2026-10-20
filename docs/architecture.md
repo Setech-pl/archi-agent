@@ -2,6 +2,17 @@
 
 Canonical architecture: [English](en/architecture.md) · [Polski](pl/architecture.md).
 
+## EA1 deterministic enterprise projection
+
+The local Capability Map path uses a separate strict enterprise/1 catalog and report;
+[enterprise contract](enterprise-catalog.md). Core validates hierarchy, explicit scales and
+provenance, freezes the snapshot, projects a selected view and emits a closed PlantUML grammar.
+Node reads one bounded file with actual positions/fingerprint. Runtime composes these functions
+and a separate strict ART1 capture; the existing writer/envelope remains compatible.
+The editor routes this type before any software source/provider onboarding. No provider settings,
+keys, model listing, generation or semantic review are used. EA1b routes CLI and function MCP to the same operation, and adds a separate fixed enterprise knowledge tool. Local report v1 remains; remote report v2 uses true references/pointers instead of file lines. Config v2 keeps enterpriseSources separate from software sources; VS Code uses enterpriseSource plus User-only knowledgeServer.
+The software generation diagrams in the canonical guides retain their existing meaning.
+
 ## VER1 and source-bound C4
 
 See the [canonical architecture](en/architecture.md).

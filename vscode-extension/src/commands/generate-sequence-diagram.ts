@@ -19,6 +19,7 @@ import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPr
 import { selectLocalModel } from "./local-provider-selection.js";
 import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
 import {inspectC4Source} from "../../../src/runtime/index.js";
+import {generateCapabilityMapCommand} from "./generate-capability-map.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -267,9 +268,13 @@ export async function generateDiagramCommand(dependencies: GenerateCommandDepend
   const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const },
     { label: "Component", description: "component", id: "component" as const },
     { label:"C4 Context",description:"c4-context",id:"c4-context" as const },
-    { label:"C4 Container",description:"c4-container",id:"c4-container" as const }],
+    { label:"C4 Container",description:"c4-container",id:"c4-container" as const },
+    { label:"Enterprise Architecture / Architektura korporacyjna",kind:vscode.QuickPickItemKind.Separator,id:"enterprise-group" as const },
+    { label:"Capability Map / Mapa zdolności biznesowych",description:"capability-map",id:"capability-map" as const }],
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
   if (picked === undefined) return;
+  if (picked.id === "enterprise-group") return;
+  if (picked.id === "capability-map") {await generateCapabilityMapCommand(dependencies.results);return;}
   await runGenerateCommand(dependencies, picked.id);
 }
 

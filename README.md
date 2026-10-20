@@ -47,6 +47,12 @@ Use C4 Container to explain the system's internal structure and Component diagra
 
 Diagram output is editable PlantUML. Graphical previews use a separate PlantUML tool or extension. [View the gallery](docs/assets/screenshots/README.md).
 
+## See your business capabilities
+
+The **EA1/EA1b integration candidate** maps business capabilities from a local catalog or MCP, with nested
+L1–L3 tiles, explicit rating colors and a source report. It works in VS Code, CLI and the function MCP server without a model or provider.
+[Try the Capability Map](docs/en/capability-map.md). Published DEMO1 packages above retain their original features.
+
 ## Work with the knowledge you already have
 
 - **Structurizr JSON:** use your existing model with an overlay for aliases, rules and interface metadata.
@@ -105,5 +111,7 @@ The VS Code extension includes its runtime: no repository clone, npm or separate
 ## Documentation
 
 [User guide](docs/en/user-guide.md) · [Architecture](docs/en/architecture.md) · [Developer guide](docs/en/development.md) · [Technical status](docs/project-state.md)
+
+Documentation on main follows current source code; published packages are identified by their release manifest and bundled Help.
 
 Archi Agent is available under the [MIT license](LICENSE). Bundled components retain their [third-party notices](vscode-extension/THIRD_PARTY_NOTICES.md) and [OCR notices](experiments/ux2-ocr/TRIAL_NOTICES.md).

@@ -13,6 +13,7 @@ Przeczytaj [AGENTS.md](../../AGENTS.md), [stan projektu](../project-state.md), [
 ```bash
 npm ci
 npm ci --prefix experiments/ux2-ocr
+node scripts/prepare-ci-ocr.mjs
 npm test
 npm run typecheck
 npm run extension:typecheck
@@ -21,6 +22,8 @@ npm run extension:build
 npm run extension:package -- --profile core --out build/docs-pl-en/<unique-run>/candidate
 npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.7.vsix
 ```
+
+`prepare-ci-ocr.mjs` pobiera i weryfikuje SRI ośmiu przypiętych tarballi canvas 0.1.97 oraz przygotowuje zasoby Full, w tym uzupełnienie ICU z tej samej wersji. Uruchom go przed testami pakującymi Full; same dwie instalacje npm nie dostarczają tych archiwów. [Szczegóły buildu OCR](../../experiments/ux2-ocr/README.md).
 
 Zastąp `<unique-run>` nową nazwą katalogu; nie używaj ponownie celów wcześniejszych kandydatów. `npm ci` zachowuje opcjonalne bindingi platformowe z lockfile; unikaj zwykłego `npm install` w repo. Pakowanie przebudowuje bundle rozszerzenia/runtime/konwertera. Domyślny Core potrzebuje tylko zależności root; Full wymaga dodatkowo zależności OCR i przypiętych zasobów. Dla niego wskaż jawnie --profile full. Pakowanie/gauntlety współdzielące staging OCR uruchamiaj sekwencyjnie. `extension:verify` sprawdza allowlistę dokładnego VSIX, granice bundle i hashe zasobów. Zapisz rozmiar i SHA-256 z commitem/tree źródeł oraz rzeczywistymi zmianami; sama wersja pakietu nie wystarcza.
 
@@ -80,3 +83,14 @@ Tylko osobno autoryzowane wydanie może utworzyć tag/prerelease i wysłać asse
 publikują wydania. Pobierz publiczne pliki i porównaj ich bajty/checksumy ze zweryfikowanymi kandydatami;
 zachowaj manifest wydania i tożsamość źródeł oddzielnie od merge commita. Nie zastępuj istniejących
 assets i nie wnioskuj z CI o owner smoke, jakości żywego modelu ani wykonaniu na innych platformach.
+
+## EA1 verification
+
+Narzędzie developerskie EA1 używa Node 22.12 oraz istniejących lokalnych harnessów VS Code/macOS. Uruchamiaj tryby kolejno na jednym unikalnym katalogu wyników. `gates` wykonuje czyste instalacje/audyty, zestawy testów, typechecki/build i sekwencyjne package/verify Core/Full; `runtime` rozpakowuje dokładne pliki poza repo z pustymi PATH/NODE_PATH; `host` używa rzeczywistego Extension Host ze sterowanymi odpowiedziami edytora. Widoczny UI to osobna warstwa. Renderer i natywne helpery UI wymagają lokalnych narzędzi opisanych w scripts/docs/README.md. Te skrypty nie dodają poleceń enterprise do produktowego CLI.
+
+```bash
+node scripts/ea1-verify.mjs gates build/ea1/<unique-run>
+node scripts/ea1-verify.mjs runtime build/ea1/<unique-run>
+node scripts/ea1-verify.mjs host build/ea1/<unique-run>
+node scripts/ea1-real-ui-smoke.mjs build/ea1/<unique-run>/core/archi-agent-core-0.3.0-alpha.7.vsix build/ea1/<unique-run>/ui
+```

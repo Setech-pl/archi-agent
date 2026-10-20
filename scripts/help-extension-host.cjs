@@ -6,7 +6,7 @@ exports.run = async () => {
   const results = [];
   const config = JSON.parse(fs.readFileSync(process.env.ARCHI_HELP_CONFIG, 'utf8'));
   try {
-    const extension = vscode.extensions.getExtension('setech-pl.archi-agent');
+    const extension = vscode.extensions.getExtension('setech-pl.archi-agent-core') ?? vscode.extensions.getExtension('setech-pl.archi-agent');
     assert.ok(extension); await extension.activate();
     assert.equal(vscode.env.language, config.locale);
     const primary = /^pl(?:-|$)/i.test(vscode.env.language) ? 'README.pl.md' : 'readme.md';
@@ -17,6 +17,8 @@ exports.run = async () => {
       const text = fs.readFileSync(path.join(extension.extensionPath, name), 'utf8');
       assert.ok(text.includes(name === 'readme.md' ? '## Start here' : '## Zacznij tutaj'));
       assert.ok(text.includes('Apply') && text.includes('Knowledge Browser') && text.includes('Cancel'));
+      assert.ok(text.toLowerCase().includes('get_enterprise_snapshot v1') && text.toLowerCase().includes('get_knowledge_snapshot v1'));
+      assert.ok(text.includes('\"enterpriseSources\"') && text.includes('--check-source retail-business --type enterprise'), 'Complete offline enterprise source configuration');
       const deadline = Date.now() + 15000;
       let tab;
       do {

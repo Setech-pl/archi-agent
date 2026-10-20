@@ -5,7 +5,7 @@ Porównuj stan z Git. [Roadmapa](product-roadmap.md) określa kierunek,
 
 ## Dostępne w tej gałęzi
 
-Sequence, Component, C4 Context/Container i Verify Flow Sequence/proza; Markdown, Structurizr JSON + overlay i MCP; dokumenty, OCR, review/nowy pack, ART1, Browser i Help PL/EN. CLI/function MCP współdzielą runtime.
+Sequence, Component, C4 Context/Container i Verify Flow Sequence/proza; Markdown, Structurizr JSON + overlay i MCP; dokumenty, OCR, review/nowy pack, ART1, Browser i Help PL/EN. CLI/function MCP współdzielą runtime. Kandydat EA1/EA1b dodaje Capability Map z lokalnego katalogu lub MCP, zero LLM i ART1.
 
 ## Dystrybucja
 
@@ -13,8 +13,8 @@ Publiczne [DEMO1 v0.3.0-alpha.7-demo.1](https://github.com/Setech-pl/archi-agent
 Źródła paczek: `83747d3815806f09554298ce9c4e487881932d59`; tożsamość określają publiczne
 [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json)
 i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS).
-Main po PR #10 zawiera tę funkcjonalność, lecz ma inne SHA niż paczki. Lokalne EA1/EA1b
-pozostają poza tymi gałęziami i poza publicznym wydaniem. Nie deklarujemy stable/Marketplace.
+Main po PR #10 zawiera funkcje DEMO1, lecz ma inne SHA niż paczki. Kandydat integracji EA1/EA1b
+pozostaje poza publicznym wydaniem; publiczne ZIP-y nie zawierają katalogu enterprise. Nie deklarujemy stable/Marketplace.
 
 ## Otwarte ustalenia i granice dowodów
 
@@ -38,12 +38,25 @@ pozostają poza tymi gałęziami i poza publicznym wydaniem. Nie deklarujemy sta
 - AUD-001/002 zamknięto w naprawie ABA; nie zamyka to AUD-003–006 ani M1.
   Dowody natywne dotyczą głównie macOS ARM64; inventory zasobów nie jest testem innych platform.
 
-## Aktywne zadanie
+## Aktywne zadanie — EA-INTEGRATION1
 
-Domknięcie PORTFOLIO-CLEANUP: porównanie PR #11/#12 z main i zamknięcie bez merge;
-aktualizacja statusu publicznego DEMO1 w instrukcjach PL/EN oraz generowanym Help,
-bez zmian zachowania produktu. Odbiór, stan PR i kontrole są w raporcie poza repo.
-Wycofane materiały są zachowane lokalnie poza repo i w historii Git; nie należy
-synchronizować innych checkoutów bez zabezpieczenia ich własnych kopii.
-Wyniki bieżących kontroli i macierz gałęzi pozostają w raporcie poza repo.
-Dalsze zmiany funkcjonalne wymagają osobnego zatwierdzonego zadania.
+Integracja w izolowanym worktree `/private/tmp/archi-ea-integration1`, gałąź
+`feature/ea1-ea1b-integration`, baza `d91bbdebcfbdf0414d64b18343147eb4b6f60278`.
+Zachowana historia DOC3/EA1/EA1b do `7efa83f5fbe3c3c3da637676ff6316f831b9177f`;
+dokumentacja łączy nowe instrukcje z porządkami main. Wycofane raporty i media nie wracają.
+Kod produktu i testy porównywane z kandydatem `2ddcf21367ce5834097859331641be48ce19ff86`.
+Dowody integracji i kopie historycznych raportów pozostają w ignorowanym `build/ea-integration1/`.
+Bramki z 19.10 oraz późniejszy review EA1b są historyczne; nie są wynikiem nowego merge.
+Bieżąca weryfikacja integracji: oba typechecki, 255 testów celowanych, build, sekwencyjne
+package/verify Core/Full/CLI, dokumentacja obu VSIX i Help PL/EN PASS. Dokładne paczki poza
+repo: parytet lokalne/MCP/CLI/funkcje, EA1 Core/Full, Structurizr, VER1/C4 i ART1 PASS;
+osobny stary protokół wiedzy v1 PASS. Rzeczywisty Host 37/37, Help 2/2, widoczny UI
+map lokalnych/MCP 11/11 PASS; zapisane oryginały mają identyczny PlantUML i semantykę raportu,
+modelCalls=0. Potwierdzone 178 odcisków per-file; runtime i OCR zgodne z dawnym kandydatem.
+Pełnych lokalnych suites EA1b nie ponawiano wyłącznie z powodu merge SHA. Historia UI
+pozostaje przy poprzednich paczkach; bieżące dowody mają nowe SHA paczek. Dwie uwagi
+niezależnego review zamknięto w pełnej konfiguracji Help offline i opisie providera PL.
+Końcowy niezależny review dowodów PASS: 0 otwartych nowych HIGH/MEDIUM/LOW. PR/CI do main
+są osobnymi kontrolami; stan oraz tożsamość head/merge checkout są w raporcie poza repo i w PR.
+OWNER_SMOKE: DEFERRED. Nie deklarujemy sprawdzenia importu EA ani COM.
+Po otwarciu PR i sprawdzeniu CI STOP; bez merge/release, AUD-003/004 i EA2.

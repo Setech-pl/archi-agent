@@ -4,7 +4,7 @@
 
 ## Public DEMO1: profiles and knowledge
 
-The public prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Main contains these features with later documentation changes; local EA1/EA1b work is outside main and this release. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
+The public prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). This branch also contains the EA1/EA1b integration candidate described below; public DEMO1 does not contain Capability Map. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
@@ -15,6 +15,57 @@ Choose one source per operation: a Markdown Knowledge Pack; **Structurizr worksp
 For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAgent.architectureSource` to `{"kind":"mcp","sourceId":"bank"}`. Workspace executable settings are ignored. Start with the standalone example in the [CLI/MCP guide](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md#mcp-knowledge-client-and-example-server). Each operation fetches one immutable snapshot; the next fetches again. Failures stop the operation; there is no stale local fallback or automatic alias save. LLM does not choose source tools. The JSON shown by Verify Flow uses the same portable report as CLI/MCP.
 
 The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
+
+## Capability Map — local EA1b candidate
+
+Available in the new local EA1b Core/Full candidate, **not in the published DEMO1 downloads above**.
+Open a local project and run **Archi: Create Diagram → Enterprise Architecture → Capability Map**.
+Select `enterprise.json`, choose the whole map or an L1 branch, L1–L3 detail, and no colors or an
+explicit rating scale. In multi-root workspaces select the source project first. No software pack,
+provider, model or API key is needed; this operation makes zero model calls.
+
+A graphical preview requires a separate PlantUML renderer. Two unsaved editors show PlantUML and the deterministic provenance report. Save the original pair
+with **Archi: Save Diagram and Report** and confirm the destination; Cancel writes no partial pair.
+Gray “No data” means an absent rating. Parent ratings are not aggregated; tile size is not a rating.
+The legend/report show source coverage and deliberate scope/detail omissions. Large maps require
+an explicit narrower view. This report is not semantic review or Verify Flow.
+In the current checkout, `docs/en/capability-map.md` contains the Retail exercise and reference map;
+`docs/enterprise-catalog.md` describes the exact contract. These new files are local candidate documentation.
+The local EA1b CLI also accepts diagram generate with --type capability-map and a config v2 enterpriseSources entry, without input/provider. The function server uses the same generate_diagram tool with a separate capability-map variant. Published DEMO1 does not contain this addition.
+
+For the MCP catalog, use the locally packaged archi-agent-knowledge-server with a config v2 enterpriseSources entry named retail-business pointing to architecture/enterprise.json under its readRoots, sources/providers empty. Check it with --check-source retail-business --type enterprise. The following steps contain the complete offline configuration. Adjust the absolute executable/package/config paths.
+
+Save this complete source configuration as `/srv/retail-knowledge.json`. Replace the readRoot with the current Retail checkout folder. Use Node >=22.12 and the knowledge-server executable from the **new local CLI package**; published DEMO1 CLI does not supply this tool variant. The source config and command below also work offline. The configured MCP client starts the process; the check command exits after validation.
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {"project": "/srv/retail-checkout"},
+  "sources": {},
+  "enterpriseSources": {
+    "retail-business": {"kind": "enterprise-json", "file": {"root": "project", "path": "architecture/enterprise.json"}}
+  },
+  "providers": {}
+}
+```
+
+```bash
+node /opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs --config /srv/retail-knowledge.json --check-source retail-business --type enterprise
+```
+
+Then set these User settings:
+
+```json
+{
+  "archiAgent.enterpriseSource": {"kind": "mcp", "sourceId": "retail-business"},
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": ["/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs", "--config", "/srv/retail-knowledge.json"]
+  }
+}
+```
+
+Create Diagram → Enterprise Architecture → Capability Map now offers Configured MCP source and Local enterprise.json. Choose MCP, then the same scope/detail/rating options. Only User knowledgeServer can configure a process; workspace values cannot. Software architectureSource is separate. Each generation loads one snapshot, makes zero model calls and saves only after ART1 confirmation. Missing get_enterprise_snapshot v1 gives enterprise-unsupported with no fallback. Remote report v2 preserves references and JSON Pointers, never fictitious file/line. The old get_knowledge_snapshot v1 remains unchanged.
 
 ## Verify Flow and C4
 
@@ -78,9 +129,9 @@ The earlier public alpha.6 remains available separately. [Collective owner smoke
 
 ### Requirements and first launch
 
-Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
+Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or reviewed software diagrams. Capability Map requires no provider. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Native UI evidence is from macOS arm64; equivalent end-to-end operation on other platforms is not yet confirmed. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/development.md).
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Verify Flow (Sequence / prose)**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/development.md).
 
 ## Start here — first use
 
@@ -188,6 +239,8 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 ## Local document conversion and OCR
 
+Known PDF limit: text converted to vector outlines can be misclassified as a blank page in Auto/all OCR. Inspect conversion coverage against the original; do not treat a blank marker as proof that a page has no content.
+
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
 ## Documents to a new pack
@@ -240,6 +293,8 @@ Alpha stores data in Beta.
 ```
 
 Resolve ambiguous mentions by selecting the intended element. Unknown ordinary text is not a new element; explicitly write `[NEW: Name]` and confirm it. Aliases do not establish a relationship. Source-confirmed relationships and flow-stated relationships remain distinguishable; a missing source relationship does not prove nonexistence. Local prohibitions still block generation.
+
+Known Sequence limit: confirming a `[NEW: Name]` participant does not currently allow the reviewed Sequence plan to use it; it can fail with `unknown-endpoint` after one model call. Add the element deliberately to your source first, or use an existing element.
 
 Invalid input/grounding makes zero generation calls; generator/local rejection one; a locally valid candidate triggers one separate reviewer call, for two total. Generator and reviewer use the same configured profile/model, separate requests and the same frozen snapshot. No retry, repair, fallback or third call. A verified success opens unsaved PlantUML and a linked JSON grounding report side by side. Inspect facts, evidence classes, source lines, warnings, deterministic validation, semantic verdict and snapshot digest. The editor contains PlantUML text; a graphical preview needs separate PlantUML editor support. No official PlantUML rendering guarantee is inferred from local subset validation.
 

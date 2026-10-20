@@ -418,5 +418,6 @@ Object.assign(window, {
 
 /** VS Code display language used by offline help. */
 export const env = { language: "en" };
+export const QuickPickItemKind = { Separator: -1, Default: 0 };
 
 export const extensions = { getExtension(_id:string) { return undefined; }, onDidChange(_callback:()=>void) { return {dispose(){}}; } };

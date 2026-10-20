@@ -8,6 +8,8 @@ Core is deterministic and has no Node/VS Code I/O; orchestration calls injected 
 
 UX4 adds a singleton Configuration editor with Knowledge Management / LLM Provider and a linked K3 review webview. Both delegate to existing runtime services; a closed host protocol, nonce CSP and text-only rendering guard untrusted data. Keys remain in SecretStorage; the screen receives presence only. [UX4 contract](../configuration-workbench.md).
 
+The local EA1 candidate adds a separate deterministic enterprise catalog projection for Capability Map. It needs no provider, software pack or model, and uses its own provenance report with ART1. [Enterprise contract](../enterprise-catalog.md). The six software flow diagrams below keep their existing meaning.
+
 ## A. Components and boundaries
 
 ```mermaid
@@ -234,7 +236,12 @@ sequenceDiagram
   end
 ```
 
+
 SRC1 overlay alias saving is a separate VS Code adapter operation: minimal edit and native save after version and dirty-buffer checks. Pack and MCP decisions remain session-only; CLI/MCP do not write sources. VER1 does not verify C4.
+
+## Technical references
+
+[Host and packaging](../vscode-extension.md) · [Sources](../src1-structurizr-source.md) · [Flow verification](../ver1-flow-verification.md) · [C4](../c4-diagrams.md) · [Document extraction](../document-candidates.md) · [Review and new-pack saving](../knowledge-pack-review.md) · [Original-pair saving](../diagram-artifact-save.md) · [CLI/MCP](cli-mcp.md) · [Architecture decisions](../adr/0002-deterministic-diagram-plan-renderers.md).
 
 Rendered copies (SVG / PNG): [A SVG](../assets/diagrams/en-A.svg) / [PNG](../assets/diagrams/en-A.png) · [B SVG](../assets/diagrams/en-B.svg) / [PNG](../assets/diagrams/en-B.png) · [C SVG](../assets/diagrams/en-C.svg) / [PNG](../assets/diagrams/en-C.png) · [D SVG](../assets/diagrams/en-D.svg) / [PNG](../assets/diagrams/en-D.png) · [E SVG](../assets/diagrams/en-E.svg) / [PNG](../assets/diagrams/en-E.png) · [F SVG](../assets/diagrams/en-F.svg) / [PNG](../assets/diagrams/en-F.png)
 
@@ -279,3 +286,16 @@ explicit conflicts with references to every claim. There is no source precedence
 implicit winner. Multi-target aliases remain ambiguous. The sorted snapshot has a SHA-256
 digest over semantic facts, source scopes, provenance, gaps, ambiguities and conflicts;
 its ID contains that full digest. Source and record order do not change serialized bytes.
+
+## Enterprise catalog across hosts — local EA1b
+
+Capability Map uses the same EA1 validation, frozen snapshot, view projection and renderer in
+VS Code, CLI and function MCP. It has no flow/provider/model fields and makes zero LLM calls.
+Config v2 adds enterpriseSources separately from software sources. The optional knowledge tool
+get_enterprise_snapshot v1 transports enterprise/1 catalogs; get_knowledge_snapshot v1 is unchanged.
+The source client validates identity, source version and semantic digest, with bounded discovery,
+response, deadline and confirmed child cleanup. VS Code enterpriseSource may select a catalog;
+only User knowledgeServer can configure its executable. Local report v1 retains actual file lines,
+remote report v2 retains response pointers and declared references. ART1 keeps its original-pair
+writer/envelope; CLI/function MCP never gain automatic write permission. This candidate is local,
+not an update of published DEMO1 downloads.

@@ -47,6 +47,12 @@ C4 Container pomaga wyjaśnić strukturę systemu, a diagram Component — omów
 
 Wynikiem generowania jest edytowalny PlantUML. Podgląd graficzny zapewnia osobne narzędzie lub rozszerzenie PlantUML. [Zobacz galerię](docs/assets/screenshots/README.md).
 
+## Zobacz zdolności biznesowe
+
+**Kandydat integracji EA1/EA1b** tworzy mapę zdolności z lokalnego katalogu lub MCP: zagnieżdżone kafle
+L1–L3, kolory jawnych ocen i raport źródeł. Działa w VS Code, CLI i serwerze funkcji MCP bez modelu ani providera.
+[Wypróbuj mapę zdolności](docs/pl/capability-map.md). Powyższe paczki DEMO1 zachowują dotychczasowy zakres.
+
 ## Wykorzystaj wiedzę, którą już masz
 
 - **Structurizr JSON:** pracuj na istniejącym modelu z nakładką zawierającą aliasy, reguły i metadane interfejsów.
@@ -105,5 +111,7 @@ Rozszerzenie VS Code zawiera potrzebny runtime: korzystanie z niego nie wymaga k
 ## Dokumentacja
 
 [Instrukcja użytkownika](docs/pl/user-guide.md) · [Architektura](docs/pl/architecture.md) · [Dla programistów](docs/pl/development.md) · [Stan techniczny](docs/project-state.md)
+
+Dokumentacja main opisuje aktualny kod; opublikowane paczki identyfikują manifest wydania i dołączony Help.
 
 Archi Agent jest dostępny na [licencji MIT](LICENSE). Dołączone komponenty zachowują własne [informacje licencyjne](vscode-extension/THIRD_PARTY_NOTICES.md) oraz [informacje o komponentach OCR](experiments/ux2-ocr/TRIAL_NOTICES.md).

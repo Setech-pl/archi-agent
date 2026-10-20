@@ -7,6 +7,8 @@ import { documentProvenanceSchema } from "../core/knowledge-pack/document-proven
 import { systemKinds, actorKinds, interfaceTypes } from "../core/knowledge-pack/knowledge-pack.schema.js";
 import type { KnowledgeFact } from "../core/knowledge-pack/knowledge-snapshot.js";
 import type { GenerateDiagramOutcome } from "./runtime-types.js";
+import {capabilityMapReportSchema,enterpriseTransportSchema} from "../core/enterprise/capability-map-report.js";
+import {enterpriseCatalogSchema} from "../core/enterprise/enterprise-catalog.js";
 
 const text = z.string().max(2000), id = z.string().min(1).max(256);
 export const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -100,7 +102,10 @@ const detailValue=z.union([text,z.number().finite(),z.boolean(),z.array(text).ma
 const issue=z.strictObject({severity:z.enum(["error","warning"]),code,message:text,file:text.optional(),line:count.optional(),column:z.union([count,text]).optional(),path:text.optional(),
   details:z.strictObject(Object.fromEntries(["order","fromId","toId","expected","actual","elementId","expectedKind","limit","problem","problems","mention","newParticipant","rule","line","stepIndex","count","candidateIds","participantIds","interfaceType","interfaceName","expectedType"].map(k=>[k,detailValue.optional()]))).optional()});
 const summary=z.strictObject(Object.fromEntries(["participantCount","knownParticipantCount","newParticipantCount","messageCount","synchronousCount","asynchronousCount","responseCount","selfMessageCount","warningCount"].map(k=>[k,count])));
+const enterpriseFailure=z.strictObject({status:z.enum(["failed","unsupported"]),diagramType:z.literal("capability-map"),code,
+  issues:z.array(z.strictObject({code:z.string().max(128),path:z.array(z.union([z.string().max(256),z.number().int().nonnegative()])).max(64),location:location.optional()})).max(100),count:count.optional()});
 export const portableDiagramOutcomeSchema=z.union([
+  z.strictObject({status:z.literal("success"),diagramType:z.literal("capability-map"),plantUml:z.string().max(256*1024),report:capabilityMapReportSchema}),enterpriseFailure,
   z.strictObject({status:z.literal("success"),diagramName:text,generatorType:text,digest:digestSchema,plantUml:z.string().max(1024*1024),diagramFileName:text,groundingReport:z.string().max(4*1024*1024),reportFileName:text,summary,warnings:z.array(issue).max(100)}),
   z.strictObject({status:z.literal("unverified"),plantUmlCandidate:z.string().max(1024*1024),review:z.union([z.strictObject({status:z.literal("rejected"),violationCodes:z.array(code).max(100)}),z.strictObject({status:z.literal("failed"),problemCode:code})])}),
   z.strictObject({status:z.literal("failed"),stage:z.enum(["flow","knowledge-pack","generator-configuration","grounding-blocked","invalid-generator-output","semantic-validation-failed","render-validation-failed"]),issues:z.array(issue).max(100),
@@ -111,6 +116,11 @@ export function portableDiagramOutcome(outcome:GenerateDiagramOutcome){
   const {artifact:_artifact,...portable}=outcome;return portable;
 }
 export const inspectionOutcomeSchema=z.union([
+  z.strictObject({status:z.literal("success"),diagramType:z.literal("capability-map"),source:enterpriseCatalogSchema.shape.source,
+    snapshot:z.strictObject({id:z.string().regex(/^enterprise-[0-9a-f]{64}$/),catalogDigest:digestSchema}),
+    sourceEvidence:z.union([z.strictObject({kind:z.literal("enterprise-json"),file:z.string().max(256),sourceBytesSha256:digestSchema}),enterpriseTransportSchema]),
+    counts:z.strictObject({capabilities:z.number().int().min(0).max(1000),scales:z.number().int().min(0).max(8)}),
+    roots:z.array(z.strictObject({id:z.string().max(64),name:z.string().max(320)})).max(1000),scales:z.array(z.strictObject({id:z.string().max(64),name:z.string().max(320)})).max(8)}),enterpriseFailure,
   z.strictObject({status:z.literal("success"),snapshot:z.strictObject({id,digest:digestSchema}),sourceFingerprint:digestSchema,sourceVersion:digestSchema,
     counts:z.strictObject({systems:count,actors:count,relationships:count,aliases:count,rules:count}),sources:z.array(sourceSummarySchema).max(64),elements:z.array(elementEvidenceSchema).max(64),
     page:z.strictObject({total:count,offset:count,limit:count,hasMore:z.boolean()}),c4Available:z.boolean()}),

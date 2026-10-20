@@ -4,7 +4,7 @@
 
 ## Publiczne DEMO1: profile i wiedza
 
-Publiczny prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) udostępnia VSIX Core i Full, CLI oraz dwa dwujęzyczne ZIP-y demo. Zawiera serwer czterech funkcji MCP i klienta wiedzy MCP. Dokładne pliki identyfikują jego [manifest wydania](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Main zawiera te funkcje oraz późniejsze zmiany dokumentacji; lokalne prace EA1/EA1b są poza main i tym wydaniem. [Instalacja CLI/MCP, polecenia i kontrakty](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
+Publiczny prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) udostępnia VSIX Core i Full, CLI oraz dwa dwujęzyczne ZIP-y demo. Zawiera serwer czterech funkcji MCP i klienta wiedzy MCP. Dokładne pliki identyfikują jego [manifest wydania](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Ta gałąź zawiera także opisanego poniżej kandydata integracji EA1/EA1b; publiczne DEMO1 nie zawiera Capability Map. [Instalacja CLI/MCP, polecenia i kontrakty](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) jest rekomendowany nowym użytkownikom. Zawiera wspólny runtime oraz tekstową konwersję PDF/DOCX/XLSX, bez zależności i modeli OCR. **Full** (`setech-pl.archi-agent`) dodaje przypięte lokalne OCR PL/EN. Istniejący Full pozostaje Full. Żaden profil nie pobiera OCR. W Core Auto OCR działa dla tekstowych PDF; strona wymagająca OCR zatrzymuje konwersję z jawnym pokryciem, bez częściowego Markdown. OCR all pages wymaga Full. Uszkodzony Full zgłasza błąd instalacji: zainstaluj ponownie zweryfikowany VSIX Full.
 
@@ -15,6 +15,57 @@ Wybierz jedno źródło na operację: Markdown Knowledge Pack; **Structurizr wor
 Dla MCP ustaw `archiAgent.knowledgeServer` w **ustawieniach User**, następnie `archiAgent.architectureSource` na `{"kind":"mcp","sourceId":"bank"}`. Workspace nie może wskazać programu. Zacznij od samodzielnego przykładu w [instrukcji CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md#klient-mcp-wiedzy-i-przykładowy-serwer). Operacja pobiera jeden niezmienny snapshot; następna pobiera ponownie. Błąd zatrzymuje operację; brak fallbacku do starej lokalnej wiedzy i automatycznego zapisu aliasów. LLM nie wybiera narzędzi źródła. JSON Verify Flow korzysta z tego samego przenośnego raportu co CLI/MCP.
 
 **Serwer funkcji MCP** (`archi-agent mcp serve`) udostępnia zewnętrznym klientom `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram`. Opisany wyżej **klient wiedzy MCP** pobiera `get_knowledge_snapshot` z osobnego serwera źródła. Dostarczony przykład `archi-agent-knowledge-server` współdzieli produkcyjne SRC1/K1 i rozdziela transport od `KnowledgeAdapter.load`. W żadnym kierunku LLM nie wybiera tools źródła. CLI/serwery wymagają Node 22.12+ oraz jawnych readRoots/sekretów środowiska; VSIX używa Node VS Code i SecretStorage. W pipeline PR użyj `flow verify` i akceptuj tylko exit 0; 1 oznacza rozbieżności, 2 nierozstrzygnięte/częściowe/nieobsługiwane, 3 błąd wykonania. Pełna konfiguracja i polecenia: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
+
+## Mapa zdolności biznesowych — lokalny kandydat EA1b
+
+Dostępna w nowym lokalnym kandydacie EA1b Core/Full, **nie w powyższych paczkach DEMO1**.
+Otwórz lokalny projekt i uruchom **Archi: Create Diagram → Architektura korporacyjna → Mapa zdolności biznesowych**.
+Wskaż `enterprise.json`, wybierz całą mapę lub gałąź L1, szczegółowość L1–L3 oraz brak kolorowania
+albo jawną skalę ocen. W multi-root najpierw wybierz projekt źródła. Nie potrzebujesz packa
+oprogramowania, providera, modelu ani klucza API; operacja wykonuje zero wywołań modelu.
+
+Podgląd graficzny wymaga osobnego renderera PlantUML. Dwa niezapisane edytory pokazują PlantUML i deterministyczny raport provenance. Zapisz oryginalną
+parę przez **Archi: Save Diagram and Report** i potwierdź miejsce; Cancel nie zapisuje częściowej pary.
+Szare „Brak danych” oznacza brak oceny. Oceny rodziców nie są agregowane; wielkość kafla nie jest oceną.
+Legenda/raport pokazują pokrycie źródła i świadome pominięcia zakresu/szczegółowości. Duża mapa wymaga
+jawnego zawężenia widoku. Raport nie jest semantic review ani Verify Flow.
+W bieżącym checkoucie `docs/pl/capability-map.md` zawiera ćwiczenie Retail i mapę referencyjną,
+a `docs/enterprise-catalog.md` opisuje dokładny kontrakt. To nowe lokalne dokumenty kandydata.
+Lokalny CLI EA1b obsługuje diagram generate z --type capability-map i wpisem enterpriseSources w config v2, bez input/provider. Serwer funkcji używa tego samego generate_diagram z osobnym wariantem capability-map. Opublikowane DEMO1 nie zawiera tej zmiany.
+
+Dla katalogu MCP użyj lokalnie spakowanego archi-agent-knowledge-server z config v2: wpis enterpriseSources o nazwie retail-business wskazuje architecture/enterprise.json w readRoots, sources/providers są puste. Sprawdź źródło przez --check-source retail-business --type enterprise. Poniższe instrukcje zawierają kompletną konfigurację offline. Dostosuj absolutne ścieżki executable/paczki/config.
+
+Zapisz kompletną konfigurację źródła jako `/srv/retail-knowledge.json`. Zastąp readRoot katalogiem Retail z bieżącego checkoutu. Użyj Node >=22.12 i executable knowledge-server z **nowej lokalnej paczki CLI**; CLI z publicznego DEMO1 nie dostarcza tego wariantu. Poniższy config i polecenie działają także offline. Skonfigurowany klient MCP uruchamia proces; polecenie kontrolne kończy się po walidacji.
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {"project": "/srv/retail-checkout"},
+  "sources": {},
+  "enterpriseSources": {
+    "retail-business": {"kind": "enterprise-json", "file": {"root": "project", "path": "architecture/enterprise.json"}}
+  },
+  "providers": {}
+}
+```
+
+```bash
+node /opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs --config /srv/retail-knowledge.json --check-source retail-business --type enterprise
+```
+
+Następnie zapisz te User settings:
+
+```json
+{
+  "archiAgent.enterpriseSource": {"kind": "mcp", "sourceId": "retail-business"},
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": ["/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs", "--config", "/srv/retail-knowledge.json"]
+  }
+}
+```
+
+Create Diagram → Architektura korporacyjna → Mapa zdolności oferuje teraz skonfigurowane źródło MCP i Local enterprise.json. Wybierz MCP, a następnie dotychczasowy zakres/poziom/oceny. Tylko User knowledgeServer konfiguruje proces, workspace nie może tego zrobić. Software architectureSource pozostaje osobne. Generacja ładuje jeden snapshot, wykonuje zero wywołań modelu i zapisuje dopiero po potwierdzeniu ART1. Brak get_enterprise_snapshot v1 daje enterprise-unsupported bez fallbacku. Raport zdalny v2 zachowuje referencje i JSON Pointers, bez fikcyjnych file/line. Get_knowledge_snapshot v1 pozostaje bez zmian.
 
 ## Verify Flow i C4
 
@@ -77,9 +128,9 @@ Wcześniejsze publiczne alpha.6 pozostaje dostępne osobno. [Zbiorczy owner smok
 
 ### Wymagania i pierwsze uruchomienie
 
-Potrzebujesz desktopowego VS Code zgodnego z deklaracją `^1.91.0`, lokalnego systemu plików oraz providera modeli do ekstrakcji lub diagramów. Oba profile zawierają bundle runtime Node i worker konwersji; Full dodaje zasoby OCR offline. Osobne Node/npm nie są potrzebne. Celem 1.0 jest Mac ARM. Bieżące screenshoty powstały na macOS arm64; testy właściciela Mac/Windows i Windows ARM64 runtime pozostają NOT_RUN do otrzymania raportu. Pakiet zawiera także bindingi Mac Intel, Linux x64/arm64 GNU i musl oraz Windows x64/arm64 — to pokrycie pakowania, nie weryfikacja natywnego UI tych systemów. Workspace zdalny lub wirtualny nie potwierdza obsługi zdalnych ścieżek dokumentów; używaj lokalnych folderów. W niezaufanym workspace ustawienia objęte ograniczeniami są odczytywane z ustawień użytkownika.
+Potrzebujesz desktopowego VS Code zgodnego z deklaracją `^1.91.0`, lokalnego systemu plików oraz providera modeli do ekstrakcji lub diagramów oprogramowania z review. Mapa zdolności nie wymaga providera. Oba profile zawierają bundle runtime Node i worker konwersji; Full dodaje zasoby OCR offline. Osobne Node/npm nie są potrzebne. Natywne dowody UI pochodzą z macOS arm64; równoważny przepływ end-to-end na innych platformach nie jest jeszcze potwierdzony. Pakiet zawiera także bindingi Mac Intel, Linux x64/arm64 GNU i musl oraz Windows x64/arm64 — to pokrycie pakowania, nie weryfikacja natywnego UI tych systemów. Workspace zdalny lub wirtualny nie potwierdza obsługi zdalnych ścieżek dokumentów; używaj lokalnych folderów. W niezaufanym workspace ustawienia objęte ograniczeniami są odczytywane z ustawień użytkownika.
 
-Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence**, **Component**, **C4 Context** lub **C4 Container** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje [instrukcja deweloperska](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/development.md).
+Zainstaluj właściwy VSIX przez **Extensions → … → Install from VSIX…**, następnie uruchom **Archi: Open**. Menu zawiera **Create Diagram**, **Verify Flow (Sequence / prose)**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** oraz **Help**. **Archi: Configuration** otwiera jeden panel edytora z zakładkami **Knowledge Management** i **LLM Provider**; ponowne polecenie pokazuje ten panel. **Archi: Create Diagram** pyta o **Sequence**, **Component**, **C4 Context** lub **C4 Container** przed generacją. Osobne polecenie Sequence jest ukryte i deleguje do tego wyboru. **Check Provider Configuration** jest dostępne w zakładce providera; identyfikator zgodności jest ukryty w palecie. Budowanie opisuje [instrukcja deweloperska](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/development.md).
 
 ## Zacznij tutaj — pierwsze użycie
 
@@ -187,6 +238,8 @@ Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configurati
 
 ## Lokalna konwersja dokumentów i OCR
 
+Znane ograniczenie PDF: tekst zamieniony na krzywe wektorowe może zostać błędnie uznany za pustą stronę w Auto/all OCR. Porównaj pokrycie konwersji z oryginałem; znacznik blank nie dowodzi braku treści.
+
 Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.docx` lub `.xlsx` i obejrzyj niezapisany Markdown. Dla PDF wybierz **No OCR**, **Auto OCR** lub, w Full, **OCR all pages**. Auto zachowuje strony tekstowe i wykonuje OCR stron bez użytecznego tekstu. W Full modele OCR PL/EN są w paczce i działają offline; polecenie nie wysyła żądań do dostawcy i nie potrzebuje Knowledge Pack. Aby zachować Markdown, użyj zwykłego Save edytora. Sprawdź błędy OCR przed wykorzystaniem tekstu jako evidence. Konwersja nie tworzy packa ani diagramu.
 
 ## Dokumenty → nowy pack
@@ -239,6 +292,8 @@ Alpha stores data in Beta.
 ```
 
 Rozstrzygnij niejednoznaczności, wskazując właściwy element. Nieznany zwykły tekst nie tworzy nowego elementu; wpisz jawnie `[NEW: Name]` i potwierdź. Alias nie ustanawia relacji. Relacje źródłowe i podane w przepływie pozostają rozróżnialne; brak relacji w źródle nie dowodzi jej nieistnienia. Lokalne zakazy nadal blokują generowanie.
+
+Znane ograniczenie Sequence: potwierdzenie uczestnika `[NEW: Name]` nie pozwala obecnie użyć go w planie reviewed Sequence; operacja może skończyć się `unknown-endpoint` po jednym wywołaniu modelu. Najpierw świadomie dodaj element do źródła albo użyj istniejącego elementu.
 
 Błąd wejścia/groundingu daje zero żądań generacyjnych; odrzucenie generatora/lokalnej walidacji — jedno; poprawny lokalnie kandydat uruchamia osobne żądanie reviewera, łącznie dwa. Generator i reviewer używają tego samego profilu/modelu, osobnych żądań i tego samego zamrożonego snapshotu. Bez retry, repair, fallbacku i trzeciego wywołania. Zweryfikowany sukces otwiera obok siebie niezapisany PlantUML i powiązany raport groundingu JSON. Sprawdź fakty, klasy dowodów, linie źródeł, ostrzeżenia, walidację deterministyczną, verdict semantyczny i digest snapshotu. Edytor zawiera tekst PlantUML; graficzny podgląd wymaga osobnej obsługi PlantUML. Lokalna walidacja podzbioru nie jest gwarancją renderowania oficjalnym silnikiem PlantUML.
 

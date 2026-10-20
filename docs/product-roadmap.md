@@ -10,10 +10,22 @@ VER1 Sequence/prose, C4 Context/Container, CLI/function MCP and one deterministi
 Distribution and quality limits: [project state](project-state.md). Public release packages have
 their own source identity; a published package is not a production-readiness claim.
 
-## Next
+## Enterprise Architecture and approved order
 
-Enterprise Architecture begins with a separate business catalog and deterministic Capability Map.
-EA1/EA1b are local work, not published by this cleanup. Further enterprise views need separate scope.
+EA1/EA1b add deterministic Capability Map from a separate local enterprise catalog or MCP source,
+available in VS Code, CLI and the function MCP server with zero LLM calls. The integration candidate
+preserves software knowledge v1. Public DEMO1 packages do not contain this addition.
+[Catalog contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) / [PL](pl/capability-map.md).
+
+| Order | Stage | Status / boundary |
+| --- | --- | --- |
+| 1 | EA1/EA1b integration | Current integration candidate; owner smoke deferred; no release publication |
+| 2 | AUD-003/004 fixes | Planned next; separate task, no closure by this integration |
+| 3 | EA2 Capability–Application Map | Planned: explicit application IDs and support mappings with provenance/coverage |
+| 4 | EA3 Value Stream | Planned: explicit ordered stages, value and capability mappings |
+| 5 | EA4 Application Landscape | Planned: application portfolio and explicit ownership/domains/assessments |
+
+The order is approved; each future implementation still requires its own authorized scope.
 
 ## Considered / deferred
 

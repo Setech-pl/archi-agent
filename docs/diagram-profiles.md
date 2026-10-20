@@ -859,3 +859,13 @@ verified report. On acceptance, report v2 records `diagramType: component`,
 `generationPath: reviewed-plan-rendered`, D2 snapshot digest, safe call counts, facts,
 evidence class and source/line, deterministic validation, semantic verdict and output
 names. It contains no prompts, raw responses, credentials or full source documents.
+
+## Capability Map (EA1/EA1b)
+
+A separate business catalog supplies stable capability IDs, L1–L3 parents, explicit rating
+scales and provenance. The deterministic view uses no provider or software source. Whole-map
+or L1-branch selection and detail omissions remain explicit in its own provenance report.
+Original pairs use ART1. [Tutorial EN](en/capability-map.md) · [PL](pl/capability-map.md).
+
+Available in VS Code, CLI and function MCP from a local catalog or get_enterprise_snapshot v1.
+Published DEMO1 does not contain this profile.

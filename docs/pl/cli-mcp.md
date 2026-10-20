@@ -5,7 +5,7 @@
 MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
 oraz dwa profile VS Code, dostępne w [publicznym DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Lokalne prace EA1/EA1b są poza tym wydaniem. Weryfikacja dotyczy Sequence
 PlantUML i prozy, nie diagramów Component ani C4. Generowanie obsługuje cztery istniejące
-typy: Sequence, Component, C4 Context i C4 Container.
+typy: Sequence, Component, C4 Context i C4 Container. Lokalny kandydat EA1b dodaje deterministyczną Capability Map; opublikowane DEMO1 nie zawiera EA1/EA1b.
 
 ## Instalacja lokalnej paczki
 
@@ -201,7 +201,7 @@ Przykład rozdziela `src/knowledge-server/server.ts` (transport) i `adapter.ts` 
 Dodaj implementację KnowledgeAdapter.load w adapter.ts lub osobnym module, jawnie skomponuj
 ją w main.ts i przebuduj paczkę. Użyj wspólnych createKnowledgeResponse/validateKnowledgeResponse.
 Wersjonowane contributions zachowują oryginalne ID, wersję, zakres, pominięcia i provenance.
-Przyszłe adaptery API/EA/bazy danych mogą być częściowe, bez fikcyjnego Structurizr. Ten kandydat
+Przyszłe adaptery API/EA/bazy danych mogą być częściowe, bez fikcyjnego Structurizr. Obecna wersja
 ich nie implementuje. URI nie zawiera userinfo, query ani hash; fragment jest osobnym polem.
 Brak lokalnego lokatora jest jawny i nie jest zastępowany linią 1. Odpowiedź wiedzy ma limit
 pełnej ramki 64 MiB, wliczając escaping kopii tekstowej.
@@ -222,3 +222,138 @@ Zainstaluj pobrany tarball zgodnie z instrukcją powyżej. Zapisz konfigurację 
 ```bash
 archi-agent flow verify --config /srv/archi-agent.json --source bank --input project:flows/good.puml --input-format plantuml-sequence --format json > verification.json
 ```
+
+## Capability Map bez modelu — lokalny kandydat EA1b
+
+Użyj katalogu Retail z bieżącego checkoutu i nowych lokalnych paczek CLI/Core/Full. Opublikowane paczki i ZIP-y DEMO1 pozostają bez zmian. Nie są potrzebne provider, model, klucz API ani opis flow. CLI/serwer funkcji MCP zwracają wynik bez zapisu plików; przekierowanie stdout jest decyzją operatora. VS Code zachowuje jawny zapis oryginalnej pary ART1.
+
+Zapisz tę **kompletną konfigurację klienta** jako `/srv/archi-agent.json`. Dostosuj absolutny readRoot, executable Node i ścieżkę paczki. Config v2 dodaje osobną mapę enterpriseSources; strict config v1 pozostaje bez zmian. Źródła software i providerzy mogą być pustymi mapami:
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {
+    "project": "/srv/retail-checkout"
+  },
+  "sources": {},
+  "enterpriseSources": {
+    "retail-local": {
+      "kind": "enterprise-json",
+      "file": {
+        "root": "project",
+        "path": "architecture/enterprise.json"
+      }
+    },
+    "retail-mcp": {
+      "kind": "mcp",
+      "server": "knowledge",
+      "sourceId": "retail-business"
+    }
+  },
+  "knowledgeServers": {
+    "knowledge": {
+      "command": "/opt/node/bin/node",
+      "args": [
+        "/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs",
+        "--config",
+        "/srv/retail-knowledge.json"
+      ],
+      "timeoutMs": 10000
+    }
+  },
+  "providers": {}
+}
+```
+
+Zapisz poniższą **konfigurację serwera źródłowego** jako `/srv/retail-knowledge.json`. Nazwa źródła jest równa rzeczywistemu source.id katalogu. Serwer ma własne readRoots:
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {
+    "project": "/srv/retail-checkout"
+  },
+  "sources": {},
+  "enterpriseSources": {
+    "retail-business": {
+      "kind": "enterprise-json",
+      "file": {
+        "root": "project",
+        "path": "architecture/enterprise.json"
+      }
+    }
+  },
+  "providers": {}
+}
+```
+
+Sprawdź źródło, następnie skonfiguruj klienta, aby uruchamiał ten sam proces przez stdio (druga komenda jest dla osobnego klienta/launchera MCP; CLI nie połączy się z procesem pozostawionym w innym terminalu):
+
+```bash
+archi-agent-knowledge-server --config /srv/retail-knowledge.json --check-source retail-business --type enterprise
+archi-agent-knowledge-server --config /srv/retail-knowledge.json
+```
+
+
+```bash
+archi-agent knowledge inspect --config /srv/archi-agent.json --source retail-local --type capability-map --format json
+archi-agent diagram generate --config /srv/archi-agent.json --source retail-local --type capability-map --max-level 3 --color-scale maturity --language pl --format json
+```
+
+
+```bash
+archi-agent diagram generate --config /srv/archi-agent.json --source retail-mcp --type capability-map --max-level 3 --color-scale maturity --language pl --format json
+```
+
+W VS Code zapisz poniższe w **ustawieniach User**. Workspace/folder może wybrać enterpriseSource, ale nie executable. Uruchom Create Diagram → Architektura korporacyjna → Mapa zdolności, wybierz skonfigurowane źródło MCP, całą mapę/L1–L3/Dojrzałość. Lokalny plik nadal jest osobnym jawnym wyborem:
+
+```json
+{
+  "archiAgent.enterpriseSource": {
+    "kind": "mcp",
+    "sourceId": "retail-business"
+  },
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": [
+      "/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs",
+      "--config",
+      "/srv/retail-knowledge.json"
+    ],
+    "timeoutMs": 10000
+  }
+}
+```
+
+**Serwer funkcji** nadal udostępnia cztery narzędzia. Uruchom go jak poniżej; zewnętrzny klient MCP wywołuje `generate_diagram` z pokazanym JSON. Inspekcja enterprise to `inspect_knowledge` z `{"source":"retail-mcp","diagramType":"capability-map"}`. Żadna operacja nie przyjmuje polecenia procesu, ścieżki zapisu ani nowych readRoots.
+
+```bash
+archi-agent mcp serve --config /srv/archi-agent.json
+```
+
+
+```json
+{
+  "source": "retail-mcp",
+  "diagramType": "capability-map",
+  "selection": {
+    "rootIds": [],
+    "maxLevel": 3,
+    "colorBy": {
+      "kind": "rating",
+      "scaleId": "maturity"
+    },
+    "language": "pl"
+  }
+}
+```
+
+Domyślne CLI mapy: całość, max-level 3, neutralne kolory, język en. `--root sales` wybiera jedną gałąź L1, `--color-scale maturity` jawne oceny. Opcjonalny `--expected-catalog-digest SHA256` wiąże widok z inspekcją. Bez niego generacja wiąże widok z jednym właśnie odczytanym snapshotem. Flagi input/provider/decisions/system-id/expected-knowledge-digest są odrzucane dla capability-map; software odrzuca nowe opcje mapy. Argumenty nie są ignorowane po cichu.
+
+Źródło enterprise używa tylko `get_enterprise_snapshot` z `{sourceId,contractVersion:1}`, po ograniczonym tools/list. `get_knowledge_snapshot` v1 pozostaje bez zmian. Serwer tylko v1 daje enterprise-unsupported, bez lokalnego/starego fallbacku, retry i wymyślania capabilities z systemów. Operacja zamraża jeden snapshot; inspekcja UI i generacja są osobne, a zmiana catalogDigest daje stale-source.
+
+Poprawny partial catalog daje exit 0 z jawnym coverage; unsupported/version-unsupported, not-provided i pusty zakres dają 2 bez diagramu; błędy wejścia/źródła/digestu/limitu 3; deadline 124, sygnały 130/143. MCP isError jest false dla sukcesu/unsupported/braku danych, true dla błędów wykonania. Czytaj outcome/code. Błędy parsera/config CLI przed operacją zachowują stały komunikat stderr i pusty stdout także z --format json.
+
+Lokalny raport v1 ma file/line i hash bajtów; raport MCP v2 ma sourceVersion, responseFingerprint, JSON Pointers i oryginalne referencje, bez fikcyjnych file/line. Porównuj PlantUML, catalogDigest/projectionDigest, selection, scope, hierarchię, oceny i deklarowane provenance, nie cały JSON transportu. Formatowanie/kolejność rekordów może zmienić locatory i fingerprint reprezentacji bez zmiany digestów semantycznych. Limity nadal wynoszą 1000 capabilities, 120 widocznych, 12 korzeni, 8 skal, 256 KiB PlantUML/1 MiB raportu. Katalog ma limit 1 MiB, struktura odpowiedzi enterprise 2 MiB, pełna ramka wiedzy 64 MiB. Budżet generacji/inspekcji wynosi 30 s (lokalny odczyt 10 s); obowiązują krótsze limity hosta/źródła i anulowanie. Cleanup potwierdza zamknięcie dziecka. Credentiale są sprawdzane przed użyciem danych.
+
+Własny katalog: zaimplementuj `EnterpriseAdapter.load(sourceId,signal): Promise<EnterpriseCatalog>` w module adaptera przykładu i jawnie skomponuj go w main.ts. Zwracaj dane: stabilne ID, rzeczywistych rodziców, jawne skale/oceny, zakres/coverage i provenance sourceId/recordId/fields oraz prawdziwe URI/version, gdy istnieją. Wspólne createEnterpriseResponse/validateEnterpriseResponse odpowiadają za hashe i walidację, server.ts za transport. Nie pisz drugiego renderera i nie wymyślaj Markdown/Structurizr/file/line. Gotowy adapter czyta enterprise.json; nie dostarcza konektora API/DB/EA. Przebuduj lokalną paczkę CLI. Przykład odrzuca MCP jako własny adapter enterprise, unikając łańcuchów proxy procesów.
