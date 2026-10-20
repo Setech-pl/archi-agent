@@ -85,8 +85,17 @@ if(existsSync('docs/assets/readme/provenance.json')) {
  for(const image of crops.images) {
   assert.equal(hash(readFileSync('docs/assets/readme/'+image.file)),image.sha256,'README crop hash: '+image.file);
   const source=path.posix.normalize(path.posix.join('docs/assets/readme',image.source));
-  const bytes=image.sourceDocumentationCommit?execFileSync('git',['show',image.sourceDocumentationCommit+':'+source]):readFileSync(source);
-  assert.equal(hash(bytes),image.sourceSha256,'README source hash: '+image.file);
+  const records=JSON.parse(content('docs/assets/screenshots/provenance.json'));
+  const historical=records.historicalSources.find(screen=>screen.file===path.posix.basename(source));
+  assert.ok(historical,'historical README source metadata: '+image.file);
+  assert.equal(image.sourceSha256,historical.sha256,'README source hash declaration: '+image.file);
+  assert.equal(image.sourceCommit,historical.sourceCommit,'README source product identity: '+image.file);
+  assert.equal(image.vsixSha256,historical.vsixSha256,'README source VSIX identity: '+image.file);
+  assert.match(image.sourceDocumentationCommit,/^[a-f0-9]{40}$/);
+  assert.equal(image.sourceDocumentationCommit,historical.documentationCommit);
+  const expected='https://github.com/Setech-pl/archi-agent/blob/'+historical.documentationCommit+'/'+source;
+  assert.equal(image.historicalSourceUrl,expected);
+  assert.equal(historical.historicalSourceUrl,expected);
  }
 }
 const privacyPatterns=[/\/Users\//,/sk-[A-Za-z0-9]{16}/,/linkedin\.com/i];

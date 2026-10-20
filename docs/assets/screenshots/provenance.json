@@ -1,4 +1,48 @@
 {
   "note": "Historical screenshots 01\u201314 retired; originals and their provenance remain locally and in Git history. Remaining entries retain their original capture metadata and hashes.",
-  "screens": []
+  "screens": [],
+  "historicalSources": [
+    {
+      "file": "04-browser.png",
+      "screen": "Knowledge Browser \u2014 inspect active systems and relations",
+      "method": "macOS ScreenCaptureKit, isolated VS Code PID; final recorded frame",
+      "sha256": "119d06b7993ab8c425445e0f4fb8f769715b52d26b63c07401454ed79d65c156",
+      "windowID": 55592,
+      "capturedAt": "2026-10-14T12:33:20.711Z",
+      "sourceCommit": "6b96ff629c33cf6deea65a329cf2b36b54a6539d",
+      "version": "0.3.0-alpha.5",
+      "vsixSha256": "69ff84de019fcda4c9b539e22a743fcab9fcb3fb606e218a1724b6592442810c",
+      "platform": "darwin",
+      "arch": "arm64",
+      "os": "26.6.2",
+      "vscode": "1.141.0\n2a59476c9bfcb90b3ddc372c36762471b7dfad1c\narm64",
+      "syntheticTransport": true,
+      "captureHarnessBaseCommit": "2ae190fccb8ac3d008277050773b88f645a8fa5d",
+      "run": "archi-current-browser-01",
+      "runStatus": "PASS",
+      "documentationCommit": "fa586dd6f0398f72cdab4925bf5db907e00ebb23",
+      "historicalSourceUrl": "https://github.com/Setech-pl/archi-agent/blob/fa586dd6f0398f72cdab4925bf5db907e00ebb23/docs/assets/screenshots/04-browser.png"
+    },
+    {
+      "file": "09-component.png",
+      "screen": "Component result \u2014 PlantUML and linked grounding report",
+      "method": "macOS ScreenCaptureKit, isolated VS Code PID; final recorded frame",
+      "sha256": "c14d27f0705f55bde2b6a7ee78ae89a88ad13f4c8af58c9eba8f4cd66409ef7b",
+      "windowID": 55369,
+      "capturedAt": "2026-10-14T12:00:01.709Z",
+      "sourceCommit": "6b96ff629c33cf6deea65a329cf2b36b54a6539d",
+      "version": "0.3.0-alpha.5",
+      "vsixSha256": "69ff84de019fcda4c9b539e22a743fcab9fcb3fb606e218a1724b6592442810c",
+      "platform": "darwin",
+      "arch": "arm64",
+      "os": "26.6.2",
+      "vscode": "1.141.0\n2a59476c9bfcb90b3ddc372c36762471b7dfad1c\narm64",
+      "syntheticTransport": true,
+      "captureHarnessBaseCommit": "2ae190fccb8ac3d008277050773b88f645a8fa5d",
+      "run": "archi-current-capture-05",
+      "runStatus": "FAIL",
+      "documentationCommit": "fa586dd6f0398f72cdab4925bf5db907e00ebb23",
+      "historicalSourceUrl": "https://github.com/Setech-pl/archi-agent/blob/fa586dd6f0398f72cdab4925bf5db907e00ebb23/docs/assets/screenshots/09-component.png"
+    }
+  ]
 }
