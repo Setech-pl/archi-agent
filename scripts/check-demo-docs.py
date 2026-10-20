@@ -4,7 +4,7 @@ from pathlib import Path
 import ast, json, re
 root=Path(__file__).resolve().parent.parent
 assert (root/'examples/mission-control/adapter/adapter.ts').read_bytes()==(root/'src/knowledge-server/adapter.ts').read_bytes()
-files=[root/p for p in ['README.md','README.pl.md','docs/en/tutorials.md','docs/pl/tutorials.md','docs/demo1-verification.md']]
+files=[root/p for p in ['README.md','README.pl.md','docs/en/tutorials.md','docs/pl/tutorials.md','docs/project-state.md']]
 for slug in ['retail-checkout','mission-control']:
     d=root/'examples'/slug
     files+=list(d.rglob('*.md'))
