@@ -28,7 +28,7 @@ export interface DocumentSource {
     readonly engine: "utf8" | "local-converter";
     readonly ocrMode: "none" | "auto" | "all";
     readonly counts: Readonly<Record<string, number>>;
-    readonly pages: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" | "requires-ocr" }[];
+    readonly pages: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" | "requires-ocr"; readonly imageCount?: number; readonly blankAssessment?: "rendered-white"; readonly ocrText?: "recognized" | "empty"; }[];
     readonly warnings: readonly string[];
     readonly locations: "normalized-text-offsets" | "captured-text-offsets";
   };

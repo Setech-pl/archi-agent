@@ -153,3 +153,13 @@ provider client or generate. K3 also forwards cancellation to model listing and 
 The request also accepts explicit `editor-buffer` MD/TXT inputs (`uri`, `type`, `content`). The host captures before yielding; runtime clones inputs before asynchronous work. Source scope and editor URI survive local provenance/save; the URI is omitted from the model message. Original digest hashes captured UTF-8 bytes; text digest hashes the existing normalized text. No disk read or temporary source identity is used for buffers.
 
 Each model input source additionally provides deterministic `evidenceSlices` (nonblank lines, split at the excerpt ceiling without splitting surrogate pairs). These are request annotations, not a changed frozen bundle or evidence verifier. The model must copy a full slice and offsets; validation still rejects any nonliteral location. Provider selection has its own stage under the operation deadline; generation's unchanged 120s budget begins after selection returns. Optional `onStage` emits closed stage names to host progress.
+
+
+PDF coverage keeps the original page numbers. Full routes non-white rendered content without
+extractable text to local OCR in auto and all, including vector outlines. Raster `imageCount`
+is not text detection. `ocrText` records `recognized` or `empty` after recognition; empty OCR
+is uncertain content, not a confirmed blank page. `blankAssessment: rendered-white` records an
+exactly white render at the bounded conversion resolution and carries `rendered-blank-not-proof`.
+`ocr-no-text-recognized` warns about pages with empty recognition. These optional measurements
+survive document provenance and review reports. Core has no rendering/OCR backend and retains
+`requires-ocr` for pages without accessible text. No mode claims perfect PDF classification.

@@ -243,7 +243,7 @@ Create these five UTF-8 files in one folder, then choose it with Configuration â
 
 ## Local document conversion and OCR
 
-Known PDF limit: text converted to vector outlines can be misclassified as a blank page in Auto/all OCR. Inspect conversion coverage against the original; do not treat a blank marker as proof that a page has no content.
+Full sends visible vector shapes without a text layer to local OCR in Auto and all; these may be letters or an illustration. Coverage distinguishes raster images (`imageCount`), OCR outcome (`ocrText`: recognized/empty) and a white render (`blankAssessment`: rendered-white). Empty OCR does not mean a blank page. `blank` describes a white render at the chosen resolution, not proof that no content exists; compare coverage with the original. Core reports pages without accessible text as requiring OCR.
 
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
@@ -298,7 +298,7 @@ Alpha stores data in Beta.
 
 Resolve ambiguous mentions by selecting the intended element. Unknown ordinary text is not a new element; explicitly write `[NEW: Name]` and confirm it. Aliases do not establish a relationship. Source-confirmed relationships and flow-stated relationships remain distinguishable; a missing source relationship does not prove nonexistence. Local prohibitions still block generation.
 
-Known Sequence limit: confirming a `[NEW: Name]` participant does not currently allow the reviewed Sequence plan to use it; it can fail with `unknown-endpoint` after one model call. Add the element deliberately to your source first, or use an existing element.
+Reviewed Sequence supports explicitly confirmed `[NEW: Name]` participants. They carry the `[NEW]` label and `user-confirmed` origin; their interactions remain user-stated facts requiring review. They are not written to the architecture source. Rejecting or cancelling confirmation blocks generation; the model cannot add a participant itself.
 
 Invalid input/grounding makes zero generation calls; generator/local rejection one; a locally valid candidate triggers one separate reviewer call, for two total. Generator and reviewer use the same configured profile/model, separate requests and the same frozen snapshot. No retry, repair, fallback or third call. A verified success opens unsaved PlantUML and a linked JSON grounding report side by side. Inspect facts, evidence classes, source lines, warnings, deterministic validation, semantic verdict and snapshot digest. The editor contains PlantUML text; a graphical preview needs separate PlantUML editor support. No official PlantUML rendering guarantee is inferred from local subset validation.
 

@@ -242,7 +242,7 @@ Utwórz te pięć plików UTF-8 w jednym folderze i wybierz go przez Configurati
 
 ## Lokalna konwersja dokumentów i OCR
 
-Znane ograniczenie PDF: tekst zamieniony na krzywe wektorowe może zostać błędnie uznany za pustą stronę w Auto/all OCR. Porównaj pokrycie konwersji z oryginałem; znacznik blank nie dowodzi braku treści.
+Full kieruje widoczne kształty wektorowe bez warstwy tekstowej do lokalnego OCR w Auto i all; mogą to być litery albo ilustracja. Raport odróżnia obrazy rastrowe (`imageCount`), wynik OCR (`ocrText`: recognized/empty) i biały render (`blankAssessment`: rendered-white). Pusty wynik OCR nie oznacza pustej strony. `blank` opisuje biały render przy użytej rozdzielczości, nie dowód braku wszelkiej treści; porównaj pokrycie z oryginałem. Core zgłasza strony bez dostępnego tekstu jako wymagające OCR.
 
 Uruchom **Archi: Convert to Markdown**, wybierz jeden lokalny plik `.pdf`, `.docx` lub `.xlsx` i obejrzyj niezapisany Markdown. Dla PDF wybierz **No OCR**, **Auto OCR** lub, w Full, **OCR all pages**. Auto zachowuje strony tekstowe i wykonuje OCR stron bez użytecznego tekstu. W Full modele OCR PL/EN są w paczce i działają offline; polecenie nie wysyła żądań do dostawcy i nie potrzebuje Knowledge Pack. Aby zachować Markdown, użyj zwykłego Save edytora. Sprawdź błędy OCR przed wykorzystaniem tekstu jako evidence. Konwersja nie tworzy packa ani diagramu.
 
@@ -297,7 +297,7 @@ Alpha stores data in Beta.
 
 Rozstrzygnij niejednoznaczności, wskazując właściwy element. Nieznany zwykły tekst nie tworzy nowego elementu; wpisz jawnie `[NEW: Name]` i potwierdź. Alias nie ustanawia relacji. Relacje źródłowe i podane w przepływie pozostają rozróżnialne; brak relacji w źródle nie dowodzi jej nieistnienia. Lokalne zakazy nadal blokują generowanie.
 
-Znane ograniczenie Sequence: potwierdzenie uczestnika `[NEW: Name]` nie pozwala obecnie użyć go w planie reviewed Sequence; operacja może skończyć się `unknown-endpoint` po jednym wywołaniu modelu. Najpierw świadomie dodaj element do źródła albo użyj istniejącego elementu.
+Reviewed Sequence obsługuje jawnie potwierdzonego uczestnika `[NEW: Name]`. Jest oznaczony `[NEW]`, ma pochodzenie `user-confirmed`, a interakcje pozostają faktami z opisu użytkownika wymagającymi review. Nie jest zapisywany do źródła architektury. Odrzucenie lub anulowanie potwierdzenia blokuje generowanie; model nie może sam dodać uczestnika.
 
 Błąd wejścia/groundingu daje zero żądań generacyjnych; odrzucenie generatora/lokalnej walidacji — jedno; poprawny lokalnie kandydat uruchamia osobne żądanie reviewera, łącznie dwa. Generator i reviewer używają tego samego profilu/modelu, osobnych żądań i tego samego zamrożonego snapshotu. Bez retry, repair, fallbacku i trzeciego wywołania. Zweryfikowany sukces otwiera obok siebie niezapisany PlantUML i powiązany raport groundingu JSON. Sprawdź fakty, klasy dowodów, linie źródeł, ostrzeżenia, walidację deterministyczną, verdict semantyczny i digest snapshotu. Edytor zawiera tekst PlantUML; graficzny podgląd wymaga osobnej obsługi PlantUML. Lokalna walidacja podzbioru nie jest gwarancją renderowania oficjalnym silnikiem PlantUML.
 

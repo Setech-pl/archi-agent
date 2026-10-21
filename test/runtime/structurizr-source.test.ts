@@ -33,3 +33,18 @@ describe("SRC1 production runtime",()=>{
  });
  it("honours cancellation and detects missing source data",async()=>{const config=setup();expect((await inspectArchitectureSource(config,{aborted:true})).ok).toBe(false);writeFileSync(config.modelPath,'{}');expect((await inspectArchitectureSource(config)).ok).toBe(false);});
 });
+
+it("AUD-003 NEW stays user-confirmed, frozen and outside Structurizr facts", async () => {
+ const config=setup(), original=readFileSync(config.modelPath,"utf8"), calls:StructuredChatRequest[]=[];
+ const client:StructuredChatClient={clientType:"openai-compatible-local",generationMetadata:{modelId:"synthetic",temperature:0,seed:42,attemptCount:1,structuredOutput:true},async complete(r){
+  calls.push(r);const i=JSON.parse(r.messages[1]!.content);
+  if(calls.length===2)return {source:"content",value:{accepted:true,confirmedUserStatedFactIds:["fact-0001"],violations:[]}};
+  const known=i.snapshot.elements.find((e:any)=>e.kind!=="new"), added=i.snapshot.elements.find((e:any)=>e.kind==="new");
+  expect(added.origin).toBe("user-confirmed");expect(i.snapshot.knowledge.provenance.some((f:any)=>JSON.stringify(f).includes(added.id))).toBe(false);
+  return {source:"content",value:{version:3,groundedSteps:[],userStatedSteps:[{order:1,fromId:known.id,toId:added.id,interactionKind:"request",interfaceType:"INTERNAL",interfaceName:null,flowEvidenceId:i.snapshot.flowEvidence[0].flowEvidenceId,label:"Notify"}]}};
+ }};
+ const r=await createArchiAgentRuntime({diagramClientFactory:()=>client}).generateDiagram!({diagramType:"sequence",knowledgePack:config,generator,flow:{kind:"description",flowName:"New relay",description:"SPA notifies [NEW: Relay One]."},confirmedNewParticipants:["Relay One"]});
+ expect(r.status).toBe("success");expect(calls).toHaveLength(2);expect(readFileSync(config.modelPath,"utf8")).toBe(original);
+ expect(JSON.parse(calls[0]!.messages[1]!.content).snapshot).toEqual(JSON.parse(calls[1]!.messages[1]!.content).snapshot);
+ if(r.status==="success"){expect(r.plantUml).toContain('participant "[NEW] Relay One"');expect(JSON.parse(r.groundingReport).facts[0].evidenceClass).toBe("user-stated");}
+});

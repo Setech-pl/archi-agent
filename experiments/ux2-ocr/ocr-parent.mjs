@@ -104,7 +104,10 @@ export async function convertPdfIsolated(file, { fullPage = false, dpi = 200, si
       Array.isArray(message.pages) && message.pages.length <= 300 &&
       Number.isFinite(message.childCpuMs) && message.childCpuMs >= 0 &&
       message.pages.every((p, i) => p && Number.isInteger(p.page) && p.page === i + 1 &&
-        ['text', 'ocr', 'blank'].includes(p.source) && (p.imageCount === undefined ||
+        ['text', 'ocr', 'blank'].includes(p.source) &&
+        (p.blankAssessment === undefined || (p.source === 'blank' && p.blankAssessment === 'rendered-white')) &&
+        (p.ocrText === undefined || (p.source === 'ocr' && ['recognized', 'empty'].includes(p.ocrText))) &&
+        (p.imageCount === undefined ||
         (Number.isInteger(p.imageCount) && p.imageCount >= 0)))) {
       result = { type: 'result', pages: message.pages, markdown: message.markdown, childCpuMs: message.childCpuMs };
       processingMs = performance.now() - started;

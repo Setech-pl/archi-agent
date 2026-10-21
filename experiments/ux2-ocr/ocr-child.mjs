@@ -57,7 +57,7 @@ process.on('message', async (message) => {
     send({ type: 'sample', rss: process.memoryUsage.rss() });
     const cpu = process.cpuUsage(cpuStart);
     send({ type: 'result', markdown, childCpuMs: (cpu.user + cpu.system) / 1000,
-      pages: pages.map(({ page, source, imageCount }) => ({ page, source, imageCount })) });
+      pages: pages.map(({ page, source, imageCount, blankAssessment, ocrText }) => ({ page, source, imageCount, blankAssessment, ocrText })) });
   } catch (error) {
     clearInterval(sampleTimer);
     const code = error instanceof Error && /^[a-z][a-z0-9-]{0,63}$/.test(error.message)

@@ -18,10 +18,11 @@ pozostaje poza publicznym wydaniem; publiczne ZIP-y nie zawierają katalogu ente
 
 ## Otwarte ustalenia i granice dowodów
 
-- **AUD-003 OPEN (medium):** potwierdzony NEW w reviewed Sequence może dać
-  `unknown-endpoint` po jednym żądaniu. Dokumentacja nie naprawia tego błędu.
-- **AUD-004 OPEN (medium):** wektorowy tekst PDF może zostać uznany za blank bez OCR,
-  również w trybie all; ryzyko utraty treści pozostaje.
+- **AUD-003 CLOSED w lokalnym AUD-FIX2:** potwierdzony NEW przechodzi reviewed Sequence,
+  renderer i zapis ART1 z `user-confirmed`; niepotwierdzony/odrzucony NEW nadal blokuje.
+- **AUD-004 CLOSED w lokalnym AUD-FIX2:** wektorowy tekst trafia do lokalnego OCR Full
+  w auto/all. Biały render, obrazy i wynik OCR mają oddzielne znaczenie; pusty wynik OCR
+  nie potwierdza pustej strony. Publiczne paczki DEMO1 nadal pochodzą ze starszych źródeł.
 - **AUD-005 OPEN (low):** nieaktualne opisy publikacji wymagają niezależnego closure/retest.
 - **AUD-006 OPEN (low):** przygotowanie archiwów OCR wymaga kompletnej procedury i odbioru
   świeżego klonu. Sama korekta instrukcji nie zamyka ustalenia.
@@ -35,8 +36,65 @@ pozostaje poza publicznym wydaniem; publiczne ZIP-y nie zawierają katalogu ente
   crash recovery/fsync i trwałego przełącznika języka aplikacji. ART1 zapisuje oryginał.
   Graficzny podgląd PlantUML wymaga osobnej obsługi. Natywny picker może zwrócić
   symboliczne `/tmp`; wybierz zwykły folder zamiast obchodzenia walidacji.
-- AUD-001/002 zamknięto w naprawie ABA; nie zamyka to AUD-003–006 ani M1.
+- AUD-001/002 zamknięto w naprawie ABA; AUD-003/004 w lokalnym AUD-FIX2.
+  AUD-005/006 pozostają OPEN; brak deklaracji M1/production readiness.
   Dowody natywne dotyczą głównie macOS ARM64; inventory zasobów nie jest testem innych platform.
+
+## AUD-FIX2 — lokalny odbiór, STOP przed aktualizacjami katalogów i EA2
+
+Worktree `/private/tmp/archi-aud-fix2`, branch `fix/aud-fix2`, baza
+`7e0352d03b3cb981fd49cc196276f82a303d4b1e` — kompletny lokalny checkpoint EAU1/EAK1.
+SHA checkpointu AUD-FIX2 odczytaj z Git. Nie przełączano innych checkoutów ani nie zmieniano
+ich stagingu; bez push, merge, tagów, release i publikacji.
+
+Preflight potwierdził istniejący checkpoint EAU1/EAK1, 45 fingerprintów zmienionych plików,
+702 fingerprinty przed tamtym review z siedmioma jawnymi późniejszymi zmianami oraz SHA
+wszystkich trzech paczek acceptance-r5. Świeży build bazy odpowiada bajtowo trzem bundlom r5,
+a trzy źródła procesu OCR odpowiadają Full r5. Tamten odbiór i niezależny review były domknięte;
+nie tworzono zbędnego kolejnego commita ani nie powtarzano całego starego odbioru.
+
+AUD-003: naprawiono odrzucanie lokalnie potwierdzonego NEW, niedozwolone znaki w lokalnym
+ID oraz deklarację renderera. ID pochodzi z istniejącej alokacji aliasów z kontrolą kolizji;
+walidator nadal wymaga endpointu ze snapshotu. Snapshot, bezpośredni raport i zapisany oryginał
+ART1 zachowują `user-confirmed`; interakcje są `user-stated` i wymagają dokładnego review.
+Brak potwierdzenia, Cancel, odrzucenie, kolizje nazw/aliasów i wymyślony endpoint modelu nadal
+blokują. Bez zapisu NEW do Structurizr/packa, bez dodatkowych wywołań lub pętli repair/retry.
+
+AUD-004: brak wyekstrahowanego tekstu i obrazów rastrowych nie stanowi już warunku blank.
+Full sprawdza wyrenderowaną stronę; widoczne kształty wektorowe trafiają do OCR auto/all.
+Coverage/provenance zachowują numery stron, `imageCount`, `ocrText` recognized/empty i
+`blankAssessment: rendered-white`. Ostrzeżenia odróżniają pusty wynik OCR od białego renderu;
+Core zachowuje uczciwe `requires-ocr`/`ocr-unavailable`. Nie jest to dowód bezbłędnej klasyfikacji
+wszystkich PDF. Istniejące limity, offline PL/EN i anulowanie pozostają.
+
+Bieżące bramki: root 2125/2125 i extension 838/838, instalacje/audity root/OCR (0 podatności),
+przygotowanie OCR, oba typechecki/build i sekwencyjne package/verify Core/Full/CLI PASS.
+Po znalezieniu utraty `origin` w allowliście ART1: 148/148 testów celowanych, oba typechecki,
+build i nowe package/verify PASS; pełnych suites ponownie nie uruchamiano. Niezależnie potwierdzono,
+że ostatnia zmiana bundle to wyłącznie to pole allowlisty, pozostałe bundle/OCR są identyczne.
+
+Dokładne końcowe paczki `build/aud-fix2/common-r1/packages/` przeszły świeży odbiór
+`build/aud-fix2/acceptance-r3/`: EAU1/EAK1, EA1/EA1b, SRC1, VER1/C4, ART1 i stare MCP knowledge
+v1/CLI/function MCP poza repo; Help PL/EN i dokumentacja przeciw niezależnie zbudowanym paczkom.
+Rzeczywisty Host: EAU/EAK Core i Full po 21, EA1 18, EA1b 19, K3 33; nowe naprawy Core 12/12,
+Full 15/15. Widoczny UI EAU/EAK i EA1b po 6/6; nowe naprawy Core 4/4 i Full 5/5.
+PDF 19/19 używa rzeczywistego konwertera i OCR dokładnego Full; dodatkowe 3/3 potwierdzają
+NEW i zapis provenance PDF w EAK1. Nie zastępowano Host/UI dublerem.
+Końcowy niezależny read-only review: PASS, zero otwartych HIGH/MEDIUM i nowych LOW;
+reviewer sam odtworzył obie reprodukcje przed/po oraz rzeczywisty zapis pochodzenia ART1.
+
+Obie reprodukcje wykonawca i niezależny reviewer powtórzyli na dokładnych r5: NEW
+`unknown-endpoint` po jednym żądaniu (nazwa ze spacją: schema-violation), wektorowy PDF auto/all
+błędnie blank. Po zmianie: potwierdzony NEW success przy dwóch wywołaniach, a Full odczytuje
+`VECTOR TEXT CONTENT`. Wcześniejsze reprodukcje z katalogu `pr6d7R` okazały się oparte na starszym
+kandydacie EAU/EAK; są zachowane wyłącznie jako historyczne. Oryginalny zewnętrzny katalog audytu
+2026-10-12 nie istnieje pod zapisaną ścieżką; nie odtworzono jego plików ani usuniętych dokumentów.
+
+Indeks komend, dokładne SHA-256, review, historia FAIL i krótki owner smoke:
+`build/aud-fix2/acceptance-report.md` i `build/aud-fix2/acceptance-final.json`.
+OWNER_SMOKE: DEFERRED. Żywy LLM/płatny cloud, natywne Windows/Linux i remote CI: NOT_RUN w tym
+zadaniu; syntetyczne transporty nie dowodzą jakości modelu. Nie rozpoczęto aktualizacji katalogów,
+EA2–EA4, nowych diagramów ani integracji.
 
 ## Lokalny checkpoint — EAU1 + EAK1
 
@@ -83,5 +141,6 @@ ten mały przypadek nie dowodzi ogólnej jakości modelu. Płatny cloud i inne p
 
 Indeks bramek, końcowe paczki/SHA-256, review i SHA checkpointu:
 ignorowane `build/eau1-eak1/acceptance-final.json` oraz `progress.json`.
-OWNER_SMOKE: DEFERRED. Bez push/merge/tagów/release/publikacji i bez rozpoczynania
-AUD-003/004, aktualizacji katalogów lub EA2. Następny wykonawca porównuje zapis z Git.
+OWNER_SMOKE EAU1/EAK1: DEFERRED. Powyższa sekcja opisuje historyczny checkpoint przed
+AUD-FIX2; nie obejmował on AUD-003/004, aktualizacji katalogów ani EA2. Następny wykonawca
+porównuje bieżący stan z Git i aktualnym odbiorem AUD-FIX2.

@@ -42,7 +42,7 @@ const reportProjection: Projection = {
   generator: modelFields, reviewer: modelFields, modelGeneration: modelFields,
   facts: [{ ...fields("factId label kind requestFactId operationId flowEvidenceId evidenceId evidenceClass interfaceType interfaceName mode fromId toId lineNumber"), source: locator }],
   deterministicValidation: fields("verdict"), semanticReview: { verdict: "scalar", violations: [fields("code factId")] },
-  sources: { ...fields("flowFile knowledgePackDirectory flow knowledgePack"), evidence: [fields("id file line evidenceClass elementKind ownership")] },
+  sources: { ...fields("flowFile knowledgePackDirectory flow knowledgePack"), evidence: [fields("id file line evidenceClass elementKind ownership origin")] },
   sourceProvenance: { ...fields("version snapshotId digest"), sources: [{...fields("id kind"), scope: fields("systems actors relationships aliases rules"), files: [fields("file sha256")], omissions: [fields("kind count")] }],
     facts: [{...fields("factId recordKey"), provenance: [{...fields("sourceId externalId originalName externalKind parentId"),fields:"scalars",location:locator}]}] },
   outputs: fields("diagram report"),

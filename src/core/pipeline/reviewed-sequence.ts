@@ -13,11 +13,11 @@ export interface ArchitectureSnapshot {
   readonly knowledge: SelectedKnowledgeContext;
   readonly flowFile: string;
   readonly metadata: GroundedContext["metadata"];
-  readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: string; readonly elementKind: string; readonly names: readonly string[]; readonly description: string; readonly source: PackSourceReference }[];
+  readonly elements: readonly { readonly id: string; readonly canonicalName: string; readonly alias: string; readonly kind: string; readonly elementKind: string; readonly origin?: "user-confirmed"; readonly names: readonly string[]; readonly description: string; readonly source: PackSourceReference }[];
   readonly relationships: readonly { readonly evidenceId: string; readonly evidenceClass: "source-confirmed"; readonly fromId: string; readonly toId: string; readonly interfaceType: string; readonly interfaceName: string | null; readonly mode: string; readonly purpose: string; readonly source: PackSourceReference }[];
   readonly rules: readonly { readonly evidenceId: string; readonly rule: string; readonly fromId: string; readonly toId: string; readonly reason: string; readonly source: PackSourceReference }[];
   readonly flowEvidence: readonly { readonly flowEvidenceId: string; readonly evidenceClass: "user-stated"; readonly line: number; readonly text: string }[];
-  readonly sources: readonly { readonly id: string; readonly file?: string; readonly line?: number; readonly provenance?: PackSourceReference["provenance"]; readonly evidenceClass: "source-confirmed" | "user-stated" }[];
+  readonly sources: readonly { readonly id: string; readonly file?: string; readonly line?: number; readonly provenance?: PackSourceReference["provenance"]; readonly evidenceClass: "source-confirmed" | "user-stated"; readonly origin?: "user-confirmed" }[];
 }
 
 /** The D1.1 provider wraps already validated Knowledge Pack grounding; no new source I/O. */
@@ -39,13 +39,14 @@ export function buildArchitectureSnapshot(context: GroundedContext, pack: Ground
   const elements = [
     ...known.map((entry) => ({ id: entry.id, canonicalName: entry.canonicalName, alias: aliases.get(`kp:${entry.id}`)!, kind: participantKindOf(entry), elementKind: entry.participantType === "actor" ? entry.actorKind : entry.systemKind, description: entry.description,
       names: Object.freeze([entry.canonicalName, ...pack.pack.aliases.filter((alias) => alias.targetId === entry.id).map((alias) => alias.alias).sort(stableCompare)]), source: entry.source })),
-    ...context.newParticipants.map((entry) => ({ id: `new:${entry.key}`, canonicalName: `[NEW] ${entry.displayName}`, alias: aliases.get(`new:${entry.key}`)!, kind: "new", elementKind: "new", names: Object.freeze([entry.displayName]), description: "", source: { file: flow.file ?? "flow", line: entry.mentions[0]?.line ?? 1 } }))
+    ...context.newParticipants.map((entry) => ({ id: `new:${aliases.get(`new:${entry.key}`)!}`, origin: "user-confirmed" as const, canonicalName: `[NEW] ${entry.displayName}`, alias: aliases.get(`new:${entry.key}`)!, kind: "new", elementKind: "new", names: Object.freeze([entry.displayName]), description: "", source: { file: flow.file ?? "flow", line: entry.mentions[0]?.line ?? 1 } }))
   ].sort((a, b) => stableCompare(a.id, b.id));
   const relationships = context.relationships.map((entry, index) => ({ evidenceId: `relationship:${index + 1}`, evidenceClass: "source-confirmed" as const, fromId: entry.fromId, toId: entry.toId,
     interfaceType: entry.interfaceType, interfaceName: entry.interfaceName, mode: entry.mode, purpose: entry.purpose, source: entry.source }));
   const rules = context.rules.map((entry, index) => ({ evidenceId: `rule:${index + 1}`, rule: entry.rule, fromId: entry.fromId, toId: entry.toId, reason: entry.reason, source: entry.source }));
   const flowEvidence = flow.body.split("\n").flatMap((text, index) => text.trim() === "" ? [] : [{ flowEvidenceId: `flow:${flow.bodyStartLine + index}`, evidenceClass: "user-stated" as const, line: flow.bodyStartLine + index, text: text.trim() }]);
   const sources = [...elements.map((entry) => ({ id: entry.id, ...entry.source,
+      ...(entry.kind === "new" ? { origin: "user-confirmed" as const } : {}),
       evidenceClass: entry.kind === "new" ? "user-stated" as const : "source-confirmed" as const })),
     ...relationships.map((entry) => ({ id: entry.evidenceId, ...entry.source, evidenceClass: "source-confirmed" as const })),
     ...rules.map((entry) => ({ id: entry.evidenceId, ...entry.source, evidenceClass: "source-confirmed" as const })),
