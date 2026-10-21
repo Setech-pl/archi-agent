@@ -18,7 +18,19 @@ export async function loadEnterpriseJson(source:EnterpriseSourceConfig, signal?:
   const root = await canonicalDirectory(path.dirname(source.path)), file = path.basename(source.path);
   const input = await readBoundedTextFile(root,file,{maxBytes:enterpriseLimits.bytes,signal:readSignal,...(localReadPolicy?{localReadPolicy}:{})});
   check();
-  const parsed = parseLocatedJson(input.text,file);
+  const snapshot=parseEnterpriseText(input.text,file,signal);
+  check();
+  return snapshot;
+}
+/** Positions and byte identity belong to this exact text, including an explicitly captured editor buffer. */
+export function parseEnterpriseText(text:string,file:string,signal?:CancellationSignal) {
+  const check=()=>{if(signal?.aborted)throw new EnterpriseError("cancelled");};
+  check();
+  if(typeof text!=="string")throw new EnterpriseError("invalid-source");
+  if(Buffer.byteLength(text,"utf8")>enterpriseLimits.bytes)throw new EnterpriseError("too-large");
+  if(/[\uD800-\uDFFF]/u.test(text))throw new EnterpriseError("invalid-utf8");
+  if(text.includes("\0"))throw new EnterpriseError("invalid-source");
+  const parsed = parseLocatedJson(text,file);
   let catalog:EnterpriseCatalog;
   try {catalog=validateEnterpriseCatalog(parsed.value);}
   catch(e) {
@@ -33,7 +45,7 @@ export async function loadEnterpriseJson(source:EnterpriseSourceConfig, signal?:
     }),e.count);
     throw e;
   }
-  const evidence:LocalEnterpriseEvidence = {file, sourceBytesSha256:createHash("sha256").update(input.text,"utf8").digest("hex"),
+  const evidence:LocalEnterpriseEvidence = {file, sourceBytesSha256:createHash("sha256").update(text,"utf8").digest("hex"),
     capabilities:Object.fromEntries(catalog.capabilities.map((c,i)=>[c.id,{pointer:`/capabilities/${i}`,
       fields:Object.fromEntries(["id","name","description",...(c.parentId?["parentId"]:[]),...Object.keys(c.ratings??{}).map(s=>`ratings/${s}`)]
         .map(f=>[`/${f}`,parsed.at(["capabilities",i,...f.split("/")])]))}])),

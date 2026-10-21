@@ -308,7 +308,7 @@ describe("activation", () => {
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(23);
+    expect(context.subscriptions.length).toBe(24);
     deactivate();
   });
 

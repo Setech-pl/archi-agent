@@ -13,6 +13,10 @@ The editor routes this type before any software source/provider onboarding. No p
 keys, model listing, generation or semantic review are used. EA1b routes CLI and function MCP to the same operation, and adds a separate fixed enterprise knowledge tool. Local report v1 remains; remote report v2 uses true references/pointers instead of file lines. Config v2 keeps enterpriseSources separate from software sources; VS Code uses enterpriseSource plus User-only knowledgeServer.
 The software generation diagrams in the canonical guides retain their existing meaning.
 
+## Reviewed enterprise catalog creation
+
+The host captures explicit selection/document text before interaction and collects descriptions or local documents. Runtime reuses the bounded document bundle/converter and provider client composition, with one structured capability extraction call and strict business candidate validation. A separate in-memory enterprise review session preserves original claims/evidence and user edits/decisions. Catalog enterprise/1 stays unchanged; its provenance references the actual companion review report by session URN and digest. Exclusive new-file creation, production validation and saved-byte readback precede success. The existing EA1 map path consumes the saved catalog with zero further model calls. See the [enterprise contract](enterprise-catalog.md#reviewed-catalog-builder).
+
 ## VER1 and source-bound C4
 
 See the [canonical architecture](en/architecture.md).

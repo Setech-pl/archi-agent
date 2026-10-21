@@ -216,6 +216,8 @@ export interface ListLocalModelsOptions {
  * The host-neutral application runtime, shared by the editor, CLI and MCP.
  */
 export interface ArchiAgentRuntime {
+  prepareEnterpriseMaterials?(inputs:readonly import("./enterprise-builder.js").EnterpriseMaterialInput[],signal:AbortSignal):Promise<import("./enterprise-builder.js").EnterpriseMaterials>;
+  extractEnterpriseCandidates?(request:import("./enterprise-builder.js").ExtractEnterpriseCandidatesRequest):Promise<import("./enterprise-builder.js").ExtractEnterpriseCandidatesOutcome>;
   startFlowVerification?(request: import("./verify-flow.js").VerifyFlowRequest): Promise<import("./verify-flow.js").VerifyFlowStart>;
   /** K2 production entry; optional only for existing host test doubles. */
   extractDocumentCandidates?(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome>;

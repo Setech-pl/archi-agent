@@ -1,3 +1,4 @@
+import { prepareEnterpriseMaterials, extractEnterpriseCandidates, type EnterpriseMaterialInput, type ExtractEnterpriseCandidatesRequest } from "./enterprise-builder.js";
 import type { LocalReadPolicy } from "../node/local-read-policy.js";
 import { inspectArchitectureSource } from "./architecture-source.js";
 import { startFlowVerification, type VerifyFlowRequest, type VerifyFlowStart } from "./verify-flow.js";
@@ -590,6 +591,17 @@ class NodeArchiAgentRuntime implements ArchiAgentRuntime {
     this.#defaultBaseUrlForProfile = options.defaultBaseUrlForProfile ?? defaultBaseUrlForLocalProfile;
     this.#remoteTransport = options.remoteTransport;
     this.#diagramClientFactory = options.diagramClientFactory ?? ((config, endpoint) => new OpenAiCompatibleLocalChatClient({ endpoint, modelId: config.modelId, ...(config.timeoutMs === undefined ? {} : { timeoutMs: config.timeoutMs }) }));
+  }
+
+  public prepareEnterpriseMaterials(inputs:readonly EnterpriseMaterialInput[],signal:AbortSignal){
+    return prepareEnterpriseMaterials(inputs,signal,this.#documentExtraction);
+  }
+  public extractEnterpriseCandidates(request:ExtractEnterpriseCandidatesRequest){
+    return extractEnterpriseCandidates(request,async signal=>{
+      const generator=typeof request.generator==="function"?await request.generator(signal):request.generator;
+      if(!generator||signal.aborted)return {ok:false,issues:[{code:"cancelled"}]};
+      return resolveDiagramClient(generator,this.#providerRegistry,this.#defaultBaseUrlForProfile,this.#remoteTransport,this.#diagramClientFactory);
+    });
   }
 
   public async extractDocumentCandidates(request: ExtractDocumentCandidatesRequest): Promise<ExtractDocumentCandidatesOutcome> {

@@ -24,6 +24,10 @@ Wskaż `enterprise.json`, wybierz całą mapę lub gałąź L1, szczegółowoś�
 albo jawną skalę ocen. W multi-root najpierw wybierz projekt źródła. Nie potrzebujesz packa
 oprogramowania, providera, modelu ani klucza API; operacja wykonuje zero wywołań modelu.
 
+Aby zacząć od opisu firmy lub dokumentów, uruchom **Archi: Build Business Capability Catalog / Utwórz katalog zdolności biznesowych**. Wybierz **Wyodrębnij z materiałów** albo **Zaproponuj model firmy**, a następnie zaznaczenie, aktywny dokument (także dirty/untitled), wpisany opis lub jawnie wskazane dokumenty lokalne. Przejrzyj zamrożone materiały przed maksymalnie jednym wywołaniem modelu; chmura wymaga osobnej autoryzacji. Przejrzyj/popraw hierarchię L1–L3 i pochodzenie, zaakceptuj/odrzuć propozycje, określ zakres i zapisz nowy `enterprise.json` z `enterprise.review.json`. Istniejące pliki nie są nadpisywane. **Wygeneruj Capability Map** użyje zapisanego katalogu bez dodatkowego wywołania modelu. Oceny pozostają nieznane, a pokrycie częściowe. [Pełna instrukcja i budżety](capability-map.md#opis-firmy--przegląd-katalogu--mapa).
+
+Dla gotowego JSON opcja **Aktywny dokument — także niezapisane zmiany** przechwytuje tekst przed pierwszym pickerem diagramu. Późniejsze zmiany nie podmieniają wejścia operacji; błędny JSON nigdy nie uruchamia modelu. Jawne źródła plik/MCP pozostają dostępne. Raport wskazuje pozycje/fingerprint przechwyconego bufora, a ART1 zapisuje wejście w pamięci.
+
 Podgląd graficzny wymaga osobnego renderera PlantUML. Dwa niezapisane edytory pokazują PlantUML i deterministyczny raport provenance. Zapisz oryginalną
 parę przez **Archi: Save Diagram and Report** i potwierdź miejsce; Cancel nie zapisuje częściowej pary.
 Szare „Brak danych” oznacza brak oceny. Oceny rodziców nie są agregowane; wielkość kafla nie jest oceną.

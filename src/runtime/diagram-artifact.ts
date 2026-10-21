@@ -17,7 +17,7 @@ export interface DiagramArtifact {
   readonly report: Readonly<Record<string, CanonicalValue>>;
   readonly metadata: Readonly<Record<string, CanonicalValue>>;
 }
-const sourceLocations = new WeakMap<DiagramArtifact, { pack: string|null; model?: string; flow: string | null; enterprise?:string; enterpriseRemote?:{sourceId:string;tool:"get_enterprise_snapshot";contractVersion:1} }>();
+const sourceLocations = new WeakMap<DiagramArtifact, { pack: string|null; model?: string; flow: string | null; enterprise?:string|null; enterpriseRemote?:{sourceId:string;tool:"get_enterprise_snapshot";contractVersion:1} }>();
 const completed = new WeakSet<DiagramArtifact>();
 const hash = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 function freeze<T>(value: T): T {
@@ -118,9 +118,9 @@ export function isCompletedDiagramArtifact(value: unknown): value is DiagramArti
   return !!value && typeof value === "object" && completed.has(value as DiagramArtifact);
 }
 /** A separate strict capture path preserves the older generation report byte contract. */
-export function captureCapabilityMapArtifact(plantUml:string, input:CapabilityMapReport, sourcePath?:string):DiagramArtifact {
+export function captureCapabilityMapArtifact(plantUml:string, input:CapabilityMapReport, sourcePath?:string|null):DiagramArtifact {
   const report=capabilityMapReportSchema.parse(input);
-  if(report.formatVersion===1&&!sourcePath||report.formatVersion===2&&sourcePath!==undefined)throw new Error("artifact-report-invalid");
+  if(report.formatVersion===1&&sourcePath!==null&&!sourcePath||report.formatVersion===2&&sourcePath!==undefined)throw new Error("artifact-report-invalid");
   const configuration={diagramType:"capability-map",generationPath:report.generationPath,selection:report.selection};
   const artifact:DiagramArtifact=freeze({resultId:randomUUID(),createdAt:new Date().toISOString(),diagramType:"capability-map",plantUml,
     report:report as unknown as Record<string,CanonicalValue>,metadata:{
@@ -158,7 +158,7 @@ export async function saveDiagramBundle(project: string, artifact: DiagramArtifa
     return { reference: relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? relative.split(path.sep).join("/") : path.basename(file),
       availability: relative && !relative.startsWith("..") && !path.isAbsolute(relative) ? "project-relative" : "logical-name-only" };
   };
-  const report = { sourceReferences: references.enterpriseRemote ? {enterpriseCatalog:{reference:references.enterpriseRemote,availability:"remote-source"}} : references.enterprise ? {enterpriseCatalog:reference(references.enterprise)} : { knowledgePack: reference(references.pack), ...(references.model ? { model: reference(references.model) } : {}), flow: reference(references.flow) }, format: "archi-agent-artifact", formatVersion: 1, bundleId: plan.bundleId, resultId: artifact.resultId,
+  const report = { sourceReferences: references.enterpriseRemote ? {enterpriseCatalog:{reference:references.enterpriseRemote,availability:"remote-source"}} : references.enterprise!==undefined ? {enterpriseCatalog:reference(references.enterprise)} : { knowledgePack: reference(references.pack), ...(references.model ? { model: reference(references.model) } : {}), flow: reference(references.flow) }, format: "archi-agent-artifact", formatVersion: 1, bundleId: plan.bundleId, resultId: artifact.resultId,
     savedAt: new Date().toISOString(), createdAt: artifact.createdAt, diagramType: artifact.diagramType,
     diagram: { file: "diagram.puml", encoding: "utf8", byteLength: diagram.length, sha256: hash(diagram) },
     generationReport: artifact.report, ...artifact.metadata };

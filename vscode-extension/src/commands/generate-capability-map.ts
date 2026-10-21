@@ -1,23 +1,44 @@
 import path from "node:path";
 import * as vscode from "vscode";
-import { generateCapabilityMap, inspectEnterpriseSource, type CapabilityMapSelection,type EnterpriseSourceConfig } from "../../../src/runtime/index.js";
+import { generateCapabilityMap, inspectEnterpriseSource, type CapabilityMapSelection,type EnterpriseSourceConfig,type EnterpriseTextSource } from "../../../src/runtime/index.js";
 import {configuredEnterpriseSource} from "../settings.js";
 import { assertProfileAvailable, withProfileCancellation } from "../profile-availability.js";
 import { OpenDiagramResults, saveDiagramAction, saveDiagramAndReportCommand } from "./save-diagram-and-report.js";
 
+/** Capture before the diagram picker can yield; never substitute another editor for a non-text tab. */
+export function captureActiveEnterpriseSource():EnterpriseTextSource|undefined {
+  const editor=vscode.window.activeTextEditor, tab=vscode.window.tabGroups?.activeTabGroup.activeTab;
+  if(!editor||!["file","untitled"].includes(editor.document.uri.scheme))return;
+  if(tab&&(!(tab.input instanceof vscode.TabInputText)||tab.input.uri.toString()!==editor.document.uri.toString()))return;
+  return Object.freeze({kind:"enterprise-text",name:path.basename(editor.document.fileName),text:editor.document.getText()});
+}
 /** Native editor collection only. This path never reads provider settings or SecretStorage. */
-export async function generateCapabilityMapCommand(results?:OpenDiagramResults):Promise<void> {
+export async function generateCapabilityMapCommand(results?:OpenDiagramResults,activeSource?:EnterpriseTextSource, forcedSource?:EnterpriseSourceConfig):Promise<void> {
   const pl=vscode.env.language.toLowerCase().startsWith("pl");
-  const folders=vscode.workspace.workspaceFolders;
+  const folders=vscode.workspace.workspaceFolders?.length?vscode.workspace.workspaceFolders:forcedSource?.kind==="enterprise-json"?[{uri:vscode.Uri.file(path.dirname(forcedSource.path)),name:"Saved catalog"}]:undefined;
   if(!folders?.length) {await vscode.window.showInformationMessage(pl ? "Archi Agent: otwórz lokalny folder projektu i wybierz katalog enterprise.json." : "Archi Agent: open a local project folder, then select an enterprise.json catalog.");return;}
   const project=folders.length===1?folders[0]:(await vscode.window.showQuickPick(folders.map(folder=>({label:folder.name,description:folder.uri.fsPath,folder})),
     {title:"Archi Agent: capability project",ignoreFocusOut:true}))?.folder;
   if(!project)return;
   if(project.uri.scheme!=="file") {await vscode.window.showWarningMessage("Archi Agent: Capability Map requires a local project and enterprise.json catalog.");return;}
-  let source:EnterpriseSourceConfig|undefined;
-  try{source=configuredEnterpriseSource(vscode.workspace.getConfiguration("archiAgent",project.uri));}
-  catch(e){await vscode.window.showWarningMessage(`Archi Agent: ${e instanceof Error?e.message:"enterprise-source-invalid"}. ${pl?"Ustaw źródło enterprise oraz zaufany knowledgeServer w ustawieniach użytkownika.":"Configure enterpriseSource and a trusted knowledgeServer in User settings."}`);return;}
-  if(source){
+  let source:EnterpriseSourceConfig|undefined=forcedSource;
+  let explicitLocal=false;
+  if(activeSource&&!forcedSource){
+    const choice=await vscode.window.showQuickPick([
+      {label:pl?"Aktywny dokument — także niezapisane zmiany":"Active document — including unsaved changes",description:activeSource.name,id:"active-document"},
+      {label:"Local enterprise.json…",id:"local"},
+      {label:pl?"Skonfigurowane źródło MCP":"Configured MCP source",id:"mcp"}
+    ],{title:"Archi Agent: capability source",ignoreFocusOut:true});
+    if(!choice)return;
+    if(choice.id==="active-document")source=activeSource;
+    explicitLocal=choice.id==="local";
+  }
+  if(!source&&!explicitLocal){
+    try{source=configuredEnterpriseSource(vscode.workspace.getConfiguration("archiAgent",project.uri));}
+    catch(e){await vscode.window.showWarningMessage(`Archi Agent: ${e instanceof Error?e.message:"enterprise-source-invalid"}. ${pl?"Ustaw źródło enterprise oraz zaufany knowledgeServer w ustawieniach użytkownika.":"Configure enterpriseSource and a trusted knowledgeServer in User settings."}`);return;}
+    if(activeSource&&!source){await vscode.window.showWarningMessage("Archi Agent: configure enterpriseSource and a trusted knowledgeServer in User settings.");return;}
+  }
+  if(source?.kind==="mcp"&&!activeSource&&!forcedSource){
     const choice=await vscode.window.showQuickPick([{label:`${pl?"Skonfigurowane źródło MCP":"Configured MCP source"}: ${source.sourceId}`,id:"mcp"},
       {label:"Local enterprise.json…",id:"local"}],{title:"Archi Agent: capability source",ignoreFocusOut:true});
     if(!choice)return;if(choice.id==="local")source=undefined;
@@ -40,7 +61,7 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults):
       f.code==="stale-source" ? " The catalog changed. Repeat Create Diagram and scope selection." :
       f.code==="enterprise-unsupported"||f.code==="enterprise-version-unsupported"?" The configured knowledge server does not support get_enterprise_snapshot v1. No fallback was used.":
       selectedSource.kind==="mcp"?" Check the configured MCP enterprise source and its catalog. No fallback was used.":" Select a valid enterprise.json business catalog; software sources cannot supply these capabilities.";
-    await vscode.window.showWarningMessage(`Archi Agent: ${f.code}.${detail}${next}`);
+    await vscode.window.showWarningMessage(`Archi Agent: ${f.code}.${detail}${selectedSource.kind==="enterprise-text"?" Correct the active document, then repeat Create Diagram. The captured buffer was not replaced with a disk or MCP source.":next}`);
   };
   if(inspected.status!=="success") {await showFailure(inspected);return;}
   const {snapshot}=inspected;

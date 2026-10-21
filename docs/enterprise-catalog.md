@@ -119,3 +119,25 @@ reference. CLI/function MCP return data and cannot write files automatically.
 Complete executable configuration and user adapter instructions:
 [EN](en/cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate) /
 [PL](pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b).
+
+## Captured editor text
+
+The runtime also accepts the explicit in-memory `enterprise-text` input with a logical leaf name
+and captured JSON text. It uses the same strict parser, catalog validation, snapshot, rendering
+and report v1 contract. No file is created or read for this input. Its local evidence label is
+`editor-buffer:<name>`; exact captured UTF-8 bytes determine sourceBytesSha256 and real buffer
+positions determine locators. The report explicitly states this evidence is not disk content.
+ART1 retains its v1 envelope and records an enterpriseCatalog reference with availability
+`in-memory-input`, never an invented disk path. File and MCP behavior remain unchanged.
+This path is not included in published DEMO1 packages.
+
+
+## Reviewed catalog builder
+
+The builder uses a separate strict candidate contract, not software architecture rows or extra enterprise/1 fields. [Candidate schema](../src/core/enterprise/enterprise-candidates.ts) and [runtime session](../src/runtime/enterprise-builder.ts) define two explicit modes: material extraction and a proposed company model. Per-field source support claims require exact captured-text evidence; inferred additions and hierarchy remain model proposals. Mechanical quote validation does not certify semantic relevance. User acceptance/edits are recorded separately and never promote them to original-source facts. IDs are assigned once per session and survive edits; parents/cycles/depth/collisions use production validation. No ratings/scales/owners/application mappings are inferred.
+
+`enterprise.review.json` retains the bounded captured material, original fingerprints and editor version/selection locations or converted-text locations, original candidates/classification/evidence, current user decisions and edited fields, scope, warnings acknowledgment and approval time. Its digest is over the report without the digest field. Catalog provenance points to the real `urn:archi-agent:enterprise-review:<sessionId>`, with that digest as version and stable candidate ID as fragment/recordId. It attributes all supplied catalog business fields to the reviewed decision; it does not fabricate an external document reference or source line. Keep both files together to inspect that provenance. The catalog remains enterprise/1 compatible and declares partial coverage.
+
+Only selected materials are prepared through the existing bounded converter (Core/Full policy unchanged), previewed and sent. One extraction call, up to 16,384 output tokens, 120 seconds total extraction/provider-selection budget, no retry/repair/fallback/chunk loop. Existing document bounds apply: 8 documents, 10 MiB each/20 MiB total bytes, 64 KiB text per source, 160 KiB bundle, 256 KiB request, 1 MiB response and 1,000 records. Exceeding a limit is an error, never truncation. Material preparation retains the existing bounded read/conversion/OCR stages and a 360-second total deadline. A truncated or invalid answer never becomes an accepted catalog. Existing provider configuration and secret storage are reused; potentially paid cloud extraction requires a separate explicit authorization.
+
+The review workbench supports accept/reject/pending and name/description/parent edits. Rejecting a parent cannot silently reparent retained children; reject that subtree explicitly or move children yourself. Local conversion warnings are derived from the frozen material independently of the model, displayed in the warning section and retained as source-bound materialWarnings in the review report. Both local and model warnings require an explicit review acknowledgment. Pending decisions, unresolved warnings, empty catalogs and invalid accepted hierarchies block save. The shared exclusive writer creates only new `enterprise.json` and `enterprise.review.json`, conditionally cleans up owned files on failure, and verifies exact bytes with the production loader before `saved`. No multi-file atomic publication, crash recovery or existing-catalog merge is added. The saved catalog then enters the existing EA1 scope/detail/color path without another model call.

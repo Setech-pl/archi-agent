@@ -19,7 +19,7 @@ import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPr
 import { selectLocalModel } from "./local-provider-selection.js";
 import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
 import {inspectC4Source} from "../../../src/runtime/index.js";
-import {generateCapabilityMapCommand} from "./generate-capability-map.js";
+import {generateCapabilityMapCommand,captureActiveEnterpriseSource} from "./generate-capability-map.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -265,6 +265,7 @@ async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, outpu
 }
 
 export async function generateDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
+  const activeEnterpriseSource=captureActiveEnterpriseSource();
   const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const },
     { label: "Component", description: "component", id: "component" as const },
     { label:"C4 Context",description:"c4-context",id:"c4-context" as const },
@@ -274,7 +275,7 @@ export async function generateDiagramCommand(dependencies: GenerateCommandDepend
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
   if (picked === undefined) return;
   if (picked.id === "enterprise-group") return;
-  if (picked.id === "capability-map") {await generateCapabilityMapCommand(dependencies.results);return;}
+  if (picked.id === "capability-map") {await generateCapabilityMapCommand(dependencies.results,activeEnterpriseSource);return;}
   await runGenerateCommand(dependencies, picked.id);
 }
 

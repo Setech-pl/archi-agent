@@ -5,7 +5,8 @@ import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {generateDiagramCommand} from "../../vscode-extension/src/commands/generate-sequence-diagram.js";
 import {OpenDiagramResults,saveDiagramAndReportCommand,saveDiagramAction} from "../../vscode-extension/src/commands/save-diagram-and-report.js";
 import {createArchiAgentRuntime} from "../../src/runtime/index.js";
-import {resetDouble,state,Uri,window,workspace,secretStorage} from "../doubles/vscode-module-double.js";
+import {resetDouble,state,Uri,window,workspace,secretStorage,makeDocument,TabInputText,TabInputCustom} from "../doubles/vscode-module-double.js";
+import {captureActiveEnterpriseSource} from "../../vscode-extension/src/commands/generate-capability-map.js";
 const roots:string[]=[];
 beforeEach(resetDouble);
 afterEach(async()=>{vi.restoreAllMocks();for(const root of roots.splice(0))await rm(root,{recursive:true,force:true});});
@@ -52,4 +53,60 @@ it("explains invalid or unavailable enterprise data rather than succeeding with 
   await writeFile(f.file,JSON.stringify(raw));choose(f.file);await generateDiagramCommand(deps);state.quickPickAnswers=[];
   expect(state.messages.at(-1)?.text).toContain("enterprise.json");expect(state.openedDocuments).toHaveLength(0);
  }
+});
+it.each([false,true])("uses the captured active document (untitled=%s), even after the editor and disk change",async untitled=>{
+ const f=await fixture(),text=await readFile(f.file,"utf8");
+ state.workspaceFolders=[{name:"retail",uri:Uri.file(f.root),index:0}];
+ const document={...makeDocument(text,{...(untitled?{}:{fileName:f.file}),languageId:"plaintext"}),isDirty:true};
+ state.activeTextEditor={document};window.tabGroups.activeTabGroup.activeTab={input:new TabInputText(document.uri)};
+ const {deps,providerSpies}=dependencies(),config=vi.spyOn(workspace,"getConfiguration"),dialog=vi.spyOn(window,"showOpenDialog");
+ state.quickPickAnswers.push(items=>{
+  state.activeTextEditor={document:makeDocument("a different editor")};
+  return by("id","capability-map")(items);
+ },by("id","active-document"),by("id","sales"),by("value",3),by("id","maturity"));
+ await writeFile(f.file,"not the captured text");
+ await generateDiagramCommand(deps);
+ expect(state.openedDocuments).toHaveLength(2);expect(deps.results.results()).toHaveLength(1);
+ const report=JSON.parse(state.openedDocuments[1]!.getText());
+ expect(report.source.file).toBe(`editor-buffer:${untitled?"Untitled-1":"enterprise.json"}`);expect(report.modelCalls).toBe(0);
+ expect(report.visible).toHaveLength(5);expect(report.limitations.join(" ")).toContain("editor buffer");
+ expect(config).not.toHaveBeenCalled();expect(dialog).not.toHaveBeenCalled();expect(state.secretReads).toEqual([]);
+ providerSpies.forEach(s=>expect(s).not.toHaveBeenCalled());
+ state.messageAnswers.push(saveDiagramAction);await saveDiagramAndReportCommand(deps.results,deps.results.results()[0]!);
+ const base=path.join(f.root,"archi-agent-results"),saved=JSON.parse(await readFile(path.join(base,(await readdir(base))[0]!,"report.json"),"utf8"));
+ expect(saved.sourceReferences.enterpriseCatalog).toEqual({reference:null,availability:"in-memory-input"});expect(saved.generationReport).toEqual(report);
+ expect(await readFile(f.file,"utf8")).toBe("not the captured text");
+});
+it("retains explicit file and MCP choices when an active document is available",async()=>{
+ const f=await fixture();state.workspaceFolders=[{name:"retail",uri:Uri.file(f.root),index:0}];
+ state.activeTextEditor={document:makeDocument("invalid active input")};
+ state.quickPickAnswers.push(by("id","capability-map"),by("id","local"),by("id","sales"),by("value",3),by("id","maturity"));
+ state.openDialogAnswers.push([Uri.file(f.file)]);
+ const {deps}=dependencies();await generateDiagramCommand(deps);
+ const picker=state.quickPicks.find(p=>(p.options as any).title==="Archi Agent: capability source")!;
+ expect((picker.items as any[]).map(i=>i.id)).toEqual(["active-document","local","mcp"]);
+ expect(JSON.parse(state.openedDocuments[1]!.getText()).source.file).toBe("enterprise.json");
+});
+it("does not capture a stale text editor behind custom, diff or remote tabs",()=>{
+ const document=makeDocument("{}");state.activeTextEditor={document};
+ window.tabGroups.activeTabGroup.activeTab={input:new TabInputCustom(Uri.file("/synthetic/model.pdf"))};expect(captureActiveEnterpriseSource()).toBeUndefined();
+ window.tabGroups.activeTabGroup.activeTab={input:{diff:true}};expect(captureActiveEnterpriseSource()).toBeUndefined();
+ window.tabGroups.activeTabGroup.activeTab={input:new TabInputText(Uri.file("/synthetic/other.json"))};expect(captureActiveEnterpriseSource()).toBeUndefined();
+ window.tabGroups.activeTabGroup.activeTab=undefined;state.activeTextEditor={document:{...document,uri:Uri.parse("https://example.invalid/model.json")}};
+ expect(captureActiveEnterpriseSource()).toBeUndefined();
+});
+it("cancels active-source selection without reading settings or opening a file",async()=>{
+ const f=await fixture();state.workspaceFolders=[{name:"retail",uri:Uri.file(f.root),index:0}];state.activeTextEditor={document:makeDocument("{}")};
+ state.quickPickAnswers.push(by("id","capability-map"),()=>undefined);
+ const {deps}=dependencies(),config=vi.spyOn(workspace,"getConfiguration"),dialog=vi.spyOn(window,"showOpenDialog");
+ await generateDiagramCommand(deps);expect(config).not.toHaveBeenCalled();expect(dialog).not.toHaveBeenCalled();expect(state.openedDocuments).toHaveLength(0);
+});
+it("does not replace invalid captured text or an unconfigured MCP choice with a disk source",async()=>{
+ const f=await fixture();state.workspaceFolders=[{name:"retail",uri:Uri.file(f.root),index:0}];state.activeTextEditor={document:makeDocument("not JSON")};
+ const {deps}=dependencies(),dialog=vi.spyOn(window,"showOpenDialog");
+ state.quickPickAnswers.push(by("id","capability-map"),by("id","active-document"));await generateDiagramCommand(deps);
+ expect(state.messages.at(-1)?.text).toContain("Correct the active document");
+ state.quickPickAnswers.push(by("id","capability-map"),by("id","mcp"));await generateDiagramCommand(deps);
+ expect(state.messages.at(-1)?.text).toContain("configure enterpriseSource");
+ expect(dialog).not.toHaveBeenCalled();expect(state.openedDocuments).toHaveLength(0);expect(deps.results.results()).toHaveLength(0);
 });

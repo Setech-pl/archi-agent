@@ -30,7 +30,7 @@ export interface DocumentSource {
     readonly counts: Readonly<Record<string, number>>;
     readonly pages: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" | "requires-ocr" }[];
     readonly warnings: readonly string[];
-    readonly locations: "normalized-text-offsets";
+    readonly locations: "normalized-text-offsets" | "captured-text-offsets";
   };
 }
 export interface DocumentSourceBundle {

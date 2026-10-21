@@ -106,7 +106,7 @@ export { resolveLocalReadReference } from "./local-text-input.js";
 
 export { getDocumentConversionCapabilities } from "./document-conversion-capabilities.js";
 export { inspectEnterpriseSource, generateCapabilityMap } from "./capability-map.js";
-export type { EnterpriseSourceConfig } from "./enterprise-source.js";
+export type { EnterpriseSourceConfig, EnterpriseTextSource } from "./enterprise-source.js";
 export type {CapabilityMapView} from "./capability-map.js";
 export type {EnterpriseCatalog,EnterpriseEvidence} from "../core/enterprise/enterprise-catalog.js";
 export {createEnterpriseResponse,validateEnterpriseResponse,enterpriseResponseSchema,enterpriseInputSchema,enterpriseOutputSchema,enterpriseStateSchema,enterpriseTool,enterpriseTransferLimits} from "../core/enterprise/enterprise-transfer.js";
@@ -120,3 +120,7 @@ export {mcpKnowledgeServerSchema}from"../node/mcp-knowledge-source.js";
 export type {McpKnowledgeServerConfig}from"../node/mcp-knowledge-source.js";
 export {createKnowledgeResponse,validateKnowledgeResponse,knowledgeResponseSchema,knowledgeFromContributions,contributionsVersion}from"../core/knowledge-pack/knowledge-transfer.js";
 export type{KnowledgeResponseV1}from"../core/knowledge-pack/knowledge-transfer.js";
+
+export { EnterpriseReviewSession } from "./enterprise-builder.js";
+export type { EnterpriseMaterialInput, EnterpriseMaterials, ExtractEnterpriseCandidatesRequest, ExtractEnterpriseCandidatesOutcome, EnterpriseDecision } from "./enterprise-builder.js";
+export type { EnterpriseBuildMode, EnterpriseProposal, EnterpriseCandidateOrigin } from "../core/enterprise/enterprise-candidates.js";

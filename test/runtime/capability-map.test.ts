@@ -49,3 +49,37 @@ it("locates a missing field at the real parent record rather than fabricated lin
  const issue=result.issues.find(i=>i.path.join('/')==='capabilities/1/name')!;expect(issue).toBeDefined();expect(issue.location?.line).toBeGreaterThan(1);
  const line=issue.location!.line;expect(text.split('\n')[line-1]!.trim()).toBe('{');expect(text.split('\n')[line]!).toContain('"id": "checkout"');
 });
+it("projects captured text without reading disk and saves truthful in-memory ART1 provenance",async()=>{
+ const f=await fixture(),req=await request(f),local=await generateCapabilityMap(req);
+ if(local.status!=="success")throw Error(local.code);
+ const source={kind:"enterprise-text" as const,name:"Untitled-1",text:f.text};
+ await writeFile(f.file,"invalid on disk");
+ const result=await generateCapabilityMap({...req,source});
+ expect(result.status).toBe("success");if(result.status!=="success"||result.report.formatVersion!==1)throw Error("captured generation failed");
+ expect(result.plantUml).toBe(local.plantUml);expect(result.report.projectionDigest).toBe(local.report.projectionDigest);
+ expect(result.report.source.file).toBe("editor-buffer:Untitled-1");
+ expect(result.report.source.sourceBytesSha256).toBe(createHash("sha256").update(f.text,"utf8").digest("hex"));
+ expect(result.report.limitations).toContain("Input was captured from an editor buffer, including unsaved changes. Locations and sourceBytesSha256 identify captured UTF-8 text, not an on-disk file.");
+ const field=result.report.visible.find(v=>v.capability.id==="checkout")!.locator.fields['/name']!;
+ expect(field.file).toBe("editor-buffer:Untitled-1");expect(f.text.split('\n')[field.line-1]).toContain('"name": "Finalizacja zakupu"');
+ source.text="changed after generation";
+ const saved=await saveDiagramBundle(f.root,result.artifact,planDiagramBundle());
+ const report=JSON.parse(await readFile(path.join(saved.directory,"report.json"),"utf8"));
+ expect(report.sourceReferences).toEqual({enterpriseCatalog:{reference:null,availability:"in-memory-input"}});
+ expect(report.generationReport).toEqual(result.report);expect(JSON.stringify(report)).not.toContain(f.root);
+ expect(await readFile(f.file,"utf8")).toBe("invalid on disk");
+});
+it("applies production validation, bounds and cancellation to captured text",async()=>{
+ const f=await fixture(),source={kind:"enterprise-text" as const,name:"active.json",text:f.text};
+ expect(await inspectEnterpriseSource(source,{aborted:true})).toMatchObject({status:"failed",code:"cancelled"});
+ for(const [text,code] of [['{"a":1,"a":2}',"source-key-duplicate"],["{}","invalid-source"],["\0","invalid-source"],[" ".repeat(1024*1024+1),"too-large"],["\uD800","invalid-utf8"]]){
+  expect(await inspectEnterpriseSource({...source,text:text!})).toMatchObject({status:"failed",code});
+ }
+ expect(await inspectEnterpriseSource({...source,text:1 as never})).toMatchObject({status:"failed",code:"invalid-source"});
+ for(const name of ["/private/enterprise.json","..","C:\\secret.json","bad\nname"]){
+  expect(await inspectEnterpriseSource({...source,name})).toMatchObject({status:"failed",code:"invalid-source"});
+ }
+ const inspected=await inspectEnterpriseSource(source);if(inspected.status!=="success")throw Error(inspected.code);
+ const changed=JSON.parse(source.text);changed.capabilities[0].name="Changed";
+ expect(await generateCapabilityMap({source:{...source,text:JSON.stringify(changed)},selection:{rootIds:[],maxLevel:3,colorBy:{kind:"none"},language:"en",expectedCatalogDigest:inspected.snapshot.catalogDigest}})).toMatchObject({status:"failed",code:"stale-source"});
+});

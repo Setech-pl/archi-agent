@@ -8,6 +8,26 @@ Opublikowane VSIX/ZIP DEMO1 nie zawierają tej funkcji. Użyj bieżącego checko
 [enterprise.json](../../examples/retail-checkout/architecture/enterprise.json).
 Nie zastępuj opublikowanych archiwów. Włącz jeden profil Core/Full i przeładuj VS Code.
 
+## Opis firmy → przegląd katalogu → mapa
+
+1. Uruchom **Archi: Build Business Capability Catalog / Utwórz katalog zdolności biznesowych** z palety poleceń lub menu Archi.
+2. Wybierz **Wyodrębnij z materiałów**, aby uzyskać zdolności poparte materiałem, albo **Zaproponuj model firmy**, aby przygotować propozycję modelu biznesowego L1–L3. Przykład: „Jesteśmy producentem żywności i chemii domowej. Mamy trzy zakłady, sprzedaż przez sieci i dystrybutorów oraz własny sklep internetowy. Przygotuj propozycję mapy zdolności L1–L3”.
+3. Wybierz przechwycone zaznaczenie, cały aktywny dokument (także dirty/untitled), wpisany opis lub wskazane lokalne dokumenty MD/TXT/PDF/DOCX/XLSX. Tekst edytora jest przechwytywany przed pierwszym pickerem; dowody zaznaczenia wskazują pozycje oryginalnego dokumentu i jego wersję/fingerprint. Pliki lokalne są zamrażane przed konwersją i dostępem do modelu. Odwołania dokumentów po konwersji wskazują tekst konwersji i ostrzeżenia konwertera/OCR, bez wymyślonych współrzędnych stron oryginału.
+4. Przejrzyj otwarty podgląd materiałów i jawnie zatwierdź ich wysłanie. Tylko te materiały trafiają do skonfigurowanego providera/modelu. Obowiązują istniejąca konfiguracja i bezpieczny magazyn kluczy. Provider chmurowy wymaga osobnej autoryzacji tego potencjalnie płatnego wywołania.
+5. Przejrzyj hierarchię, oryginalne propozycje i dowody. Zaznacz elementy do akceptacji, odrzucenia lub ponownego przeglądu; popraw nazwę, opis lub rodzica w edytorze wiersza. ID pozostają stabilne. Przed odrzuceniem rodzica jawnie odrzuć zachowane dzieci albo przenieś je do innego rodzica. Przejrzyj ostrzeżenia materiałów przed zapisem.
+6. Nazwij katalog i określ jego zakres. Wybierz folder docelowy i **Zapisz nowy katalog**. Powstaną `enterprise.json` i `enterprise.review.json`; istniejące pliki blokują zapis. Produkcyjny odczyt weryfikuje zapisane bajty przed sukcesem. Aktualizacja/merge istniejącego katalogu nie jest obsługiwana.
+7. Kliknij **Wygeneruj Capability Map**. Zapisany katalog trafia do istniejącej ścieżki deterministycznej, z **zerem dodatkowych wywołań modelu**. W dużym katalogu wybierz domenę/szczegółowość, jeśli widok przekracza 12 korzeni lub 120 kafli. ART1 pozwala zachować oryginał diagramu i raportu.
+
+Model zwraca propozycje semantyczne, nigdy PlantUML. Każde pole odróżnia deklarowane poparcie materiałem od propozycji modelu; cytaty i pozycje sprawdzamy mechanicznie, a ich znaczenie wymaga Twojego przeglądu. Proponowana hierarchia pozostaje propozycją. Akceptacja i ręczna edycja to decyzje użytkownika; nie zmieniają materiału źródłowego w potwierdzenie nowej treści. Osobny raport zachowuje oryginały, dowody i decyzje; provenance katalogu wskazuje rzeczywistą sesję przeglądu i digest raportu. Oceny, właściciele i wsparcie aplikacji nie są zgadywane. Pokrycie pozostaje `partial`.
+
+Jeden ograniczony bundle oznacza maksymalnie **jedno wywołanie ekstrakcji**, 16 384 tokeny wyjścia i 120 sekund łącznego czasu ekstrakcji (albo krótszy timeout providera). Limity: 8 dokumentów, 10 MiB każdy/20 MiB łącznie oryginalnych bajtów, 64 KiB tekstu na dokument, 160 KiB bundle, 256 KiB żądanie, 1 MiB odpowiedź i 1000 rekordów katalogu. Nadmiar materiału kończy się jawnym błędem: zawęź materiał i świadomie ponów operację. Bez cichego obcinania, nieograniczonego chunkingu, automatycznych retry, napraw i fallbacku. Ucięta odpowiedź, błędny schemat/dowody, timeout i anulowanie nie tworzą zapisanego katalogu. Core nie ma OCR; wybierz tekstowy tryb PDF albo Full dla obsługiwanego lokalnego OCR. Ostrzeżenia konwersji i częściowe pokrycie pozostają widoczne. Instrukcje w źródłach są danymi, nie poleceniami wykonania.
+
+## Mapa z istniejącego katalogu lub aktywnego JSON
+
+**Create Diagram** przechwytuje aktywny lokalny dokument tekstowy przed pierwszym pickerem diagramu. Wybierz **Aktywny dokument — także niezapisane zmiany**, aby użyć JSON, również dirty lub untitled. Późniejsze zmiany edytora nie podmieniają wejścia trwającej operacji. Jawne opcje lokalnego pliku i skonfigurowanego MCP pozostają dostępne. Aktywny dokument nie wymaga providera/modelu; błędny JSON nigdy nie uruchamia interpretacji modelem. Istniejący przepływ katalogu i opcjonalny zapis ART1 wymagają lokalnego folderu projektu.
+
+Lokatory `editor-buffer:<name>` i hash UTF-8 dotyczą przechwyconego tekstu, nie bajtów z dysku. ART1 zapisuje `in-memory-input` i zachowuje przechwycony oryginał. Custom preview, diff i zdalne dokumenty nie podstawiają starego edytora. Funkcje są dostępne w bieżącym kandydacie developerskim; opublikowane archiwa DEMO1 ich nie zawierają.
+
 1. Otwórz bieżący folder `examples/retail-checkout` w VS Code. Ustawienia providera,
    modelu, klucza API i źródła architektury oprogramowania mogą pozostać puste.
    Ta mapa nie wymaga uruchamiania skryptu setup.

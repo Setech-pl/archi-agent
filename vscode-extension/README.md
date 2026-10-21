@@ -24,6 +24,10 @@ Select `enterprise.json`, choose the whole map or an L1 branch, L1–L3 detail, 
 explicit rating scale. In multi-root workspaces select the source project first. No software pack,
 provider, model or API key is needed; this operation makes zero model calls.
 
+To start from a company description or documents, run **Archi: Build Business Capability Catalog / Utwórz katalog zdolności biznesowych**. Choose **Extract from materials** or **Propose a company model**, then selection, active document (including dirty/untitled), entered description or explicit local documents. Review the frozen materials before the maximum one model call; cloud calls require separate authorization. Review/edit the L1–L3 hierarchy and provenance, accept/reject candidates, declare scope and save a new `enterprise.json` with `enterprise.review.json`. Existing files are never overwritten. **Generate Capability Map** then uses the saved catalog with zero additional model calls. Ratings stay unknown and coverage partial. [Full walkthrough and budgets](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/capability-map.md#company-description--reviewed-catalog--map).
+
+For existing JSON, **Active document — including unsaved changes** captures text before the first diagram picker. Later edits do not replace the operation's input; invalid JSON never triggers a model call. Explicit file/MCP sources remain available. Reports use captured buffer positions/fingerprint and ART1 records in-memory input.
+
 A graphical preview requires a separate PlantUML renderer. Two unsaved editors show PlantUML and the deterministic provenance report. Save the original pair
 with **Archi: Save Diagram and Report** and confirm the destination; Cancel writes no partial pair.
 Gray “No data” means an absent rating. Parent ratings are not aggregated; tile size is not a rating.

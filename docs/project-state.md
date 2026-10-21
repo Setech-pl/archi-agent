@@ -38,30 +38,50 @@ pozostaje poza publicznym wydaniem; publiczne ZIP-y nie zawierają katalogu ente
 - AUD-001/002 zamknięto w naprawie ABA; nie zamyka to AUD-003–006 ani M1.
   Dowody natywne dotyczą głównie macOS ARM64; inventory zasobów nie jest testem innych platform.
 
-## Aktywne zadanie — EA-INTEGRATION1
+## Lokalny checkpoint — EAU1 + EAK1
 
-Integracja w izolowanym worktree `/private/tmp/archi-ea-integration1`, gałąź
-`feature/ea1-ea1b-integration`, baza `d91bbdebcfbdf0414d64b18343147eb4b6f60278`.
-Zachowana historia DOC3/EA1/EA1b do `7efa83f5fbe3c3c3da637676ff6316f831b9177f`;
-dokumentacja łączy nowe instrukcje z porządkami main. Wycofane raporty i media nie wracają.
-Kod produktu identyczny z kandydatem `2ddcf21367ce5834097859331641be48ce19ff86`.
-Po pierwszym CI PR #13 zmieniono wyłącznie trzy pliki testowe: canonical tmpdir zamiast
-macOS-only /private/tmp oraz 30 s dla wieloprocesowego testu parytetu (asercje i limity
-produktu bez zmian). Bieżący head i testowany merge checkout są identyfikowane w CI PR.
-Dowody integracji i kopie historycznych raportów pozostają w ignorowanym `build/ea-integration1/`.
-Bramki z 19.10 oraz późniejszy review EA1b są historyczne; nie są wynikiem nowego merge.
-Bieżąca weryfikacja integracji: oba typechecki, 255 testów celowanych, build, sekwencyjne
-package/verify Core/Full/CLI, dokumentacja obu VSIX i Help PL/EN PASS. Dokładne paczki poza
-repo: parytet lokalne/MCP/CLI/funkcje, EA1 Core/Full, Structurizr, VER1/C4 i ART1 PASS;
-osobny stary protokół wiedzy v1 PASS. Rzeczywisty Host 37/37, Help 2/2, widoczny UI
-map lokalnych/MCP 11/11 PASS; zapisane oryginały mają identyczny PlantUML i semantykę raportu,
-modelCalls=0. Potwierdzone 178 odcisków per-file; runtime i OCR zgodne z dawnym kandydatem.
-Pełnych lokalnych suites EA1b nie ponawiano wyłącznie z powodu merge SHA. Historia UI
-pozostaje przy poprzednich paczkach; bieżące dowody mają nowe SHA paczek. Dwie uwagi
-niezależnego review zamknięto w pełnej konfiguracji Help offline i opisie providera PL.
-Końcowy niezależny review dowodów PASS: 0 otwartych nowych HIGH/MEDIUM/LOW. PR/CI do main
-są osobnymi kontrolami; stan oraz tożsamość head/merge checkout są w raporcie poza repo i w PR.
-OWNER_SMOKE: DEFERRED. Nie deklarujemy sprawdzenia importu EA ani COM.
-PR [#13](https://github.com/Setech-pl/archi-agent/pull/13) jest otwarty. Pierwszy run CI
-wykazał te problemy testów; jego FAIL jest zachowany osobno od następnego przebiegu.
-Po sprawdzeniu CI aktualnego head STOP; bez merge/release, AUD-003/004 i EA2.
+Worktree `/private/tmp/archi-eau1-eak1`, branch `feature/eau1-eak1`, baza
+`4dffbf4e474a57a57d046f78917af8de58e67369`; SHA lokalnego checkpointu odczytaj z Git.
+Zachowano 17 zastanych zmian EAU1,
+bez reset/stash i bez przełączania innych checkoutów. PR #13 pozostaje nietknięty.
+
+EAU1: jawny wybór aktywnego JSON, dirty/untitled, przechwycenie przed pierwszym pickerem,
+pozycje i fingerprint przechwyconego tekstu oraz ART1 `in-memory-input`. Plik/MCP zachowane;
+błędny JSON nie uruchamia modelu. Historyczne kontrole poprzedniej sesji: 128 testów celowanych,
+99 regresji, oba typechecki/build i dokumentacja — nie są bramkami bieżącego kandydata.
+
+EAK1: nowa komenda/menu tworzenia katalogu zdolności biznesowych, zaznaczenie/cały aktywny
+dokument/opis/wskazane pliki, dwa jawne tryby extraction/proposal. Reużyty bounded bundle,
+konwerter Core/Full, konfiguracja/model/sekrety i klient providera. Przewijalny podgląd tylko
+do odczytu poprzedza zgodę na maksymalnie jedno wywołanie; chmura wymaga osobnej zgody na koszt.
+Ścisły kontrakt capabilities, dowody względem przechwyconej treści, stabilne ID, edycja i decyzje
+w panelu; odrzucenie rodzica wymaga jawnych decyzji o dzieciach. Produkcyjna walidacja i odczyt
+zapisanych bajtów poprzedzają `saved`. Nowe `enterprise.json` i `enterprise.review.json` mają
+provenance rzeczywistej sesji URN/digest, bez promowania propozycji/edycji do faktów źródłowych.
+Pokrycie partial, brak zgadywania ocen; istniejąca ścieżka mapy po zapisie ma zero kolejnych LLM.
+
+Bieżące dowody i zachowane FAIL: ignorowany `build/eau1-eak1/`. Wspólny gauntlet wykrył
+brak aktywacji komendy, brak przygotowanych archiwów OCR oraz HIGH developerskiego Vite;
+manifest i kolejność przygotowania poprawiono, audit lockfile daje zero podatności i zachowuje
+26 opcjonalnych bindingów. Root 2110/2110 i extension 824/824, oba typechecki, build,
+package/verify Core/Full/CLI i dokumentacja/Help PL/EN przeszły dla wcześniejszego kandydata.
+Po wąskiej poprawce z review: 66/66 testów celowanych, oba typechecki, build,
+sekwencyjne package/verify Core/Full/CLI oraz dokumentacja/Help PL/EN — PASS. Pełnych suites
+2110/824 nie powtarzano po tej poprawce. Dokładne końcowe paczki `acceptance-r5/packages`
+przeszły runtime poza repo: EAU1/EAK1, EA1/EA1b, SRC1, VER1/C4 i ART1. Rzeczywisty
+Extension Host: Core 21/21 i Full 21/21; widoczne UI EAU1/EAK1 oraz EA1b: po 6/6.
+Ostrzeżenia konwersji pochodzą z przechwyconych materiałów, wymagają potwierdzenia niezależnie
+od ostrzeżeń modelu i pozostają w zapisanym raporcie. Etykiety edycji pokazują decyzję użytkownika.
+Niezależny review w osobnym kontekście: EAK-REV-001 MEDIUM zamknięte w rundzie 2,
+zero nowych otwartych HIGH/MEDIUM. Zachowano wcześniejsze FAIL produktu i harnessów;
+ich poprawne retesty są odrębnymi dowodami, nie zastępują historii.
+
+Mały rzeczywisty smoke lokalnego Ollama `qwen3-coder:30b`: pierwsza odpowiedź odrzucona
+za niekompletne evidence; po doprecyzowaniu promptu osobny smoke PASS — jedno wywołanie,
+przegląd, zapis i mapa bez kolejnego LLM. Brak dalszego live smoke po poprawce ostrzeżeń;
+ten mały przypadek nie dowodzi ogólnej jakości modelu. Płatny cloud i inne platformy: NOT_RUN.
+
+Indeks bramek, końcowe paczki/SHA-256, review i SHA checkpointu:
+ignorowane `build/eau1-eak1/acceptance-final.json` oraz `progress.json`.
+OWNER_SMOKE: DEFERRED. Bez push/merge/tagów/release/publikacji i bez rozpoczynania
+AUD-003/004, aktualizacji katalogów lub EA2. Następny wykonawca porównuje zapis z Git.

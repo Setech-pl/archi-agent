@@ -48,12 +48,13 @@ export async function generateCapabilityMap(request:{source:EnterpriseSourceConf
       visible:projection.visible.map(h=>({capability:snapshot.catalog.capabilities.find(c=>c.id===h.id),hierarchy:h,locator:snapshot.evidence.capabilities[h.id],renderLine:rendered.lines[h.id]})),
       scales:snapshot.catalog.scales.map(s=>({definition:s,locator:snapshot.evidence.scales[s.id]})),excluded:projection.excluded,duplicateNames:snapshot.duplicateNames,
       limitations:["Coverage describes only the declared source scope.","Missing ratings are unknown; parent ratings are never aggregated or inherited.",
-        "Tile size reflects layout, not maturity or business importance.","This deterministic projection is not semantic review or Verify Flow."]
+        "Tile size reflects layout, not maturity or business importance.","This deterministic projection is not semantic review or Verify Flow.",
+        ...(request.source.kind==="enterprise-text"?["Input was captured from an editor buffer, including unsaved changes. Locations and sourceBytesSha256 identify captured UTF-8 text, not an on-disk file."]:[])]
     }));
     const serialized=JSON.stringify(report,null,2)+"\n";
     if(Buffer.byteLength(serialized,"utf8")>enterpriseLimits.reportBytes)throw new EnterpriseError("map-too-large");
     check();
     return {status:"success" as const,diagramType:"capability-map" as const,plantUml:rendered.plantUml,report,
-      artifact:captureCapabilityMapArtifact(rendered.plantUml,report,request.source.kind==="enterprise-json"?request.source.path:undefined)};
+      artifact:captureCapabilityMapArtifact(rendered.plantUml,report,request.source.kind==="enterprise-json"?request.source.path:request.source.kind==="enterprise-text"?null:undefined)};
   } catch(e) {return failure(!signal?.aborted&&Date.now()>=deadline?new EnterpriseError("deadline-exceeded"):e,signal);}
 }

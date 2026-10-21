@@ -16,7 +16,7 @@ beforeEach(() => {
 
 describe("UX4 menu navigation", () => {
   it("has one Create Diagram entry, screen shortcuts, conversion, save and help", () => {
-    expect(mainChoices.map((item) => item.label)).toEqual(["Create Diagram", "Verify Flow (Sequence / prose)", "Save Diagram and Report", "Configuration", "Knowledge Browser", "Build Knowledge Pack from Documents", "Build Knowledge Pack from Active File", "Convert to Markdown", "Help"]);
+    expect(mainChoices.map((item) => item.label)).toEqual(["Build Business Capability Catalog / Utwórz katalog zdolności biznesowych", "Create Diagram", "Verify Flow (Sequence / prose)", "Save Diagram and Report", "Configuration", "Knowledge Browser", "Build Knowledge Pack from Documents", "Build Knowledge Pack from Active File", "Convert to Markdown", "Help"]);
   });
   it.each([["verify", commandIds.verifyFlow], ["generate", commandIds.generateDiagram], ["configuration", commandIds.configuration], ["knowledge", commandIds.knowledgeBrowser], ["build",commandIds.buildKnowledgePack], ["active",commandIds.buildKnowledgePackFromActiveFile], ["save", commandIds.saveDiagramAndReport], ["convert", commandIds.convertToMarkdown], ["help",commandIds.help]])("routes %s directly", async (id, command) => {
     state.quickPickAnswers.push(choose(id)); await openArchiAgentMenu();

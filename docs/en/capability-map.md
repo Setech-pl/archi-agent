@@ -8,6 +8,26 @@ The published DEMO1 VSIX/ZIP does not include this feature. Use the current chec
 [enterprise.json](../../examples/retail-checkout/architecture/enterprise.json).
 Do not replace the published archives. Enable exactly one Core/Full profile and reload VS Code.
 
+## Company description → reviewed catalog → map
+
+1. Run **Archi: Build Business Capability Catalog / Utwórz katalog zdolności biznesowych** from the Command Palette or the Archi menu.
+2. Choose **Extract from materials** for supported capabilities, or **Propose a company model** for a proposed L1–L3 business model. For example: “We manufacture food and household chemicals. We have three factories, sell through retail chains and distributors, and run our own online store. Propose an L1–L3 capability model.”
+3. Choose the captured selection, the whole active document (including dirty/untitled text), an entered description, or explicit local MD/TXT/PDF/DOCX/XLSX documents. Editor text is captured before the first picker; selection evidence uses original document positions and version/fingerprint. Local files are frozen before conversion and model access. Converted document references identify converted text, with converter/OCR warnings, not invented original page coordinates.
+4. Review the opened material preview, then explicitly authorize sending it. Only those materials go to the configured provider/model. Existing configuration and secure key storage apply. A cloud provider requires a separate authorization for this potentially paid call.
+5. Review the hierarchy, original proposals and evidence. Select candidates to accept, reject or mark pending; edit names, descriptions or parents in the row editor. IDs remain stable. To reject a parent, explicitly reject its retained children or move them first. Review material warnings before saving.
+6. Name the catalog and declare its scope. Choose the destination folder and **Save new catalog**. This creates `enterprise.json` and `enterprise.review.json`; existing files block the save. The production reader validates the saved bytes before success. There is no merge/update operation.
+7. Click **Generate Capability Map**. It uses that saved catalog through the existing deterministic path, with **zero additional model calls**. Choose a domain/detail when a large catalog exceeds 12 visible roots or 120 tiles. ART1 can preserve the resulting original diagram/report.
+
+The model supplies semantic proposals, never PlantUML. Each field distinguishes claimed material support from a model proposal; quotes and locations are checked mechanically, while their relevance needs your review. A proposed hierarchy remains a proposal. Acceptance and manual edits are user decisions and do not turn original materials into confirmation of new content. The separate report retains originals, evidence and decisions; catalog provenance points to the actual review session and report digest. Ratings, owners and application support are not guessed. Coverage stays `partial`.
+
+One bounded bundle makes at most **one extraction call**, with 16,384 output tokens and a 120-second total extraction deadline (or a shorter provider timeout). Up to 8 documents, 10 MiB each/20 MiB total original bytes, 64 KiB text per document, 160 KiB bundle, 256 KiB request, 1 MiB response and 1,000 catalog records are allowed. Oversized material fails explicitly: narrow the selected material and retry consciously. No silent truncation, unlimited chunking, automatic retry, repair or fallback exists. Truncated responses, invalid schema/evidence, timeout and cancellation do not produce a saved catalog. Core has no OCR; select text-only PDF mode or use Full for supported local OCR. Conversion warnings and partial coverage remain visible. Source instructions are data, never execution instructions.
+
+## Map from an existing catalog or active JSON
+
+**Create Diagram** captures the active local text document before its first diagram picker. Choose **Active document — including unsaved changes** to use that JSON, including dirty or untitled text. Later editor changes do not replace the operation's captured input. Explicit local-file and configured MCP choices remain available. The active-document path uses no provider/model; malformed JSON never triggers interpretation by a model. A local project folder is required for the existing-catalog workflow and optional ART1 save.
+
+Evidence labels `editor-buffer:<name>` and UTF-8 hashes refer to the captured text, not disk bytes. ART1 records `in-memory-input` and preserves the captured original. Custom previews, diff tabs and remote documents cannot substitute a stale editor. These features are in the current development candidate; published DEMO1 archives do not include them.
+
 1. Open the current `examples/retail-checkout` folder in VS Code. You can leave all provider,
    model, API key and software architecture settings empty. No setup script is needed for this map.
 2. Run **Archi: Create Diagram → Enterprise Architecture → Capability Map**.

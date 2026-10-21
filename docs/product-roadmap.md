@@ -14,22 +14,24 @@ their own source identity; a published package is not a production-readiness cla
 
 EA1/EA1b add deterministic Capability Map from a separate local enterprise catalog or MCP source,
 available in VS Code, CLI and the function MCP server with zero LLM calls. The integration candidate
-preserves software knowledge v1. Public DEMO1 packages do not contain this addition.
+preserves software knowledge v1. EAU1 adds captured active JSON; EAK1 adds reviewed enterprise catalog creation from selected documents or a company description, followed by the deterministic map. The combined scope has passed local acceptance and independent review; owner smoke remains deferred. Public DEMO1 packages do not contain this addition.
 [Catalog contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) / [PL](pl/capability-map.md).
 
 | Order | Stage | Status / boundary |
 | --- | --- | --- |
-| 1 | EA1/EA1b integration | Current integration candidate; owner smoke deferred; no release publication |
-| 2 | AUD-003/004 fixes | Planned next; separate task, no closure by this integration |
-| 3 | EA2 Capability–Application Map | Planned: explicit application IDs and support mappings with provenance/coverage |
-| 4 | EA3 Value Stream | Planned: explicit ordered stages, value and capability mappings |
-| 5 | EA4 Application Landscape | Planned: application portfolio and explicit ownership/domains/assessments |
+| 1 | EA1/EA1b integration | Integration base; no release publication |
+| 2 | EAU1 + EAK1 | Local acceptance and independent review complete; owner smoke deferred |
+| 3 | AUD-003/004 fixes | Next separate task; no closure by this work |
+| 4 | Catalog updates | Planned separate scope; existing-catalog merge is outside EAK1 |
+| 5 | EA2 Capability–Application Map | Planned: explicit application IDs and support mappings with provenance/coverage |
+| 6 | EA3 Value Stream | Planned: explicit ordered stages, value and capability mappings |
+| 7 | EA4 Application Landscape | Planned: application portfolio and explicit ownership/domains/assessments |
 
 The order is approved; each future implementation still requires its own authorized scope.
 
 ## Considered / deferred
 
-- Existing-pack update/merge, persistent review drafts and richer retrieval.
+- Existing software-pack update/merge, persistent review drafts and richer retrieval.
 - Further source adapters; EA XML remains deferred until a safe representative fixture exists.
 - External documents/artifacts, API/EA/Prolaborate integrations, and ArchiMate HLD.
 - VS Code Chat participant, broader branding and Marketplace/stable distribution.
