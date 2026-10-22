@@ -33,7 +33,7 @@ readRoots and original-ID overlay. No DSL, API, EA or database adapter is includ
 response permits future adapters to remain partial without masquerading as complete Structurizr.
 See the PL/EN CLI/MCP guides for configuring this server as an Archi Agent source.
 
-## Enterprise catalog adapter — local EA1b candidate
+## Enterprise catalog adapter
 
 The published DEMO1 package is unchanged; build a new local package for this feature.
 Use [config.enterprise.example.json](config.enterprise.example.json) for the source server and
@@ -54,5 +54,5 @@ software systems converted to capabilities, automatic proxy chain, arbitrary plu
 The client lists tools and calls only get_enterprise_snapshot with contractVersion:1. A server with
 no enterprise adapter does not advertise that tool. get_knowledge_snapshot v1 is unchanged.
 The complete source/client/User settings and external function-MCP request are in the
-[EN guide](../../docs/en/cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate) /
-[PL guide](../../docs/pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b).
+[EN guide](../../docs/en/cli-mcp.md#capability-map-with-no-model) /
+[PL guide](../../docs/pl/cli-mcp.md#capability-map-bez-modelu).

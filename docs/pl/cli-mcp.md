@@ -3,13 +3,13 @@
 [English](../en/cli-mcp.md) · **Polski**
 
 MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
-oraz dwa profile VS Code, dostępne w [publicznym DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Lokalne prace EA1/EA1b są poza tym wydaniem. Weryfikacja dotyczy Sequence
+oraz dwa profile VS Code, dostępne w [prerelease alpha.8](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Obejmuje katalog enterprise i cztery deterministyczne widoki enterprise. Weryfikacja dotyczy Sequence
 PlantUML i prozy, nie diagramów Component ani C4. Generowanie obsługuje cztery istniejące
-typy: Sequence, Component, C4 Context i C4 Container. Lokalny kandydat EA1b dodaje deterministyczną Capability Map; opublikowane DEMO1 nie zawiera EA1/EA1b.
+typy: Sequence, Component, C4 Context i C4 Container. Capability Map, Capability–Application Map, Value Stream i Application Landscape są deterministycznymi widokami dostępnymi w alpha.8.
 
 ## Instalacja lokalnej paczki
 
-Pobierz tarball CLI z DEMO1 i sprawdź go z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) tego wydania, następnie zainstaluj:
+Pobierz tarball CLI z alpha.8 i sprawdź go z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) tego wydania, następnie zainstaluj:
 
 ```bash
 npm install --global ./archi-agent-cli-0.3.0-alpha.8.tgz
@@ -223,9 +223,9 @@ Zainstaluj pobrany tarball zgodnie z instrukcją powyżej. Zapisz konfigurację 
 archi-agent flow verify --config /srv/archi-agent.json --source bank --input project:flows/good.puml --input-format plantuml-sequence --format json > verification.json
 ```
 
-## Capability Map bez modelu — lokalny kandydat EA1b
+## Capability Map bez modelu
 
-Użyj katalogu Retail z bieżącego checkoutu i nowych lokalnych paczek CLI/Core/Full. Opublikowane paczki i ZIP-y DEMO1 pozostają bez zmian. Nie są potrzebne provider, model, klucz API ani opis flow. CLI/serwer funkcji MCP zwracają wynik bez zapisu plików; przekierowanie stdout jest decyzją operatora. VS Code zachowuje jawny zapis oryginalnej pary ART1.
+Użyj ZIP Retail i paczek CLI/Core/Full z tego samego wydania alpha.8. Nie są potrzebne provider, model, klucz API ani opis flow. CLI/serwer funkcji MCP zwracają wynik bez zapisu plików; przekierowanie stdout jest decyzją operatora. VS Code zachowuje jawny zapis oryginalnej pary ART1.
 
 Zapisz tę **kompletną konfigurację klienta** jako `/srv/archi-agent.json`. Dostosuj absolutny readRoot, executable Node i ścieżkę paczki. Config v2 dodaje osobną mapę enterpriseSources; strict config v1 pozostaje bez zmian. Źródła software i providerzy mogą być pustymi mapami:
 
@@ -358,7 +358,7 @@ Lokalny raport v1 ma file/line i hash bajtów; raport MCP v2 ma sourceVersion, r
 
 Własny katalog: zaimplementuj `EnterpriseAdapter.load(sourceId,signal): Promise<EnterpriseCatalog>` w module adaptera przykładu i jawnie skomponuj go w main.ts. Zwracaj dane: stabilne ID, rzeczywistych rodziców, jawne skale/oceny, zakres/coverage i provenance sourceId/recordId/fields oraz prawdziwe URI/version, gdy istnieją. Wspólne createEnterpriseResponse/validateEnterpriseResponse odpowiadają za hashe i walidację, server.ts za transport. Nie pisz drugiego renderera i nie wymyślaj Markdown/Structurizr/file/line. Gotowy adapter czyta enterprise.json; nie dostarcza konektora API/DB/EA. Przebuduj lokalną paczkę CLI. Przykład odrzuca MCP jako własny adapter enterprise, unikając łańcuchów proxy procesów.
 
-## Capability–Application Map — lokalny kandydat EA2
+## Capability–Application Map
 
 Użyj konfiguracji v2 ze źródłem enterprise wskazującym ścisły katalog enterprise/2, np. syntetyczny
 Retail `architecture/enterprise-applications.json`. Provider i wejście flow nie są wymagane.
@@ -374,8 +374,8 @@ archi-agent diagram generate --config /absolute/config.json --source retail --ty
 Function MCP `generate_diagram` przyjmuje `{source:"retail",diagramType:"capability-application-map",selection:{capabilityIds:["checkout"],includeDescendants:false,language:"pl"}}`.
 Opcjonalny expectedCatalogDigest wiąże widok z inspekcją. `inspect_knowledge` obsługuje ten sam diagramType.
 ReadRoots nadal obowiązują. Hosty nie zapisują katalogu ani plików wynikowych automatycznie. Dla źródła
-MCP enterpriseSources może deklarować `contractVersion:2`; EA2 zawsze wybiera stałe narzędzie
-`get_enterprise_snapshot_v2` przed połączeniem. Narzędzia v1 pozostają ścisłe; bez fallbacku i cichego
+MCP enterpriseSources może deklarować `contractVersion:2`; EA2 domyślnie wybiera
+`get_enterprise_snapshot_v2` lub jawnie skonfigurowane v3; nowe widoki wybierają v3 przed połączeniem. Narzędzia v1 pozostają ścisłe; bez fallbacku i cichego
 odrzucania pól v2. Brak danych wsparcia oznacza nieznane, nie brak aplikacji. Renderowanie ma zero
 wywołań LLM. Zapis ART1 jest jawną akcją VS Code. Zobacz [kontrakt](../enterprise-catalog.md).
 

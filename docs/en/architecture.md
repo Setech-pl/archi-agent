@@ -8,7 +8,7 @@ Core is deterministic and has no Node/VS Code I/O; orchestration calls injected 
 
 UX4 adds a singleton Configuration editor with Knowledge Management / LLM Provider and a linked K3 review webview. Both delegate to existing runtime services; a closed host protocol, nonce CSP and text-only rendering guard untrusted data. Keys remain in SecretStorage; the screen receives presence only. [UX4 contract](../configuration-workbench.md).
 
-The local EA1 candidate adds a separate deterministic enterprise catalog projection for Capability Map. It needs no provider, software pack or model, and uses its own provenance report with ART1. [Enterprise contract](../enterprise-catalog.md). The six software flow diagrams below keep their existing meaning.
+The release includes a separate deterministic enterprise catalog projection for Capability Map. It needs no provider, software pack or model, and uses its own provenance report with ART1. [Enterprise contract](../enterprise-catalog.md). The six software flow diagrams below keep their existing meaning.
 
 ## A. Components and boundaries
 
@@ -287,7 +287,7 @@ implicit winner. Multi-target aliases remain ambiguous. The sorted snapshot has 
 digest over semantic facts, source scopes, provenance, gaps, ambiguities and conflicts;
 its ID contains that full digest. Source and record order do not change serialized bytes.
 
-## Enterprise catalog across hosts — local EA1b
+## Enterprise catalog across hosts
 
 Capability Map uses the same EA1 validation, frozen snapshot, view projection and renderer in
 VS Code, CLI and function MCP. It has no flow/provider/model fields and makes zero LLM calls.
@@ -297,5 +297,4 @@ The source client validates identity, source version and semantic digest, with b
 response, deadline and confirmed child cleanup. VS Code enterpriseSource may select a catalog;
 only User knowledgeServer can configure its executable. Local report v1 retains actual file lines,
 remote report v2 retains response pointers and declared references. ART1 keeps its original-pair
-writer/envelope; CLI/function MCP never gain automatic write permission. This candidate is local,
-not an update of published DEMO1 downloads.
+writer/envelope; CLI/function MCP never gain automatic write permission. The alpha.8 packages include this path plus enterprise/2 application mapping and enterprise/3 Value Stream/Application Landscape with explicit MCP v2/v3. Older strict contracts remain supported.

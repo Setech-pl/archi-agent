@@ -1,6 +1,6 @@
 # Enterprise catalog — EA1
 
-EA1/EA1b are local VS Code/CLI/MCP candidates. Published DEMO1 packages do not contain Capability Map.
+The alpha.8 prerelease includes Capability Map, Capability–Application Map, Value Stream and Application Landscape in VS Code, CLI and MCP.
 [Tutorial EN](en/capability-map.md) · [Tutorial PL](pl/capability-map.md) · [Reviewed plan](plans/ea1-capability-map.md).
 Capabilities are business abilities, independent of systems, actors and containers. No technical
 relationships or model inference are created. EA1b adds CLI, function MCP and an MCP knowledge source without changing software knowledge v1.
@@ -117,8 +117,8 @@ and ART1/meta identity may differ. ART1 keeps envelope v1 and original bytes wit
 reference. CLI/function MCP return data and cannot write files automatically.
 
 Complete executable configuration and user adapter instructions:
-[EN](en/cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate) /
-[PL](pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b).
+[EN](en/cli-mcp.md#capability-map-with-no-model) /
+[PL](pl/cli-mcp.md#capability-map-bez-modelu).
 
 ## Captured editor text
 
@@ -129,7 +129,7 @@ and report v1 contract. No file is created or read for this input. Its local evi
 positions determine locators. The report explicitly states this evidence is not disk content.
 ART1 retains its v1 envelope and records an enterpriseCatalog reference with availability
 `in-memory-input`, never an invented disk path. File and MCP behavior remain unchanged.
-This path is not included in published DEMO1 packages.
+This path is included in alpha.8.
 
 
 ## Reviewed catalog builder

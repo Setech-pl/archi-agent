@@ -1,12 +1,8 @@
-# Capability Map — local EA1b candidate
+# Capability Map
 
 [Polski](../pl/capability-map.md) · [User guide](user-guide.md)
 
-Use the **new local EA1b Core or Full VSIX**, identified in the local verification report.
-The published DEMO1 VSIX/ZIP does not include this feature. Use the current checkout's
-[Retail folder](../../examples/retail-checkout/START-HERE.en.md) and
-[enterprise.json](../../examples/retail-checkout/architecture/enterprise.json).
-Do not replace the published archives. Enable exactly one Core/Full profile and reload VS Code.
+Use the **alpha.8 Core or Full VSIX** and matching Retail ZIP. The bundled `architecture/enterprise.json` is a minimal v1 example; `enterprise-views.json` includes all four views. Enable one profile and reload VS Code.
 
 ## Company description → reviewed catalog → map
 
@@ -26,7 +22,7 @@ One bounded bundle makes at most **one extraction call**, with 16,384 output tok
 
 **Create Diagram** captures the active local text document before its first diagram picker. Choose **Active document — including unsaved changes** to use that JSON, including dirty or untitled text. Later editor changes do not replace the operation's captured input. Explicit local-file and configured MCP choices remain available. The active-document path uses no provider/model; malformed JSON never triggers interpretation by a model. A local project folder is required for the existing-catalog workflow and optional ART1 save.
 
-Evidence labels `editor-buffer:<name>` and UTF-8 hashes refer to the captured text, not disk bytes. ART1 records `in-memory-input` and preserves the captured original. Custom previews, diff tabs and remote documents cannot substitute a stale editor. These features are in the current development candidate; published DEMO1 archives do not include them.
+Evidence labels `editor-buffer:<name>` and UTF-8 hashes refer to the captured text, not disk bytes. ART1 records `in-memory-input` and preserves the captured original. Custom previews, diff tabs and remote documents cannot substitute a stale editor. These features are included in alpha.8.
 
 1. Open the current `examples/retail-checkout` folder in VS Code. You can leave all provider,
    model, API key and software architecture settings empty. No setup script is needed for this map.
@@ -59,4 +55,4 @@ If the catalog changes during selection, repeat Create Diagram. Invalid input gi
 fix the catalog, never ask a model to guess a missing parent or name.
 
 [Exact file contract, bounds and digests](../enterprise-catalog.md).
-CLI/MCP and the MCP enterprise source are available in the local EA1b candidate. Follow the complete configurations and commands in the [CLI/MCP tutorial](cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate). With enterpriseSource configured, choose Configured MCP source instead of a file; scope/detail/colors and ART1 stay the same. Remote errors show a code and JSON Pointer without invented file lines. The EAK2/EA2 candidate adds controlled catalog updates and explicit application support maps; see [the update and application workflow](user-guide.md#update-an-enterprise-catalog-and-map-application-support). Value streams and application landscapes remain future work.
+CLI/MCP and the MCP enterprise source are included in alpha.8. Follow the complete configurations and commands in the [CLI/MCP tutorial](cli-mcp.md#capability-map-with-no-model). With enterpriseSource configured, choose Configured MCP source instead of a file; scope/detail/colors and ART1 stay the same. Remote errors show a code and JSON Pointer without invented file lines. The release adds controlled catalog updates and explicit application support maps; see [the update and application workflow](user-guide.md#update-an-enterprise-catalog-and-map-application-support). Value Stream and Application Landscape are also available; see the current user guide.

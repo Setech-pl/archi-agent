@@ -8,7 +8,7 @@ Core jest deterministyczny, bez Node/VS Code I/O; orkiestracja wywołuje wstrzyk
 
 UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i powiązany webview review K3. Oba delegują do istniejących usług runtime; zamknięty protokół hosta, nonce CSP i renderowanie tekstu chronią granicę danych. Klucze pozostają w SecretStorage; ekran otrzymuje tylko obecność. [Kontrakt UX4](../configuration-workbench.md).
 
-Lokalny kandydat EA1 dodaje osobną deterministyczną projekcję katalogu enterprise dla mapy zdolności. Nie wymaga providera, packa oprogramowania ani modelu; ma własny raport provenance i zapis ART1. [Kontrakt enterprise](../enterprise-catalog.md). Sześć poniższych diagramów przepływów oprogramowania zachowuje dotychczasowe znaczenie.
+Wydanie obejmuje osobną deterministyczną projekcję katalogu enterprise dla mapy zdolności. Nie wymaga providera, packa oprogramowania ani modelu; ma własny raport provenance i zapis ART1. [Kontrakt enterprise](../enterprise-catalog.md). Sześć poniższych diagramów przepływów oprogramowania zachowuje dotychczasowe znaczenie.
 
 ## A. Komponenty i granice
 
@@ -279,7 +279,7 @@ Wieloznaczne aliasy nadal wymagają decyzji. Digest SHA-256 obejmuje fakty seman
 provenance, luki, niejednoznaczności i konflikty; ID zawiera pełny digest. Zmiana kolejności źródeł
 lub rekordów nie zmienia zserializowanych bajtów. Szczegóły rekordów określa kontrakt packa.
 
-## Katalog enterprise we wszystkich hostach — lokalne EA1b
+## Katalog enterprise we wszystkich hostach
 
 Capability Map używa tej samej walidacji EA1, zamrożonego snapshotu, projekcji i renderera
 w VS Code, CLI i serwerze funkcji MCP. Nie ma pól flow/provider/model i wykonuje zero wywołań LLM.
@@ -289,5 +289,4 @@ Klient sprawdza identity, source version i semantic digest, ogranicza discovery,
 oraz potwierdza zakończenie dziecka. EnterpriseSource VS Code wybiera katalog, lecz tylko User
 knowledgeServer wskazuje executable. Lokalny raport v1 ma prawdziwe linie pliku, zdalny v2
 pointers odpowiedzi i deklarowane referencje. ART1 zachowuje writer/envelope oryginalnej pary;
-CLI/serwer funkcji nie uzyskują automatycznego zapisu. To lokalny kandydat, nie zmiana
-opublikowanych paczek DEMO1.
+CLI/serwer funkcji nie uzyskują automatycznego zapisu. Paczki alpha.8 zawierają tę ścieżkę oraz enterprise/2 z powiązaniami aplikacji i enterprise/3 z Value Stream/Application Landscape oraz jawnym MCP v2/v3. Starsze ścisłe kontrakty pozostają obsługiwane.

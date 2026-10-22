@@ -23,8 +23,13 @@ nowych HIGH/MEDIUM. Historyczny safe-conflict LOW pozostaje otwarty (bez dowodu 
 Bieżący gauntlet pod Node 22.12: root 2186/2186 i extension 899/899, oba typechecki/build,
 Core/Full/CLI package/verify PASS. Vitest 5.0.5 usuwa nowe moderate advisory; bindingi
 platformowe zachowane, audity root/OCR 0 podatności. Dokładne nowe paczki poza repo:
-EA3/EA4 Core/Full po 10 scenariuszy runtime/stdio/parity/ART1 PASS. Retesty wcześniejszych
-funkcji i końcowy odbiór publikacji trwają. Pierwsze nieudane harnessy są zachowane w build.
+EA3/EA4 Core/Full po 10 scenariuszy runtime/stdio/parity/ART1 PASS. Retesty EAU1/EAK1, EAK2/EA2, EA1, SRC1/VER1/C4/ART1/MCP1 oraz realnego OCR AUD-004 PASS.
+Pierwsze błędy harnessów brakujących fixtures są zachowane, retesty mają osobne logi.
+Dwa ZIP-y demo: 69 scenariuszy oraz 8 nowych widoków Retail local/MCP PASS.
+Końcowy review dokumentacji wykrył 2 MEDIUM: stare deklaracje dostępności i ścieżki poza ZIP;
+oba naprawione i re-review źródeł PASS. Odświeżone paczki mają ten sam runtime, poprawiony Help.
+[PR #14](https://github.com/Setech-pl/archi-agent/pull/14) otwarty; pierwszy CI Linux PASS, macOS trwa.
+Końcowy odbiór publikacji trwa. Pierwsze nieudane harnessy są zachowane w build.
 Lokalny Code SIGABRT przed startem Host; Computer Use odmówiło dostępu do Code. Lokalny
 Host FAIL/NOT_RUN, widoczne UI NOT_RUN; rzeczywisty Host przeniesiony do CI macOS ARM64,
 bez utożsamiania kontrolowanych odpowiedzi z UI. Lokalny Ollama niedostępny (connection refused),

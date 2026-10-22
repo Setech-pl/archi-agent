@@ -2,9 +2,9 @@
 
 **English** · [Polski](README.pl.md) · [Home](https://github.com/Setech-pl/archi-agent/blob/main/README.md)
 
-## Public DEMO1: profiles and knowledge
+## Current prerelease: profiles and knowledge
 
-The public prerelease [**DEMO1 v0.3.0-alpha.8**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS). This branch also contains the EA1/EA1b integration candidate described below; public DEMO1 does not contain Capability Map. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
+The public prerelease [**v0.3.0-alpha.8**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS). This release includes all four deterministic enterprise views and reviewed catalog creation/updates. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
@@ -16,9 +16,9 @@ For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAg
 
 The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
-## Capability Map — local EA1b candidate
+## Capability Map
 
-Available in the new local EA1b Core/Full candidate, **not in the published DEMO1 downloads above**.
+Available in the Core/Full alpha.8 packages linked above.
 Open a local project and run **Archi: Create Diagram → Enterprise Architecture → Capability Map**.
 Select `enterprise.json`, choose the whole map or an L1 branch, L1–L3 detail, and no colors or an
 explicit rating scale. In multi-root workspaces select the source project first. No software pack,
@@ -34,12 +34,12 @@ Gray “No data” means an absent rating. Parent ratings are not aggregated; ti
 The legend/report show source coverage and deliberate scope/detail omissions. Large maps require
 an explicit narrower view. This report is not semantic review or Verify Flow.
 In the current checkout, `docs/en/capability-map.md` contains the Retail exercise and reference map;
-`docs/enterprise-catalog.md` describes the exact contract. These new files are local candidate documentation.
-The local EA1b CLI also accepts diagram generate with --type capability-map and a config v2 enterpriseSources entry, without input/provider. The function server uses the same generate_diagram tool with a separate capability-map variant. Published DEMO1 does not contain this addition.
+`docs/enterprise-catalog.md` describes the exact contract. These guides describe the current release.
+The CLI also accepts diagram generate with --type capability-map and a config v2 enterpriseSources entry, without input/provider. The function server uses the same generate_diagram tool with a separate capability-map variant. This addition is included in alpha.8.
 
 For the MCP catalog, use the locally packaged archi-agent-knowledge-server with a config v2 enterpriseSources entry named retail-business pointing to architecture/enterprise.json under its readRoots, sources/providers empty. Check it with --check-source retail-business --type enterprise. The following steps contain the complete offline configuration. Adjust the absolute executable/package/config paths.
 
-Save this complete source configuration as `/srv/retail-knowledge.json`. Replace the readRoot with the current Retail checkout folder. Use Node >=22.12 and the knowledge-server executable from the **new local CLI package**; published DEMO1 CLI does not supply this tool variant. The source config and command below also work offline. The configured MCP client starts the process; the check command exits after validation.
+Save this complete source configuration as `/srv/retail-knowledge.json`. Replace the readRoot with the current Retail checkout folder. Use Node >=22.12 and the knowledge-server executable from the **alpha.8 CLI package**. The source config and command below also work offline. The configured MCP client starts the process; the check command exits after validation.
 
 ```json
 {
@@ -113,7 +113,7 @@ Actual installed UI, public Big Bank fixture, synthetic model responses. The fir
 
 ## Installation on Mac and Windows
 
-Download the Core or Full VSIX from [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json). The package version is **0.3.0-alpha.7**; the release tag is **v0.3.0-alpha.8**. A local build or CI artifact may have a different hash and is not the published package.
+Download the Core or Full VSIX from [alpha.8 prerelease](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json). The package version is **0.3.0-alpha.8**; the release tag is **v0.3.0-alpha.8**. A local build or CI artifact may have a different hash and is not the published package.
 
 Mac:
 
@@ -129,17 +129,17 @@ Get-FileHash <file.vsix> -Algorithm SHA256
 
 In VS Code, open **Extensions → … → Install from VSIX…**, select the file and reload if requested. Check the version in **Archi Agent** extension details. No repository, npm or separate Node.js installation is needed. If an older version is installed, use the same command to install this identified prerelease.
 
-The earlier public alpha.6 remains available separately. [Collective owner smoke](https://github.com/Setech-pl/archi-agent/blob/main/docs/testing/mcp1-owner-smoke.md) gives the acceptance procedure; owner smoke of the exact DEMO1 packages remains **DEFERRED**. Publication does not establish stable/Marketplace readiness.
+Earlier releases remain available separately. [Combined owner smoke](https://github.com/Setech-pl/archi-agent/blob/main/docs/testing/ea3-ea4-owner-smoke.md) gives the current acceptance procedure; owner smoke remains **DEFERRED**. Publication does not establish stable/Marketplace readiness.
 
 ### Requirements and first launch
 
 Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or reviewed software diagrams. Capability Map requires no provider. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Native UI evidence is from macOS arm64; equivalent end-to-end operation on other platforms is not yet confirmed. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Verify Flow (Sequence / prose)**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/development.md).
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Verify Flow (Sequence / prose)**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context**, **C4 Container** or the four **Enterprise Architecture** views before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/development.md).
 
 ## Start here — first use
 
-1. Download Core or Full from DEMO1, verify its checksum, install through **Extensions → … → Install from VSIX…**, enable exactly one profile, reload and open a local project folder. Confirm **0.3.0-alpha.7** in extension details.
+1. Download Core or Full from alpha.8, verify its checksum, install through **Extensions → … → Install from VSIX…**, enable exactly one profile, reload and open a local project folder. Confirm **0.3.0-alpha.8** in extension details.
 2. Run **Archi: Configuration → LLM Provider**. Prepare LM Studio/Ollama or choose a cloud profile. For cloud, use **Set / Replace Key for <provider>** and enter the key in the masked native input.
 3. Click **Refresh Models** before or after Apply. Choose an exact ID in **Available models / Dostępne modele**; it appears in **Selected model**. Click **Apply**, then **Check Provider Configuration**. Refresh does not save anything; **Discard Changes** restores applied fields. There is one selected model, shared by diagram generator and reviewer; there is no multi-model “Selected Models” list.
 4. In **Knowledge Management**, use **Choose Existing Knowledge Pack**, or **Create Knowledge Pack** for a small catalog. The complete Alpha/Beta example below is suitable for a first diagram. Alternatively build from documents, review every candidate, validate the five previews and use **Save and use** to activate the new pack.
@@ -360,7 +360,7 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](https://github.com/Setech-pl/archi-agent/blob/main/docs/assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-Own code: [MIT](LICENSE.txt). Bundled components: [notices](THIRD_PARTY_NOTICES.md) and OCR notices. Product limits, open findings and verification status: [roadmap](https://github.com/Setech-pl/archi-agent/blob/main/docs/product-roadmap.md), [technical state](https://github.com/Setech-pl/archi-agent/blob/main/docs/project-state.md). SRC1, VER1, C4 and MCP1 are included in DEMO1; local EA1/EA1b functions are not.
+Own code: [MIT](LICENSE.txt). Bundled components: [notices](THIRD_PARTY_NOTICES.md) and OCR notices. Product limits, open findings and verification status: [roadmap](https://github.com/Setech-pl/archi-agent/blob/main/docs/product-roadmap.md), [technical state](https://github.com/Setech-pl/archi-agent/blob/main/docs/project-state.md). Software and enterprise views, catalog creation/updates and MCP are included in alpha.8.
 
 ## Local Structurizr source — SRC1
 

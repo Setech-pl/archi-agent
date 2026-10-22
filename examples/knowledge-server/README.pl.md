@@ -3,7 +3,7 @@
 [English](README.md). Serwer wiedzy dostarcza dane; osobny serwer funkcji Archi Agent generuje
 mapy przez wspólny runtime. Get_knowledge_snapshot v1 pozostaje bez migracji.
 
-## Katalog enterprise — lokalny kandydat EA1b
+## Katalog enterprise
 
 Opublikowane DEMO1 pozostaje bez zmian. Użyj nowych lokalnych paczek.
 Skopiuj [config źródła](config.enterprise.example.json) do /srv/retail-knowledge.json oraz
@@ -24,5 +24,5 @@ provenance pól i prawdziwe URI/version. Nie twórz fikcyjnego file/line ani cap
 Brak adaptera enterprise oznacza brak reklamowania get_enterprise_snapshot; klient zwraca
 unsupported bez fallbacku. Nie ma proxy do kolejnego MCP ani dynamicznego ładowania adapterów.
 Kompletne kroki VS Code i zewnętrznego klienta serwera funkcji są w
-[tutorialu CLI/MCP](../../docs/pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b).
+[tutorialu CLI/MCP](../../docs/pl/cli-mcp.md#capability-map-bez-modelu).
 Dotychczasowy adapter software i konfiguracja v1 są opisane w angielskim README.

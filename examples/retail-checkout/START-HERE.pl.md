@@ -88,17 +88,17 @@ Zachowaj pobrany ZIP. Aby powtórzyć zapis aliasu od początku, rozpakuj drugą
 
 Podmień **kopię** `architecture/workspace.json` na własny Structurizr JSON, zachowaj stabilne oryginalne ID, dopasuj trzy tabele nakładki i source_id. Sprawdź Configuration przed użyciem. Obsługiwane są people, systems, containers i statyczne relacje; components/deployment/views poza projekcją. Brak DSL i bezpośredniego importu EA. Płaski pack Markdown nie zapewnia hierarchii C4. Sprawdź fakty przed wysłaniem wybranego minimalnego kontekstu do providera.
 
-Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/demo1-verification.md).
+Owner smoke **DEFERRED**; żywy LLM i dodatkowe platformy natywne **NOT_RUN**. Testy syntetyczne dowodzą integracji, nie jakości modelu. Naprawy AUD-003/004 są zawarte; AUD-005/006 pozostają otwarte. Automatyzacja widocznego UI była niedostępna; runtime i kontrolowane testy Host nie dowodzą UI PASS. Zapis jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery.
 
 W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję views poza projekcją importu. Nie zmienia zgodnej oceny obsługiwanego kroku; tabela ćwiczeń wymienia dodatkowy izolowany problem.
 
-## Mapa zdolności — tylko bieżący checkout i lokalny VSIX EA1
+## Mapa zdolności
 
-Powyższe opublikowane ZIP/VSIX nie zawierają EA1. Z nowym lokalnym kandydatem EA1 otwórz ten bieżący folder i wykonaj [tutorial mapy zdolności](../../docs/pl/capability-map.md). Wskaż `architecture/enterprise.json`; bez setup, źródła oprogramowania i providera. [Wyrenderowana mapa](assets/capability-map.png) · [PlantUML](assets/capability-map.puml).
+ZIP/VSIX alpha.8 zawiera Capability Map. Otwórz ten folder demo i wykonaj [tutorial mapy zdolności](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/pl/capability-map.md). Wskaż `architecture/enterprise.json`; bez setup, źródła oprogramowania i providera. [Wyrenderowana mapa](assets/capability-map.png) · [PlantUML](assets/capability-map.puml).
 
-## Lokalny kandydat EA1b: Capability Map przez CLI/MCP
+## Capability Map przez CLI/MCP
 
-Opublikowane ZIP-y DEMO1 pozostają bez zmian. Z nowymi lokalnymi paczkami EA1b i katalogiem z checkoutu użyj [tutorialu Capability Map](../../docs/pl/capability-map.md) i kompletnego [guide CLI/MCP](../../docs/pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b). Ten sam Retail działa lokalnie i przez get_enterprise_snapshot v1, bez LLM; wiedza software v1 pozostaje osobna.
+Z paczkami alpha.8 i dołączonym katalogiem użyj [tutorialu Capability Map](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/pl/capability-map.md) i kompletnego [guide CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/pl/cli-mcp.md#capability-map-bez-modelu). Ten sam Retail działa lokalnie i przez get_enterprise_snapshot v1, bez LLM; wiedza software v1 pozostaje osobna.
 
 ## Value Stream i Application Landscape
 

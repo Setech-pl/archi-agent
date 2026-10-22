@@ -1,12 +1,8 @@
-# Mapa zdolności biznesowych — lokalny kandydat EA1b
+# Mapa zdolności biznesowych
 
 [English](../en/capability-map.md) · [Instrukcja użytkownika](user-guide.md)
 
-Użyj **nowego lokalnego VSIX EA1b Core lub Full**, wskazanego w lokalnym raporcie weryfikacji.
-Opublikowane VSIX/ZIP DEMO1 nie zawierają tej funkcji. Użyj bieżącego checkoutu:
-[folder Retail](../../examples/retail-checkout/START-HERE.pl.md) i
-[enterprise.json](../../examples/retail-checkout/architecture/enterprise.json).
-Nie zastępuj opublikowanych archiwów. Włącz jeden profil Core/Full i przeładuj VS Code.
+Użyj **VSIX Core lub Full alpha.8** i zgodnego ZIP Retail. Dołączony `architecture/enterprise.json` to minimalny przykład v1; `enterprise-views.json` obsługuje wszystkie cztery widoki. Włącz jeden profil i przeładuj VS Code.
 
 ## Opis firmy → przegląd katalogu → mapa
 
@@ -26,7 +22,7 @@ Jeden ograniczony bundle oznacza maksymalnie **jedno wywołanie ekstrakcji**, 16
 
 **Create Diagram** przechwytuje aktywny lokalny dokument tekstowy przed pierwszym pickerem diagramu. Wybierz **Aktywny dokument — także niezapisane zmiany**, aby użyć JSON, również dirty lub untitled. Późniejsze zmiany edytora nie podmieniają wejścia trwającej operacji. Jawne opcje lokalnego pliku i skonfigurowanego MCP pozostają dostępne. Aktywny dokument nie wymaga providera/modelu; błędny JSON nigdy nie uruchamia interpretacji modelem. Istniejący przepływ katalogu i opcjonalny zapis ART1 wymagają lokalnego folderu projektu.
 
-Lokatory `editor-buffer:<name>` i hash UTF-8 dotyczą przechwyconego tekstu, nie bajtów z dysku. ART1 zapisuje `in-memory-input` i zachowuje przechwycony oryginał. Custom preview, diff i zdalne dokumenty nie podstawiają starego edytora. Funkcje są dostępne w bieżącym kandydacie developerskim; opublikowane archiwa DEMO1 ich nie zawierają.
+Lokatory `editor-buffer:<name>` i hash UTF-8 dotyczą przechwyconego tekstu, nie bajtów z dysku. ART1 zapisuje `in-memory-input` i zachowuje przechwycony oryginał. Custom preview, diff i zdalne dokumenty nie podstawiają starego edytora. Funkcje są dostępne w alpha.8.
 
 1. Otwórz bieżący folder `examples/retail-checkout` w VS Code. Ustawienia providera,
    modelu, klucza API i źródła architektury oprogramowania mogą pozostać puste.
@@ -62,4 +58,4 @@ dane nie są obcinane po cichu. Jeśli katalog zmieni się podczas wyboru, powt�
 Błędne dane otrzymują pole/kod/linię; popraw katalog bez zgadywania nazw lub rodziców przez model.
 
 [Dokładny kontrakt pliku, limity i digesty](../enterprise-catalog.md).
-CLI/MCP i źródło enterprise MCP są dostępne w lokalnym kandydacie EA1b. Pełna konfiguracja i komendy są w [tutorialu CLI/MCP](cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b). Po ustawieniu enterpriseSource wybierz skonfigurowane źródło MCP zamiast pliku; zakres/poziom/kolory i ART1 działają tak samo. Błędy zdalne pokazują kod i JSON Pointer bez fikcyjnych linii pliku. Kandydat EAK2/EA2 dodaje kontrolowane aktualizacje katalogu i jawne wsparcie aplikacyjne; zobacz [aktualizację i powiązania aplikacji](user-guide.md#aktualizacja-katalogu-enterprise-i-mapa-wsparcia-aplikacyjnego). Strumienie wartości i krajobraz aplikacji pozostają przyszłymi etapami.
+CLI/MCP i źródło enterprise MCP są dostępne w alpha.8. Pełna konfiguracja i komendy są w [tutorialu CLI/MCP](cli-mcp.md#capability-map-bez-modelu). Po ustawieniu enterpriseSource wybierz skonfigurowane źródło MCP zamiast pliku; zakres/poziom/kolory i ART1 działają tak samo. Błędy zdalne pokazują kod i JSON Pointer bez fikcyjnych linii pliku. Wydanie dodaje kontrolowane aktualizacje katalogu i jawne wsparcie aplikacyjne; zobacz [aktualizację i powiązania aplikacji](user-guide.md#aktualizacja-katalogu-enterprise-i-mapa-wsparcia-aplikacyjnego). Value Stream i Application Landscape również są dostępne; zobacz aktualną instrukcję użytkownika.

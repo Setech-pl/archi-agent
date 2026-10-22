@@ -88,7 +88,7 @@ Zachowaj pobrany ZIP. Aby powtórzyć zapis aliasu od początku, rozpakuj drugą
 
 Podmień **kopię** `architecture/workspace.json` na własny Structurizr JSON, zachowaj stabilne oryginalne ID, dopasuj trzy tabele nakładki i source_id. Sprawdź Configuration przed użyciem. Obsługiwane są people, systems, containers i statyczne relacje; components/deployment/views poza projekcją. Brak DSL i bezpośredniego importu EA. Płaski pack Markdown nie zapewnia hierarchii C4. Sprawdź fakty przed wysłaniem wybranego minimalnego kontekstu do providera.
 
-Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/demo1-verification.md).
+Owner smoke **DEFERRED**; żywy LLM i dodatkowe platformy natywne **NOT_RUN**. Testy syntetyczne dowodzą integracji, nie jakości modelu. Naprawy AUD-003/004 są zawarte; AUD-005/006 pozostają otwarte. Automatyzacja widocznego UI była niedostępna; runtime i kontrolowane testy Host nie dowodzą UI PASS. Zapis jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery.
 
 W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję views poza projekcją importu. Nie zmienia zgodnej oceny obsługiwanego kroku; tabela ćwiczeń wymienia dodatkowy izolowany problem.
 
