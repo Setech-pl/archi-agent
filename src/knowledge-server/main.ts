@@ -1,4 +1,4 @@
-import{validateKnowledgeResponse,createEnterpriseResponse,validateEnterpriseResponse}from"../runtime/index.js";
+import{validateKnowledgeResponse,createEnterpriseResponse,validateEnterpriseResponse,createEnterpriseResponseV2,validateEnterpriseResponseV2}from"../runtime/index.js";
 import{parseArgs}from"node:util";
 import{loadLocalHostConfig}from"../hosts/local/config.js";
 import{StructurizrKnowledgeAdapter,EnterpriseJsonAdapter}from"./adapter.js";
@@ -11,8 +11,8 @@ async function main(){
  const config=await loadLocalHostConfig(values.config),adapter=new StructurizrKnowledgeAdapter(config);
  const enterprise=Object.keys(config.enterpriseSources).length?new EnterpriseJsonAdapter(config):undefined;
  if(values["check-source"]&&values.type==="enterprise"){
-  if(!enterprise)throw Error();const id=values["check-source"],response=createEnterpriseResponse(id,await enterprise.load(id,new AbortController().signal));
-  const snapshot=validateEnterpriseResponse(response,id);
+  if(!enterprise)throw Error();const id=values["check-source"],catalog=await enterprise.load(id,new AbortController().signal),response=(catalog.schemaVersion===2?createEnterpriseResponseV2:createEnterpriseResponse)(id,catalog);
+  const snapshot=catalog.schemaVersion===2?validateEnterpriseResponseV2(response,id):validateEnterpriseResponse(response,id);
   process.stdout.write(JSON.stringify({status:"valid",source:response.source,snapshot:response.snapshot,counts:{capabilities:snapshot.catalog.capabilities.length,scales:snapshot.catalog.scales.length}})+"\n");return;
  }
  if(values["check-source"]){const response=await adapter.load(values["check-source"],new AbortController().signal),loaded=validateKnowledgeResponse(response,values["check-source"]);

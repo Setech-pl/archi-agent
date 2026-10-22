@@ -20,7 +20,16 @@ export const enterpriseCatalogSchema = z.strictObject({ schemaVersion: z.literal
   source: z.strictObject({ id, name: label, scope: z.strictObject({ id, description: label,
     coverage: z.enum(["partial", "complete", "not-provided"]) }) }),
   scales: z.array(scale).max(8), capabilities: z.array(capability).max(enterpriseLimits.records) });
-export type EnterpriseCatalog = z.infer<typeof enterpriseCatalogSchema>;
+export const applicationSchema = z.strictObject({id, name:label, description:text(2000).optional(), provenance});
+export const supportSchema = z.strictObject({applicationId:id, capabilityId:id, provenance});
+const coverage = z.enum(["partial", "complete", "not-provided"]);
+export const enterpriseCatalogV2Schema = enterpriseCatalogSchema.extend({schemaVersion:z.literal(2),format:z.literal("archi-agent-enterprise/2"),
+  applications:z.array(applicationSchema).max(1000), supports:z.array(supportSchema).max(4000),
+  supportScope:z.strictObject({description:label,applications:coverage,relationships:coverage})});
+export const enterpriseCatalogReadSchema = z.discriminatedUnion("schemaVersion",[enterpriseCatalogSchema,enterpriseCatalogV2Schema]);
+export type EnterpriseCatalogV1 = z.infer<typeof enterpriseCatalogSchema>;
+export type EnterpriseCatalogV2 = z.infer<typeof enterpriseCatalogV2Schema>;
+export type EnterpriseCatalog = EnterpriseCatalogV1 | EnterpriseCatalogV2;
 export type Capability = EnterpriseCatalog["capabilities"][number];
 export interface EnterpriseIssue { readonly code: string; readonly path: readonly (string | number)[]; readonly location?: SourceLocation }
 export class EnterpriseError extends Error {
@@ -32,14 +41,14 @@ export function deepFreeze<T>(value: T): T {
 }
 /** Validation never repairs names, parents, ratings or provenance. */
 export function validateEnterpriseCatalog(raw: unknown): EnterpriseCatalog {
-  const parsed = enterpriseCatalogSchema.safeParse(raw);
+  const parsed = enterpriseCatalogReadSchema.safeParse(raw);
   if (!parsed.success) throw new EnterpriseError("invalid-source", parsed.error.issues.slice(0, 100).map(i => ({
     code: i.message === "unsafe-label" ? "unsafe-label" : i.code, path: i.path.map(p => typeof p === "number" ? p : String(p))
   })), parsed.error.issues.length);
   const catalog = parsed.data, issues: EnterpriseIssue[] = [];
   const problem = (code: string, path: (string | number)[]) => { issues.push({ code, path }); };
   const records = new Map<string, Capability>(), scales = new Map<string, EnterpriseCatalog["scales"][number]>();
-  function checkProvenance(record: Capability | EnterpriseCatalog["scales"][number], fields: string[], base: (string | number)[]) {
+  function checkProvenance(record: {provenance: Capability["provenance"]}, fields: string[], base: (string | number)[]) {
     const covered = new Set<string>();
     record.provenance.forEach((p, i) => {
       if (p.sourceId !== catalog.source.id || new Set(p.fields).size !== p.fields.length || p.fields.some(f => !fields.includes(f)))
@@ -76,6 +85,22 @@ export function validateEnterpriseCatalog(raw: unknown): EnterpriseCatalog {
     }
   });
   if (catalog.source.scope.coverage === "not-provided" && catalog.capabilities.length) problem("coverage-invalid", ["source", "scope", "coverage"]);
+  if(catalog.schemaVersion===2){
+    const apps=new Set<string>(),pairs=new Set<string>();
+    catalog.applications.forEach((a,i)=>{
+      if(apps.has(a.id))problem("duplicate-application-id",["applications",i,"id"]);
+      apps.add(a.id);checkProvenance(a,["/name",...(a.description!==undefined?["/description"]:[])],["applications",i]);
+    });
+    catalog.supports.forEach((r,i)=>{
+      const key=JSON.stringify([r.applicationId,r.capabilityId]);
+      if(pairs.has(key))problem("duplicate-support",["supports",i]);pairs.add(key);
+      if(!apps.has(r.applicationId))problem("application-missing",["supports",i,"applicationId"]);
+      if(!records.has(r.capabilityId))problem("capability-missing",["supports",i,"capabilityId"]);
+      checkProvenance(r,["/applicationId","/capabilityId"],["supports",i]);
+    });
+    if(catalog.supportScope.applications==="not-provided"&&catalog.applications.length)problem("coverage-invalid",["supportScope","applications"]);
+    if(catalog.supportScope.relationships==="not-provided"&&catalog.supports.length)problem("coverage-invalid",["supportScope","relationships"]);
+  }
   if (issues.length) throw new EnterpriseError("invalid-source", issues.slice(0, 100), issues.length);
   return catalog;
 }
@@ -85,16 +110,20 @@ export interface LocalEnterpriseEvidence {
   readonly sourceBytesSha256: string;
   readonly capabilities: Readonly<Record<string, { readonly pointer: string; readonly fields: Readonly<Record<string, SourceLocation>> }>>;
   readonly scales: Readonly<Record<string, { readonly pointer: string; readonly location: SourceLocation }>>;
+  readonly applications?: Readonly<Record<string,{readonly pointer:string;readonly location:SourceLocation}>>;
+  readonly supports?: Readonly<Record<string,{readonly pointer:string;readonly location:SourceLocation}>>;
 }
 export interface McpEnterpriseEvidence {
   readonly kind: "mcp";
   readonly sourceId: string;
   readonly sourceVersion: string;
   readonly responseFingerprint: string;
-  readonly tool: "get_enterprise_snapshot";
-  readonly contractVersion: 1;
+  readonly tool: "get_enterprise_snapshot" | "get_enterprise_snapshot_v2";
+  readonly contractVersion: 1 | 2;
   readonly capabilities: Readonly<Record<string, { readonly pointer: string; readonly fields: Readonly<Record<string, {readonly pointer:string}>> }>>;
   readonly scales: Readonly<Record<string, {readonly pointer:string}>>;
+  readonly applications?: Readonly<Record<string,{readonly pointer:string}>>;
+  readonly supports?: Readonly<Record<string,{readonly pointer:string}>>;
 }
 export type EnterpriseEvidence = LocalEnterpriseEvidence | McpEnterpriseEvidence;
 export interface EnterpriseSnapshot<E extends EnterpriseEvidence = EnterpriseEvidence> {
@@ -111,6 +140,10 @@ export function createEnterpriseSnapshot<E extends EnterpriseEvidence>(catalog: 
     .sort((a, b) => stableCompare(canonicalSerialize(a), canonicalSerialize(b)));
   owned.capabilities = owned.capabilities.map(c => ({ ...c, provenance: normalize(c.provenance) })).sort((a,b) => stableCompare(a.id,b.id));
   owned.scales = owned.scales.map(s => ({ ...s, provenance: normalize(s.provenance) })).sort((a,b) => stableCompare(a.id,b.id));
+  if(owned.schemaVersion===2){
+    owned.applications=owned.applications.map(a=>({...a,provenance:normalize(a.provenance)})).sort((a,b)=>stableCompare(a.id,b.id));
+    owned.supports=owned.supports.map(r=>({...r,provenance:normalize(r.provenance)})).sort((a,b)=>stableCompare(a.applicationId,b.applicationId)||stableCompare(a.capabilityId,b.capabilityId));
+  }
   const records = new Map(owned.capabilities.map(c => [c.id, c]));
   const hierarchy = owned.capabilities.map(c => {
     let root = c, level = 1;
@@ -119,6 +152,6 @@ export function createEnterpriseSnapshot<E extends EnterpriseEvidence>(catalog: 
   });
   const names = new Map<string, number>();
   owned.capabilities.forEach(c => names.set(c.name, (names.get(c.name) ?? 0) + 1));
-  return deepFreeze({ catalog: owned, catalogDigest: stableDigest({ domain: "archi-agent-enterprise-snapshot/1", catalog: owned as CanonicalValue }),
+  return deepFreeze({ catalog: owned, catalogDigest: stableDigest({ domain: `archi-agent-enterprise-snapshot/${owned.schemaVersion}`, catalog: owned as CanonicalValue }),
     evidence: structuredClone(evidence), hierarchy, duplicateNames: [...names].filter(([,n]) => n > 1).map(([name]) => name).sort(stableCompare) });
 }

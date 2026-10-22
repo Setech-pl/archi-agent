@@ -52,6 +52,8 @@ Diagram output is editable PlantUML. Graphical previews use a separate PlantUML 
 The **EA1/EA1b integration candidate** maps business capabilities from a local catalog or MCP, with nested
 L1–L3 tiles, explicit rating colors and a source report. It works in VS Code, CLI and the function MCP server without a model or provider.
 [Try the Capability Map](docs/en/capability-map.md). Published DEMO1 packages above retain their original features.
+The local EAK2/EA2 candidate also adds controlled catalog updates and explicit application support maps.
+[Workflow and compatibility](docs/en/user-guide.md#update-an-enterprise-catalog-and-map-application-support).
 
 ## Work with the knowledge you already have
 

@@ -4,6 +4,7 @@
  */
 
 export const commandIds = Object.freeze({
+  updateEnterpriseCatalog: "archiAgent.updateEnterpriseCatalog",
   buildEnterpriseCatalog: "archiAgent.buildEnterpriseCatalog",
   verifyFlow: "archiAgent.verifyFlow",
   knowledgeBrowser: "archiAgent.knowledgeBrowser",

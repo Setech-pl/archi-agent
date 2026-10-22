@@ -352,3 +352,24 @@ Successful partial catalogs return exit 0 with explicit coverage; unsupported/ve
 Local report v1 retains file/line and byte hash; MCP report v2 retains sourceVersion, responseFingerprint, JSON Pointers and original record references, with no fabricated file/line. Compare PlantUML, catalogDigest/projectionDigest, selection, source scope, hierarchy, ratings and declared provenance, not the entire transport JSON. Formatting/record order can change locators and representation fingerprints without changing semantic digests. Limits remain 1000 capabilities, 120 visible, 12 roots, 8 scales, 256 KiB PlantUML/1 MiB report. Source catalog is 1 MiB, structured enterprise response 2 MiB, full knowledge frame 64 MiB. Generation/inspection budget is 30 seconds (local read 10 seconds); shorter host/source limits and cancellation apply. Cleanup confirms child closure. Credentials are checked before source data is used.
 
 To supply your own catalog, implement `EnterpriseAdapter.load(sourceId,signal): Promise<EnterpriseCatalog>` in the example's adapter module, then compose it explicitly in main.ts. Return data only: stable IDs, actual parents, explicit scales/ratings, declared scope/coverage, and provenance sourceId/recordId/fields plus real reference URI/version when available. Shared createEnterpriseResponse/validateEnterpriseResponse own hashes and validation; server.ts owns transport. Do not implement a second renderer or invent Markdown/Structurizr/file/line. The supplied adapter reads enterprise.json; no API/DB/EA connector is included. Rebuild your local CLI package. The example rejects MCP sources as its own enterprise adapter to avoid process proxy chains.
+
+## Capability–Application Map — local EA2 candidate
+
+Use a config v2 enterprise source referencing a strict enterprise/2 catalog, for example the synthetic
+Retail `architecture/enterprise-applications.json`. No provider or flow input is required.
+
+```bash
+archi-agent diagram generate --config /absolute/config.json --source retail --type capability-application-map --language en --format json
+```
+
+```bash
+archi-agent diagram generate --config /absolute/config.json --source retail --type capability-application-map --capability checkout --include-descendants false --language en --format json
+```
+
+Function MCP `generate_diagram` takes `{source:"retail",diagramType:"capability-application-map",selection:{capabilityIds:["checkout"],includeDescendants:false,language:"en"}}`.
+Optional expectedCatalogDigest binds the view to inspection. `inspect_knowledge` accepts the same
+diagramType. ReadRoots remain enforced. Neither host writes the catalog or output files automatically.
+For source MCP, enterpriseSources can declare `contractVersion:2`; EA2 always selects the fixed
+`get_enterprise_snapshot_v2` tool before connecting. V1 tools remain strict; there is no fallback or
+silent removal of v2 fields. Missing support data is unknown, not evidence of no application. Rendering
+has zero LLM calls. ART1 saving is an explicit VS Code action. See [contract](../enterprise-catalog.md).

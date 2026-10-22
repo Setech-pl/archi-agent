@@ -308,7 +308,7 @@ describe("activation", () => {
         .sort()
     );
     expect(manifest.contributes.configuration.properties["archiAgent.diagnostics.verbose"]).toMatchObject({ type: "boolean", default: false, scope: "machine" });
-    expect(context.subscriptions.length).toBe(24);
+    expect(context.subscriptions.length).toBe(25);
     deactivate();
   });
 
@@ -323,7 +323,7 @@ describe("activation", () => {
     state.quickPickAnswers.push(() => undefined);
     activate(createExtensionContext() as never);
     await state.registeredCommands.get(commandIds.generateDiagram)?.();
-    expect((state.quickPicks[0]?.items as { description?: string }[]).filter(item=>item.description).map((item) => item.description)).toEqual(["sequence", "component", "c4-context", "c4-container", "capability-map"]);
+    expect((state.quickPicks[0]?.items as { description?: string }[]).filter(item=>item.description).map((item) => item.description)).toEqual(["sequence", "component", "c4-context", "c4-container", "capability-map", "capability-application-map"]);
     expect(state.messages).toEqual([]);
     expect(state.secretReads).toEqual([]);
     expect(calls).toEqual({ generated: 0, listed: 0 });
@@ -418,7 +418,7 @@ describe("activation", () => {
   it("hidden Sequence ID delegates to the common type picker, Cancel performs no onboarding or I/O", async () => {
     activate(createExtensionContext() as never);
     await state.registeredCommands.get(commandIds.generateSequenceDiagram)?.();
-    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"},{label:"C4 Context"},{label:"C4 Container"},{kind:-1},{description:"capability-map"}]);
+    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"},{label:"C4 Context"},{label:"C4 Container"},{kind:-1},{description:"capability-map"},{description:"capability-application-map"}]);
     expect(state.quickPicks).toHaveLength(1); expect(state.configurationUpdates).toEqual([]);
     expect(state.secretReads).toEqual([]); expect(state.openedDocuments).toEqual([]);
   });

@@ -1,5 +1,5 @@
 import {randomUUID,createHash}from"node:crypto";
-import {parseLocalJson,createArchiAgentRuntime,inspectKnowledgeForHost,inspectEnterpriseSource,generateCapabilityMap,portableVerificationOutcome,portableDiagramOutcome,validateHostResult,HostResultError,
+import {parseLocalJson,createArchiAgentRuntime,inspectKnowledgeForHost,inspectEnterpriseSource,generateCapabilityMap,generateApplicationMap,portableVerificationOutcome,portableDiagramOutcome,validateHostResult,HostResultError,
   type ArchiAgentRuntime,type FlowVerificationSession,type VerifyFlowOutcome,type HostResultV1,type KnowledgePackSourceConfig}from"../../runtime/index.js";
 import {LocalHostError,readHostInput,hostGenerator,type LocalHostConfig,type FileReference}from"./config.js";
 import {inspectInputSchema,verifyInputSchema,resolveInputSchema,generateInputSchema,verificationDecisionsSchema,generationDecisionsSchema}from"./schemas.js";
@@ -13,11 +13,12 @@ export class LocalOperations {
   enterpriseSource(name:string){const source=Object.hasOwn(this.config.enterpriseSources,name)?this.config.enterpriseSources[name]:undefined;if(!source)throw new LocalHostError(Object.hasOwn(this.config.sources,name)?"source-kind-incompatible":"source-unknown");return source;}
   async inspect(input:z.infer<typeof inspectInputSchema>,signal:AbortSignal){
     if("diagramType"in input){
-      const result=await inspectEnterpriseSource(this.enterpriseSource(input.source),signal,this.config.policy);
-      if(result.status!=="success")return this.enterpriseFailure(result);
+      const source=this.enterpriseSource(input.source);
+      const result=await inspectEnterpriseSource(input.diagramType==="capability-application-map"&&source.kind==="mcp"?{...source,contractVersion:2}:source,signal,this.config.policy);
+      if(result.status!=="success")return this.enterpriseFailure(result,input.diagramType);
       const s=result.snapshot,e=s.evidence;
       if(input.expectedCatalogDigest&&input.expectedCatalogDigest!==s.catalogDigest)return this.failure("knowledge.inspect","stale-source",true);
-      return {status:"success",diagramType:"capability-map",source:s.catalog.source,snapshot:{id:`enterprise-${s.catalogDigest}`,catalogDigest:s.catalogDigest},
+      return {status:"success",diagramType:input.diagramType,source:s.catalog.source,snapshot:{id:`enterprise-${s.catalogDigest}`,catalogDigest:s.catalogDigest},
         sourceEvidence:"kind"in e?{kind:e.kind,sourceId:e.sourceId,sourceVersion:e.sourceVersion,responseFingerprint:e.responseFingerprint,tool:e.tool,contractVersion:e.contractVersion}:
           {kind:"enterprise-json",file:e.file,sourceBytesSha256:e.sourceBytesSha256},counts:{capabilities:s.catalog.capabilities.length,scales:s.catalog.scales.length},
         roots:s.hierarchy.filter(h=>h.level===1).map(h=>({id:h.id,name:s.catalog.capabilities.find(c=>c.id===h.id)!.name})),scales:s.catalog.scales.map(s=>({id:s.id,name:s.name}))};
@@ -49,6 +50,11 @@ export class LocalOperations {
     return portableVerificationOutcome(outcome);
   }
   async generate(input:z.infer<typeof generateInputSchema>,signal:AbortSignal){
+    if(input.diagramType==="capability-application-map"){
+      const result=await generateApplicationMap({source:this.enterpriseSource(input.source),selection:input.selection},signal,this.config.policy);
+      if(result.status!=="success")return {...this.enterpriseFailure(result),diagramType:input.diagramType};
+      return {status:result.status,diagramType:result.diagramType,plantUml:result.plantUml,report:result.report};
+    }
     if(input.diagramType==="capability-map"){
       const result=await generateCapabilityMap({source:this.enterpriseSource(input.source),selection:input.selection},signal,this.config.policy);
       if(result.status!=="success")return this.enterpriseFailure(result);
@@ -64,18 +70,18 @@ export class LocalOperations {
       generator:hostGenerator(this.config,input.provider),signal,...("c4Selection"in input?{c4Selection:input.c4Selection}:{}),
       ...(decisions?{selections:decisions.selections,confirmedNewParticipants:decisions.confirmedNewParticipants,expectedKnowledgeDigest:decisions.expectedSnapshotDigest}:{})}));
   }
-  enterpriseFailure(result:{code:string;issues?:readonly unknown[];count?:number}){
-    return {status:["enterprise-unsupported","enterprise-version-unsupported"].includes(result.code)?"unsupported":"failed",diagramType:"capability-map",code:result.code,issues:result.issues??[],...(result.count!==undefined?{count:result.count}:{})};
+  enterpriseFailure(result:{code:string;issues?:readonly unknown[];count?:number},diagramType="capability-map"){
+    return {status:["enterprise-unsupported","enterprise-version-unsupported"].includes(result.code)?"unsupported":"failed",diagramType,code:result.code,issues:result.issues??[],...(result.count!==undefined?{count:result.count}:{})};
   }
-  async run(operation:HostResultV1["operation"],work:()=>Promise<unknown>,signal:AbortSignal,deadlineAt=Date.now()+(operation==="diagram.generate"?240000:120000),enterprise=false):Promise<HostResultV1>{
+  async run(operation:HostResultV1["operation"],work:()=>Promise<unknown>,signal:AbortSignal,deadlineAt=Date.now()+(operation==="diagram.generate"?240000:120000),enterprise:boolean|string=false):Promise<HostResultV1>{
     const started=Date.now(),runId=randomUUID();let outcome:unknown;
     try{outcome=await work();if(Date.now()>=deadlineAt)throw new LocalHostError("timeout");if(signal.aborted)throw new LocalHostError(signal.reason==="timeout"?"timeout":"cancelled");}
     catch(e){const code=e instanceof LocalHostError||e instanceof HostResultError?e.code:"operation-failed";outcome=this.failure(operation,code,enterprise);}
     const result={schemaVersion:1,operation,outcome,meta:{adapter:this.adapter,runId,startedAt:new Date(started).toISOString(),elapsedMs:Date.now()-started}};
     try{const validated=validateHostResult(result);if(Date.now()>=deadlineAt)return validateHostResult({...result,outcome:this.failure(operation,"timeout",enterprise)});return validated;}catch(e){return validateHostResult({...result,outcome:this.failure(operation,e instanceof HostResultError?e.code:"result-contract-invalid",enterprise)});}
   }
-  failure(operation:HostResultV1["operation"],code:string,enterprise=false):unknown{
-    if(enterprise)return this.enterpriseFailure({code});
+  failure(operation:HostResultV1["operation"],code:string,enterprise:boolean|string=false):unknown{
+    if(enterprise)return this.enterpriseFailure({code},enterprise==="capability-application-map"?enterprise:"capability-map");
     if(operation==="diagram.generate")return {status:"failed",stage:"generator-configuration",issues:[{severity:"error",code,message:"Operation failed. Check configuration and input."}],ambiguities:[],unconfirmedNewParticipants:[]};
     return {status:code==="cancelled"?"cancelled":"failed",code};
   }

@@ -22,8 +22,8 @@ preserves software knowledge v1. EAU1 adds captured active JSON; EAK1 adds revie
 | 1 | EA1/EA1b integration | Integration base; no release publication |
 | 2 | EAU1 + EAK1 | Local acceptance and independent review complete; owner smoke deferred |
 | 3 | AUD-003/004 fixes | Local AUD-FIX2 fixes and acceptance complete; owner smoke deferred; no publication |
-| 4 | Catalog updates | Planned separate scope; existing-catalog merge is outside EAK1 |
-| 5 | EA2 Capability–Application Map | Planned: explicit application IDs and support mappings with provenance/coverage |
+| 4 | EAK2 catalog updates | Implemented local candidate; native UI acceptance blocked; no functional checkpoint yet |
+| 5 | EA2 Capability–Application Map | Implemented local candidate with explicit application IDs/support/provenance/coverage; shared acceptance pending native UI |
 | 6 | EA3 Value Stream | Planned: explicit ordered stages, value and capability mappings |
 | 7 | EA4 Application Landscape | Planned: application portfolio and explicit ownership/domains/assessments |
 

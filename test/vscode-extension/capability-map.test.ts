@@ -110,3 +110,12 @@ it("does not replace invalid captured text or an unconfigured MCP choice with a 
  expect(state.messages.at(-1)?.text).toContain("configure enterpriseSource");
  expect(dialog).not.toHaveBeenCalled();expect(state.openedDocuments).toHaveLength(0);expect(deps.results.results()).toHaveLength(0);
 });
+
+it("EA2 routes the common diagram picker to shared deterministic runtime without provider or credentials",async()=>{
+ const f=await fixture();await writeFile(f.file,await readFile("examples/retail-checkout/architecture/enterprise-applications.json"));state.workspaceFolders=[{name:"retail",uri:Uri.file(f.root),index:0}];
+ state.quickPickAnswers.push(by("id","capability-application-map"),by("id",null));state.openDialogAnswers.push([Uri.file(f.file)]);const {deps,providerSpies}=dependencies();
+ await generateDiagramCommand(deps);expect(state.openedDocuments).toHaveLength(2);expect(deps.results.results()[0]?.diagramType).toBe("capability-application-map");
+ const report=JSON.parse(state.openedDocuments[1]!.getText());expect(report.modelCalls).toBe(0);expect(report.supports).toHaveLength(3);expect(report.applications).toHaveLength(3);expect(state.secretReads).toEqual([]);providerSpies.forEach(s=>expect(s).not.toHaveBeenCalled());
+ expect(state.quickPicks.some(p=>(p.options as any).title==="Archi Agent: capability detail")).toBe(false);
+ state.messageAnswers.push(saveDiagramAction);await saveDiagramAndReportCommand(deps.results,deps.results.results()[0]);const base=path.join(f.root,"archi-agent-results"),saved=JSON.parse(await readFile(path.join(base,(await readdir(base))[0]!,"report.json"),"utf8"));expect(saved.generationReport).toEqual(report);
+});

@@ -52,6 +52,8 @@ Wynikiem generowania jest edytowalny PlantUML. Podgląd graficzny zapewnia osobn
 **Kandydat integracji EA1/EA1b** tworzy mapę zdolności z lokalnego katalogu lub MCP: zagnieżdżone kafle
 L1–L3, kolory jawnych ocen i raport źródeł. Działa w VS Code, CLI i serwerze funkcji MCP bez modelu ani providera.
 [Wypróbuj mapę zdolności](docs/pl/capability-map.md). Powyższe paczki DEMO1 zachowują dotychczasowy zakres.
+Lokalny kandydat EAK2/EA2 dodaje kontrolowane aktualizacje katalogu i mapy jawnego wsparcia aplikacyjnego.
+[Przepływ i kompatybilność](docs/pl/user-guide.md#aktualizacja-katalogu-enterprise-i-mapa-wsparcia-aplikacyjnego).
 
 ## Wykorzystaj wiedzę, którą już masz
 

@@ -141,3 +141,96 @@ The builder uses a separate strict candidate contract, not software architecture
 Only selected materials are prepared through the existing bounded converter (Core/Full policy unchanged), previewed and sent. One extraction call, up to 16,384 output tokens, 120 seconds total extraction/provider-selection budget, no retry/repair/fallback/chunk loop. Existing document bounds apply: 8 documents, 10 MiB each/20 MiB total bytes, 64 KiB text per source, 160 KiB bundle, 256 KiB request, 1 MiB response and 1,000 records. Exceeding a limit is an error, never truncation. Material preparation retains the existing bounded read/conversion/OCR stages and a 360-second total deadline. A truncated or invalid answer never becomes an accepted catalog. Existing provider configuration and secret storage are reused; potentially paid cloud extraction requires a separate explicit authorization.
 
 The review workbench supports accept/reject/pending and name/description/parent edits. Rejecting a parent cannot silently reparent retained children; reject that subtree explicitly or move children yourself. Local conversion warnings are derived from the frozen material independently of the model, displayed in the warning section and retained as source-bound materialWarnings in the review report. Both local and model warnings require an explicit review acknowledgment. Pending decisions, unresolved warnings, empty catalogs and invalid accepted hierarchies block save. The shared exclusive writer creates only new `enterprise.json` and `enterprise.review.json`, conditionally cleans up owned files on failure, and verifies exact bytes with the production loader before `saved`. No multi-file atomic publication, crash recovery or existing-catalog merge is added. The saved catalog then enters the existing EA1 scope/detail/color path without another model call.
+
+## Controlled catalog updates — EAK2
+
+`Archi: Update Enterprise Catalog` selects a clean local catalog and captures its exact bytes,
+semantic digest and source identity before material selection. It reuses the EAK1 bounded material
+preview, provider configuration, converter and one-call extraction. The base catalog is not sent to
+the model. Selection, whole active document, typed description and explicitly selected local documents
+are supported. Captured materials never refresh silently. Source instructions remain untrusted data.
+
+The native review loop shows a before/after diff and a separate decision/evidence preview. Additions,
+name/description changes, parent changes, explicit ratings, no-op, conflicts and deletion proposals
+have separate decisions. Each model candidate must be explicitly bound to an existing capability ID
+or assigned a new ID. Names provide suggestions only; action tags never reserve legal IDs such as `new` or `reject`. Rename preserves ID. Omission never deletes
+records. Reject a conflicting proposal explicitly; hierarchy, references, levels L1–L3 and duplicate
+identities are validated with the production loader. Delete proposals show children and support links;
+retained dependencies block save until separately removed or moved. No automatic cascade exists.
+
+Unchanged fields retain their original provenance. Changed fields refer to the actual immutable update
+review by `urn:archi-agent:enterprise-update:<sessionId>`, report digest and operation ID. The review
+retains original captured evidence, model proposals and user decisions separately. It lives beside the
+catalog under `enterprise-updates/<sessionId>/<revision>/enterprise.review.json`. Keep it with the
+catalog. It is created exclusively before the native catalog save and may remain after cancellation,
+conflict or failure; its existence alone does not prove that the catalog was saved. Catalog updates
+preserve scales, ratings, applications, links and coverage unless a specific change is approved.
+
+The host checks the captured document version, dirty flag, URI, exact text and current disk
+fingerprint before editing, and disk bytes again before native save. A changed semantic base returns
+`stale-source`; other concurrent changes return `conflict`. Save cancellation/failure is distinct from
+`prepared` and `saved`. After native save the production loader and exact-byte checks validate both
+the catalog and companion report. A later foreign edit prevents confirmed success; it is never rolled
+back. Resolve changes outside this session, then start a new update. There is no automatic rebase,
+filesystem compare-and-swap, multi-file transaction, durable draft or crash recovery. A successful proposal import disables further extraction in that session; imported warnings require a fresh acknowledgment. This operation
+does not update legacy five-file software Knowledge Packs. CLI/function MCP never write catalogs.
+
+## Applications and explicit support — enterprise/2
+
+Enterprise/1 remains strict and readable/writable without migration. Extended catalogs explicitly use
+`schemaVersion:2`, `format:"archi-agent-enterprise/2"`, retaining the v1 source/scales/capabilities and:
+
+| Field | Contract |
+| --- | --- |
+| `applications[]` | `{id,name,description?,provenance}`; stable ID, safe name; at most 1,000 |
+| `supports[]` | `{applicationId,capabilityId,provenance}`; exact existing endpoints; at most 4,000 |
+| `supportScope` | `{description,applications,relationships}`; each coverage is complete/partial/not-provided |
+
+Application and capability IDs have distinct namespaces; equal ID strings do not merge identities.
+A support record is uniquely identified by its endpoint pair. Duplicate pairs/IDs, missing endpoints,
+unknown fields and incomplete provenance fail validation. Application provenance covers `/name` and
+optional `/description`; link provenance covers `/applicationId` and `/capabilityId`. Declared
+`not-provided` requires the corresponding collection to be empty. No owners, technology, maturity,
+lifecycle or recommendations are inferred. Coverage describes only the declared scope.
+
+The update command offers Add application, Add explicit support and explicit deletion using native
+QuickPick. Propose and accept an application, then choose its ID and a capability ID and approve that
+link separately. Adding applications upgrades the reviewed copy to v2 with partial support coverage;
+capability-only edits to v1 stay v1. Reading v1 invents no collections. A v2 update preserves all
+supported collections. Canonical snapshots normalize application IDs, endpoint pairs and provenance;
+digest domain `archi-agent-enterprise-snapshot/2` includes all logical v2 data and version semantics.
+Capability Map retains its business meaning; v2 inputs use report formatVersion 3 with truthful v2
+source identity, while v1 inputs keep existing local report v1 / MCP report v2.
+
+## Capability–Application Map — EA2
+
+Create Diagram, CLI and function MCP select `capability-application-map`. Rendering is deterministic,
+uses zero model calls and requires no configured provider. A whole view shows all capabilities and
+applications, including unlinked applications. A chosen capability/domain includes its descendants
+when requested and only directly linked applications. No support is inherited by parents. CLI/MCP can
+set `includeDescendants:false`. Identical labels include stable IDs. Limits are 120 total nodes,
+240 explicit links, 256 KiB PlantUML and 1 MiB report: exceeding any bound requests a narrower scope,
+without truncation. V1 or not-provided application/link information yields `support-data-unavailable`.
+
+The strict `archi-agent-capability-application-map-report/1` records source identity, transport evidence,
+snapshot/catalog/projection digests, selection, visible original records/provenance, render lines,
+actual local JSON positions or MCP pointers, omitted records/reasons and separate support coverage.
+Support counts mean documented direct links only. Zero links mean no documented support; partial
+sources cannot prove absence of a system. Several apps do not prove redundancy, retirement or an
+investment need. The safe closed renderer has generated aliases and no external includes. The original
+diagram/report pair uses unchanged ART1 envelope v1 and exclusive writer. Preview edits never alter it.
+[Synthetic v2 Retail example](../examples/retail-checkout/architecture/enterprise-applications.json).
+
+## Explicit MCP version 2
+
+`get_knowledge_snapshot` v1 and `get_enterprise_snapshot` v1 keep their strict contracts. The new fixed
+`get_enterprise_snapshot_v2({sourceId,contractVersion:2})` returns
+`archi-agent-enterprise-snapshot/2`, schemaVersion 2 and an enterprise/2 catalog. Source version uses
+`archi-agent-enterprise-source-version/2`; all envelope/source/snapshot digests are verified.
+Old tools reject v2 catalogs rather than silently removing application data. V2 rejects v1 catalogs;
+use the v1 tool for them. Discovery and transport bounds, readRoots, cancellation and cleanup remain.
+
+Enterprise source configuration may specify `contractVersion:2`; absent means v1. EA2 selects v2
+before contacting MCP, never in response to an error. Missing tool or incompatible version is an
+explicit error; there is no v1 fallback. The same choice exists in VS Code `enterpriseSource` and
+config v2 `enterpriseSources`. Software source configuration and knowledge v1 are unchanged.

@@ -31,7 +31,8 @@ export async function serveMcp(config:LocalHostConfig):Promise<void>{
     const name=request.params.name as keyof typeof toolSchemas;
     if(!Object.hasOwn(toolSchemas,name))throw new McpError(ErrorCode.InvalidParams,"Unknown tool.");
     const operation=operations[name],parsed=toolSchemas[name].safeParse(request.params.arguments);
-    const enterprise=(name==="inspect_knowledge"||name==="generate_diagram")&&request.params.arguments?.diagramType==="capability-map";
+    const isApplicationMap=request.params.arguments?.diagramType==="capability-application-map";
+    const enterprise=isApplicationMap?"capability-application-map":(name==="inspect_knowledge"||name==="generate_diagram")&&["capability-map","capability-application-map"].includes(String(request.params.arguments?.diagramType));
     if(active||!parsed.success){const result=await ops.run(operation,async()=>ops.failure(operation,active?"busy":"arguments-invalid",enterprise),new AbortController().signal,undefined,enterprise);return {structuredContent:result,content:[{type:"text"as const,text:JSON.stringify(result)}],isError:true};}
     active=true;let finishActive!:()=>void;activeDone=new Promise<void>(resolve=>{finishActive=resolve;});const controller=new AbortController();
     const abort=()=>controller.abort();extra.signal.addEventListener("abort",abort,{once:true});lifetime.signal.addEventListener("abort",abort,{once:true});

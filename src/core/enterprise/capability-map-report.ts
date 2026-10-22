@@ -39,5 +39,12 @@ export const capabilityMapReportV2Schema=z.strictObject({format,formatVersion:z.
     locator:z.strictObject({pointer:z.string(),fields:z.record(z.string(),pointer)}),renderLine:z.number().int().positive()})).max(120),
   scales:z.array(z.strictObject({definition:enterpriseCatalogSchema.shape.scales.element,locator:pointer})).max(8),...end
 });
-export const capabilityMapReportSchema=z.discriminatedUnion("formatVersion",[capabilityMapReportV1Schema,capabilityMapReportV2Schema]);
+export const enterpriseTransportV2Schema=enterpriseTransportSchema.extend({tool:z.literal("get_enterprise_snapshot_v2"),contractVersion:z.literal(2)});
+export const capabilityMapReportV3Schema=capabilityMapReportV1Schema.extend({formatVersion:z.literal(3),
+ source:z.union([capabilityMapReportV1Schema.shape.source.extend({contract:z.literal("archi-agent-enterprise/2"),schemaVersion:z.literal(2)}),
+ capabilityMapReportV2Schema.shape.source.extend({contract:z.literal("archi-agent-enterprise/2"),schemaVersion:z.literal(2),transport:enterpriseTransportV2Schema})]),
+ visible:z.array(z.strictObject({capability:enterpriseCatalogSchema.shape.capabilities.element,hierarchy,
+ locator:z.union([capabilityMapReportV1Schema.shape.visible.element.shape.locator,capabilityMapReportV2Schema.shape.visible.element.shape.locator]),renderLine:z.number().int().positive()})).max(120),
+ scales:z.array(z.strictObject({definition:enterpriseCatalogSchema.shape.scales.element,locator:z.union([capabilityMapReportV1Schema.shape.scales.element.shape.locator,pointer])})).max(8)});
+export const capabilityMapReportSchema=z.discriminatedUnion("formatVersion",[capabilityMapReportV1Schema,capabilityMapReportV2Schema,capabilityMapReportV3Schema]);
 export type CapabilityMapReport = z.infer<typeof capabilityMapReportSchema>;

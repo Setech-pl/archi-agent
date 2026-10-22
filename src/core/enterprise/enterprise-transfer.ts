@@ -37,6 +37,7 @@ function boundedResponse(raw:unknown) {
 }
 export function createEnterpriseResponse(id:string,raw:EnterpriseCatalog):EnterpriseResponseV1 {
   const catalog=boundedCatalog(raw);
+  if(catalog.schemaVersion!==1)throw new EnterpriseError("enterprise-version-unsupported");
   if(!sourceId.safeParse(id).success||catalog.source.id!==id)throw new EnterpriseError("enterprise-response-invalid");
   const version=sourceVersion(catalog),snapshot=createEnterpriseSnapshot(catalog,evidence(catalog,version,""));
   const result=enterpriseResponseSchema.parse({schemaVersion:1,format:"archi-agent-enterprise-snapshot/1",source:{id,version},

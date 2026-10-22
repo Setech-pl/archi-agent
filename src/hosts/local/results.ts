@@ -1,10 +1,10 @@
 import type {HostResultV1}from"../../runtime/index.js";
 export function resultExitCode(result:HostResultV1):number{
   const o=result.outcome;
-  if("diagramType"in o&&o.diagramType==="capability-map"){
+  if("diagramType"in o&&(o.diagramType==="capability-map"||o.diagramType==="capability-application-map")){
     if(o.status==="success")return 0;
     if(["timeout","deadline-exceeded","mcp-knowledge-timeout"].includes(o.code))return 124;
-    return o.status==="unsupported"||["enterprise-data-unavailable","empty-scope"].includes(o.code)?2:3;
+    return o.status==="unsupported"||["enterprise-data-unavailable","support-data-unavailable","empty-scope"].includes(o.code)?2:3;
   }
   if("code"in o&&o.code==="timeout"||result.operation==="diagram.generate"&&result.outcome.status==="failed"&&result.outcome.issues.some(i=>i.code==="timeout"))return 124;
   if(result.operation==="knowledge.inspect")return o.status==="success"?0:3;

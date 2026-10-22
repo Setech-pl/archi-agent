@@ -43,7 +43,8 @@
     "onCommand:archiAgent.refreshKnowledge",
     "onCommand:archiAgent.openKnowledgeRecord",
     "onView:archiAgent.knowledge",
-    "onCommand:archiAgent.verifyFlow"
+    "onCommand:archiAgent.verifyFlow",
+    "onCommand:archiAgent.updateEnterpriseCatalog"
   ],
   "extensionKind": [
     "workspace"
@@ -163,6 +164,11 @@
       {
         "command": "archiAgent.verifyFlow",
         "title": "Verify Flow (Sequence / prose)",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.updateEnterpriseCatalog",
+        "title": "Update Enterprise Catalog / Aktualizuj katalog enterprise",
         "category": "Archi"
       },
       {
@@ -358,12 +364,13 @@
           "type": ["object", "null"],
           "default": null,
           "scope": "resource",
-          "markdownDescription": "Capability Map only: null selects a local enterprise.json file; {\"kind\":\"mcp\",\"sourceId\":\"retail-business\"} offers the configured MCP catalog. Executable and args come only from User knowledgeServer settings. Zero LLM calls.",
+          "markdownDescription": "Enterprise maps: null selects a local enterprise.json file; {\"kind\":\"mcp\",\"sourceId\":\"retail-business\"} offers the configured MCP catalog. Optional contractVersion: 2 selects get_enterprise_snapshot_v2; EA2 selects v2 deterministically. Executable and args come only from User knowledgeServer settings. Zero LLM calls.",
           "additionalProperties": false,
           "required": ["kind", "sourceId"],
           "properties": {
             "kind": {"enum": ["mcp"]},
-            "sourceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,55}$"}
+            "sourceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,55}$"},
+            "contractVersion": {"type": "number", "enum": [2]}
           }
         },
         "archiAgent.knowledgeServer": {

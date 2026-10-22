@@ -49,6 +49,8 @@ export function parseEnterpriseText(text:string,file:string,signal?:Cancellation
     capabilities:Object.fromEntries(catalog.capabilities.map((c,i)=>[c.id,{pointer:`/capabilities/${i}`,
       fields:Object.fromEntries(["id","name","description",...(c.parentId?["parentId"]:[]),...Object.keys(c.ratings??{}).map(s=>`ratings/${s}`)]
         .map(f=>[`/${f}`,parsed.at(["capabilities",i,...f.split("/")])]))}])),
+    ...(catalog.schemaVersion===2?{applications:Object.fromEntries(catalog.applications.map((a,i)=>[a.id,{pointer:`/applications/${i}`,location:parsed.at(["applications",i])}])),
+      supports:Object.fromEntries(catalog.supports.map((r,i)=>[JSON.stringify([r.applicationId,r.capabilityId]),{pointer:`/supports/${i}`,location:parsed.at(["supports",i])}]))}:{}),
     scales:Object.fromEntries(catalog.scales.map((s,i)=>[s.id,{pointer:`/scales/${i}`,location:parsed.at(["scales",i])}]))};
   check();
   return createEnterpriseSnapshot(catalog,evidence);

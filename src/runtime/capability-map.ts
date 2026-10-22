@@ -38,10 +38,10 @@ export async function generateCapabilityMap(request:{source:EnterpriseSourceConf
     check();
     const evidence=snapshot.evidence, remote="kind"in evidence;
     const report=deepFreeze(capabilityMapReportSchema.parse({
-      format:"archi-agent-capability-map-report",formatVersion:remote?2:1,diagramType:"capability-map",generationPath:"deterministic-catalog-projection",modelCalls:0,
+      format:"archi-agent-capability-map-report",formatVersion:snapshot.catalog.schemaVersion===2?3:remote?2:1,diagramType:"capability-map",generationPath:"deterministic-catalog-projection",modelCalls:0,
       deterministicValidation:{verdict:"passed"},semanticReview:{status:"not-applicable",reason:"deterministic-projection"},
-      source:{contract:snapshot.catalog.format,schemaVersion:1,identity:snapshot.catalog.source,...(remote?
-        {transport:{kind:"mcp",sourceId:evidence.sourceId,sourceVersion:evidence.sourceVersion,responseFingerprint:evidence.responseFingerprint,tool:evidence.tool,contractVersion:1}}:
+      source:{contract:snapshot.catalog.format,schemaVersion:snapshot.catalog.schemaVersion,identity:snapshot.catalog.source,...(remote?
+        {transport:{kind:"mcp",sourceId:evidence.sourceId,sourceVersion:evidence.sourceVersion,responseFingerprint:evidence.responseFingerprint,tool:evidence.tool,contractVersion:evidence.contractVersion}}:
         {file:evidence.file,sourceBytesSha256:evidence.sourceBytesSha256})},
       snapshot:{id:`enterprise-${snapshot.catalogDigest}`,catalogDigest:snapshot.catalogDigest},projectionDigest:projection.projectionDigest,rendererVersion:1,
       selection:projection.selection,hierarchy:snapshot.hierarchy,

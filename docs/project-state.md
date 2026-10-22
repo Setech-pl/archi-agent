@@ -3,6 +3,71 @@
 Porównuj stan z Git. [Roadmapa](product-roadmap.md) określa kierunek,
 [workflow](development-workflow.md) proces, [architektura](architecture.md) kontrakty.
 
+## EAK2 + EA2 — code review PASS, odbiór BLOCKED (2026-10-21)
+
+Worktree `/private/tmp/archi-eak2-ea2`, branch `feature/eak2-ea2`, baza i nadal HEAD
+`a820752d655c8f1ef370ee2f22a1584d80ac34e7`. Pełny [brief](plans/eak2-ea2-brief.md)
+zachowano jako pierwszą zmianę; [konkretny plan i API](plans/eak2-ea2-implementation.md).
+Zmiany pozostają niezacommitowane, staging pusty. Bez push, merge, tagów i publikacji.
+
+Zaimplementowano zamrożoną aktualizację lokalnego katalogu, jawne decyzje/diff/tożsamość,
+provenance pól, kontrolę zależności i natywny zapis VS Code z produkcyjnym odczytem.
+Enterprise/2 dodaje aplikacje/powiązania/pokrycie; v1 pozostaje bez migracji. EA2 działa
+we wspólnym runtime, VS Code, CLI/function MCP i ART1, zero LLM dla renderowania. Nowy
+stały `get_enterprise_snapshot_v2` / contractVersion 2; stare enterprise i knowledge v1 ścisłe.
+Kontrakty, Retail i Help PL/EN uzupełnione. Bez EA3/EA4.
+
+Pełny wspólny gauntlet r0: root 2165 PASS + 2 FAIL z 2167, extension 878 PASS + 2 FAIL
+z 880 — nieaktualne oczekiwania menu po dodaniu funkcji. Poprawione; retest 56/56 PASS.
+Instalacje/audity root/OCR (0 podatności), OCR, oba typechecki/build i package/verify PASS.
+Po poprawce konfliktów ocen i 3 MEDIUM z niezależnego review: 145/145 celowanych,
+oba typechecki/build, nowe sekwencyjne Core/Full/CLI package/verify i Help/docs/diff PASS.
+Pełnych suites po tych wąskich poprawkach nie powtarzano. Druga niezależna runda zamknęła
+wszystkie 3 MEDIUM; brak otwartych HIGH/MEDIUM w przejrzanym kodzie. Reviewer sam odtworzył
+ostrzeżenia, legalne ID new/reject z dziećmi i blokadę drugiej ekstrakcji przed providerem.
+
+Dokładne końcowe paczki `build/eak2-ea2/common-r2/packages/` mają odbiór
+`build/eak2-ea2/acceptance-r2/`: runtime poza repo, stare/nowe procesy MCP stdio,
+CLI/function MCP parity, EAU1/EAK1/EA1/EA1b/SRC1/VER1/C4/ART1 i realny OCR PASS;
+nowy rzeczywisty Extension Host Core/Full po 12/12, dodatkowe poprawki review z paczek
+po 4/4. Poprzednie r1 mają także pełne stare Hosty, w tym AUD-003/004; to osobne paczki.
+
+**Blokada wymaganego widocznego UI nadal obowiązuje.** Próba domknięcia na dokładnym Core r2
+użyła istniejącego runnera CDP i prawdziwych kontrolek Code, bez wywoływania testowanych handlerów
+przez API. `files.simpleDialog.enable=true` udostępnia wybór pliku w Code, a `window.dialogStyle=custom`
+potwierdzenie zapisu. Przeszły interakcje kontrolek, zapis/odczyt, ID/linki/provenance, konflikt
+obcych bajtów, mapa z modelCalls 0 i oryginalna para ART1. Nie są pełnym dowodem widoczności:
+renderer potrafił zgłaszać `visibilityState=hidden` mimo bringToFront/hasFocus. Dodatkowa aktywacja
+konkretnego PID i kontrola visible przy wejściach również nie utrzymały widoczności całego przebiegu.
+Wymagane kompletne scenariusze widocznego UI pozostają niewykonane; wcześniejsze FAIL zachowano.
+Jeden początkowy niespodziewany conflict zachował dysk i poprawny bufor, ale jego przyczyna
+pozostaje nierozstrzygnięta; późniejsze udane zapisy nie są dowodem naprawienia tej obserwacji.
+Krótki niezależny review dowodów i instrukcji: brak nowych HIGH/MEDIUM w tym przekazaniu;
+historyczny safe conflict pozostaje otwartą obserwacją LOW, wymagany UI nadal BLOCKED.
+
+Przed próbami zabezpieczono wszystkie 56 zmienionych/nowych plików, patch, bazę i wybrane dowody
+w `~/Projects/archi-agent-audits/eak2-ea2-ui-closure-20261021-214035`.
+W tym katalogu **`manual-ui-r2/ODBIOR-UI.md`** zawiera gotowy krótki odbiór właściciela,
+`Open isolated UI.command` uruchamia już zainstalowany dokładny Core w oddzielnym trwałym profilu
+i projekcie z dwiema świeżymi kopiami syntetycznymi. Instalację porównano z 15 wpisami VSIX.
+Instrukcja obejmuje wyłącznie brakujące widoczne scenariusze i anulowania; skrypty przygotowują
+obce bajty i zbierają weryfikację dysku, nie poświadczają kliknięć. Nie zmieniano ustawień,
+uprawnień ani źródeł właściciela. Izolowane okno automatyzacji zatrzymano.
+Przygotowane osobne środowisko ręczne uruchomiono; jego kliknięć/obserwacji nie zaliczono.
+
+Wszystkie 366 fingerprintów końcowego r2 nadal zgodne; kodu nie zmieniono, paczek nie przebudowano,
+suites/gauntletu nie powtarzano. Staging pusty, bez commita. Zgodnie z workflow ta wymagana
+bramka blokuje checkpoint; odrębny OWNER_SMOKE/MANUAL_SMOKE DEFERRED go nie blokuje.
+Darmowy live provider, natywne Windows/Linux i CI NOT_RUN. AUD-005/006 nadal OPEN.
+
+Kontynuacja: porównaj worktree i backup z Git. Zbierz brakujące obserwacje/screenshoty według
+gotowej instrukcji na r2, bez powtarzania zakończonych kontroli. Po zaliczeniu wymaganej bramki
+sprawdź raport, krótki review nowych dowodów i diff/staging, zaktualizuj stan, a następnie utwórz
+autoryzowany lokalny checkpoint. Nie rozpoczynaj kolejnego milestone.
+Pełny indeks komend, zachowane FAIL, review, SHA-256/rozmiary paczek i owner smoke:
+ignorowane `build/eak2-ea2/acceptance-report.md` oraz `acceptance-final.json`.
+Poniższe wcześniejsze sekcje opisują historyczne checkpointy, nie odbiór tych zmian.
+
 ## Dostępne w tej gałęzi
 
 Sequence, Component, C4 Context/Container i Verify Flow Sequence/proza; Markdown, Structurizr JSON + overlay i MCP; dokumenty, OCR, review/nowy pack, ART1, Browser i Help PL/EN. CLI/function MCP współdzielą runtime. Kandydat EA1/EA1b dodaje Capability Map z lokalnego katalogu lub MCP, zero LLM i ART1.

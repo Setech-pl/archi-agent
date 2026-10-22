@@ -382,4 +382,48 @@ Każda operacja odczytuje źródła ponownie. Zapis wyniku zachowuje jego orygin
 Ustaw `archiAgent.architectureSource` na null, aby wrócić do knowledgePackPath. K3 Save and use
 robi to automatycznie w wybranym zakresie; tworzy samodzielny pack, nie nakładkę.
 
+## Aktualizacja katalogu enterprise i mapa wsparcia aplikacyjnego
+
+Wybierz **Archi: Update Enterprise Catalog** (także w **Archi: Open**) i wskaż czysty lokalny katalog
+JSON. Komenda zamraża bazę. Nowe informacje mogą pochodzić z przechwyconego zaznaczenia/dokumentu,
+wpisanego opisu lub wybranych obsługiwanych plików lokalnych. Podgląd EAK1 pokazuje dokładnie wybrane
+materiały i limit jednego wywołania ekstrakcji. Cały katalog/workspace nie trafia do modelu. Używane
+są dotychczasowe ustawienia providera/modelu i bezpieczne credentiale.
+
+Każdą propozycję przypisz jawnie do konkretnego istniejącego ID, utwórz nową zdolność albo odrzuć.
+Zgodna nazwa jest sugestią. **Przejrzyj różnice i decyzje** otwiera przed/po oraz oryginalne dowody
+i decyzje; wybierz operację i zaakceptuj/odrzuć. Możesz proponować zmianę nazwy, opisu, rodzica
+i jawnej oceny, również ocenę nieznaną. Pominięte zdolności pozostają. Usunięcia pokazują dzieci
+i odwołania wsparcia; blokada trwa do osobnego przeniesienia lub usunięcia zależności. Sprzeczności,
+cykle, błędne poziomy/ID i nierozstrzygnięte decyzje blokują zapis.
+
+Aby wprowadzić wsparcie, zaproponuj **Dodaj aplikację** ze stabilnym ID/nazwą i zaakceptuj w przeglądzie.
+Wybierz **Dodaj jawne powiązanie aplikacji i zdolności**, wskaż aplikację i zdolność, a następnie osobno
+zatwierdź relację. Aplikacja i zdolność mają odrębne tożsamości. Ręczna edycja JSON nie jest wymagana.
+Jawne dodanie aplikacji rozszerza przeglądany katalog do enterprise/2; aktualizacja samych zdolności
+zachowuje v1. Aktualizacja zachowuje istniejące aplikacje, relacje, oceny i pochodzenie niezmienionych pól.
+
+**Zatwierdź i zapisz katalog** używa natywnego zapisu edytora. Dirty buffer, inna wersja dokumentu
+lub bajty dysku zatrzymują operację; rozwiąż zmiany i rozpocznij nową sesję. Raport przeglądu pozostaje
+w `enterprise-updates/<sessionId>/<revision>/enterprise.review.json`; zachowaj go razem z katalogiem.
+Sam raport nie oznacza zapisanego katalogu. Dopiero produkcyjny odczyt i walidacja potwierdzają
+`saved`. Cudze edycje nie są cofane. Bez automatycznego merge, transakcji i crash recovery.
+
+Wybierz **Create Diagram → Enterprise Architecture → Capability–Application Map** i rozszerzony
+lokalny katalog, przechwycony aktywny JSON albo skonfigurowane źródło enterprise MCP. Wskaż całą mapę
+lub zdolność/domenę. Provider nie jest potrzebny: renderowanie ma **0 wywołań modelu**. Pokazywane
+są wyłącznie jawne bezpośrednie powiązania; rodzic nie dziedziczy relacji dzieci. Brak relacji oznacza
+brak udokumentowanego wsparcia, nie brak systemu. Wiele relacji nie dowodzi redundancji. Pokrycie
+częściowe pozostaje częściowe. Raport zawiera zakres, dowody, pominięcia i digesty. Po przekroczeniu
+120 węzłów lub 240 relacji zawęź widok; dane nie są obcinane. **Save Diagram and Report** zapisuje
+oryginalną parę ART1.
+
+Wypróbuj `examples/retail-checkout/architecture/enterprise-applications.json`: jedna aplikacja wspiera
+kilka zdolności, płatności mają kilka aplikacji, inne zdolności mają nieznane wsparcie, a Back Office
+nie ma powiązań. Zmień nazwę zdolności przez aktualizację/przegląd; jej ID i relacje pozostają.
+Katalogi v1 i Capability Map nadal działają. Enterprise MCP v1 pozostaje bez zmian; EA2 jawnie wybiera
+`get_enterprise_snapshot_v2` / contractVersion 2 bez fallbacku. Dla Capability Map ze zdalnego katalogu
+v2 ustaw `enterpriseSource.contractVersion:2`. Zobacz [kontrakt enterprise](https://github.com/Setech-pl/archi-agent/blob/main/docs/enterprise-catalog.md)
+i [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/pl/cli-mcp.md).
+
 OCR notices: [ux2-ocr/TRIAL_NOTICES.md](ux2-ocr/TRIAL_NOTICES.md).

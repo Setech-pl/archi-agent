@@ -1,6 +1,6 @@
 import { confirmEnterpriseMaterials } from "../workbench/enterprise-materials.js";
 import * as vscode from "vscode";
-import { EnterpriseReviewSession, getDocumentConversionCapabilities, type EnterpriseMaterialInput, type EnterpriseMaterials } from "../../../src/runtime/index.js";
+import { EnterpriseReviewSession, getDocumentConversionCapabilities, type EnterpriseMaterialInput, type EnterpriseMaterials, type EnterpriseProposal } from "../../../src/runtime/index.js";
 import { withProfileSignal, assertProfileAvailable } from "../profile-availability.js";
 import { documentGenerator } from "./document-generator.js";
 import { openEnterpriseReview } from "../workbench/enterprise-review.js";
@@ -9,7 +9,7 @@ import type { GenerateCommandDependencies } from "./generate-sequence-diagram.js
 export { captureEnterpriseInput } from "./enterprise-input.js";
 import { captureEnterpriseInput, type CapturedEnterpriseInput } from "./enterprise-input.js";
 let active=false;
-export async function buildEnterpriseCatalogCommand(deps:GenerateCommandDependencies,captured=captureEnterpriseInput()):Promise<void>{
+export async function buildEnterpriseCatalogCommand(deps:GenerateCommandDependencies,captured=captureEnterpriseInput(),onProposal?:(proposal:EnterpriseProposal)=>void):Promise<void>{
   if(active){await vscode.window.showWarningMessage("Archi Agent: enterprise catalog review already active.");return;}
   active=true;
   const pl=vscode.env.language.startsWith("pl"),t=(a:string,b:string)=>pl?a:b;
@@ -54,7 +54,7 @@ export async function buildEnterpriseCatalogCommand(deps:GenerateCommandDependen
     });
     assertProfileAvailable();if(outcome.status==="cancelled")return;
     if(outcome.status!=="success")throw outcome;
-    await openEnterpriseReview(new EnterpriseReviewSession(outcome.result),deps.results);
+    if(onProposal)onProposal(outcome.result);else await openEnterpriseReview(new EnterpriseReviewSession(outcome.result),deps.results);
   }catch(e){const code=(e as {code?:unknown})?.code;if(code==="cancelled")return;await vscode.window.showErrorMessage(`Archi Agent: ${t("katalog nie został utworzony","catalog was not created")} [${typeof code==="string"&&/^[a-z0-9-]{1,64}$/.test(code)?code:"operation-failed"}]. ${t("Popraw materiały lub konfigurację i ponów jawnie.","Correct the materials or configuration and retry explicitly.")}`);}
   finally{active=false;}
 }

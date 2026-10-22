@@ -60,3 +60,13 @@ See the [canonical architecture](en/architecture.md).
 ## F. VER1 — snapshot and provenance
 
 See the [canonical architecture](en/architecture.md).
+
+## Frozen enterprise updates and direct application support
+
+EAK2 composes explicit reviewed operations over captured catalog bytes; it preserves IDs and unchanged
+field provenance. The native host owns version/dirty checks and editor save; runtime prepares the
+validated catalog, creates a separate exclusive companion review and validates persisted bytes.
+EA2 adds strict enterprise/2 applications and endpoint-pair support with independent coverage. The
+separate fixed MCP v2 tool is explicitly selected; knowledge/enterprise v1 remain strict. Core projects
+direct links and runtime generates the zero-model report and ART1 original pair. VS Code, CLI and
+function MCP share semantics. [Contracts and boundaries](enterprise-catalog.md#controlled-catalog-updates--eak2).

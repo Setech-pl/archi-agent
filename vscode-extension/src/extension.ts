@@ -1,3 +1,4 @@
+import {updateEnterpriseCatalogCommand} from "./commands/update-enterprise-catalog.js";
 import type { CapturedEnterpriseInput } from "./commands/enterprise-input.js";
 import { buildEnterpriseCatalogCommand } from "./commands/build-enterprise-catalog.js";
 import { profileConflict, assertProfileAvailable, showProfileConflict } from "./profile-availability.js";
@@ -49,6 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(output);
   context.subscriptions.push(
+    registerAvailableCommand(commandIds.updateEnterpriseCatalog,(captured?:CapturedEnterpriseInput)=>updateEnterpriseCatalogCommand({runtime,output,secrets:context.secrets,results},captured)),
     registerAvailableCommand(commandIds.buildEnterpriseCatalog, (captured?:CapturedEnterpriseInput) => buildEnterpriseCatalogCommand({runtime,output,secrets:context.secrets,results},captured)),
     registerAvailableCommand(commandIds.verifyFlow, () => verifyFlowCommand({runtime,output,secrets:context.secrets}).catch(()=>vscode.window.showErrorMessage("Archi Agent: verification failed. Check the source and input."))),
     registerAvailableCommand(commandIds.knowledgeBrowser, () => browser.reveal()),

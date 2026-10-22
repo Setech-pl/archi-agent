@@ -21,7 +21,7 @@ export const localConfigSchema=z.strictObject({schemaVersion:z.literal(1),readRo
   providers:boundedMap(provider,5)});
 export const localConfigV2Schema=localConfigSchema.extend({schemaVersion:z.literal(2),enterpriseSources:boundedMap(z.discriminatedUnion("kind",[
   z.strictObject({kind:z.literal("enterprise-json"),file:fileReferenceSchema}),
-  z.strictObject({kind:z.literal("mcp"),server:nameSchema,sourceId:nameSchema})]),16)});
+  z.strictObject({kind:z.literal("mcp"),server:nameSchema,sourceId:nameSchema,contractVersion:z.literal(2).optional()})]),16)});
 export class LocalHostError extends Error {constructor(readonly code:string){super(code);}}
 export interface LocalHostConfig {readonly roots:Readonly<Record<string,string>>;readonly sources:Readonly<Record<string,KnowledgePackSourceConfig>>;
   readonly enterpriseSources:Readonly<Record<string,EnterpriseSourceConfig>>;
@@ -47,7 +47,7 @@ export async function loadLocalHostConfig(file:string):Promise<LocalHostConfig> 
     }
     const enterpriseSources:Record<string,EnterpriseSourceConfig>={};
     if(c.schemaVersion===2)for(const [name,s]of Object.entries(c.enterpriseSources))enterpriseSources[name]=Object.freeze(s.kind==="enterprise-json"?
-      {kind:s.kind,path:await resolve(s.file)}:{kind:s.kind,sourceId:s.sourceId,server:serverConfig(s.server)});
+      {kind:s.kind,path:await resolve(s.file)}:{kind:s.kind,sourceId:s.sourceId,server:serverConfig(s.server),...(s.contractVersion?{contractVersion:s.contractVersion}:{})});
     Object.values(c.providers).forEach(Object.freeze);
     return Object.freeze({roots,sources:Object.freeze(sources),enterpriseSources:Object.freeze(enterpriseSources),providers:Object.freeze(c.providers),policy});
   }catch(e){if(e instanceof LocalHostError)throw e;throw new LocalHostError("config-invalid");}

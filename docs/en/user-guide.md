@@ -382,3 +382,46 @@ Each operation reads again. The generated pair preserves its original snapshot w
 
 Set `archiAgent.architectureSource` to null to use knowledgePackPath again. K3 Save and use
 does this in the selected scope automatically; it creates a standalone pack, not an overlay.
+
+## Update an enterprise catalog and map application support
+
+Use **Archi: Update Enterprise Catalog** (also in **Archi: Open**) and select a clean local JSON
+catalog. The command freezes the base. Choose new information from the captured selection/document,
+a typed description, or selected supported local files. The EAK1 preview shows exactly the selected
+materials and a maximum of one extraction call. No complete catalog/workspace is sent. Existing
+provider/model settings and secure credentials are reused.
+
+Resolve each candidate to a specific existing ID, explicitly create a new capability, or reject it.
+A matching name is a suggestion. **Review differences and decisions** opens before/after and original
+evidence/decision previews; choose each operation and accept/reject it. You can propose name,
+description, parent and explicit rating changes, including unknown ratings. Omitted capabilities
+remain. Deletions show children and support references and remain blocked until you separately move
+or remove dependencies. Contradictions, cycles, invalid levels/IDs and pending decisions block save.
+
+To enter support data, propose **Add application** with a stable ID/name and accept it in review.
+Choose **Add explicit application support**, select the application and capability, then approve that
+link separately. Application and capability IDs are separate identities. No manual JSON authoring is
+required. Explicit application entry upgrades the reviewed catalog to enterprise/2; capability-only
+updates preserve v1. Updates preserve existing apps, links, assessments and unchanged provenance.
+
+**Approve and save catalog** uses the native editor save. A dirty buffer, changed document version or
+disk bytes stops the operation; resolve those changes and start a new session. A review report is kept
+under `enterprise-updates/<sessionId>/<revision>/enterprise.review.json`; keep it with the catalog.
+A retained report alone is not a saved catalog. Only production readback and validation confirm
+`saved`. Foreign edits are never rolled back. No automatic merging, transaction or crash recovery.
+
+Choose **Create Diagram → Enterprise Architecture → Capability–Application Map** and the extended
+local catalog, captured active JSON or configured enterprise MCP source. Select the whole map or a
+capability/domain. No provider is needed: rendering makes **0 model calls**. Only explicit direct
+support is shown; parents do not inherit child links. Missing links mean no documented support,
+not a missing system. Several links do not prove redundancy. Partial coverage stays partial.
+The report records scope, evidence, omitted records and digests. Narrow the view if it exceeds 120
+nodes or 240 links; nothing is truncated. **Save Diagram and Report** stores the original ART1 pair.
+
+Try `examples/retail-checkout/architecture/enterprise-applications.json`: one app supports several
+capabilities, payment has several apps, other capabilities have unknown support and Back Office has
+no links. Rename a capability through update/review; its ID and links remain stable. V1 catalogs and
+Capability Map remain supported. Enterprise MCP v1 remains unchanged; EA2 deterministically uses
+`get_enterprise_snapshot_v2` / contractVersion 2 without fallback. For Capability Map on a v2 remote
+catalog set `enterpriseSource.contractVersion:2`. See [enterprise contract](../enterprise-catalog.md)
+and [CLI/MCP](cli-mcp.md).

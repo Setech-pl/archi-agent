@@ -124,3 +124,12 @@ export type{KnowledgeResponseV1}from"../core/knowledge-pack/knowledge-transfer.j
 export { EnterpriseReviewSession } from "./enterprise-builder.js";
 export type { EnterpriseMaterialInput, EnterpriseMaterials, ExtractEnterpriseCandidatesRequest, ExtractEnterpriseCandidatesOutcome, EnterpriseDecision } from "./enterprise-builder.js";
 export type { EnterpriseBuildMode, EnterpriseProposal, EnterpriseCandidateOrigin } from "../core/enterprise/enterprise-candidates.js";
+
+export {enterpriseToolV2,enterpriseInputV2Schema,enterpriseOutputV2Schema,enterpriseResponseV2Schema,createEnterpriseResponseV2,validateEnterpriseResponseV2} from "../core/enterprise/enterprise-transfer-v2.js";
+export {EnterpriseUpdateSession,captureEnterpriseUpdate} from "./enterprise-update.js";
+export type {EnterpriseChange,EnterpriseUpdatePlan,UpdateDecision,EnterpriseCandidateBinding} from "./enterprise-update.js";
+
+export {generateApplicationMap} from "./capability-application-map.js";
+export type {ApplicationMapView} from "./capability-application-map.js";
+export {applicationMapSelectionSchema} from "../core/enterprise/capability-application-map.js";
+export type {ApplicationMapSelection} from "../core/enterprise/capability-application-map.js";

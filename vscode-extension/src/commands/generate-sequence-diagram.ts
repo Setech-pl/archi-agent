@@ -271,10 +271,12 @@ export async function generateDiagramCommand(dependencies: GenerateCommandDepend
     { label:"C4 Context",description:"c4-context",id:"c4-context" as const },
     { label:"C4 Container",description:"c4-container",id:"c4-container" as const },
     { label:"Enterprise Architecture / Architektura korporacyjna",kind:vscode.QuickPickItemKind.Separator,id:"enterprise-group" as const },
-    { label:"Capability Map / Mapa zdolności biznesowych",description:"capability-map",id:"capability-map" as const }],
+    { label:"Capability Map / Mapa zdolności biznesowych",description:"capability-map",id:"capability-map" as const },
+    {label:"Capability–Application Map / Mapa zdolności i aplikacji",description:"capability-application-map",id:"capability-application-map" as const }],
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
   if (picked === undefined) return;
   if (picked.id === "enterprise-group") return;
+  if(picked.id==="capability-application-map"){await generateCapabilityMapCommand(dependencies.results,activeEnterpriseSource,undefined,true);return;}
   if (picked.id === "capability-map") {await generateCapabilityMapCommand(dependencies.results,activeEnterpriseSource);return;}
   await runGenerateCommand(dependencies, picked.id);
 }
