@@ -92,6 +92,14 @@ jobs:
           fi
           export PATH="$RUNNER_TEMP/ea34-vscode/Visual Studio Code.app/Contents/Resources/app/bin:$PATH"
           node scripts/ea3-ea4-host-smoke.mjs build/ci/core/archi-agent-core-0.3.0-alpha.8.vsix build/ci/full/archi-agent-full-0.3.0-alpha.8.vsix build/ci/extension-host
+      - name: Preserve real Extension Host diagnostics
+        if: always() && matrix.platform == 'darwin'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ea34-extension-host-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: build/ci/extension-host/
       - name: Record package checksums and source revision
         run: |
           node --input-type=module -e 'import{readFileSync,writeFileSync}from"node:fs";import{createHash}from"node:crypto";import{execFileSync}from"node:child_process";const files=["core/archi-agent-core-0.3.0-alpha.8.vsix","full/archi-agent-full-0.3.0-alpha.8.vsix","cli/archi-agent-cli-0.3.0-alpha.8.tgz"];const artifacts=files.map(file=>{const b=readFileSync("build/ci/"+file);return{file,bytes:b.length,sha256:createHash("sha256").update(b).digest("hex")}});writeFileSync("build/ci/packages.json",JSON.stringify({testedSha:execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),platform:process.platform,arch:process.arch,artifacts},null,2)+"\n");writeFileSync("build/ci/SHA256SUMS",artifacts.map(a=>a.sha256+"  "+a.file).join("\n")+"\n")'
