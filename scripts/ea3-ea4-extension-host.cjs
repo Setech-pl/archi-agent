@@ -15,7 +15,7 @@ exports.run=async()=>{
   if(title==='Stage scope — preserves declared order')return items;
   if(title==='Business domain scope')return items.find(i=>i.id===null);
   if(title==='Explicit color scale')return items.find(i=>i.id==='maturity');
-  if(title==='Archi: catalog update — frozen base')return items.find(i=>i.id===queue.shift());
+  if(title==='Archi: catalog update — frozen base'){const action=queue.shift(),selected=items.find(i=>i.id===action);assert(action&&selected,'Unexpected catalog menu action '+action);return selected;}
   if(title==='Choose capability')return items.find(i=>i.record?.id==='sales');
   if(title==='Field to change')return 'name';
   if(title==='Choose change — inspect before/after and dependencies')return items.find(i=>i.entry.decision==='pending');
