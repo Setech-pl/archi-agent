@@ -3,41 +3,65 @@
 Porównuj stan z Git. [Roadmapa](product-roadmap.md) określa kierunek,
 [workflow](development-workflow.md) proces, [architektura](architecture.md) kontrakty.
 
-## EA3 + EA4 + GitHub prerelease — active (2026-10-22)
+## EA3 + EA4 — prerelease published and verified (2026-10-22)
 
-Full current authorization: [release brief](plans/ea3-ea4-release-brief.md).
+Full authorization: [release brief](plans/ea3-ea4-release-brief.md).
 [Implementation plan](plans/ea3-ea4-implementation.md). Branch `release/ea3-ea4-release`,
 durable isolated checkout `~/Projects/archground/build/ea3-ea4/integration`.
-Latest EAK2/EA2 increment preserved byte-for-byte in WIP `bf301e2`; no EA3/EA4 was found.
-Fetched `github/main` is already an ancestor. Original worktrees/manual r2 environment preserved.
-An initially created linked worktree remains preserved at `build/ea3-ea4/worktree`; its index
-was not writable. Active independent checkout has working Git. No publication yet.
-Historical UI FAIL/NOT_RUN and safe-conflict LOW remain; current brief supersedes historical
-STOP/publication restrictions and permits prerelease with documented infrastructure limitations.
-EA3/EA4 zaimplementowane jako kandydat alpha.8: ścisłe enterprise/3 i MCP v3, stabilne etapy,
-jawna kolejność/powiązania, aplikacje EA2 z domeną i opcjonalnymi atrybutami, deterministyczne
-widoki w VS Code/CLI/function MCP i ART1; guided review/update/proposals/scales. PL/EN docs,
-offline Help i aktualne rendery Retail. Niezależny review r2 PASS, 3 MEDIUM naprawione; zero
-nowych HIGH/MEDIUM. Historyczny safe-conflict LOW pozostaje otwarty (bez dowodu utraty danych).
+All 56 latest EAK2/EA2 source changes were preserved byte-for-byte in WIP `bf301e2`, then
+extended with EA3/EA4. No newer EA3/EA4 work was found. Main `d91bbde` was already an ancestor.
+Original worktrees and the manual r2 environment remain preserved. An initial linked worktree
+at `build/ea3-ea4/worktree` has an unwritable index; the active independent checkout has writable Git.
 
-Bieżący gauntlet pod Node 22.12: root 2186/2186 i extension 899/899, oba typechecki/build,
-Core/Full/CLI package/verify PASS. Vitest 5.0.5 usuwa nowe moderate advisory; bindingi
-platformowe zachowane, audity root/OCR 0 podatności. Dokładne nowe paczki poza repo:
-EA3/EA4 Core/Full po 10 scenariuszy runtime/stdio/parity/ART1 PASS. Retesty EAU1/EAK1, EAK2/EA2, EA1, SRC1/VER1/C4/ART1/MCP1 oraz realnego OCR AUD-004 PASS.
-Pierwsze błędy harnessów brakujących fixtures są zachowane, retesty mają osobne logi.
-Dwa ZIP-y demo: 69 scenariuszy oraz 8 nowych widoków Retail local/MCP PASS.
-Końcowy review dokumentacji wykrył 2 MEDIUM: stare deklaracje dostępności i ścieżki poza ZIP;
-oba naprawione i re-review źródeł PASS. Odświeżone paczki mają ten sam runtime, poprawiony Help.
-[PR #14](https://github.com/Setech-pl/archi-agent/pull/14) otwarty; pierwszy CI Linux PASS, macOS trwa.
-Końcowy odbiór publikacji trwa. Pierwsze nieudane harnessy są zachowane w build.
-Lokalny Code SIGABRT przed startem Host; Computer Use odmówiło dostępu do Code. Lokalny
-Host FAIL/NOT_RUN, widoczne UI NOT_RUN; rzeczywisty Host przeniesiony do CI macOS ARM64,
-bez utożsamiania kontrolowanych odpowiedzi z UI. Lokalny Ollama niedostępny (connection refused),
-live LLM NOT_RUN. [Zbiorczy owner smoke](testing/ea3-ea4-owner-smoke.md): DEFERRED.
+Published [prerelease v0.3.0-alpha.8](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8).
+[PR #14](https://github.com/Setech-pl/archi-agent/pull/14) remains open, **not merged into main**.
+PR #13 and previous releases/assets were not changed. Release source/tag target:
+`a032a5dcedb1b6ddd53f1d637d2ae5cba3e18781`.
+[Release CI 39743295041](https://github.com/Setech-pl/archi-agent/actions/runs/39743295041)
+PASS on Linux x64 and macOS ARM64 for that branch head; actual tested merge checkout
+`973e9ce13cb518d3d7160da0ece43a7b72b52c96`. Both trees equal
+`6b729f819009a2fa7a4f2f1e98eb76a5332f9d84`.
+The five package/demo files come from the single Linux artifact of that run. Release instructions
+were assembled separately. The [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json)
+and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS)
+identify the exact bytes. Anonymous download of all ten assets, byte sizes, hashes and release
+links in README/tutorials/packaged Help PASS. This final state update is documentation only;
+its eventual branch HEAD is newer than the immutable package source. Check PR checks for that HEAD.
 
-Dowody operacyjne: ignorowane `build/ea3-ea4/` w aktywnym checkoutcie. Następnie: PR i CI
-Linux/macOS, dokładny odbiór demo/paczek, prerelease z manifestem i anonimowe pobrania.
-Bez merge main; starsze wydania i ich assets pozostają zachowane.
+Implemented: strict enterprise/3 and fixed MCP v3 with v1/v2 compatibility; ordered stages,
+explicit capability mappings/context/outcomes/provenance; EA2 application identities with domains,
+optional owner/lifecycle and explicit scales (unknown differs from zero). Value Stream and
+Application Landscape share deterministic, zero-provider runtime across VS Code, CLI and function
+MCP, with source coverage/omissions/limits and original ART1 pairs. Guided forms, reviewed bounded
+proposals, explicit identity binding, dependency checks and guarded saves preserve the v3 collections.
+PL/EN documentation and offline Help, data-derived Retail renders and both new demo ZIPs are shipped.
+
+Current-session gates: npm ci root/OCR, audits zero vulnerabilities, root 2186/2186 and extension
+899/899, both typechecks/build and sequential Core/Full/CLI package/verify PASS. Vitest 5.0.5 retains
+platform bindings. Exact-package regressions EAU1/EAK1/EAK2, EA1/EA2, SRC1, VER1/C4, ART1,
+MCP stdio and AUD-003/004 (including real OCR) PASS. Two demo ZIPs: 69 checks; Retail local/MCP:
+eight views PASS. Final downloaded CI Core/Full: ten new-view scenarios each PASS outside the repo
+with empty PATH/NODE_PATH; one synthetic HTTP proposal call PASS, without claiming live model quality.
+Real installed CI Extension Host Core/Full: nine scenarios each PASS, including both views and
+LF/CRLF single/multi-root guarded saves. Controlled Host responses are not visible UI evidence.
+Independent runtime review closed three MEDIUM; final docs review closed two MEDIUM. Final
+package-byte parity and manifest/link review PASS; no open new HIGH/MEDIUM in the reviewed scope.
+First failing suites/harnesses/CI runs remain recorded, not relabelled PASS.
+
+Limits: local Code SIGABRT before Host and Computer Use denied Code access; local Host FAIL/NOT_RUN,
+visible UI NOT_RUN. Local Ollama refused connection, live LLM NOT_RUN; paid providers untouched.
+[Combined owner smoke](testing/ea3-ea4-owner-smoke.md): **DEFERRED**. Historical safe-conflict LOW
+remains unresolved, with no evidence of data loss or false saved status; guarded save is not atomic
+filesystem CAS. Additional native platforms are not claimed. AUD-005/006 remain OPEN. This is an
+evaluation prerelease under the explicit publication exception, not full owner acceptance.
+
+Operational evidence: ignored `build/ea3-ea4/acceptance-report.md`, `public-download-verification.json`,
+`ci-payload-parity.json`, `ci-final-host/` and review reports in the active checkout. One historical
+scratch report was inadvertently overwritten by a copied driver and regenerated from preserved old
+bundles; its original byte identity cannot be asserted. See `acceptance/report-recovery.md`.
+No source, package or manual r2 environment was changed by that incident.
+STOP: publication and verification complete. No further feature or main merge is authorized here.
+The following sections are historical records and do not override this release state.
 
 ## EAK2 + EA2 — code review PASS, odbiór BLOCKED (2026-10-21)
 
@@ -108,7 +132,7 @@ Poniższe wcześniejsze sekcje opisują historyczne checkpointy, nie odbiór tyc
 
 Sequence, Component, C4 Context/Container i Verify Flow Sequence/proza; Markdown, Structurizr JSON + overlay i MCP; dokumenty, OCR, review/nowy pack, ART1, Browser i Help PL/EN. CLI/function MCP współdzielą runtime. Kandydat EA1/EA1b dodaje Capability Map z lokalnego katalogu lub MCP, zero LLM i ART1.
 
-## Dystrybucja
+## Dystrybucja — historyczny DEMO1
 
 Publiczne [DEMO1 v0.3.0-alpha.7-demo.1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1): Core, Full, CLI i dwa ZIP-y demo.
 Źródła paczek: `83747d3815806f09554298ce9c4e487881932d59`; tożsamość określają publiczne
