@@ -1,10 +1,10 @@
 import {z}from"zod";
-import {digestSchema,nameDecisionSchema,hostResultSchema,capabilityMapSelectionSchema,applicationMapSelectionSchema}from"../../runtime/index.js";
+import {digestSchema,nameDecisionSchema,hostResultSchema,capabilityMapSelectionSchema,applicationMapSelectionSchema,valueStreamSelectionSchema,landscapeSelectionSchema}from"../../runtime/index.js";
 import {nameSchema,fileReferenceSchema}from"./config.js";
 export const timeoutSchema=z.number().int().min(1).max(600000);
 export const inspectInputSchema=z.union([
  z.strictObject({source:nameSchema,query:z.string().min(1).max(160).optional(),offset:z.number().int().min(0).max(10000).optional(),limit:z.number().int().min(1).max(64).optional(),expectedKnowledgeDigest:digestSchema.optional(),timeoutMs:timeoutSchema.optional()}),
- z.strictObject({source:nameSchema,diagramType:z.enum(["capability-map","capability-application-map"]),expectedCatalogDigest:digestSchema.optional(),timeoutMs:timeoutSchema.optional()})
+ z.strictObject({source:nameSchema,diagramType:z.enum(["capability-map","capability-application-map","value-stream","application-landscape"]),expectedCatalogDigest:digestSchema.optional(),timeoutMs:timeoutSchema.optional()})
 ]);
 const verifyBase=z.strictObject({source:nameSchema,input:fileReferenceSchema,format:z.enum(["plantuml-sequence","prose"]),provider:nameSchema.optional(),language:z.enum(["pl","en"]).optional(),timeoutMs:timeoutSchema.optional()});
 export const verifyInputSchema=z.union([
@@ -20,6 +20,8 @@ export const generateInputSchema=z.union([
   generateBase.extend({diagramType:z.enum(["sequence","component"]),decisionsFile:fileReferenceSchema.optional()}),
   generateBase.extend({diagramType:z.enum(["c4-context","c4-container"]),c4Selection:z.strictObject({systemId:z.string().min(1).max(64),expectedKnowledgeDigest:digestSchema})}),
   z.strictObject({source:nameSchema,diagramType:z.literal("capability-map"),selection:capabilityMapSelectionSchema.extend({expectedCatalogDigest:digestSchema.optional()}),timeoutMs:timeoutSchema.optional()}),
+  z.strictObject({source:nameSchema,diagramType:z.literal("value-stream"),selection:valueStreamSelectionSchema.extend({expectedCatalogDigest:digestSchema.optional()}),timeoutMs:timeoutSchema.optional()}),
+  z.strictObject({source:nameSchema,diagramType:z.literal("application-landscape"),selection:landscapeSelectionSchema.extend({expectedCatalogDigest:digestSchema.optional()}),timeoutMs:timeoutSchema.optional()}),
   z.strictObject({source:nameSchema,diagramType:z.literal("capability-application-map"),selection:applicationMapSelectionSchema.extend({expectedCatalogDigest:digestSchema.optional()}),timeoutMs:timeoutSchema.optional()})
 ]);
 const continuation=z.strictObject({sessionId:z.string().uuid(),expiresAt:z.string().datetime()});

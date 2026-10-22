@@ -21,7 +21,7 @@ export const localConfigSchema=z.strictObject({schemaVersion:z.literal(1),readRo
   providers:boundedMap(provider,5)});
 export const localConfigV2Schema=localConfigSchema.extend({schemaVersion:z.literal(2),enterpriseSources:boundedMap(z.discriminatedUnion("kind",[
   z.strictObject({kind:z.literal("enterprise-json"),file:fileReferenceSchema}),
-  z.strictObject({kind:z.literal("mcp"),server:nameSchema,sourceId:nameSchema,contractVersion:z.literal(2).optional()})]),16)});
+  z.strictObject({kind:z.literal("mcp"),server:nameSchema,sourceId:nameSchema,contractVersion:z.union([z.literal(2),z.literal(3)]).optional()})]),16)});
 export class LocalHostError extends Error {constructor(readonly code:string){super(code);}}
 export interface LocalHostConfig {readonly roots:Readonly<Record<string,string>>;readonly sources:Readonly<Record<string,KnowledgePackSourceConfig>>;
   readonly enterpriseSources:Readonly<Record<string,EnterpriseSourceConfig>>;

@@ -1,3 +1,4 @@
+import {enterpriseToolV3,validateEnterpriseResponseV3} from "../core/enterprise/enterprise-transfer-v3.js";
 import {enterpriseToolV2,validateEnterpriseResponseV2} from "../core/enterprise/enterprise-transfer-v2.js";
 import { containsCredential } from "./sensitive-response.js";
 import path from"node:path";
@@ -18,11 +19,11 @@ export class McpKnowledgeError extends Error{constructor(readonly code:string){s
 export async function fetchMcpKnowledge(server:McpKnowledgeServerConfig,sourceId:string,signal?:CancellationSignal){
  return fetchMcpSource(server,sourceId,signal,false) as Promise<ReturnType<typeof validateKnowledgeResponse>>;
 }
-export async function fetchMcpEnterprise(server:McpKnowledgeServerConfig,sourceId:string,signal?:CancellationSignal,deadlineAt?:number,contractVersion:1|2=1){
+export async function fetchMcpEnterprise(server:McpKnowledgeServerConfig,sourceId:string,signal?:CancellationSignal,deadlineAt?:number,contractVersion:1|2|3=1){
  return fetchMcpSource(server,sourceId,signal,true,deadlineAt,contractVersion) as Promise<ReturnType<typeof validateEnterpriseResponse>>;
 }
-async function fetchMcpSource(server:McpKnowledgeServerConfig,sourceId:string,signal:CancellationSignal|undefined,enterprise:boolean,operationDeadline?:number,contractVersion:1|2=1){
- const tool=contractVersion===2?enterpriseToolV2:enterpriseTool;
+async function fetchMcpSource(server:McpKnowledgeServerConfig,sourceId:string,signal:CancellationSignal|undefined,enterprise:boolean,operationDeadline?:number,contractVersion:1|2|3=1){
+ const tool=contractVersion===3?enterpriseToolV3:contractVersion===2?enterpriseToolV2:enterpriseTool;
  const checked=mcpKnowledgeServerSchema.safeParse(server);if(!checked.success||!/^[a-z][a-z0-9-]{0,55}$/.test(sourceId))throw new McpKnowledgeError("mcp-knowledge-configuration-invalid");
  if(signal?.aborted)throw new McpKnowledgeError("cancelled");
  const config=checked.data,env:Record<string,string>={};for(const name of config.credentialEnv??[]){const value=process.env[name];if(value!==undefined)env[name]=value;}
@@ -76,7 +77,7 @@ async function fetchMcpSource(server:McpKnowledgeServerConfig,sourceId:string,si
    }
   }
   if(result.isError||!result.structuredContent)throw new McpKnowledgeError("mcp-knowledge-source-failed");
-  const loaded=enterprise?(contractVersion===2?validateEnterpriseResponseV2(result.structuredContent,sourceId):validateEnterpriseResponse(result.structuredContent,sourceId)):validateKnowledgeResponse(result.structuredContent,sourceId);
+  const loaded=enterprise?(contractVersion===3?validateEnterpriseResponseV3(result.structuredContent,sourceId):contractVersion===2?validateEnterpriseResponseV2(result.structuredContent,sourceId):validateEnterpriseResponse(result.structuredContent,sourceId)):validateKnowledgeResponse(result.structuredContent,sourceId);
   if(signal?.aborted||controller.signal.aborted||Date.now()>=deadlineAt)throw new McpKnowledgeError(signal?.aborted?"cancelled":"mcp-knowledge-timeout");
   return loaded;
  }catch(e){if(e instanceof KnowledgeTransferError||e instanceof McpKnowledgeError||e instanceof EnterpriseError)throw e;throw new McpKnowledgeError(signal?.aborted?"cancelled":timedOut||Date.now()>=deadlineAt?"mcp-knowledge-timeout":"mcp-knowledge-unavailable");}

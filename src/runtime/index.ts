@@ -133,3 +133,10 @@ export {generateApplicationMap} from "./capability-application-map.js";
 export type {ApplicationMapView} from "./capability-application-map.js";
 export {applicationMapSelectionSchema} from "../core/enterprise/capability-application-map.js";
 export type {ApplicationMapSelection} from "../core/enterprise/capability-application-map.js";
+
+export {enterpriseCatalogV3Schema,domainSchema,valueStreamSchema,valueStageSchema,landscapeApplicationSchema,type EnterpriseCatalogV3} from "../core/enterprise/enterprise-catalog.js";
+export * from "../core/enterprise/enterprise-transfer-v3.js";
+export * from "../core/enterprise/enterprise-views.js";
+export * from "./enterprise-views.js";
+
+export {viewChangeSchema,type EnterpriseViewCandidate} from "../core/enterprise/enterprise-view-candidates.js";

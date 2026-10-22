@@ -26,10 +26,23 @@ const coverage = z.enum(["partial", "complete", "not-provided"]);
 export const enterpriseCatalogV2Schema = enterpriseCatalogSchema.extend({schemaVersion:z.literal(2),format:z.literal("archi-agent-enterprise/2"),
   applications:z.array(applicationSchema).max(1000), supports:z.array(supportSchema).max(4000),
   supportScope:z.strictObject({description:label,applications:coverage,relationships:coverage})});
-export const enterpriseCatalogReadSchema = z.discriminatedUnion("schemaVersion",[enterpriseCatalogSchema,enterpriseCatalogV2Schema]);
+export const domainSchema = z.strictObject({id, name:label, provenance});
+export const landscapeApplicationSchema = applicationSchema.extend({domainId:id.optional(), owner:label.optional(),
+  lifecycle:z.enum(["planned","active","retiring","retired"]).optional(), ratings:capability.shape.ratings});
+export const valueStageSchema = z.strictObject({id, name:label, outcome:text(2000).optional(),
+  capabilityIds:z.array(id).max(1000), provenance});
+export const valueStreamSchema = z.strictObject({id, name:label, context:text(2000), outcome:text(2000).optional(),
+  stages:z.array(valueStageSchema).min(1).max(100), provenance});
+export const enterpriseCatalogV3Schema = enterpriseCatalogV2Schema.extend({schemaVersion:z.literal(3),format:z.literal("archi-agent-enterprise/3"),
+  applications:z.array(landscapeApplicationSchema).max(1000), domains:z.array(domainSchema).max(1000),
+  valueStreams:z.array(valueStreamSchema).max(100),
+  valueStreamScope:z.strictObject({description:label,streams:coverage,relationships:coverage}),
+  landscapeScope:z.strictObject({description:label,domains:coverage,attributes:coverage})});
+export type EnterpriseCatalogV3 = z.infer<typeof enterpriseCatalogV3Schema>;
+export const enterpriseCatalogReadSchema = z.discriminatedUnion("schemaVersion",[enterpriseCatalogSchema,enterpriseCatalogV2Schema,enterpriseCatalogV3Schema]);
 export type EnterpriseCatalogV1 = z.infer<typeof enterpriseCatalogSchema>;
 export type EnterpriseCatalogV2 = z.infer<typeof enterpriseCatalogV2Schema>;
-export type EnterpriseCatalog = EnterpriseCatalogV1 | EnterpriseCatalogV2;
+export type EnterpriseCatalog = EnterpriseCatalogV1 | EnterpriseCatalogV2 | EnterpriseCatalogV3;
 export type Capability = EnterpriseCatalog["capabilities"][number];
 export interface EnterpriseIssue { readonly code: string; readonly path: readonly (string | number)[]; readonly location?: SourceLocation }
 export class EnterpriseError extends Error {
@@ -85,11 +98,12 @@ export function validateEnterpriseCatalog(raw: unknown): EnterpriseCatalog {
     }
   });
   if (catalog.source.scope.coverage === "not-provided" && catalog.capabilities.length) problem("coverage-invalid", ["source", "scope", "coverage"]);
-  if(catalog.schemaVersion===2){
+  if(catalog.schemaVersion!==1){
     const apps=new Set<string>(),pairs=new Set<string>();
-    catalog.applications.forEach((a,i)=>{
+    catalog.applications.forEach((raw,i)=>{
+      const a=raw as z.infer<typeof landscapeApplicationSchema>;
       if(apps.has(a.id))problem("duplicate-application-id",["applications",i,"id"]);
-      apps.add(a.id);checkProvenance(a,["/name",...(a.description!==undefined?["/description"]:[])],["applications",i]);
+      apps.add(a.id);checkProvenance(a,["/name",...(a.description!==undefined?["/description"]:[]),...(catalog.schemaVersion===3?[...(a.domainId?["/domainId"]:[]),...(a.owner!==undefined?["/owner"]:[]),...(a.lifecycle!==undefined?["/lifecycle"]:[]),...Object.keys(a.ratings??{}).map(k=>`/ratings/${k}`)]:[])],["applications",i]);
     });
     catalog.supports.forEach((r,i)=>{
       const key=JSON.stringify([r.applicationId,r.capabilityId]);
@@ -101,11 +115,40 @@ export function validateEnterpriseCatalog(raw: unknown): EnterpriseCatalog {
     if(catalog.supportScope.applications==="not-provided"&&catalog.applications.length)problem("coverage-invalid",["supportScope","applications"]);
     if(catalog.supportScope.relationships==="not-provided"&&catalog.supports.length)problem("coverage-invalid",["supportScope","relationships"]);
   }
+  if(catalog.schemaVersion===3){
+    const domains=new Set<string>(), streams=new Set<string>(); let links=0;
+    catalog.domains.forEach((d,i)=>{if(domains.has(d.id))problem("duplicate-domain-id",["domains",i,"id"]);domains.add(d.id);checkProvenance(d,["/name"],["domains",i]);});
+    catalog.applications.forEach((raw,i)=>{
+      const a=raw as z.infer<typeof landscapeApplicationSchema>;
+      if(a.domainId&&!domains.has(a.domainId))problem("domain-missing",["applications",i,"domainId"]);
+      for(const [key,value] of Object.entries(a.ratings??{}))if(!scales.get(key)?.levels.some(l=>l.value===value))problem("rating-invalid",["applications",i,"ratings",key]);
+    });
+    catalog.valueStreams.forEach((v,i)=>{
+      if(streams.has(v.id))problem("duplicate-stream-id",["valueStreams",i,"id"]);streams.add(v.id);
+      checkProvenance(v,["/name","/context","/stages",...(v.outcome!==undefined?["/outcome"]:[])],["valueStreams",i]);
+      const stages=new Set<string>();
+      v.stages.forEach((stage,j)=>{
+        if(stages.has(stage.id))problem("duplicate-stage-id",["valueStreams",i,"stages",j,"id"]);stages.add(stage.id);
+        if(new Set(stage.capabilityIds).size!==stage.capabilityIds.length)problem("duplicate-mapping",["valueStreams",i,"stages",j,"capabilityIds"]);
+        stage.capabilityIds.forEach((c,k)=>{if(!records.has(c))problem("capability-missing",["valueStreams",i,"stages",j,"capabilityIds",k]);});links+=stage.capabilityIds.length;
+        checkProvenance(stage,["/name","/capabilityIds",...(stage.outcome!==undefined?["/outcome"]:[])],["valueStreams",i,"stages",j]);
+      });
+    });
+    if(links>4000)problem("mapping-limit",["valueStreams"]);
+    if(catalog.valueStreamScope.streams==="not-provided"&&catalog.valueStreams.length)problem("coverage-invalid",["valueStreamScope","streams"]);
+    if(catalog.valueStreamScope.relationships==="not-provided"&&links)problem("coverage-invalid",["valueStreamScope","relationships"]);
+    if(catalog.landscapeScope.domains==="not-provided"&&(catalog.domains.length||catalog.applications.some(a=>a.domainId)))problem("coverage-invalid",["landscapeScope","domains"]);
+    if(catalog.landscapeScope.attributes==="not-provided"&&catalog.applications.some(a=>a.owner!==undefined||a.lifecycle!==undefined||Object.keys(a.ratings??{}).length))problem("coverage-invalid",["landscapeScope","attributes"]);
+  }
   if (issues.length) throw new EnterpriseError("invalid-source", issues.slice(0, 100), issues.length);
   return catalog;
 }
 
+export interface EnterpriseRecordLocator { readonly pointer:string; readonly location?:SourceLocation }
 export interface LocalEnterpriseEvidence {
+  readonly domains?:Readonly<Record<string,EnterpriseRecordLocator>>;
+  readonly valueStreams?:Readonly<Record<string,EnterpriseRecordLocator>>;
+  readonly stages?:Readonly<Record<string,EnterpriseRecordLocator>>;
   readonly file: string;
   readonly sourceBytesSha256: string;
   readonly capabilities: Readonly<Record<string, { readonly pointer: string; readonly fields: Readonly<Record<string, SourceLocation>> }>>;
@@ -114,12 +157,15 @@ export interface LocalEnterpriseEvidence {
   readonly supports?: Readonly<Record<string,{readonly pointer:string;readonly location:SourceLocation}>>;
 }
 export interface McpEnterpriseEvidence {
+  readonly domains?:Readonly<Record<string,EnterpriseRecordLocator>>;
+  readonly valueStreams?:Readonly<Record<string,EnterpriseRecordLocator>>;
+  readonly stages?:Readonly<Record<string,EnterpriseRecordLocator>>;
   readonly kind: "mcp";
   readonly sourceId: string;
   readonly sourceVersion: string;
   readonly responseFingerprint: string;
-  readonly tool: "get_enterprise_snapshot" | "get_enterprise_snapshot_v2";
-  readonly contractVersion: 1 | 2;
+  readonly tool: "get_enterprise_snapshot" | "get_enterprise_snapshot_v2" | "get_enterprise_snapshot_v3";
+  readonly contractVersion: 1 | 2 | 3;
   readonly capabilities: Readonly<Record<string, { readonly pointer: string; readonly fields: Readonly<Record<string, {readonly pointer:string}>> }>>;
   readonly scales: Readonly<Record<string, {readonly pointer:string}>>;
   readonly applications?: Readonly<Record<string,{readonly pointer:string}>>;
@@ -140,9 +186,13 @@ export function createEnterpriseSnapshot<E extends EnterpriseEvidence>(catalog: 
     .sort((a, b) => stableCompare(canonicalSerialize(a), canonicalSerialize(b)));
   owned.capabilities = owned.capabilities.map(c => ({ ...c, provenance: normalize(c.provenance) })).sort((a,b) => stableCompare(a.id,b.id));
   owned.scales = owned.scales.map(s => ({ ...s, provenance: normalize(s.provenance) })).sort((a,b) => stableCompare(a.id,b.id));
-  if(owned.schemaVersion===2){
+  if(owned.schemaVersion!==1){
     owned.applications=owned.applications.map(a=>({...a,provenance:normalize(a.provenance)})).sort((a,b)=>stableCompare(a.id,b.id));
     owned.supports=owned.supports.map(r=>({...r,provenance:normalize(r.provenance)})).sort((a,b)=>stableCompare(a.applicationId,b.applicationId)||stableCompare(a.capabilityId,b.capabilityId));
+  }
+  if(owned.schemaVersion===3){
+    owned.domains=owned.domains.map(d=>({...d,provenance:normalize(d.provenance)})).sort((a,b)=>stableCompare(a.id,b.id));
+    owned.valueStreams=owned.valueStreams.map(v=>({...v,provenance:normalize(v.provenance),stages:v.stages.map(stage=>({...stage,capabilityIds:[...stage.capabilityIds].sort(stableCompare),provenance:normalize(stage.provenance)}))})).sort((a,b)=>stableCompare(a.id,b.id));
   }
   const records = new Map(owned.capabilities.map(c => [c.id, c]));
   const hierarchy = owned.capabilities.map(c => {

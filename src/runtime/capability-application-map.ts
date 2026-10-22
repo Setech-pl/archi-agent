@@ -9,11 +9,11 @@ export type ApplicationMapView=Omit<ApplicationMapSelection,"expectedCatalogDige
 export async function generateApplicationMap(request:{source:EnterpriseSourceConfig;selection:ApplicationMapView},signal?:CancellationSignal,policy?:LocalReadPolicy){
  const deadline=Date.now()+30000,check=()=>{if(signal?.aborted)throw new EnterpriseError("cancelled");if(Date.now()>=deadline)throw new EnterpriseError("deadline-exceeded");};
  try{
-  check();const source=request.source.kind==="mcp"?{...request.source,contractVersion:2 as const}:request.source;
+  check();const source=request.source.kind==="mcp"?{...request.source,contractVersion:request.source.contractVersion??2 as const}:request.source;
   const snapshot=await loadEnterpriseSource(source,{get aborted(){return !!signal?.aborted||Date.now()>=deadline;}},policy,deadline);check();
   const p=projectApplicationMap(snapshot,{...request.selection,expectedCatalogDigest:request.selection.expectedCatalogDigest??snapshot.catalogDigest}),render=renderApplicationMap(p),e=snapshot.evidence,c=snapshot.catalog;
-  if(c.schemaVersion!==2)throw new EnterpriseError("support-data-unavailable");
-  const report=deepFreeze(applicationMapReportSchema.parse({format:"archi-agent-capability-application-map-report/1",diagramType:"capability-application-map",modelCalls:0,generationPath:"deterministic-catalog-projection",rendererVersion:1,
+  if(c.schemaVersion===1)throw new EnterpriseError("support-data-unavailable");
+  const report=deepFreeze(applicationMapReportSchema.parse({format:`archi-agent-capability-application-map-report/${c.schemaVersion===3?2:1}`,diagramType:"capability-application-map",modelCalls:0,generationPath:"deterministic-catalog-projection",rendererVersion:1,
    source:{contract:c.format,identity:c.source,evidence:"kind"in e?{kind:"mcp",sourceId:e.sourceId,sourceVersion:e.sourceVersion,responseFingerprint:e.responseFingerprint,tool:e.tool,contractVersion:e.contractVersion}:{file:e.file,sourceBytesSha256:e.sourceBytesSha256}},
    snapshot:{id:`enterprise-${snapshot.catalogDigest}`,catalogDigest:snapshot.catalogDigest},projectionDigest:p.projectionDigest,selection:p.selection,supportScope:c.supportScope,
    capabilities:p.capabilities.map(record=>({record,locator:e.capabilities[record.id],renderLine:render.lines[`capability:${record.id}`],documentedSupportCount:p.supports.filter(r=>r.capabilityId===record.id).length})),

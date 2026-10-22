@@ -1,3 +1,4 @@
+import type {EnterpriseViewCandidate} from "./enterprise-view-candidates.js";
 import { z } from "zod";
 import { deepFreeze, enterpriseCatalogSchema, validateEnterpriseCatalog, EnterpriseError, type EnterpriseCatalog } from "./enterprise-catalog.js";
 import { candidateDigest, candidateCanonical, documentEvidenceSlices, type DocumentSourceBundle } from "../knowledge-pack/builder/document-candidates.js";
@@ -39,6 +40,7 @@ export interface EnterpriseCandidateOrigin {
   readonly locations: "captured-document" | "converted-text" | "user-description";
 }
 export interface EnterpriseProposal {
+  readonly viewCandidates?:readonly EnterpriseViewCandidate[];
   readonly version: 1;
   readonly sessionId: string;
   readonly mode: EnterpriseBuildMode;

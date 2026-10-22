@@ -9,7 +9,7 @@ export type ApplicationMapSelection=z.infer<typeof applicationMapSelectionSchema
 export function projectApplicationMap(snapshot:EnterpriseSnapshot,raw:ApplicationMapSelection){
  const p=applicationMapSelectionSchema.safeParse(raw);if(!p.success)throw new EnterpriseError("invalid-selection");const selection=p.data,c=snapshot.catalog;
  if(selection.expectedCatalogDigest!==snapshot.catalogDigest)throw new EnterpriseError("stale-source");
- if(c.schemaVersion!==2||c.supportScope.applications==="not-provided"||c.supportScope.relationships==="not-provided")throw new EnterpriseError("support-data-unavailable");
+ if(c.schemaVersion===1||c.supportScope.applications==="not-provided"||c.supportScope.relationships==="not-provided")throw new EnterpriseError("support-data-unavailable");
  if(new Set(selection.capabilityIds).size!==selection.capabilityIds.length||selection.capabilityIds.some(id=>!c.capabilities.some(v=>v.id===id)))throw new EnterpriseError("invalid-selection");selection.capabilityIds.sort(stableCompare);
  const selected=new Set(selection.capabilityIds.length?selection.capabilityIds:c.capabilities.map(v=>v.id));
  if(selection.includeDescendants)for(let i=0;i<3;i++)for(const cap of c.capabilities)if(cap.parentId&&selected.has(cap.parentId))selected.add(cap.id);

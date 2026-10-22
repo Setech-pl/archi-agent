@@ -1,3 +1,4 @@
+import {enterpriseViewReportSchema,type EnterpriseViewReport} from "../core/enterprise/enterprise-views.js";
 import {applicationMapReportSchema,type ApplicationMapReport} from "../core/enterprise/capability-application-report.js";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
@@ -13,12 +14,12 @@ import { capabilityMapReportSchema, type CapabilityMapReport } from "../core/ent
 export interface DiagramArtifact {
   readonly resultId: string;
   readonly createdAt: string;
-  readonly diagramType: "sequence" | "component" | "c4-context" | "c4-container" | "capability-map" | "capability-application-map";
+  readonly diagramType: "sequence" | "component" | "c4-context" | "c4-container" | "capability-map" | "capability-application-map" | "value-stream" | "application-landscape";
   readonly plantUml: string;
   readonly report: Readonly<Record<string, CanonicalValue>>;
   readonly metadata: Readonly<Record<string, CanonicalValue>>;
 }
-const sourceLocations = new WeakMap<DiagramArtifact, { pack: string|null; model?: string; flow: string | null; enterprise?:string|null; enterpriseRemote?:{sourceId:string;tool:"get_enterprise_snapshot"|"get_enterprise_snapshot_v2";contractVersion:1|2} }>();
+const sourceLocations = new WeakMap<DiagramArtifact, { pack: string|null; model?: string; flow: string | null; enterprise?:string|null; enterpriseRemote?:{sourceId:string;tool:"get_enterprise_snapshot"|"get_enterprise_snapshot_v2"|"get_enterprise_snapshot_v3";contractVersion:1|2|3} }>();
 const completed = new WeakSet<DiagramArtifact>();
 const hash = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 function freeze<T>(value: T): T {
@@ -127,16 +128,20 @@ export function captureCapabilityMapArtifact(plantUml:string, input:CapabilityMa
 export function captureApplicationMapArtifact(plantUml:string,input:ApplicationMapReport,sourcePath?:string|null):DiagramArtifact{
  const report=applicationMapReportSchema.parse(input),e=report.source.evidence;
  return captureEnterpriseArtifact(plantUml,report as unknown as Record<string,CanonicalValue>,report.diagramType,report.generationPath,report.selection as unknown as CanonicalValue,
- report.snapshot,report.projectionDigest,report.source.contract,1,"kind"in e?e:undefined,"kind"in e?undefined:e,sourcePath);
+ report.snapshot,report.projectionDigest,report.source.contract,report.format.endsWith("/2")?2:1,"kind"in e?e:undefined,"kind"in e?undefined:e,sourcePath);
+}
+export function captureEnterpriseViewArtifact(plantUml:string,input:EnterpriseViewReport,sourcePath?:string|null):DiagramArtifact{
+ const report=enterpriseViewReportSchema.parse(input),e=report.source.evidence;
+ return captureEnterpriseArtifact(plantUml,report as unknown as Record<string,CanonicalValue>,report.diagramType,report.generationPath,report.selection as unknown as CanonicalValue,report.snapshot,report.projectionDigest,report.source.contract,1,"kind"in e?e:undefined,"kind"in e?undefined:e,sourcePath);
 }
 function captureEnterpriseArtifact(plantUml:string,report:Record<string,CanonicalValue>,diagramType:DiagramArtifact["diagramType"],generationPath:string,selection:CanonicalValue,
  snapshot:{id:string;catalogDigest:string},projectionDigest:string,contract:string,reportVersion:number,
- remote:{sourceId:string;sourceVersion:string;responseFingerprint:string;tool:"get_enterprise_snapshot"|"get_enterprise_snapshot_v2";contractVersion:1|2}|undefined,
+ remote:{sourceId:string;sourceVersion:string;responseFingerprint:string;tool:"get_enterprise_snapshot"|"get_enterprise_snapshot_v2"|"get_enterprise_snapshot_v3";contractVersion:1|2|3}|undefined,
  local:{sourceBytesSha256:string}|undefined,sourcePath?:string|null):DiagramArtifact{
  if(!remote&&sourcePath!==null&&!sourcePath||remote&&sourcePath!==undefined)throw new Error("artifact-report-invalid");
  const configuration={diagramType,generationPath,selection};
  const artifact:DiagramArtifact=freeze({resultId:randomUUID(),createdAt:new Date().toISOString(),diagramType,plantUml,report,metadata:{
- versions:{runtime:null,extension:null,runtimeContract:contract.endsWith("/2")?"enterprise/2":"enterprise/1",reportContract:reportVersion,knowledgeContract:contract},
+ versions:{runtime:null,extension:null,runtimeContract:contract.replace("archi-agent-",""),reportContract:reportVersion,knowledgeContract:contract},
  enterprise:{snapshotId:snapshot.id,catalogDigest:snapshot.catalogDigest,projectionDigest,...(remote?{sourceVersion:remote.sourceVersion,responseFingerprint:remote.responseFingerprint}:{sourceBytesSha256:local!.sourceBytesSha256})},
  configuration:{projection:configuration,serialization:"canonical-json-utf8-v1",sha256:hash(serializeArtifactConfiguration(configuration))},warnings:[]}});
  sourceLocations.set(artifact,{pack:null,flow:null,...(remote?{enterpriseRemote:{sourceId:remote.sourceId,tool:remote.tool,contractVersion:remote.contractVersion}}:{enterprise:sourcePath})});completed.add(artifact);return artifact;

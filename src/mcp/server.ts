@@ -20,7 +20,7 @@ export class BoundedStdin extends Transform {
 }
 export async function serveMcp(config:LocalHostConfig):Promise<void>{
   const ops=new LocalOperations(config,"mcp"),lifetime=new AbortController();let active=false;let activeDone=Promise.resolve();
-  const server=new Server({name:"archi-agent",version:"0.3.0-alpha.7"},{capabilities:{tools:{}}});
+  const server=new Server({name:"archi-agent",version:"0.3.0-alpha.8"},{capabilities:{tools:{}}});
   server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:Object.entries(toolSchemas).map(([name,schema])=>{
     const operation=operations[name as keyof typeof operations];
     const base=hostResultSchema.options.find(s=>s.shape.operation.value===operation)!;
@@ -32,7 +32,7 @@ export async function serveMcp(config:LocalHostConfig):Promise<void>{
     if(!Object.hasOwn(toolSchemas,name))throw new McpError(ErrorCode.InvalidParams,"Unknown tool.");
     const operation=operations[name],parsed=toolSchemas[name].safeParse(request.params.arguments);
     const isApplicationMap=request.params.arguments?.diagramType==="capability-application-map";
-    const enterprise=isApplicationMap?"capability-application-map":(name==="inspect_knowledge"||name==="generate_diagram")&&["capability-map","capability-application-map"].includes(String(request.params.arguments?.diagramType));
+    const enterprise=["value-stream","application-landscape"].includes(String(request.params.arguments?.diagramType))?String(request.params.arguments?.diagramType):isApplicationMap?"capability-application-map":(name==="inspect_knowledge"||name==="generate_diagram")&&["capability-map","capability-application-map"].includes(String(request.params.arguments?.diagramType));
     if(active||!parsed.success){const result=await ops.run(operation,async()=>ops.failure(operation,active?"busy":"arguments-invalid",enterprise),new AbortController().signal,undefined,enterprise);return {structuredContent:result,content:[{type:"text"as const,text:JSON.stringify(result)}],isError:true};}
     active=true;let finishActive!:()=>void;activeDone=new Promise<void>(resolve=>{finishActive=resolve;});const controller=new AbortController();
     const abort=()=>controller.abort();extra.signal.addEventListener("abort",abort,{once:true});lifetime.signal.addEventListener("abort",abort,{once:true});

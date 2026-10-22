@@ -20,7 +20,7 @@ npm run extension:typecheck
 npm run extension:test
 npm run extension:build
 npm run extension:package -- --profile core --out build/docs-pl-en/<unique-run>/candidate
-npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.7.vsix
+npm run extension:verify -- build/docs-pl-en/<unique-run>/candidate/archi-agent-core-0.3.0-alpha.8.vsix
 ```
 
 `prepare-ci-ocr.mjs` fetches and SRI-verifies all eight pinned canvas 0.1.97 platform tarballs and prepares Full resources, including the same-version ICU supplement. Run it before tests that package Full; the two npm installs alone do not supply these archives. [OCR build details](../../experiments/ux2-ocr/README.md).
@@ -92,5 +92,5 @@ The developer-only EA1 runner uses Node 22.12 and the existing local VS Code/mac
 node scripts/ea1-verify.mjs gates build/ea1/<unique-run>
 node scripts/ea1-verify.mjs runtime build/ea1/<unique-run>
 node scripts/ea1-verify.mjs host build/ea1/<unique-run>
-node scripts/ea1-real-ui-smoke.mjs build/ea1/<unique-run>/core/archi-agent-core-0.3.0-alpha.7.vsix build/ea1/<unique-run>/ui
+node scripts/ea1-real-ui-smoke.mjs build/ea1/<unique-run>/core/archi-agent-core-0.3.0-alpha.8.vsix build/ea1/<unique-run>/ui
 ```

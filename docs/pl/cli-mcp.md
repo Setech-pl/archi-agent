@@ -3,16 +3,16 @@
 [English](../en/cli-mcp.md) · **Polski**
 
 MCP1 udostępnia ten sam runtime Archi Agent przez CLI, serwer MCP stdio
-oraz dwa profile VS Code, dostępne w [publicznym DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Lokalne prace EA1/EA1b są poza tym wydaniem. Weryfikacja dotyczy Sequence
+oraz dwa profile VS Code, dostępne w [publicznym DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Lokalne prace EA1/EA1b są poza tym wydaniem. Weryfikacja dotyczy Sequence
 PlantUML i prozy, nie diagramów Component ani C4. Generowanie obsługuje cztery istniejące
 typy: Sequence, Component, C4 Context i C4 Container. Lokalny kandydat EA1b dodaje deterministyczną Capability Map; opublikowane DEMO1 nie zawiera EA1/EA1b.
 
 ## Instalacja lokalnej paczki
 
-Pobierz tarball CLI z DEMO1 i sprawdź go z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) tego wydania, następnie zainstaluj:
+Pobierz tarball CLI z DEMO1 i sprawdź go z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) tego wydania, następnie zainstaluj:
 
 ```bash
-npm install --global ./archi-agent-cli-0.3.0-alpha.7.tgz
+npm install --global ./archi-agent-cli-0.3.0-alpha.8.tgz
 archi-agent --version
 ```
 
@@ -378,3 +378,17 @@ MCP enterpriseSources może deklarować `contractVersion:2`; EA2 zawsze wybiera 
 `get_enterprise_snapshot_v2` przed połączeniem. Narzędzia v1 pozostają ścisłe; bez fallbacku i cichego
 odrzucania pól v2. Brak danych wsparcia oznacza nieznane, nie brak aplikacji. Renderowanie ma zero
 wywołań LLM. Zapis ART1 jest jawną akcją VS Code. Zobacz [kontrakt](../enterprise-catalog.md).
+
+## Value Stream / Application Landscape
+
+W konfiguracji v2 wskaż źródło enterprise `architecture/enterprise-views.json`. Provider nie jest potrzebny. MCP wybiera `get_enterprise_snapshot_v3`; narzędzie funkcyjne używa tych samych pól `selection`. CLI/MCP zwraca dane bez zapisu plików.
+
+```bash
+node /absolute/cli/bin/archi-agent.cjs diagram generate --config /absolute/config.json --source retail --type value-stream --stream purchase-to-receipt --language pl --format json
+```
+
+```bash
+node /absolute/cli/bin/archi-agent.cjs diagram generate --config /absolute/config.json --source retail --type application-landscape --color-scale maturity --language pl --format json
+```
+
+Zawężaj przez `--stage ID`, `--domain ID` lub `--application ID`. Function MCP przyjmuje tablice `stageIds`, `domainIds` i `applicationIds`. Po błędzie rozmiaru zawęź zakres.

@@ -24,10 +24,10 @@ preserves software knowledge v1. EAU1 adds captured active JSON; EAK1 adds revie
 | 3 | AUD-003/004 fixes | Local AUD-FIX2 fixes and acceptance complete; owner smoke deferred; no publication |
 | 4 | EAK2 catalog updates | Implemented local candidate; native UI acceptance blocked; no functional checkpoint yet |
 | 5 | EA2 Capability–Application Map | Implemented local candidate with explicit application IDs/support/provenance/coverage; shared acceptance pending native UI |
-| 6 | EA3 Value Stream | Planned: explicit ordered stages, value and capability mappings |
-| 7 | EA4 Application Landscape | Planned: application portfolio and explicit ownership/domains/assessments |
+| 6 | EA3 Value Stream | Implemented candidate: explicit ordered stages, context/outcomes, capability mappings and reviewed updates |
+| 7 | EA4 Application Landscape | Implemented candidate: shared application identities, domains, optional owner/lifecycle, explicit scale ratings |
 
-The order is approved; each future implementation still requires its own authorized scope.
+The order is approved; the current EA3/EA4 release brief authorizes completion and prerelease publication.
 
 ## Considered / deferred
 

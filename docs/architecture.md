@@ -70,3 +70,11 @@ EA2 adds strict enterprise/2 applications and endpoint-pair support with indepen
 separate fixed MCP v2 tool is explicitly selected; knowledge/enterprise v1 remain strict. Core projects
 direct links and runtime generates the zero-model report and ART1 original pair. VS Code, CLI and
 function MCP share semantics. [Contracts and boundaries](enterprise-catalog.md#controlled-catalog-updates--eak2).
+
+## Enterprise views v3
+
+Enterprise/3 extends the strict local/MCP catalog with ordered value streams and optional application
+landscape attributes, preserving EA2 application identity. Closed deterministic projections/renderers
+and strict reports live in core; runtime loads one frozen snapshot and captures ART1. Thin hosts expose
+the same selection semantics with no provider reads. Native guided input and the existing bounded
+one-call proposal capture feed the existing EAK2 review/save path. [Contract](enterprise-catalog.md).

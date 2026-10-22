@@ -234,3 +234,52 @@ Enterprise source configuration may specify `contractVersion:2`; absent means v1
 before contacting MCP, never in response to an error. Missing tool or incompatible version is an
 explicit error; there is no v1 fallback. The same choice exists in VS Code `enterpriseSource` and
 config v2 `enterpriseSources`. Software source configuration and knowledge v1 are unchanged.
+
+## Value Stream and Application Landscape — enterprise/3
+
+Strict `schemaVersion:3`, `format:"archi-agent-enterprise/3"` extends enterprise/2 without migration.
+Applications retain EA2 IDs and support links; optional fields are `domainId`, `owner`,
+`lifecycle` (planned/active/retiring/retired) and `ratings` using existing explicitly defined scales.
+`domains[]` contains stable `id`, `name`, `provenance`. Applications without a domain remain visible
+in a whole-portfolio view. Unknown ratings differ from explicit zero. Domain membership and
+multiple applications never imply redundancy, cost, risk or investment advice.
+
+`valueStreams[]` contains `id`, `name`, explicit `context` (recipient or value context), optional
+`outcome`, `stages[]` and provenance. A stage has stable stream-local `id`, `name`, optional
+`outcome`, explicit `capabilityIds[]` and provenance. The array order is declared information;
+capability IDs are references, never stage identities. Several capabilities may support a stage,
+and capabilities may appear in several stages/streams. Stage order requires `/stages` provenance;
+all supplied business fields require field coverage. Reference/duplicate/scale validation is strict.
+`valueStreamScope:{description,streams,relationships}` and `landscapeScope:{description,domains,attributes}`
+use complete/partial/not-provided. These declarations describe supplied knowledge, never universal absence.
+
+Limits: 1 MiB input, 1,000 applications/capabilities/domains, 100 streams, 100 stages per stream,
+4,000 explicit stage mappings. A view is limited to 120 nodes including domain groups, 240 edges,
+256 KiB PlantUML and 1 MiB report. Exceeding bounds requires narrowing; nothing is silently clipped.
+Canonical snapshots sort identity collections and capability sets, retaining declared stage order.
+
+`generateValueStream` selects `streamId`, optional `stageIds` (empty means all), language and optional
+expected catalog digest. Narrowed stages keep original ordinals; omitted stages never create new
+adjacency. `generateApplicationLandscape` selects `domainIds`/`applicationIds` (empty means all),
+`colorBy:{kind:"none"}` or `{kind:"rating",scaleId}`, language and optional expected digest.
+Reports `archi-agent-value-stream-report/1` and `archi-agent-application-landscape-report/1` retain
+records, provenance, source/transport evidence, actual JSON/MCP locators, scope, omissions and
+snapshot/projection digests. Rendering uses safe generated aliases and zero LLM/provider calls.
+ART1 saves the original pair. EA1 uses report formatVersion 4 for v3; EA2 uses report/2 for v3.
+Earlier report contracts and v1/v2 catalogs remain supported.
+
+The fixed `get_enterprise_snapshot_v3({sourceId,contractVersion:3})` returns strict
+`archi-agent-enterprise-snapshot/3`. Source-version and semantic digests include all v3 information.
+V1/v2 tools reject v3 catalogs rather than removing fields. New views explicitly select v3 before
+transport; no fallback after errors. Config v2 accepts enterprise `contractVersion:3`; knowledge v1
+is unchanged. No remote source writes.
+
+The existing update review offers native guided domain/stream/application/scale forms, model proposals
+from captured materials, before/after review, identity binding, explicit decisions and guarded save.
+Order has a separate explicit confirmation. Model basis/evidence is retained separately from accepted
+user operations in the companion report. Acceptance never manufactures a source quote. Defining a
+scale requires 2–7 explicit ascending levels; no ratings are inferred. Updates retain untouched v3
+collections/provenance; deletion blocks on unresolved references without cascades. Guarded save
+preserves EOL, verifies document version and disk digest, then reloads exact saved bytes. This is not
+filesystem CAS or an atomic multi-file transaction. Historical unexplained safe-conflict remains an
+open LOW observation; no evidence of foreign-data loss or false saved status was found.

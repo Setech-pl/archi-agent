@@ -4,7 +4,7 @@
 
 ## Publiczne DEMO1: profile i wiedza
 
-Publiczny prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) udostępnia VSIX Core i Full, CLI oraz dwa dwujęzyczne ZIP-y demo. Zawiera serwer czterech funkcji MCP i klienta wiedzy MCP. Dokładne pliki identyfikują jego [manifest wydania](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Ta gałąź zawiera także opisanego poniżej kandydata integracji EA1/EA1b; publiczne DEMO1 nie zawiera Capability Map. [Instalacja CLI/MCP, polecenia i kontrakty](cli-mcp.md).
+Publiczny prerelease [**DEMO1 v0.3.0-alpha.8**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8) udostępnia VSIX Core i Full, CLI oraz dwa dwujęzyczne ZIP-y demo. Zawiera serwer czterech funkcji MCP i klienta wiedzy MCP. Dokładne pliki identyfikują jego [manifest wydania](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) i [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS). Ta gałąź zawiera także opisanego poniżej kandydata integracji EA1/EA1b; publiczne DEMO1 nie zawiera Capability Map. [Instalacja CLI/MCP, polecenia i kontrakty](cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) jest rekomendowany nowym użytkownikom. Zawiera wspólny runtime oraz tekstową konwersję PDF/DOCX/XLSX, bez zależności i modeli OCR. **Full** (`setech-pl.archi-agent`) dodaje przypięte lokalne OCR PL/EN. Istniejący Full pozostaje Full. Żaden profil nie pobiera OCR. W Core Auto OCR działa dla tekstowych PDF; strona wymagająca OCR zatrzymuje konwersję z jawnym pokryciem, bez częściowego Markdown. OCR all pages wymaga Full. Uszkodzony Full zgłasza błąd instalacji: zainstaluj ponownie zweryfikowany VSIX Full.
 
@@ -112,7 +112,7 @@ Rzeczywiste zainstalowane UI, publiczny przykład Big Bank, syntetyczne odpowied
 
 ## Instalacja na Macu i Windows
 
-Pobierz VSIX Core lub Full z [publicznego DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Porównaj SHA-256 z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) tego wydania. Wersja paczki to **0.3.0-alpha.7**, a tag wydania to **v0.3.0-alpha.7-demo.1**. Lokalny build lub artefakt CI może mieć inny hash i nie jest opublikowaną paczką.
+Pobierz VSIX Core lub Full z [publicznego DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Porównaj SHA-256 z [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) i [manifestem](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) tego wydania. Wersja paczki to **0.3.0-alpha.7**, a tag wydania to **v0.3.0-alpha.8**. Lokalny build lub artefakt CI może mieć inny hash i nie jest opublikowaną paczką.
 
 Mac:
 
@@ -425,3 +425,40 @@ Katalogi v1 i Capability Map nadal działają. Enterprise MCP v1 pozostaje bez z
 `get_enterprise_snapshot_v2` / contractVersion 2 bez fallbacku. Dla Capability Map ze zdalnego katalogu
 v2 ustaw `enterpriseSource.contractVersion:2`. Zobacz [kontrakt enterprise](../enterprise-catalog.md)
 i [CLI/MCP](cli-mcp.md).
+
+## Value Stream i Application Landscape
+
+Otwórz `architecture/enterprise-views.json` w demo Retail i uruchom **Archi: Create Diagram → Enterprise Architecture**.
+Wybierz **Value Stream** dla drogi od potrzeby zakupowej do otrzymania zamówienia lub **Application Landscape**
+dla portfela aplikacji. Wybierz aktywny dokument (przechwycony także z niezapisanymi zmianami) albo ten sam plik
+lokalny. Te widoki nie potrzebują modelu/providera i mają zero wywołań LLM. Obsługują też jawnie wersjonowane
+źródło enterprise MCP. Raport towarzyszy edytowalnemu PlantUML; podgląd graficzny wymaga osobnego renderera.
+
+Dla Value Stream wybierz strumień i etapy. Widok zachowuje jawną kolejność i pierwotne numery etapów;
+wspólne powiązania ze zdolnościami są jawne. Kontekst, rezultaty, dowody, deklarowane pokrycie i pominięcia
+pozostają w raporcie. Częściowe źródło nie dowodzi, że firma nie ma danej zdolności.
+Dla Landscape wybierz cały portfel albo domenę biznesową oraz opcjonalną zdefiniowaną skalę ocen.
+Aplikacje bez domeny pozostają widoczne w całym portfelu. Brak właściciela, cyklu życia lub oceny oznacza
+nieznane dane; zero ma znaczenie nadane przez jawną skalę. Wiele aplikacji nie dowodzi redundancji.
+Po przekroczeniu limitu wybierz mniej etapów, domen lub aplikacji; wynik nie jest obcinany.
+
+Własne dane utworzysz przez **Archi: Build Enterprise Catalog**: przejrzyj propozycję zdolności i zapisz katalog.
+Następnie **Archi: Update Enterprise Catalog** oferuje **Dodaj / zmień domenę biznesową**, **Dodaj / zmień
+strumień i jawną kolejność etapów**, **Zmień aplikację, właściciela, cykl życia lub ocenę** oraz **Zdefiniuj jawną
+skalę ocen**. To prowadzone formularze; edycja JSON jest opcjonalna. Zachowuj ID przy zmianie nazwy,
+wybieraj jawne powiązania zdolności i potwierdź kolejność etapów. Zmieniając strumień, zachowaj istniejące ID
+etapów i podaj docelową uporządkowaną listę; pominięte etapy zobaczysz w różnicach przed akceptacją.
+
+**Propozycje Value Stream / Landscape z materiałów** reużywa zaznaczenie, przechwycony cały dokument,
+wpisany opis lub wybrane pliki, ograniczoną konwersję, konfigurację providera i jedno jawne wywołanie modelu.
+Ekstrakcja wymaga dowodów dla każdego podanego pola; tryb propozycji zachowuje nieudowodnioną kolejność jako
+propozycję. **Przejrzyj propozycję nowych widoków i wskaż ID** pokazuje pierwotne pochodzenie pól i dowody,
+a prowadzone formularze pozwalają wskazać tożsamości i referencje. Przejrzyj różnice, jawnie zaakceptuj lub
+odrzuć każdą zmianę, potwierdź ostrzeżenia i **Zatwierdź i zapisz katalog**. Akceptacja jest decyzją użytkownika,
+a nie cytatem ze starego źródła. Usuwanie wymaga jawnego rozwiązania zależności. Konflikt zachowuje cudze
+bajty na dysku; sprawdź bufor i rozpocznij nową sesję aktualizacji. Zachowuj raporty `enterprise-updates/`
+razem z katalogiem. **Save Diagram and Report** zapisuje oryginalną parę ART1; edycja podglądu jej nie zmienia.
+
+To prerelease z odroczonym odbiorem właściciela. Testy syntetyczne nie potwierdzają jakości żywego modelu
+ani dodatkowych platform natywnych. Automatyzacja widocznego UI może być niedostępna; kontrole paczek,
+runtime i Extension Host są raportowane oddzielnie. Historyczna obserwacja bezpiecznego konfliktu pozostaje otwarta.

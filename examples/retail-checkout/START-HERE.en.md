@@ -1,4 +1,4 @@
-[Polski](START-HERE.pl.md) · [Public packages](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1)
+[Polski](START-HERE.pl.md) · [Public packages](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8)
 
 # Retail Checkout — start here
 
@@ -10,7 +10,7 @@ A complete synthetic architecture is already in `architecture/`. The first resul
 
 ## 1. Download and install
 
-Download this [project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-retail-checkout-0.3.0-alpha.7-demo.1.zip) and extract it into a new local folder. Spaces and Polish characters are supported. Desktop VS Code **1.91+** is required. Pick [Core VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix) for this first exercise, or [Full VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix) for optional offline PL/EN OCR. Verify the release `SHA256SUMS` before installation. Core and Full run the same product runtime.
+Download this [project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-demo-retail-checkout-0.3.0-alpha.8.zip) and extract it into a new local folder. Spaces and Polish characters are supported. Desktop VS Code **1.91+** is required. Pick [Core VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-core-0.3.0-alpha.8.vsix) for this first exercise, or [Full VSIX](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-full-0.3.0-alpha.8.vsix) for optional offline PL/EN OCR. Verify the release `SHA256SUMS` before installation. Core and Full run the same product runtime.
 
 Use **Extensions → … → Install from VSIX…**, enable exactly one profile, and **Developer: Reload Window**. Existing Full users may keep Full. When changing profiles, shared settings stay, but cloud keys belong to each extension ID and must be entered again. Normal VSIX use needs **no clone, npm, separate Node, Java or PlantUML**. Archi Agent opens diagram text; a graphical preview requires an additional PlantUML renderer.
 
@@ -38,7 +38,7 @@ Run **Archi: Configuration → Knowledge Management**. Expect **1 actor, 6 syste
 
 ![Current Configuration example (DOC2, Big Bank)](assets/20-configuration.png)
 
-This DOC2 reference shows the same controls with Big Bank counts; the first image above is this project. [DOC2 capture provenance](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/assets/screenshots/README.md).
+This DOC2 reference shows the same controls with Big Bank counts; the first image above is this project. [DOC2 capture provenance](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/assets/screenshots/README.md).
 
 ## 3. First result — no model
 
@@ -88,7 +88,7 @@ Keep the downloaded ZIP unchanged. For a fresh alias exercise, extract a second 
 
 Replace a **copy** of `architecture/workspace.json` with your Structurizr JSON, retain stable original IDs, update all three overlay tables and source_id, then validate in Configuration before use. People, systems, containers and static relationships are supported; components/deployment/views are outside projection. DSL and direct EA import are unavailable. A flat Markdown pack does not provide the hierarchy C4 requires. Review facts before sending the selected minimal context to your provider.
 
-Owner smoke **DEFERRED**; live LLM and Windows ARM64 runtime **NOT_RUN** during preparation; AUD-003–006 **OPEN**. Synthetic transport tests prove integration, not live-model quality. Native UI evidence is macOS ARM64. New-folder saves are guarded, without atomic multi-file publication/crash recovery. [Feature/evidence matrix](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/demo1-verification.md).
+Owner smoke **DEFERRED**; live LLM and Windows ARM64 runtime **NOT_RUN** during preparation; AUD-003–006 **OPEN**. Synthetic transport tests prove integration, not live-model quality. Native UI evidence is macOS ARM64. New-folder saves are guarded, without atomic multi-file publication/crash recovery. [Feature/evidence matrix](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/demo1-verification.md).
 
 Every report also includes the shared informational `source-not-covered` for Structurizr views outside the import projection. It does not invalidate a conformant supported step; the exercise table lists the additional isolated concern.
 
@@ -99,3 +99,52 @@ The published ZIP/VSIX above does not contain EA1. With a new local EA1 candidat
 ## Local EA1b candidate: Capability Map through CLI/MCP
 
 Published DEMO1 ZIPs are unchanged. With fresh local EA1b packages and this checkout catalog, follow the [Capability Map tutorial](../../docs/en/capability-map.md) and complete [CLI/MCP guide](../../docs/en/cli-mcp.md#capability-map-with-no-model--local-ea1b-candidate). The same Retail catalog works locally and through get_enterprise_snapshot v1, without an LLM; software knowledge v1 remains separate.
+
+## Value Stream and Application Landscape
+
+Open the Retail demo's `architecture/enterprise-views.json`, then **Archi: Create Diagram → Enterprise Architecture**.
+Choose **Value Stream** for the purchase-to-receipt journey or **Application Landscape** for the portfolio.
+Select the active document (captured including unsaved changes) or the same local file.
+These views need no model/provider and make zero LLM calls. They also work with an explicitly versioned
+enterprise MCP source. The report accompanies the editable PlantUML; graphical preview needs a separate renderer.
+
+For Value Stream choose a stream and stages. The view preserves declared order and original ordinals;
+shared capability mappings are explicit. Context, outcomes, evidence, declared coverage and exclusions
+remain in the report. A partial source cannot establish that a capability is absent in the company.
+For Landscape choose the whole portfolio or a business domain and an optional defined rating scale.
+Ungrouped applications remain visible in the whole portfolio. Missing owner/lifecycle/rating means
+unknown; a rating of zero has its explicit scale meaning. Several applications do not prove redundancy.
+If the view exceeds a limit, select fewer stages, domains or applications; there is no clipping.
+
+To build your own data, use **Archi: Build Enterprise Catalog**, review the capability proposal and save.
+Then **Archi: Update Enterprise Catalog** offers **Add / change business domain**, **Add / change stream
+and explicit stage order**, **Change application, owner, lifecycle or rating**, and **Define explicit rating scale**.
+These are guided forms; manual JSON editing is optional. Use stable IDs across rename, select capability
+mappings explicitly and confirm stage order. To revise a stream, retain existing stage IDs and enter the
+intended ordered list; omitted stages are shown in before/after review before acceptance.
+
+**Value Stream / Landscape proposals from materials** reuses selected text, the captured whole document,
+a typed description or selected files, bounded conversion, provider configuration and one explicit model call.
+Extraction requires evidence for every supplied field; proposal mode keeps unsupported order as a proposal.
+**Review new view proposal and choose IDs** shows original field basis/evidence, then guided forms bind
+identities and references. Review differences, explicitly accept/reject every change, acknowledge warnings,
+and approve **Save catalog**. Acceptance is a user decision, not a quote in an old source. Dependencies must
+be resolved explicitly before deletion. A conflict preserves foreign disk bytes; inspect the buffer and start
+a new update session. Keep `enterprise-updates/` companion reports with the catalog. Use **Save Diagram and
+Report** to retain the original generated ART1 pair; editing a preview does not change that original.
+
+This prerelease keeps owner smoke deferred. Live model quality and additional native platforms are not
+proven by synthetic tests. Visible UI automation may be unavailable; package/runtime and Extension Host
+checks are reported separately. The historical safe-conflict observation remains open.
+
+### Enterprise CLI and MCP — no provider
+
+Extract the CLI/MCP TGZ separately. It needs Node >=22.12, without npm or extra dependencies.
+Run `node tools/setup-cli.mjs /absolute/extracted/package` from this project. It exclusively creates
+`local-config/` files; preserve existing files. `retail` and `retail-mcp` select the same v3 catalog
+locally or through real stdio; `retail-v1` and `retail-v2` retain earlier examples.
+Run `node /absolute/extracted/package/bin/archi-agent.cjs diagram generate --config /absolute/retail-checkout/local-config/archi-agent.json --source retail --type value-stream --stream purchase-to-receipt --format json`.
+Replace the type with `application-landscape` and omit `--stream` for Landscape; add
+`--color-scale maturity` to see explicit zero versus unknown. Use `--source retail-mcp` for parity.
+The generated `function-client.json` config starts the same function MCP server. No file writes or
+model calls occur when generating a view. Keep personal `local-config/` outside shared demo archives.

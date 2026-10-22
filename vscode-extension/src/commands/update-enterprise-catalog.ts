@@ -1,3 +1,4 @@
+import {collectEnterpriseViewChange} from "./enterprise-view-input.js";
 import * as vscode from "vscode";
 import {captureEnterpriseUpdate,type EnterpriseUpdateSession,type EnterpriseUpdatePlan,type EnterpriseChange} from "../../../src/runtime/index.js";
 import {assertProfileAvailable,withProfileCancellation,withProfileSignal} from "../profile-availability.js";
@@ -48,12 +49,31 @@ export async function updateEnterpriseCatalogCommand(deps:GenerateCommandDepende
     {id:"delete",label:t("Zaproponuj usunięcie zdolności","Propose capability deletion")},
     {id:"application",label:t("Dodaj aplikację","Add application")},{id:"support",label:t("Dodaj jawne powiązanie aplikacji i zdolności","Add explicit application support")},
     {id:"remove-support",label:t("Usuń jawne powiązanie","Remove explicit support")},{id:"remove-application",label:t("Zaproponuj usunięcie aplikacji","Propose application deletion")},
+    {id:"domain",label:t("Dodaj / zmień domenę biznesową","Add / change business domain")},
+    {id:"stream",label:t("Dodaj / zmień strumień i jawną kolejność etapów","Add / change stream and explicit stage order")},
+    {id:"application-fields",label:t("Zmień aplikację, właściciela, cykl życia lub ocenę","Change application, owner, lifecycle or rating")},
+    {id:"scale",label:t("Zdefiniuj jawną skalę ocen","Define explicit rating scale")},
+    {id:"delete-view",label:t("Usuń domenę lub strumień — bez kaskady","Delete domain or stream — no cascade")},
+    ...(state.viewProposalImported?[]:[{id:"view-materials",label:t("Propozycje Value Stream / Landscape z materiałów","Value Stream / Landscape proposals from materials")}]),
+    {id:"view-bind",label:t("Przejrzyj propozycję nowych widoków i wskaż ID","Review new view proposal and choose IDs")},
     {id:"warnings",label:t("Potwierdź przegląd ostrzeżeń","Acknowledge reviewed warnings")},
     {id:"save",label:t("Zatwierdź i zapisz katalog","Approve and save catalog"),detail:state.issues.length?state.issues.join("; "):t("Walidacja gotowa","Validation ready")},
     {id:"close",label:t("Zamknij bez zapisu katalogu","Close without saving catalog")}
    ],{title:t("Archi: aktualizacja katalogu — zamrożona baza","Archi: catalog update — frozen base"),ignoreFocusOut:true});if(!choice||choice.id==="close")return;
    try{
-    if(choice.id==="review"){
+    if(["domain","stream","application-fields","scale"].includes(choice.id)){
+      const change=await collectEnterpriseViewChange(session,choice.id==="application-fields"?"application":choice.id as "domain"|"stream"|"scale");if(change)propose(change);
+    }else if(choice.id==="view-materials")await buildEnterpriseCatalogCommand(deps,captured,p=>session.importViewProposal(p),"enterprise-views");
+    else if(choice.id==="view-bind"){
+      const c=await vscode.window.showQuickPick(state.viewCandidates.filter(c=>!c.bound).map(c=>({label:c.key,detail:JSON.stringify({proposal:c.change,basis:c.basis,evidence:c.evidence}),record:c})),{title:t("Propozycja nie jest faktem — przejrzyj pola i dowody","Proposal is not a fact — inspect fields and evidence")});if(!c)continue;
+      const doc=await vscode.workspace.openTextDocument({language:"json",content:JSON.stringify(c.record,null,2)});await vscode.window.showTextDocument(doc,{preview:false});
+      const action=await vscode.window.showQuickPick(["Review and bind IDs","Reject proposal"],{title:t("Jawna decyzja","Explicit decision")});if(!action)continue;
+      if(action==="Reject proposal")session.bindViewCandidate(c.record.id,undefined);
+      else{const seed=c.record.change,kind=seed.kind==="set-domain"?"domain":seed.kind==="set-value-stream"?"stream":seed.kind==="set-scale"?"scale":"application",change=await collectEnterpriseViewChange(session,kind,seed);if(change)session.bindViewCandidate(c.record.id,change);}
+    }else if(choice.id==="delete-view"){
+      const cat=state.proposed??state.base;if(cat.schemaVersion!==3)continue;
+      const record=await vscode.window.showQuickPick([...cat.domains.map(d=>({label:d.name,description:d.id,action:"delete-domain" as const,id:d.id})),...cat.valueStreams.map(v=>({label:v.name,description:v.id,action:"delete-value-stream" as const,id:v.id}))],{title:t("Usunięcie wymaga rozwiązania zależności","Deletion requires resolving dependencies")});if(record)propose({kind:record.action,id:record.id});
+    }else if(choice.id==="review"){
       const before=await vscode.workspace.openTextDocument({language:"json",content:session.expectedText}),after=await vscode.workspace.openTextDocument({language:"json",content:JSON.stringify(state.proposed??{issues:state.issues},null,2)});
       await vscode.commands.executeCommand("vscode.diff",before.uri,after.uri,t("Archi: zmiany katalogu (podgląd)","Archi: catalog changes (preview)"));
       const report=await vscode.workspace.openTextDocument({language:"json",content:JSON.stringify(state,null,2)});await vscode.window.showTextDocument(report,{preview:false});
@@ -75,11 +95,11 @@ export async function updateEnterpriseCatalogCommand(deps:GenerateCommandDepende
     else if(choice.id==="application"){
       const id=await input("Stable application ID"),name=id&&await input(t("Nazwa aplikacji","Application name"));if(id&&name)propose({kind:"add-application",id,name});
     }else if(choice.id==="support"||choice.id==="remove-application"){
-      const cat=state.proposed??state.base;if(cat.schemaVersion!==2)throw {code:"applications-not-provided"};
+      const cat=state.proposed??state.base;if(cat.schemaVersion===1)throw {code:"applications-not-provided"};
       const app=await vscode.window.showQuickPick(cat.applications.map(a=>({label:a.name,description:a.id,record:a})),{title:t("Wskaż aplikację","Choose application")});if(!app)continue;
       if(choice.id==="remove-application")propose({kind:"delete-application",id:app.record.id});else{const c=await cap();if(c)propose({kind:"add-support",applicationId:app.record.id,capabilityId:c.id});}
     }else if(choice.id==="remove-support"){
-      const cat=state.proposed??state.base;if(cat.schemaVersion!==2)continue;const link=await vscode.window.showQuickPick(cat.supports.map(r=>({label:`${r.applicationId} → ${r.capabilityId}`,record:r})),{title:t("Jawne powiązanie do usunięcia","Explicit link to remove")});if(link)propose({kind:"delete-support",applicationId:link.record.applicationId,capabilityId:link.record.capabilityId});
+      const cat=state.proposed??state.base;if(cat.schemaVersion===1)continue;const link=await vscode.window.showQuickPick(cat.supports.map(r=>({label:`${r.applicationId} → ${r.capabilityId}`,record:r})),{title:t("Jawne powiązanie do usunięcia","Explicit link to remove")});if(link)propose({kind:"delete-support",applicationId:link.record.applicationId,capabilityId:link.record.capabilityId});
     }else if(choice.id==="warnings"){
       const doc=await vscode.workspace.openTextDocument({content:JSON.stringify({warnings:state.warnings,proposal:state.candidates},null,2)});await vscode.window.showTextDocument(doc,{preview:false});
       if(await vscode.window.showInformationMessage(t("Potwierdź przegląd ostrzeżeń i dowodów","Confirm warnings and evidence review"),{modal:true},"Reviewed")==="Reviewed")session.acknowledgeWarnings();

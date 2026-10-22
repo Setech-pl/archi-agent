@@ -1,4 +1,4 @@
-[English](START-HERE.en.md) · [Publiczne paczki](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1)
+[English](START-HERE.en.md) · [Publiczne paczki](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8)
 
 # Mission Control — zacznij tutaj
 
@@ -10,7 +10,7 @@ Gotowy syntetyczny model jest w `architecture/`. Pierwszy wynik uzyskasz przez *
 
 ## 1. Pobranie i instalacja
 
-Pobierz [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-mission-control-0.3.0-alpha.7-demo.1.zip) i rozpakuj do nowego lokalnego folderu. Obsługiwane są spacje i polskie znaki. Wymagany jest desktopowy VS Code **1.91+**. Wybierz [VSIX Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix) do podstawowych ćwiczeń lub [VSIX Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix) do opcjonalnego offline OCR PL/EN. Przed instalacją sprawdź `SHA256SUMS` wydania. Oba profile mają wspólny runtime.
+Pobierz [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-demo-mission-control-0.3.0-alpha.8.zip) i rozpakuj do nowego lokalnego folderu. Obsługiwane są spacje i polskie znaki. Wymagany jest desktopowy VS Code **1.91+**. Wybierz [VSIX Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-core-0.3.0-alpha.8.vsix) do podstawowych ćwiczeń lub [VSIX Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-full-0.3.0-alpha.8.vsix) do opcjonalnego offline OCR PL/EN. Przed instalacją sprawdź `SHA256SUMS` wydania. Oba profile mają wspólny runtime.
 
 **Extensions → … → Install from VSIX…**, włącz dokładnie jeden profil, potem **Developer: Reload Window**. Dotychczasowy użytkownik Full może pozostać przy Full. Przy zmianie profilu ustawienia są wspólne, ale klucze SecretStorage osobne dla ID rozszerzeń: wprowadź klucz ponownie. Użytkownik VSIX nie potrzebuje klonowania repo, npm, osobnego Node, Javy ani PlantUML. Produkt otwiera tekst diagramu; graficzny podgląd wymaga osobnego renderera.
 
@@ -38,7 +38,7 @@ Jeśli masz już ustawienia, zachowaj ich wpisy. W **Preferences: Open Workspace
 
 ![Przykład bieżących kontrolek Configuration — DOC2, Big Bank](assets/20-configuration.png)
 
-DOC2 pokazuje te same kontrolki i liczby Big Bank; pierwszy obraz powyżej pochodzi z tego projektu. [Pochodzenie DOC2](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/assets/screenshots/README.md).
+DOC2 pokazuje te same kontrolki i liczby Big Bank; pierwszy obraz powyżej pochodzi z tego projektu. [Pochodzenie DOC2](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/assets/screenshots/README.md).
 
 ## 3. Pierwszy wynik bez modelu
 
@@ -88,7 +88,7 @@ Zachowaj pobrany ZIP. Aby powtórzyć zapis aliasu od początku, rozpakuj drugą
 
 Podmień **kopię** `architecture/workspace.json` na własny Structurizr JSON, zachowaj stabilne oryginalne ID, dopasuj trzy tabele nakładki i source_id. Sprawdź Configuration przed użyciem. Obsługiwane są people, systems, containers i statyczne relacje; components/deployment/views poza projekcją. Brak DSL i bezpośredniego importu EA. Płaski pack Markdown nie zapewnia hierarchii C4. Sprawdź fakty przed wysłaniem wybranego minimalnego kontekstu do providera.
 
-Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/demo1-verification.md).
+Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/demo1-verification.md).
 
 W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję views poza projekcją importu. Nie zmienia zgodnej oceny obsługiwanego kroku; tabela ćwiczeń wymienia dodatkowy izolowany problem.
 
@@ -96,7 +96,7 @@ W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję vi
 
 ![Dwa kierunki MCP](assets/mcp-directions.png)
 
-Tylko te zaawansowane ćwiczenia procesów wymagają **Node.js >=22.12.0** w PATH. Pobierz [tarball CLI/MCP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-cli-0.3.0-alpha.7.tgz), sprawdź SHA-256 i rozpakuj przez `tar -xzf archi-agent-cli-0.3.0-alpha.7.tgz`. Powstanie `package/bin/`. Bez npm install i repozytorium. W terminalu projektu uruchom poniższe, zastępując cytowaną ścieżkę rzeczywistą absolutną ścieżką do package:
+Tylko te zaawansowane ćwiczenia procesów wymagają **Node.js >=22.12.0** w PATH. Pobierz [tarball CLI/MCP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-cli-0.3.0-alpha.8.tgz), sprawdź SHA-256 i rozpakuj przez `tar -xzf archi-agent-cli-0.3.0-alpha.8.tgz`. Powstanie `package/bin/`. Bez npm install i repozytorium. W terminalu projektu uruchom poniższe, zastępując cytowaną ścieżkę rzeczywistą absolutną ścieżką do package:
 
 ```sh
 node tools/setup-cli.mjs "/absolute/path/to/package"

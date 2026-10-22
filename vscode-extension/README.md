@@ -4,7 +4,7 @@
 
 ## Public DEMO1: profiles and knowledge
 
-The public prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). This branch also contains the EA1/EA1b integration candidate described below; public DEMO1 does not contain Capability Map. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
+The public prerelease [**DEMO1 v0.3.0-alpha.8**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS). This branch also contains the EA1/EA1b integration candidate described below; public DEMO1 does not contain Capability Map. [CLI/MCP installation, commands and contracts](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
@@ -113,7 +113,7 @@ Actual installed UI, public Big Bank fixture, synthetic model responses. The fir
 
 ## Installation on Mac and Windows
 
-Download the Core or Full VSIX from [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json). The package version is **0.3.0-alpha.7**; the release tag is **v0.3.0-alpha.7-demo.1**. A local build or CI artifact may have a different hash and is not the published package.
+Download the Core or Full VSIX from [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json). The package version is **0.3.0-alpha.7**; the release tag is **v0.3.0-alpha.8**. A local build or CI artifact may have a different hash and is not the published package.
 
 Mac:
 
@@ -425,5 +425,42 @@ Capability Map remain supported. Enterprise MCP v1 remains unchanged; EA2 determ
 `get_enterprise_snapshot_v2` / contractVersion 2 without fallback. For Capability Map on a v2 remote
 catalog set `enterpriseSource.contractVersion:2`. See [enterprise contract](https://github.com/Setech-pl/archi-agent/blob/main/docs/enterprise-catalog.md)
 and [CLI/MCP](https://github.com/Setech-pl/archi-agent/blob/main/docs/en/cli-mcp.md).
+
+## Value Stream and Application Landscape
+
+Open the Retail demo's `architecture/enterprise-views.json`, then **Archi: Create Diagram → Enterprise Architecture**.
+Choose **Value Stream** for the purchase-to-receipt journey or **Application Landscape** for the portfolio.
+Select the active document (captured including unsaved changes) or the same local file.
+These views need no model/provider and make zero LLM calls. They also work with an explicitly versioned
+enterprise MCP source. The report accompanies the editable PlantUML; graphical preview needs a separate renderer.
+
+For Value Stream choose a stream and stages. The view preserves declared order and original ordinals;
+shared capability mappings are explicit. Context, outcomes, evidence, declared coverage and exclusions
+remain in the report. A partial source cannot establish that a capability is absent in the company.
+For Landscape choose the whole portfolio or a business domain and an optional defined rating scale.
+Ungrouped applications remain visible in the whole portfolio. Missing owner/lifecycle/rating means
+unknown; a rating of zero has its explicit scale meaning. Several applications do not prove redundancy.
+If the view exceeds a limit, select fewer stages, domains or applications; there is no clipping.
+
+To build your own data, use **Archi: Build Enterprise Catalog**, review the capability proposal and save.
+Then **Archi: Update Enterprise Catalog** offers **Add / change business domain**, **Add / change stream
+and explicit stage order**, **Change application, owner, lifecycle or rating**, and **Define explicit rating scale**.
+These are guided forms; manual JSON editing is optional. Use stable IDs across rename, select capability
+mappings explicitly and confirm stage order. To revise a stream, retain existing stage IDs and enter the
+intended ordered list; omitted stages are shown in before/after review before acceptance.
+
+**Value Stream / Landscape proposals from materials** reuses selected text, the captured whole document,
+a typed description or selected files, bounded conversion, provider configuration and one explicit model call.
+Extraction requires evidence for every supplied field; proposal mode keeps unsupported order as a proposal.
+**Review new view proposal and choose IDs** shows original field basis/evidence, then guided forms bind
+identities and references. Review differences, explicitly accept/reject every change, acknowledge warnings,
+and approve **Save catalog**. Acceptance is a user decision, not a quote in an old source. Dependencies must
+be resolved explicitly before deletion. A conflict preserves foreign disk bytes; inspect the buffer and start
+a new update session. Keep `enterprise-updates/` companion reports with the catalog. Use **Save Diagram and
+Report** to retain the original generated ART1 pair; editing a preview does not change that original.
+
+This prerelease keeps owner smoke deferred. Live model quality and additional native platforms are not
+proven by synthetic tests. Visible UI automation may be unavailable; package/runtime and Extension Host
+checks are reported separately. The historical safe-conflict observation remains open.
 
 OCR notices: [ux2-ocr/TRIAL_NOTICES.md](ux2-ocr/TRIAL_NOTICES.md).

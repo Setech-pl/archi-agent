@@ -1,0 +1,30 @@
+{
+  "kind": "deterministic diagram renders, not application screenshots",
+  "source": "examples/retail-checkout/architecture/enterprise-views.json",
+  "records": [
+    {
+      "file": "value-stream.puml",
+      "catalogDigest": "ad780c0a632f4fbdc7dea866730837856a7c1fd2587ca7f9d7eea70d660cfd43",
+      "projectionDigest": "faf0cdfb06af46207f4798a7fde97ac3b12369bf435e19f58a07e58379fa1261",
+      "sha256": "d4d3b432e0632841d78a57c74899e80e84df8da9af254cb7c87fd74bf47eb0e9"
+    },
+    {
+      "file": "application-landscape.puml",
+      "catalogDigest": "ad780c0a632f4fbdc7dea866730837856a7c1fd2587ca7f9d7eea70d660cfd43",
+      "projectionDigest": "322e24d2437b78c771369c30137496947cb5b5999b8c0877b5d6cd6dfd825720",
+      "sha256": "c625b75a83163ae93945c8115626f28bdfe94cdf4b56bd7419daea7e3f0e5f0c"
+    },
+    {
+      "file": "capability-application-map.puml",
+      "catalogDigest": "ad780c0a632f4fbdc7dea866730837856a7c1fd2587ca7f9d7eea70d660cfd43",
+      "projectionDigest": "7750c2ceec0655480119bfd4d7d66fed6426154e5d1afb53cb69346fe883a479",
+      "sha256": "bf78297ec98034329ec1896b669bc5e7faa68aff143781641716d4a431fa0f27"
+    },
+    {
+      "file": "capability-map.puml",
+      "catalogDigest": "ad780c0a632f4fbdc7dea866730837856a7c1fd2587ca7f9d7eea70d660cfd43",
+      "projectionDigest": "bb2b45098ad38563179e8b7f273548c1cbd1033bb095ee37489e22b0ac1457e7",
+      "sha256": "6361f35afee594fb9cb52d307ca9e8494c4bcb7de4e7416604004a86c88052fb"
+    }
+  ]
+}

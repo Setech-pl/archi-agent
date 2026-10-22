@@ -9,7 +9,7 @@ import type { GenerateCommandDependencies } from "./generate-sequence-diagram.js
 export { captureEnterpriseInput } from "./enterprise-input.js";
 import { captureEnterpriseInput, type CapturedEnterpriseInput } from "./enterprise-input.js";
 let active=false;
-export async function buildEnterpriseCatalogCommand(deps:GenerateCommandDependencies,captured=captureEnterpriseInput(),onProposal?:(proposal:EnterpriseProposal)=>void):Promise<void>{
+export async function buildEnterpriseCatalogCommand(deps:GenerateCommandDependencies,captured=captureEnterpriseInput(),onProposal?:(proposal:EnterpriseProposal)=>void,target:"capabilities"|"enterprise-views"="capabilities"):Promise<void>{
   if(active){await vscode.window.showWarningMessage("Archi Agent: enterprise catalog review already active.");return;}
   active=true;
   const pl=vscode.env.language.startsWith("pl"),t=(a:string,b:string)=>pl?a:b;
@@ -50,7 +50,7 @@ export async function buildEnterpriseCatalogCommand(deps:GenerateCommandDependen
     if(!await confirmEnterpriseMaterials(materialsPreview(materials,pl),pl))return;
     const outcome=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:t("Archi Agent: propozycje zdolności — jedno wywołanie","Archi Agent: capability proposals — one call"),cancellable:true},async(_,token)=>{
       const controller=new AbortController(),sub=token.onCancellationRequested(()=>controller.abort());if(token.isCancellationRequested)controller.abort();
-      try{return await deps.runtime.extractEnterpriseCandidates!({materials,mode:mode.id,generator:documentGenerator(deps,folder?.uri,true),signal:withProfileSignal(controller.signal)});}finally{sub.dispose();}
+      try{return await deps.runtime.extractEnterpriseCandidates!({materials,target,mode:mode.id,generator:documentGenerator(deps,folder?.uri,true),signal:withProfileSignal(controller.signal)});}finally{sub.dispose();}
     });
     assertProfileAvailable();if(outcome.status==="cancelled")return;
     if(outcome.status!=="success")throw outcome;

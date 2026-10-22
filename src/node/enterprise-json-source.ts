@@ -49,8 +49,12 @@ export function parseEnterpriseText(text:string,file:string,signal?:Cancellation
     capabilities:Object.fromEntries(catalog.capabilities.map((c,i)=>[c.id,{pointer:`/capabilities/${i}`,
       fields:Object.fromEntries(["id","name","description",...(c.parentId?["parentId"]:[]),...Object.keys(c.ratings??{}).map(s=>`ratings/${s}`)]
         .map(f=>[`/${f}`,parsed.at(["capabilities",i,...f.split("/")])]))}])),
-    ...(catalog.schemaVersion===2?{applications:Object.fromEntries(catalog.applications.map((a,i)=>[a.id,{pointer:`/applications/${i}`,location:parsed.at(["applications",i])}])),
+    ...(catalog.schemaVersion!==1?{applications:Object.fromEntries(catalog.applications.map((a,i)=>[a.id,{pointer:`/applications/${i}`,location:parsed.at(["applications",i])}])),
       supports:Object.fromEntries(catalog.supports.map((r,i)=>[JSON.stringify([r.applicationId,r.capabilityId]),{pointer:`/supports/${i}`,location:parsed.at(["supports",i])}]))}:{}),
+    ...(catalog.schemaVersion===3?{
+      domains:Object.fromEntries(catalog.domains.map((d,i)=>[d.id,{pointer:`/domains/${i}`,location:parsed.at(["domains",i])}])),
+      valueStreams:Object.fromEntries(catalog.valueStreams.map((v,i)=>[v.id,{pointer:`/valueStreams/${i}`,location:parsed.at(["valueStreams",i])}])),
+      stages:Object.fromEntries(catalog.valueStreams.flatMap((v,i)=>v.stages.map((stage,j)=>[JSON.stringify([v.id,stage.id]),{pointer:`/valueStreams/${i}/stages/${j}`,location:parsed.at(["valueStreams",i,"stages",j])}])))}:{}),
     scales:Object.fromEntries(catalog.scales.map((s,i)=>[s.id,{pointer:`/scales/${i}`,location:parsed.at(["scales",i])}]))};
   check();
   return createEnterpriseSnapshot(catalog,evidence);

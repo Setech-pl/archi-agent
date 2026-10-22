@@ -1,5 +1,5 @@
 import {randomUUID,createHash}from"node:crypto";
-import {parseLocalJson,createArchiAgentRuntime,inspectKnowledgeForHost,inspectEnterpriseSource,generateCapabilityMap,generateApplicationMap,portableVerificationOutcome,portableDiagramOutcome,validateHostResult,HostResultError,
+import {parseLocalJson,createArchiAgentRuntime,inspectKnowledgeForHost,inspectEnterpriseSource,generateCapabilityMap,generateApplicationMap,generateValueStream,generateApplicationLandscape,portableVerificationOutcome,portableDiagramOutcome,validateHostResult,HostResultError,
   type ArchiAgentRuntime,type FlowVerificationSession,type VerifyFlowOutcome,type HostResultV1,type KnowledgePackSourceConfig}from"../../runtime/index.js";
 import {LocalHostError,readHostInput,hostGenerator,type LocalHostConfig,type FileReference}from"./config.js";
 import {inspectInputSchema,verifyInputSchema,resolveInputSchema,generateInputSchema,verificationDecisionsSchema,generationDecisionsSchema}from"./schemas.js";
@@ -14,7 +14,7 @@ export class LocalOperations {
   async inspect(input:z.infer<typeof inspectInputSchema>,signal:AbortSignal){
     if("diagramType"in input){
       const source=this.enterpriseSource(input.source);
-      const result=await inspectEnterpriseSource(input.diagramType==="capability-application-map"&&source.kind==="mcp"?{...source,contractVersion:2}:source,signal,this.config.policy);
+      const result=await inspectEnterpriseSource(source.kind==="mcp"?{...source,contractVersion:input.diagramType==="value-stream"||input.diagramType==="application-landscape"?3:input.diagramType==="capability-application-map"?source.contractVersion??2:source.contractVersion}:source,signal,this.config.policy);
       if(result.status!=="success")return this.enterpriseFailure(result,input.diagramType);
       const s=result.snapshot,e=s.evidence;
       if(input.expectedCatalogDigest&&input.expectedCatalogDigest!==s.catalogDigest)return this.failure("knowledge.inspect","stale-source",true);
@@ -50,6 +50,11 @@ export class LocalOperations {
     return portableVerificationOutcome(outcome);
   }
   async generate(input:z.infer<typeof generateInputSchema>,signal:AbortSignal){
+    if(input.diagramType==="value-stream"||input.diagramType==="application-landscape"){
+      const source=this.enterpriseSource(input.source),result=input.diagramType==="value-stream"?await generateValueStream({source,selection:input.selection},signal,this.config.policy):await generateApplicationLandscape({source,selection:input.selection},signal,this.config.policy);
+      if(result.status!=="success")return this.enterpriseFailure(result,input.diagramType);
+      return {status:result.status,diagramType:result.diagramType,plantUml:result.plantUml,report:result.report};
+    }
     if(input.diagramType==="capability-application-map"){
       const result=await generateApplicationMap({source:this.enterpriseSource(input.source),selection:input.selection},signal,this.config.policy);
       if(result.status!=="success")return {...this.enterpriseFailure(result),diagramType:input.diagramType};
@@ -81,7 +86,7 @@ export class LocalOperations {
     try{const validated=validateHostResult(result);if(Date.now()>=deadlineAt)return validateHostResult({...result,outcome:this.failure(operation,"timeout",enterprise)});return validated;}catch(e){return validateHostResult({...result,outcome:this.failure(operation,e instanceof HostResultError?e.code:"result-contract-invalid",enterprise)});}
   }
   failure(operation:HostResultV1["operation"],code:string,enterprise:boolean|string=false):unknown{
-    if(enterprise)return this.enterpriseFailure({code},enterprise==="capability-application-map"?enterprise:"capability-map");
+    if(enterprise)return this.enterpriseFailure({code},typeof enterprise==="string"?enterprise:"capability-map");
     if(operation==="diagram.generate")return {status:"failed",stage:"generator-configuration",issues:[{severity:"error",code,message:"Operation failed. Check configuration and input."}],ambiguities:[],unconfirmedNewParticipants:[]};
     return {status:code==="cancelled"?"cancelled":"failed",code};
   }

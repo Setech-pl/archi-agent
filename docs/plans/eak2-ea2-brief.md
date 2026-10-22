@@ -280,4 +280,3 @@ Zakończ lokalnym checkpointem po wymaganych bramkach. Podaj:
 - stan working tree i stagingu.
 
 Owner smoke może pozostać DEFERRED. Bez push, merge, tagów i publikacji. STOP przed kolejną pętlą.
-

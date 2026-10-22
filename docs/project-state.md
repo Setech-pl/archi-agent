@@ -3,6 +3,37 @@
 Porównuj stan z Git. [Roadmapa](product-roadmap.md) określa kierunek,
 [workflow](development-workflow.md) proces, [architektura](architecture.md) kontrakty.
 
+## EA3 + EA4 + GitHub prerelease — active (2026-10-22)
+
+Full current authorization: [release brief](plans/ea3-ea4-release-brief.md).
+[Implementation plan](plans/ea3-ea4-implementation.md). Branch `release/ea3-ea4-release`,
+durable isolated checkout `~/Projects/archground/build/ea3-ea4/integration`.
+Latest EAK2/EA2 increment preserved byte-for-byte in WIP `bf301e2`; no EA3/EA4 was found.
+Fetched `github/main` is already an ancestor. Original worktrees/manual r2 environment preserved.
+An initially created linked worktree remains preserved at `build/ea3-ea4/worktree`; its index
+was not writable. Active independent checkout has working Git. No publication yet.
+Historical UI FAIL/NOT_RUN and safe-conflict LOW remain; current brief supersedes historical
+STOP/publication restrictions and permits prerelease with documented infrastructure limitations.
+EA3/EA4 zaimplementowane jako kandydat alpha.8: ścisłe enterprise/3 i MCP v3, stabilne etapy,
+jawna kolejność/powiązania, aplikacje EA2 z domeną i opcjonalnymi atrybutami, deterministyczne
+widoki w VS Code/CLI/function MCP i ART1; guided review/update/proposals/scales. PL/EN docs,
+offline Help i aktualne rendery Retail. Niezależny review r2 PASS, 3 MEDIUM naprawione; zero
+nowych HIGH/MEDIUM. Historyczny safe-conflict LOW pozostaje otwarty (bez dowodu utraty danych).
+
+Bieżący gauntlet pod Node 22.12: root 2186/2186 i extension 899/899, oba typechecki/build,
+Core/Full/CLI package/verify PASS. Vitest 5.0.5 usuwa nowe moderate advisory; bindingi
+platformowe zachowane, audity root/OCR 0 podatności. Dokładne nowe paczki poza repo:
+EA3/EA4 Core/Full po 10 scenariuszy runtime/stdio/parity/ART1 PASS. Retesty wcześniejszych
+funkcji i końcowy odbiór publikacji trwają. Pierwsze nieudane harnessy są zachowane w build.
+Lokalny Code SIGABRT przed startem Host; Computer Use odmówiło dostępu do Code. Lokalny
+Host FAIL/NOT_RUN, widoczne UI NOT_RUN; rzeczywisty Host przeniesiony do CI macOS ARM64,
+bez utożsamiania kontrolowanych odpowiedzi z UI. Lokalny Ollama niedostępny (connection refused),
+live LLM NOT_RUN. [Zbiorczy owner smoke](testing/ea3-ea4-owner-smoke.md): DEFERRED.
+
+Dowody operacyjne: ignorowane `build/ea3-ea4/` w aktywnym checkoutcie. Następnie: PR i CI
+Linux/macOS, dokładny odbiór demo/paczek, prerelease z manifestem i anonimowe pobrania.
+Bez merge main; starsze wydania i ich assets pozostają zachowane.
+
 ## EAK2 + EA2 — code review PASS, odbiór BLOCKED (2026-10-21)
 
 Worktree `/private/tmp/archi-eak2-ea2`, branch `feature/eak2-ea2`, baza i nadal HEAD

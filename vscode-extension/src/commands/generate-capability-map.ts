@@ -1,6 +1,6 @@
 import path from "node:path";
 import * as vscode from "vscode";
-import { generateCapabilityMap, generateApplicationMap, inspectEnterpriseSource, type CapabilityMapSelection,type EnterpriseSourceConfig,type EnterpriseTextSource } from "../../../src/runtime/index.js";
+import { generateCapabilityMap, generateApplicationMap, generateValueStream, generateApplicationLandscape, inspectEnterpriseSource, type CapabilityMapSelection,type EnterpriseSourceConfig,type EnterpriseTextSource } from "../../../src/runtime/index.js";
 import {configuredEnterpriseSource} from "../settings.js";
 import { assertProfileAvailable, withProfileCancellation } from "../profile-availability.js";
 import { OpenDiagramResults, saveDiagramAction, saveDiagramAndReportCommand } from "./save-diagram-and-report.js";
@@ -13,7 +13,7 @@ export function captureActiveEnterpriseSource():EnterpriseTextSource|undefined {
   return Object.freeze({kind:"enterprise-text",name:path.basename(editor.document.fileName),text:editor.document.getText()});
 }
 /** Native editor collection only. This path never reads provider settings or SecretStorage. */
-export async function generateCapabilityMapCommand(results?:OpenDiagramResults,activeSource?:EnterpriseTextSource, forcedSource?:EnterpriseSourceConfig,applicationMap=false):Promise<void> {
+export async function generateCapabilityMapCommand(results?:OpenDiagramResults,activeSource?:EnterpriseTextSource, forcedSource?:EnterpriseSourceConfig,applicationMap:boolean|"value-stream"|"application-landscape"=false):Promise<void> {
   const pl=vscode.env.language.toLowerCase().startsWith("pl");
   const folders=vscode.workspace.workspaceFolders?.length?vscode.workspace.workspaceFolders:forcedSource?.kind==="enterprise-json"?[{uri:vscode.Uri.file(path.dirname(forcedSource.path)),name:"Saved catalog"}]:undefined;
   if(!folders?.length) {await vscode.window.showInformationMessage(pl ? "Archi Agent: otwórz lokalny folder projektu i wybierz katalog enterprise.json." : "Archi Agent: open a local project folder, then select an enterprise.json catalog.");return;}
@@ -51,7 +51,8 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults,a
   if(picked[0].scheme!=="file") {await vscode.window.showWarningMessage("Archi Agent: select a local enterprise.json file. Software architecture sources do not supply business capabilities.");return;}
    source={kind:"enterprise-json",path:picked[0].fsPath};
   }
-  const selectedSource=applicationMap&&source.kind==="mcp"?{...source,contractVersion:2 as const}:source;
+  const view=typeof applicationMap==="string"?applicationMap:undefined;
+  const selectedSource=source.kind==="mcp"?{...source,contractVersion:view?3 as const:applicationMap?source.contractVersion??2 as const:source.contractVersion}:source;
   const inspected=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: validating enterprise catalog",cancellable:true},
     (_progress,token)=>inspectEnterpriseSource(selectedSource,withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
   const showFailure=async(f:{code:string;issues:readonly {code:string;path:readonly (string|number)[];location?:{line:number}}[];count?:number})=>{
@@ -65,6 +66,19 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults,a
   };
   if(inspected.status!=="success") {await showFailure(inspected);return;}
   const {snapshot}=inspected;
+  let result;
+  if(view){
+    const c=snapshot.catalog;if(c.schemaVersion!==3){await showFailure({code:"enterprise-version-unsupported",issues:[]});return;}
+    if(view==="value-stream"){
+      const stream=await vscode.window.showQuickPick(c.valueStreams.map(v=>({label:v.name,description:v.id,detail:v.context,record:v})),{title:pl?"Wybierz strumień wartości":"Choose value stream",ignoreFocusOut:true});if(!stream)return;
+      const stages=await vscode.window.showQuickPick(stream.record.stages.map((s,i)=>({label:`${i+1}. ${s.name}`,description:s.id,id:s.id,picked:true})),{title:pl?"Zakres etapów — zachowuje jawną kolejność":"Stage scope — preserves declared order",canPickMany:true,ignoreFocusOut:true});if(!stages?.length)return;
+      result=await generateValueStream({source:selectedSource,selection:{streamId:stream.record.id,stageIds:stages.map(s=>s.id),language:pl?"pl":"en",expectedCatalogDigest:snapshot.catalogDigest}},withProfileCancellation());
+    }else{
+      const domain=await vscode.window.showQuickPick([{label:pl?"Cały portfel — także domena nieznana":"Whole portfolio — includes unknown domain",id:null as string|null},...c.domains.map(d=>({label:d.name,description:d.id,id:d.id}))],{title:pl?"Zakres domen biznesowych":"Business domain scope",ignoreFocusOut:true});if(!domain)return;
+      const color=await vscode.window.showQuickPick([{label:pl?"Bez ocen":"No ratings",id:null as string|null},...c.scales.map(s=>({label:s.name,description:s.id,id:s.id}))],{title:pl?"Jawna skala kolorowania":"Explicit color scale",ignoreFocusOut:true});if(!color)return;
+      result=await generateApplicationLandscape({source:selectedSource,selection:{domainIds:domain.id?[domain.id]:[],applicationIds:[],colorBy:color.id?{kind:"rating",scaleId:color.id}:{kind:"none"},language:pl?"pl":"en",expectedCatalogDigest:snapshot.catalogDigest}},withProfileCancellation());
+    }
+  }else{
   if(!snapshot.catalog.capabilities.length) {await showFailure({code:snapshot.catalog.source.scope.coverage==="not-provided"?"enterprise-data-unavailable":"empty-scope",issues:[]});return;}
   const roots=snapshot.hierarchy.filter(h=>h.level===1);
   const root=await vscode.window.showQuickPick([{label:pl?"Cała mapa":"Whole map",description:snapshot.catalog.source.scope.coverage,id:null as string|null},
@@ -72,7 +86,6 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults,a
       detail:`${snapshot.catalog.source.scope.coverage}; ${snapshot.hierarchy.filter(v=>v.rootId===h.id).length} capabilities`,id:h.id}))],
     {title:"Archi Agent: capability scope",placeHolder:pl?"Cała mapa lub gałąź L1":"Whole map or one L1 branch",ignoreFocusOut:true});
   if(!root)return;
-  let result;
   if(applicationMap){
     result=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: Capability–Application Map",cancellable:true},
       (_progress,token)=>generateApplicationMap({source:selectedSource,selection:{capabilityIds:root.id?[root.id]:[],includeDescendants:true,language:pl?"pl":"en",expectedCatalogDigest:snapshot.catalogDigest}},withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
@@ -87,6 +100,7 @@ export async function generateCapabilityMapCommand(results?:OpenDiagramResults,a
     language:pl?"pl":"en",expectedCatalogDigest:snapshot.catalogDigest};
   result=await vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:"Archi Agent: creating Capability Map",cancellable:true},
     (_progress,token)=>generateCapabilityMap({source:selectedSource,selection},withProfileCancellation({get aborted(){return token.isCancellationRequested;}})));
+  }
   }
   if(result.status!=="success") {await showFailure(result);return;}
   assertProfileAvailable();

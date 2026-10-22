@@ -2,7 +2,7 @@
   "name": "archi-agent",
   "displayName": "Archi Agent",
   "description": "Grounded architecture diagram generation with local or cloud models: validated PlantUML sequence and component diagrams from flow descriptions and an Architecture Knowledge Pack.",
-  "version": "0.3.0-alpha.7",
+  "version": "0.3.0-alpha.8",
   "publisher": "setech-pl",
   "private": true,
   "license": "MIT",
@@ -370,7 +370,7 @@
           "properties": {
             "kind": {"enum": ["mcp"]},
             "sourceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,55}$"},
-            "contractVersion": {"type": "number", "enum": [2]}
+            "contractVersion": {"type": "number", "enum": [2, 3]}
           }
         },
         "archiAgent.knowledgeServer": {

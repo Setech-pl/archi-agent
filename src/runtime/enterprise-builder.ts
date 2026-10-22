@@ -1,3 +1,4 @@
+import {enterpriseViewCandidatesPrompt,enterpriseViewCandidatesJsonSchema,validateEnterpriseViewCandidates} from "../core/enterprise/enterprise-view-candidates.js";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import {pathToFileURL} from "node:url";
@@ -45,6 +46,7 @@ export async function prepareEnterpriseMaterials(inputs:readonly EnterpriseMater
   finally {clearTimeout(timer);signal.removeEventListener("abort",abort);}
 }
 export interface ExtractEnterpriseCandidatesRequest {
+  readonly target?:"capabilities"|"enterprise-views";
   readonly materials:EnterpriseMaterials;
   readonly mode:EnterpriseBuildMode;
   readonly generator:GeneratorConfig|((signal:AbortSignal)=>Promise<GeneratorConfig|undefined>);
@@ -65,16 +67,17 @@ export async function extractEnterpriseCandidates(request:ExtractEnterpriseCandi
   try{
     check();
     if(!preparedMaterials.has(request.materials)||!["extract","propose"].includes(request.mode)||!Number.isSafeInteger(duration)||duration<1||duration>120000)throw new EnterpriseError("invalid-request");
-    const materials=request.materials;
-    const messages=[{role:"system" as const,content:enterpriseCandidatesPrompt},{role:"user" as const,content:candidateCanonical({mode:request.mode,
+    if(request.target!==undefined&&!["capabilities","enterprise-views"].includes(request.target))throw new EnterpriseError("invalid-request");
+    const views=request.target==="enterprise-views",materials=request.materials;
+    const messages=[{role:"system" as const,content:views?enterpriseViewCandidatesPrompt:enterpriseCandidatesPrompt},{role:"user" as const,content:candidateCanonical({mode:request.mode,
       sources:materials.bundle.sources.map(({editorUri:_uri,...s})=>({...s,evidenceSlices:documentEvidenceSlices(s.text)}))})}];
     if(Buffer.byteLength(candidateCanonical(messages))>documentCandidateLimits.requestBytes)throw new EnterpriseError("request-too-large");
     const resolved=await Promise.race([resolve(controller.signal),aborted]);check();
     if(!resolved.ok)throw new EnterpriseError(resolved.issues[0]?.code??"generator-unavailable");
     calls=1;
-    const answer=await Promise.race([resolved.client.complete({messages,schemaName:"archi_enterprise_candidates_v1",schema:enterpriseCandidatesJsonSchema,maxTokens:16384,signal:controller.signal}),aborted]);
+    const answer=await Promise.race([resolved.client.complete({messages,schemaName:views?"archi_enterprise_view_candidates_v1":"archi_enterprise_candidates_v1",schema:views?enterpriseViewCandidatesJsonSchema:enterpriseCandidatesJsonSchema,maxTokens:16384,signal:controller.signal}),aborted]);
     check();
-    const result=validateEnterpriseCandidates(answer.value,materials.bundle,materials.origins,request.mode,randomUUID());check();
+    const result=(views?validateEnterpriseViewCandidates:validateEnterpriseCandidates)(answer.value,materials.bundle,materials.origins,request.mode,randomUUID());check();
     return {status:"success",result,logicalRequests:1};
   }catch(e){const code=controller.signal.aborted?timedOut?"timeout":"cancelled":safeErrorCode(e)??"enterprise-extraction-failed";return {status:code==="cancelled"?"cancelled":"failed",code,logicalRequests:calls};}
   finally{clearTimeout(timer);controller.signal.removeEventListener("abort",stop);request.signal?.removeEventListener("abort",abort);}

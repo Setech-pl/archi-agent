@@ -1,4 +1,4 @@
-[English](START-HERE.en.md) · [Publiczne paczki](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1)
+[English](START-HERE.en.md) · [Publiczne paczki](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8)
 
 # Retail Checkout — zacznij tutaj
 
@@ -10,7 +10,7 @@ Gotowy syntetyczny model jest w `architecture/`. Pierwszy wynik uzyskasz przez *
 
 ## 1. Pobranie i instalacja
 
-Pobierz [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-demo-retail-checkout-0.3.0-alpha.7-demo.1.zip) i rozpakuj do nowego lokalnego folderu. Obsługiwane są spacje i polskie znaki. Wymagany jest desktopowy VS Code **1.91+**. Wybierz [VSIX Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-core-0.3.0-alpha.7.vsix) do podstawowych ćwiczeń lub [VSIX Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/archi-agent-full-0.3.0-alpha.7.vsix) do opcjonalnego offline OCR PL/EN. Przed instalacją sprawdź `SHA256SUMS` wydania. Oba profile mają wspólny runtime.
+Pobierz [ZIP projektu](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-demo-retail-checkout-0.3.0-alpha.8.zip) i rozpakuj do nowego lokalnego folderu. Obsługiwane są spacje i polskie znaki. Wymagany jest desktopowy VS Code **1.91+**. Wybierz [VSIX Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-core-0.3.0-alpha.8.vsix) do podstawowych ćwiczeń lub [VSIX Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-full-0.3.0-alpha.8.vsix) do opcjonalnego offline OCR PL/EN. Przed instalacją sprawdź `SHA256SUMS` wydania. Oba profile mają wspólny runtime.
 
 **Extensions → … → Install from VSIX…**, włącz dokładnie jeden profil, potem **Developer: Reload Window**. Dotychczasowy użytkownik Full może pozostać przy Full. Przy zmianie profilu ustawienia są wspólne, ale klucze SecretStorage osobne dla ID rozszerzeń: wprowadź klucz ponownie. Użytkownik VSIX nie potrzebuje klonowania repo, npm, osobnego Node, Javy ani PlantUML. Produkt otwiera tekst diagramu; graficzny podgląd wymaga osobnego renderera.
 
@@ -38,7 +38,7 @@ Jeśli masz już ustawienia, zachowaj ich wpisy. W **Preferences: Open Workspace
 
 ![Przykład bieżących kontrolek Configuration — DOC2, Big Bank](assets/20-configuration.png)
 
-DOC2 pokazuje te same kontrolki i liczby Big Bank; pierwszy obraz powyżej pochodzi z tego projektu. [Pochodzenie DOC2](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/assets/screenshots/README.md).
+DOC2 pokazuje te same kontrolki i liczby Big Bank; pierwszy obraz powyżej pochodzi z tego projektu. [Pochodzenie DOC2](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/assets/screenshots/README.md).
 
 ## 3. Pierwszy wynik bez modelu
 
@@ -88,7 +88,7 @@ Zachowaj pobrany ZIP. Aby powtórzyć zapis aliasu od początku, rozpakuj drugą
 
 Podmień **kopię** `architecture/workspace.json` na własny Structurizr JSON, zachowaj stabilne oryginalne ID, dopasuj trzy tabele nakładki i source_id. Sprawdź Configuration przed użyciem. Obsługiwane są people, systems, containers i statyczne relacje; components/deployment/views poza projekcją. Brak DSL i bezpośredniego importu EA. Płaski pack Markdown nie zapewnia hierarchii C4. Sprawdź fakty przed wysłaniem wybranego minimalnego kontekstu do providera.
 
-Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.7-demo.1/docs/demo1-verification.md).
+Owner smoke **DEFERRED**; żywy LLM i runtime Windows ARM64 podczas przygotowania **NOT_RUN**; AUD-003–006 **OPEN**. Transport syntetyczny dowodzi integracji, nie jakości żywego modelu. Natywne UI sprawdzane na macOS ARM64. Zapis nowych folderów jest kontrolowany, bez atomowej publikacji wielu plików/crash recovery. [Macierz funkcji i dowodów](https://github.com/Setech-pl/archi-agent/blob/v0.3.0-alpha.8/docs/demo1-verification.md).
 
 W każdym raporcie wspólne informacyjne `source-not-covered` opisuje sekcję views poza projekcją importu. Nie zmienia zgodnej oceny obsługiwanego kroku; tabela ćwiczeń wymienia dodatkowy izolowany problem.
 
@@ -99,3 +99,52 @@ Powyższe opublikowane ZIP/VSIX nie zawierają EA1. Z nowym lokalnym kandydatem 
 ## Lokalny kandydat EA1b: Capability Map przez CLI/MCP
 
 Opublikowane ZIP-y DEMO1 pozostają bez zmian. Z nowymi lokalnymi paczkami EA1b i katalogiem z checkoutu użyj [tutorialu Capability Map](../../docs/pl/capability-map.md) i kompletnego [guide CLI/MCP](../../docs/pl/cli-mcp.md#capability-map-bez-modelu--lokalny-kandydat-ea1b). Ten sam Retail działa lokalnie i przez get_enterprise_snapshot v1, bez LLM; wiedza software v1 pozostaje osobna.
+
+## Value Stream i Application Landscape
+
+Otwórz `architecture/enterprise-views.json` w demo Retail i uruchom **Archi: Create Diagram → Enterprise Architecture**.
+Wybierz **Value Stream** dla drogi od potrzeby zakupowej do otrzymania zamówienia lub **Application Landscape**
+dla portfela aplikacji. Wybierz aktywny dokument (przechwycony także z niezapisanymi zmianami) albo ten sam plik
+lokalny. Te widoki nie potrzebują modelu/providera i mają zero wywołań LLM. Obsługują też jawnie wersjonowane
+źródło enterprise MCP. Raport towarzyszy edytowalnemu PlantUML; podgląd graficzny wymaga osobnego renderera.
+
+Dla Value Stream wybierz strumień i etapy. Widok zachowuje jawną kolejność i pierwotne numery etapów;
+wspólne powiązania ze zdolnościami są jawne. Kontekst, rezultaty, dowody, deklarowane pokrycie i pominięcia
+pozostają w raporcie. Częściowe źródło nie dowodzi, że firma nie ma danej zdolności.
+Dla Landscape wybierz cały portfel albo domenę biznesową oraz opcjonalną zdefiniowaną skalę ocen.
+Aplikacje bez domeny pozostają widoczne w całym portfelu. Brak właściciela, cyklu życia lub oceny oznacza
+nieznane dane; zero ma znaczenie nadane przez jawną skalę. Wiele aplikacji nie dowodzi redundancji.
+Po przekroczeniu limitu wybierz mniej etapów, domen lub aplikacji; wynik nie jest obcinany.
+
+Własne dane utworzysz przez **Archi: Build Enterprise Catalog**: przejrzyj propozycję zdolności i zapisz katalog.
+Następnie **Archi: Update Enterprise Catalog** oferuje **Dodaj / zmień domenę biznesową**, **Dodaj / zmień
+strumień i jawną kolejność etapów**, **Zmień aplikację, właściciela, cykl życia lub ocenę** oraz **Zdefiniuj jawną
+skalę ocen**. To prowadzone formularze; edycja JSON jest opcjonalna. Zachowuj ID przy zmianie nazwy,
+wybieraj jawne powiązania zdolności i potwierdź kolejność etapów. Zmieniając strumień, zachowaj istniejące ID
+etapów i podaj docelową uporządkowaną listę; pominięte etapy zobaczysz w różnicach przed akceptacją.
+
+**Propozycje Value Stream / Landscape z materiałów** reużywa zaznaczenie, przechwycony cały dokument,
+wpisany opis lub wybrane pliki, ograniczoną konwersję, konfigurację providera i jedno jawne wywołanie modelu.
+Ekstrakcja wymaga dowodów dla każdego podanego pola; tryb propozycji zachowuje nieudowodnioną kolejność jako
+propozycję. **Przejrzyj propozycję nowych widoków i wskaż ID** pokazuje pierwotne pochodzenie pól i dowody,
+a prowadzone formularze pozwalają wskazać tożsamości i referencje. Przejrzyj różnice, jawnie zaakceptuj lub
+odrzuć każdą zmianę, potwierdź ostrzeżenia i **Zatwierdź i zapisz katalog**. Akceptacja jest decyzją użytkownika,
+a nie cytatem ze starego źródła. Usuwanie wymaga jawnego rozwiązania zależności. Konflikt zachowuje cudze
+bajty na dysku; sprawdź bufor i rozpocznij nową sesję aktualizacji. Zachowuj raporty `enterprise-updates/`
+razem z katalogiem. **Save Diagram and Report** zapisuje oryginalną parę ART1; edycja podglądu jej nie zmienia.
+
+To prerelease z odroczonym odbiorem właściciela. Testy syntetyczne nie potwierdzają jakości żywego modelu
+ani dodatkowych platform natywnych. Automatyzacja widocznego UI może być niedostępna; kontrole paczek,
+runtime i Extension Host są raportowane oddzielnie. Historyczna obserwacja bezpiecznego konfliktu pozostaje otwarta.
+
+### Enterprise CLI i MCP — bez providera
+
+Rozpakuj osobno TGZ CLI/MCP. Wymaga Node >=22.12, bez npm i dodatkowych zależności.
+Uruchom `node tools/setup-cli.mjs /absolute/extracted/package` w tym projekcie. Tworzy nowe
+pliki `local-config/`; zachowaj istniejące. `retail` i `retail-mcp` wybierają ten sam katalog v3
+lokalnie lub przez rzeczywiste stdio; `retail-v1` i `retail-v2` zachowują wcześniejsze przykłady.
+Uruchom `node /absolute/extracted/package/bin/archi-agent.cjs diagram generate --config /absolute/retail-checkout/local-config/archi-agent.json --source retail --type value-stream --stream purchase-to-receipt --format json`.
+Dla Landscape zmień typ na `application-landscape` i pomiń `--stream`; dodaj
+`--color-scale maturity`, aby porównać jawne zero i nieznane oceny. `--source retail-mcp` sprawdza parytet.
+Wygenerowany `function-client.json` uruchamia ten sam function MCP. Generowanie widoku nie zapisuje
+plików i nie wywołuje modelu. Osobiste `local-config/` pozostaw poza udostępnianymi archiwami demo.

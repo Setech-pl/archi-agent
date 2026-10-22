@@ -1,0 +1,83 @@
+import {it,expect,afterEach,beforeAll} from "vitest";
+import {mkdtemp,realpath,readFile,writeFile,rm} from "node:fs/promises";
+import path from "node:path";import {tmpdir} from "node:os";import {spawnSync} from "node:child_process";
+import {Client} from "@modelcontextprotocol/sdk/client/index.js";
+import {StdioClientTransport} from "@modelcontextprotocol/sdk/client/stdio.js";
+import {generateValueStream,generateApplicationLandscape,generateCapabilityMap,generateApplicationMap,createEnterpriseResponse,createEnterpriseResponseV2,createEnterpriseResponseV3,validateEnterpriseResponseV3,captureEnterpriseUpdate,planDiagramBundle,saveDiagramBundle,type EnterpriseChange} from "../../src/runtime/index.js";
+import {validateEnterpriseCatalog} from "../../src/core/enterprise/enterprise-catalog.js";
+import {parseEnterpriseText} from "../../src/node/enterprise-json-source.js";
+import {validateEnterpriseViewRender} from "../../src/core/enterprise/enterprise-views.js";
+import {validateEnterpriseViewCandidates} from "../../src/core/enterprise/enterprise-view-candidates.js";
+import {prepareEnterpriseMaterials} from "../../src/runtime/enterprise-builder.js";
+const roots:string[]=[];let bundle:string;
+afterEach(async()=>{for(const root of roots.splice(0))await rm(root,{recursive:true,force:true});});
+beforeAll(async()=>{bundle=await realpath(await mkdtemp(path.join(tmpdir(),"ea34-bin-")));const {buildCli}=await import(new URL('../../scripts/build-cli.mjs',import.meta.url).href);await buildCli(bundle);});
+const stream={streamId:"purchase-to-receipt",stageIds:[],language:"en" as const},land={domainIds:[],applicationIds:[],colorBy:{kind:"rating" as const,scaleId:"maturity"},language:"en" as const};
+async function fixture(){const root=await realpath(await mkdtemp(path.join(tmpdir(),"ea34-")));roots.push(root);const text=await readFile('examples/retail-checkout/architecture/enterprise-views.json','utf8'),file=path.join(root,'enterprise.json');await writeFile(file,text);return {root,file,text,catalog:JSON.parse(text),source:{kind:'enterprise-json' as const,path:file}};}
+it('v3 validates explicit identities, references, ordering, field provenance and coverage without loosening v1/v2',async()=>{
+ const f=await fixture();expect(validateEnterpriseCatalog(f.catalog).schemaVersion).toBe(3);
+ for(const mutate of [(c:any)=>c.domains.push(c.domains[0]),(c:any)=>c.valueStreams[0].stages.push(c.valueStreams[0].stages[0]),(c:any)=>c.valueStreams[0].stages[0].capabilityIds=['missing'],(c:any)=>c.applications[0].domainId='missing',(c:any)=>c.applications[0].ratings.maturity=70,(c:any)=>c.valueStreams[0].provenance[0].fields=['/name'],(c:any)=>c.valueStreamScope.relationships='not-provided',(c:any)=>c.landscapeScope.domains='not-provided',(c:any)=>c.applications[0].unexpected=true]){const c=structuredClone(f.catalog);mutate(c);expect(()=>validateEnterpriseCatalog(c)).toThrow();}
+ expect(()=>createEnterpriseResponse(f.catalog.source.id,f.catalog)).toThrow();expect(()=>createEnterpriseResponseV2(f.catalog.source.id,f.catalog)).toThrow();
+});
+it('stage sequence is preserved, mapping identities are separate and source record order is immaterial',async()=>{
+ const f=await fixture(),first=await generateValueStream({source:f.source,selection:stream});if(first.status!=='success')throw Error(JSON.stringify(first));
+ expect(first.report.modelCalls).toBe(0);expect(first.plantUml).toContain('s_0 --> s_1 : next');expect(first.plantUml).toContain('requires');
+ if(first.report.diagramType!=='value-stream')throw Error();expect(first.report.stages.map(s=>s.record.id)).toEqual(['need','choose','pay','receive']);expect(first.report.stages[0]!.locator.pointer).toBe('/valueStreams/0/stages/0');
+ f.catalog.applications.reverse();f.catalog.capabilities.reverse();f.catalog.domains.reverse();await writeFile(f.file,JSON.stringify(f.catalog));const shuffled=await generateValueStream({source:f.source,selection:stream});if(shuffled.status!=='success')throw Error();expect(shuffled.plantUml).toBe(first.plantUml);expect(shuffled.report.projectionDigest).toBe(first.report.projectionDigest);
+ f.catalog.valueStreams[0].stages.reverse();await writeFile(f.file,JSON.stringify(f.catalog));const reversed=await generateValueStream({source:f.source,selection:stream});if(reversed.status!=='success')throw Error();expect(reversed.plantUml).not.toBe(first.plantUml);expect(reversed.report.projectionDigest).not.toBe(first.report.projectionDigest);
+});
+it('stage narrowing preserves ordinals without inventing a next edge across omitted stages',async()=>{
+ const f=await fixture(),r=await generateValueStream({source:f.source,selection:{...stream,stageIds:['need','receive']}});if(r.status!=='success'||r.report.diagramType!=='value-stream')throw Error(JSON.stringify(r));expect(r.plantUml).not.toContain(': next');expect(r.report.stages.map(s=>s.ordinal)).toEqual([1,4]);expect(r.report.excluded.some(e=>e.kind==='stage')).toBe(true);
+});
+it('landscape includes ungrouped apps, explicit zero differs from unknown and domain filters do not infer redundancy',async()=>{
+ const f=await fixture(),r=await generateApplicationLandscape({source:f.source,selection:land});if(r.status!=='success'||r.report.diagramType!=='application-landscape')throw Error(JSON.stringify(r));expect(r.report.applications).toHaveLength(4);expect(r.plantUml).toContain('Unknown domain');expect(r.plantUml).toContain('rating unknown');expect(r.plantUml).toContain('Payment Gateway (payment-app) - active - 0');expect(r.plantUml).toContain('#FDE0DD');
+ const scoped=await generateApplicationLandscape({source:f.source,selection:{...land,domainIds:['commerce']}});if(scoped.status!=='success'||scoped.report.diagramType!=='application-landscape')throw Error(JSON.stringify(scoped));expect(scoped.report.applications.map(a=>a.record.id)).toEqual(['checkout-app']);expect(scoped.report.excluded.some(e=>e.id==='unlinked-app')).toBe(true);
+});
+it('limits, invalid selection, unsafe labels, tampered envelope, stale and cancelled requests fail closed',async()=>{
+ const f=await fixture(),envelope=createEnterpriseResponseV3(f.catalog.source.id,f.catalog);expect(validateEnterpriseResponseV3(envelope,f.catalog.source.id).evidence.tool).toBe('get_enterprise_snapshot_v3');const tampered=structuredClone(envelope);tampered.catalog.valueStreams[0]!.stages.reverse();expect(()=>validateEnterpriseResponseV3(tampered,f.catalog.source.id)).toThrow();
+ expect(await generateValueStream({source:f.source,selection:{...stream,expectedCatalogDigest:'0'.repeat(64)}})).toMatchObject({code:'stale-source'});expect(await generateValueStream({source:f.source,selection:stream},{aborted:true})).toMatchObject({code:'cancelled'});
+ expect(await generateApplicationLandscape({source:f.source,selection:{...land,domainIds:['missing']}})).toMatchObject({code:'invalid-selection'});
+ for(let i=0;i<121;i++)f.catalog.applications.push({...f.catalog.applications[0],id:`extra-${i}`});await writeFile(f.file,JSON.stringify(f.catalog));expect(await generateApplicationLandscape({source:f.source,selection:land})).toMatchObject({code:'map-too-large'});expect((await generateApplicationLandscape({source:f.source,selection:{...land,applicationIds:['payment-app']}})).status).toBe('success');
+ expect(()=>validateEnterpriseViewRender('@startuml\n!include evil\n@enduml\n')).toThrow();
+});
+it('EAK2 v3 update retains untouched collections and identities, guards foreign edits and preserves CRLF',async()=>{
+ const f=await fixture();await writeFile(f.file,f.text.replace(/\n/g,'\r\n'));const session=await captureEnterpriseUpdate(f.file),id=session.propose({kind:'patch-capability',id:'checkout',changes:{name:'Updated Checkout'}});session.decide(id,'accepted');const plan=session.prepareSave(),after=JSON.parse(plan.proposedText);
+ expect(plan.proposedText).toContain('\r\n');expect(plan.proposedText.replace(/\r\n/g,'')).not.toContain('\n');expect(after.valueStreams).toEqual((session.base as any).valueStreams);expect(after.domains).toEqual((session.base as any).domains);expect(after.applications).toEqual((session.base as any).applications);expect(after.capabilities.find((c:any)=>c.id==='checkout').provenance.some((p:any)=>p.reference.uri.startsWith('urn:archi-agent:enterprise-update:'))).toBe(true);
+ await writeFile(f.file,plan.proposedText+' ');expect(await session.checkBase()).toMatchObject({status:'stale-source'});
+});
+it('stage rename keeps ID/order provenance, deletion blocks live references, reviewed scales admit explicit zero',async()=>{
+ const f=await fixture(),session=await captureEnterpriseUpdate(f.file),original=f.catalog.valueStreams[0],change=structuredClone(original);delete change.provenance;change.stages.forEach((s:any)=>delete s.provenance);change.stages[0].name='Reviewed Need';let id=session.propose({kind:'set-value-stream',stream:change});session.decide(id,'accepted');const proposed=session.state().proposed;if(proposed?.schemaVersion!==3)throw Error(JSON.stringify(session.state().issues));expect(proposed.valueStreams[0]!.stages[0]!.id).toBe('need');expect(proposed.valueStreams[0]!.provenance).toEqual((session.base as any).valueStreams[0].provenance);
+ id=session.propose({kind:'delete-capability',id:'product-discovery'});session.decide(id,'accepted');expect(session.state().issues.some(s=>s.includes('capability-missing'))).toBe(true);session.decide(id,'rejected');
+ id=session.propose({kind:'set-scale',id:'fit',name:'Explicit fit',levels:[{value:0,label:'No fit'},{value:100,label:'Fit'}]});session.decide(id,'accepted');id=session.propose({kind:'patch-application',id:'unlinked-app',changes:{ratings:{fit:0}}});session.decide(id,'accepted');expect(session.state().issues).toEqual([]);const draft=JSON.parse(session.prepareSave().proposedText);expect(draft.applications.find((a:any)=>a.id==='unlinked-app').ratings.fit).toBe(0);
+});
+it('model order without source evidence stays a proposal and extract mode rejects it',async()=>{
+ const text='Retail customer receives an order.',m=await prepareEnterpriseMaterials([{document:{kind:'editor-buffer',uri:'untitled:test',type:'txt',content:text},origin:{label:'Description',startOffset:0,startLine:1,startColumn:1,locations:'user-description'}}],new AbortController().signal);
+ const raw={version:1,warnings:[],candidates:[{key:'stream',change:{kind:'set-value-stream',stream:{id:'purchase',name:'Purchase',context:'Retail customer',stages:[{id:'receive',name:'Receive order',capabilityIds:[]}]}},basis:{'/stream/name':'model-proposal','/stream/context':'model-proposal','/stream/stages':'model-proposal','/stream/stages/0/name':'model-proposal','/stream/stages/0/capabilityIds':'model-proposal'},evidence:[]}]};
+ const proposal=validateEnterpriseViewCandidates(raw,m.bundle,m.origins,'propose','test');expect(proposal.viewCandidates?.[0]?.basis['/stream/stages']).toBe('model-proposal');expect(()=>validateEnterpriseViewCandidates(raw,m.bundle,m.origins,'extract','test')).toThrow();
+ const f=await fixture(),session=await captureEnterpriseUpdate(f.file);session.importViewProposal(proposal);expect(session.state().issues).toContain('unresolved-view-proposals');session.bindViewCandidate('view-0001',undefined);expect(session.state().issues).toEqual([]);
+});
+it('real local/source MCP/CLI/function MCP parity, older tools reject v3, original ART1 survives preview edits',async()=>{
+ const f=await fixture(),serverFile=path.join(f.root,'server.json'),configFile=path.join(f.root,'client.json'),bin=path.join(bundle,'bin');
+ await writeFile(serverFile,JSON.stringify({schemaVersion:2,readRoots:{project:f.root},sources:{},providers:{},enterpriseSources:{'retail-business':{kind:'enterprise-json',file:{root:'project',path:'enterprise.json'}}}}));
+ const server={command:process.execPath,args:[path.join(bin,'archi-agent-knowledge-server.cjs'),'--config',serverFile],timeoutMs:10000};
+ await writeFile(configFile,JSON.stringify({schemaVersion:2,readRoots:{project:f.root},sources:{},providers:{},knowledgeServers:{knowledge:server},enterpriseSources:{local:{kind:'enterprise-json',file:{root:'project',path:'enterprise.json'}},remote:{kind:'mcp',sourceId:'retail-business',server:'knowledge',contractVersion:3}}}));
+ const remoteSource={kind:'mcp' as const,sourceId:'retail-business',contractVersion:3 as const,server};
+ const client=new Client({name:'ea34',version:'1'});await client.connect(new StdioClientTransport({command:process.execPath,args:[path.join(bin,'archi-agent.cjs'),'mcp','serve','--config',configFile],env:{PATH:'',NODE_PATH:''}}));
+ try{for(const type of ['value-stream','application-landscape'] as const){const selection=type==='value-stream'?stream:land,local=type==='value-stream'?await generateValueStream({source:f.source,selection:stream}):await generateApplicationLandscape({source:f.source,selection:land}),remote=type==='value-stream'?await generateValueStream({source:remoteSource,selection:stream}):await generateApplicationLandscape({source:remoteSource,selection:land});if(local.status!=='success'||remote.status!=='success')throw Error(JSON.stringify({local,remote}));expect(remote.plantUml).toBe(local.plantUml);expect(remote.report.projectionDigest).toBe(local.report.projectionDigest);
+ for(const source of ['local','remote']){const reply=await client.callTool({name:'generate_diagram',arguments:{source,diagramType:type,selection}});expect(reply.isError,JSON.stringify(reply)).toBe(false);const expected=source==='local'?local:remote;expect((reply.structuredContent as any).outcome).toEqual({status:'success',diagramType:type,plantUml:expected.plantUml,report:expected.report});
+ const run=spawnSync(process.execPath,[path.join(bin,'archi-agent.cjs'),'diagram','generate','--config',configFile,'--source',source,'--type',type,...(type==='value-stream'?['--stream',stream.streamId]:['--color-scale','maturity']),'--format','json'],{encoding:'utf8',env:{PATH:'',NODE_PATH:''}});expect(run.status,run.stderr+run.stdout).toBe(0);expect(JSON.parse(run.stdout).outcome).toEqual((reply.structuredContent as any).outcome);}
+ const saved=await saveDiagramBundle(f.root,remote.artifact,planDiagramBundle());expect(await readFile(path.join(saved.directory,'diagram.puml'),'utf8')).toBe(local.plantUml);const report=JSON.parse(await readFile(path.join(saved.directory,'report.json'),'utf8'));expect(report.generationReport).toEqual(remote.report);expect(report.sourceReferences.enterpriseCatalog.reference.contractVersion).toBe(3);
+ }}finally{await client.close();}
+ expect((await generateCapabilityMap({source:remoteSource,selection:{rootIds:[],maxLevel:3,colorBy:{kind:'none'},language:'en'}})).status).toBe('success');expect((await generateApplicationMap({source:remoteSource,selection:{capabilityIds:[],includeDescendants:true,language:'en'}})).status).toBe('success');
+ expect(parseEnterpriseText(await readFile(f.file,'utf8'),'enterprise.json').catalog.schemaVersion).toBe(3);
+},60000);
+
+it('scale no-op and rename retain unchanged evidence; application patch/delete conflicts',async()=>{
+ const f=await fixture(),session=await captureEnterpriseUpdate(f.file),scale=session.base.scales[0]!;
+ let id=session.propose({kind:'set-scale',id:scale.id,name:scale.name,levels:scale.levels});session.decide(id,'accepted');expect(session.state().proposed!.scales[0]!.provenance).toEqual(scale.provenance);session.decide(id,'rejected');
+ id=session.propose({kind:'set-scale',id:scale.id,name:'Renamed scale',levels:scale.levels});session.decide(id,'accepted');const proof=session.state().proposed!.scales[0]!.provenance;expect(proof.some(p=>p.fields.includes('/levels')&&p.reference?.uri==='urn:archi-agent:synthetic:retail-checkout')).toBe(true);
+ for(const change of [{kind:'patch-application',id:'unlinked-app',changes:{name:'Changed'}},{kind:'delete-application',id:'unlinked-app'}] as EnterpriseChange[]){id=session.propose(change);session.decide(id,'accepted');}expect(session.state().issues.some(s=>s.includes('conflict:delete-application'))).toBe(true);
+});
+it('application rename never manufactures attribute coverage',async()=>{
+ const f=await fixture();for(const a of f.catalog.applications){delete a.owner;delete a.lifecycle;delete a.ratings;a.provenance=a.provenance.map((p:any)=>({...p,fields:p.fields.filter((v:string)=>!['/owner','/lifecycle'].includes(v)&&!v.startsWith('/ratings/'))})).filter((p:any)=>p.fields.length);}f.catalog.landscapeScope.attributes='not-provided';await writeFile(f.file,JSON.stringify(f.catalog));const session=await captureEnterpriseUpdate(f.file),id=session.propose({kind:'patch-application',id:'checkout-app',changes:{name:'New Name'}});session.decide(id,'accepted');const cat=session.state().proposed;expect(cat?.schemaVersion===3&&cat.landscapeScope.attributes).toBe('not-provided');
+});
