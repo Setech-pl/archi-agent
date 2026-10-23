@@ -57,6 +57,49 @@ Pełny lokalny odbiór uruchom Node 22.12.0: `npm run mcp1:verify -- build/mcp1/
 
 ## Przygotowanie OCR i pochodzenie ICU
 
+### Świeży klon z pustym cache
+
+Użyj Node 22.12.0 (wersja CI), npm, Git, `tar`, `zip`, `unzip` i zgodnego z GNU `patch`
+w PATH. Przygotowanie wymaga sieci do GitHub i rejestru npm. Użyj nowego katalogu,
+zapisz rzeczywiste SHA źródeł; nie kopiuj node_modules, archiwów ani builda z innego checkoutu.
+Modele językowe, licencje i patch są śledzonymi wejściami Git: pochodzą z klonu, nie ze starego
+katalogu przygotowanych zasobów OCR.
+
+```bash
+git clone https://github.com/Setech-pl/archi-agent.git archi-agent-clean
+cd archi-agent-clean
+git checkout --detach <source-sha>
+mkdir -p build/clean-ocr/npm-cache
+export npm_config_cache="$PWD/build/clean-ocr/npm-cache"
+npm ci
+npm ci --prefix experiments/ux2-ocr
+node scripts/prepare-ci-ocr.mjs
+npm run extension:build
+npm run extension:package -- --profile core --out build/clean-ocr/core
+npm run extension:verify -- build/clean-ocr/core/archi-agent-core-0.3.0-alpha.8.vsix
+npm run extension:package -- --profile full --out build/clean-ocr/full
+npm run extension:verify -- build/clean-ocr/full/archi-agent-full-0.3.0-alpha.8.vsix
+```
+
+Zastąp `<source-sha>` docelowym pełnym commitem. Cache musi być pusty przed pierwszą
+instalacją; skrypt przygotowania dziedziczy go i pobiera osiem przypiętych archiwów platform.
+Pakuj sekwencyjnie. Verify sprawdza inventory i hashe zasobów, nie wykonuje OCR na każdej
+platformie. Uruchom poniższy smoke z klonu. Rozpakowuje dokładny Full poza checkoutem,
+tworzy syntetyczne skany PL/EN i wykonuje rzeczywisty OCR oraz kontrole anulowania/integralności.
+Tworzenie fixture używa zależności developerskich; konwersja używa runtime i zasobów z VSIX.
+
+```bash
+node scripts/mcp1-full-ocr-smoke.mjs build/clean-ocr/full/archi-agent-full-0.3.0-alpha.8.vsix build/clean-ocr/ocr-smoke
+```
+
+Sprawdź `build/clean-ocr/ocr-smoke/full-ocr.json`; zachowaj go z logami i hashami paczek.
+To test runtime, nie odbiór UI zainstalowanego VS Code. Osobny
+[owner smoke](../testing/ea3-ea4-owner-smoke.md) pozostaje odroczony do rzeczywistego wykonania.
+
+Zgodność źródeł, bundle runtime i hashy poszczególnych zasobów nie oznacza identycznych
+bajtów VSIX/ZIP: metadane archiwum mogą się różnić. Porównuj osobno rozpakowane wpisy;
+manifest/SHA256SUMS wydania identyfikują niezmienne opublikowane archiwa.
+
 Zainstaluj oba zatwierdzone lockfile przez npm ci. Przygotuj OCR przed pakowaniem Full (albo jedynego
 profilu OCR na starszej gałęzi). Poniższa komenda sprawdza osiem archiwów canvas 0.1.97 względem
 SRI z lockfile i tworzy zasoby produktu; nie potrzebuje historycznych JSON wyników ani zewnętrznego

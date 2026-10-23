@@ -12,22 +12,29 @@ their own source identity; a published package is not a production-readiness cla
 
 ## Enterprise Architecture and approved order
 
-EA1/EA1b add deterministic Capability Map from a separate local enterprise catalog or MCP source,
-available in VS Code, CLI and the function MCP server with zero LLM calls. The integration candidate
-preserves software knowledge v1. EAU1 adds captured active JSON; EAK1 adds reviewed enterprise catalog creation from selected documents or a company description, followed by the deterministic map. The combined scope has passed local acceptance and independent review; owner smoke remains deferred. Public DEMO1 packages do not contain this addition.
+EA1/EA1b provide deterministic Capability Map from a separate local enterprise catalog or MCP
+source in VS Code, CLI and the function MCP server, with zero LLM calls. EAU1 captures active JSON;
+EAK1 creates reviewed catalogs from materials or a company description. EAK2 updates a captured
+catalog with explicit decisions and guarded saves. Software knowledge v1 remains compatible.
+These features, EA2–EA4 and AUD-003/004 fixes are included in
+[alpha.8](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8).
+The earlier DEMO1 packages retain their original scope and bytes.
 [Catalog contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) / [PL](pl/capability-map.md).
 
 | Order | Stage | Status / boundary |
 | --- | --- | --- |
-| 1 | EA1/EA1b integration | Integration base; no release publication |
-| 2 | EAU1 + EAK1 | Local acceptance and independent review complete; owner smoke deferred |
-| 3 | AUD-003/004 fixes | Local AUD-FIX2 fixes and acceptance complete; owner smoke deferred; no publication |
-| 4 | EAK2 catalog updates | Implemented local candidate; native UI acceptance blocked; no functional checkpoint yet |
-| 5 | EA2 Capability–Application Map | Implemented local candidate with explicit application IDs/support/provenance/coverage; shared acceptance pending native UI |
-| 6 | EA3 Value Stream | Implemented candidate: explicit ordered stages, context/outcomes, capability mappings and reviewed updates |
-| 7 | EA4 Application Landscape | Implemented candidate: shared application identities, domains, optional owner/lifecycle, explicit scale ratings |
+| 1 | EA1/EA1b integration | Published in alpha.8: local/MCP Capability Map across all three hosts |
+| 2 | EAU1 + EAK1 | Published in alpha.8: captured active JSON and reviewed catalog creation |
+| 3 | AUD-003/004 fixes | Published in alpha.8: confirmed NEW and vector-text PDF OCR fixes |
+| 4 | EAK2 catalog updates | Published in alpha.8: frozen review and guarded native save |
+| 5 | EA2 Capability–Application Map | Published in alpha.8: explicit application IDs/support/provenance/coverage |
+| 6 | EA3 Value Stream | Published in alpha.8: ordered stages, context/outcomes and capability mappings |
+| 7 | EA4 Application Landscape | Published in alpha.8: shared application identities, domains, owner/lifecycle and explicit ratings |
 
-The order is approved; the current EA3/EA4 release brief authorizes completion and prerelease publication.
+Publication used an explicit prerelease exception. It does not close deferred owner smoke,
+historical visible-UI FAIL/NOT_RUN, safe-conflict LOW or unverified platform/live-model checks.
+MAIN1 + STAB1 covers integration and stabilization only; EVAL1 and new features require a new task.
+See [current handoff](project-state.md) and [authorized scope](plans/main1-stab1-brief.md).
 
 ## Considered / deferred
 

@@ -57,6 +57,50 @@ Run the complete local acceptance with Node 22.12.0: `npm run mcp1:verify -- bui
 
 ## OCR preparation and ICU provenance
 
+### Fresh clone with an empty cache
+
+Use Node 22.12.0 (the CI version), npm, Git, `tar`, `zip`, `unzip` and a GNU-compatible
+`patch` in PATH. Network access to GitHub and the npm registry is required for preparation.
+Use a new directory and record the resolved source SHA; do not copy node_modules, tarballs
+or build output from another checkout. The language models, licenses and patch are tracked
+Git inputs. They arrive through the clone, not a previous OCR stage.
+
+```bash
+git clone https://github.com/Setech-pl/archi-agent.git archi-agent-clean
+cd archi-agent-clean
+git checkout --detach <source-sha>
+mkdir -p build/clean-ocr/npm-cache
+export npm_config_cache="$PWD/build/clean-ocr/npm-cache"
+npm ci
+npm ci --prefix experiments/ux2-ocr
+node scripts/prepare-ci-ocr.mjs
+npm run extension:build
+npm run extension:package -- --profile core --out build/clean-ocr/core
+npm run extension:verify -- build/clean-ocr/core/archi-agent-core-0.3.0-alpha.8.vsix
+npm run extension:package -- --profile full --out build/clean-ocr/full
+npm run extension:verify -- build/clean-ocr/full/archi-agent-full-0.3.0-alpha.8.vsix
+```
+
+Replace `<source-sha>` with the intended full commit. The cache directory must be empty
+before the first install; the preparation script inherits this cache and downloads all eight
+pinned platform archives. Execute packaging sequentially. Verification checks the resource
+inventory and hashes; it does not execute OCR on every platform. Run the packaged-runtime
+smoke below from the clone. It extracts the exact Full outside the checkout, creates synthetic
+PL/EN scans and executes real OCR plus cancellation/resource-integrity checks. Fixture creation
+uses development dependencies; conversion uses the extracted VSIX runtime and resources.
+
+```bash
+node scripts/mcp1-full-ocr-smoke.mjs build/clean-ocr/full/archi-agent-full-0.3.0-alpha.8.vsix build/clean-ocr/ocr-smoke
+```
+
+Inspect `build/clean-ocr/ocr-smoke/full-ocr.json`; preserve it with logs and package hashes.
+This is a runtime test, not installed VS Code UI acceptance. The separate
+[owner smoke](../testing/ea3-ea4-owner-smoke.md) remains deferred until actually performed.
+
+Matching source, runtime bundles and individual resource hashes does not imply byte-identical
+VSIX/ZIP files: archive metadata may differ. Compare extracted entries separately, and use
+the release manifest/SHA256SUMS only to identify the immutable published archives.
+
 Install both committed lockfiles with npm ci. Prepare OCR before packaging Full (or the single
 OCR profile on older branches). The preparation command below verifies all eight canvas 0.1.97
 platform tarballs against lockfile SRI and creates product assets; it does not require old results

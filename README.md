@@ -87,10 +87,10 @@ Open a ready-made project with architecture knowledge, sample flows and step-by-
 
 | Project | What you will explore | Download | Tutorial |
 | --- | --- | --- | --- |
-| **Retail Checkout** | Orders, payments and fulfilment. Check flows, generate four diagram types and keep the evidence behind your design. | [Project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-demo-retail-checkout-0.3.0-alpha.8.zip) | [English tutorial](examples/retail-checkout/START-HERE.en.md) |
+| **Retail Checkout** | Orders, payments and fulfilment. Check flows, generate four software diagrams and four enterprise views, and keep their source evidence. | [Project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-demo-retail-checkout-0.3.0-alpha.8.zip) | [English tutorial](examples/retail-checkout/START-HERE.en.md) |
 | **Mission Control** | Telemetry, commands and alerts. Connect an MCP knowledge source, run CLI checks and build knowledge from documents. | [Project ZIP](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-demo-mission-control-0.3.0-alpha.8.zip) | [English tutorial](examples/mission-control/START-HERE.en.md) |
 
-Your first check uses Sequence PlantUML and needs **no LLM**. Configure your own model when you move on to diagram generation, written flow descriptions or document extraction.
+Your first check uses Sequence PlantUML and needs **no LLM**. Configure your own model when you move on to software diagram generation, written flow descriptions or document extraction.
 
 [Open the tutorial collection](docs/en/tutorials.md)
 
@@ -111,7 +111,7 @@ Download the [demonstration prerelease v0.3.0-alpha.8](https://github.com/Setech
 1. Choose **[Core](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-core-0.3.0-alpha.8.vsix)** as the recommended start for diagrams, verification and architecture sources. Choose **[Full](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/archi-agent-full-0.3.0-alpha.8.vsix)** when you also need local Polish/English OCR for scanned PDFs.
 2. Verify the SHA-256 checksum and install your profile in desktop VS Code 1.91+ using **Extensions → … → Install from VSIX…**. Keep exactly one Core/Full profile enabled and reload the window.
 3. Open a tutorial project, select its prepared source and run **Archi: Verify Flow (Sequence / prose)**.
-4. Configure your model when you are ready to generate diagrams or work with prose.
+4. Configure your model when you are ready to generate software diagrams or work with prose.
 
 The VS Code extension includes its runtime: no repository clone, npm or separate Node.js installation is needed. CLI/MCP uses Node.js 22.12 or later.
 
