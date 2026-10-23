@@ -14,5 +14,5 @@ copy. Product assets use build/ux2-ocr/phase2/resource-manifest.json.
 Retain TRIAL_NOTICES.md, licenses, patches, traineddata, all eight native platform archives and
 locked dependencies. Preparation checks SRI and pinned PDF.js hashes, applies the patch with zero
 fuzz, and rejects missing/corrupt resources. Inventory is not runtime acceptance on every platform.
-The limits, cancellation and remaining vector-text PDF issue belong in the
+The limits, cancellation and vector-text PDF handling are described in the
 [document contract](../../docs/document-candidates.md) and [current state](../../docs/project-state.md).
