@@ -11,7 +11,7 @@ const results=[],sha=f=>createHash('sha256').update(readFileSync(f)).digest('hex
 const previous=JSON.parse(openVsix(previousFull).read('extension/package.json'));assert.equal(previous.name,'archi-agent');assert.equal(previous.version,'0.3.0-alpha.6');
 let env=prepareVscode(path.resolve(previousFull),'MCP1-upgrade');
 function install(file){const r=spawnSync('code',['--user-data-dir',env.user,'--extensions-dir',env.extensions,'--install-extension',path.resolve(file),'--force'],{encoding:'utf8',timeout:60000});assert.equal(r.status,0,r.stderr);return r.stdout+r.stderr;}
-const coreOld=path.join(out,'synthetic-core-predecessor.vsix'),zip=await JSZip.loadAsync(readFileSync(core)),p=JSON.parse(await zip.file('extension/package.json').async('string'));p.version='0.3.0-alpha.6';zip.file('extension/package.json',JSON.stringify(p));zip.file('extension.vsixmanifest',(await zip.file('extension.vsixmanifest').async('string')).replace(/Version="0.3.0-alpha.7"/,'Version="0.3.0-alpha.6"'));writeFileSync(coreOld,await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'}));
+const coreOld=path.join(out,'synthetic-core-predecessor.vsix'),zip=await JSZip.loadAsync(readFileSync(core)),p=JSON.parse(await zip.file('extension/package.json').async('string'));p.version='0.3.0-alpha.6';zip.file('extension/package.json',JSON.stringify(p));zip.file('extension.vsixmanifest',(await zip.file('extension.vsixmanifest').async('string')).replace(/Version="0.3.0-alpha.8"/,'Version="0.3.0-alpha.6"'));writeFileSync(coreOld,await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'}));
 const harness=path.join(env.root,'harness');mkdirSync(harness);writeFileSync(path.join(harness,'package.json'),JSON.stringify({name:'mcp1-profile-harness',publisher:'local',version:'1.0.0',engines:{vscode:'^1.91.0'},main:'extension.cjs',activationEvents:['onStartupFinished']}));writeFileSync(path.join(harness,'extension.cjs'),"exports.activate=()=>{void require('./test.cjs').run().catch(e=>console.error(e));};");copyFileSync('scripts/mcp1-profile-host.cjs',path.join(harness,'test.cjs'));
 const report={environment:env,predecessorFull:{path:path.resolve(previousFull),sha256:sha(previousFull)},syntheticPredecessorCore:{path:coreOld,sha256:sha(coreOld),scope:'candidate bytes with only manifest version changed; no prior Core release exists'},artifacts:[core,full].map(f=>({path:path.resolve(f),sha256:sha(f)})),results};
 async function mode(mode){
@@ -23,7 +23,7 @@ try{
  report.installCorePredecessor=install(coreOld);await mode('full-before-upgrade');await mode('core-before-upgrade');
  const oldCoreRoot=path.join(env.extensions,'setech-pl.archi-agent-core-0.3.0-alpha.6'),oldCoreHash=sha(path.join(oldCoreRoot,'package.json'));
  report.upgradeFull=install(full);assert.equal(sha(path.join(oldCoreRoot,'package.json')),oldCoreHash);await mode('full-first');
- const fullRoot=path.join(env.extensions,'setech-pl.archi-agent-0.3.0-alpha.7'),fullHash=sha(path.join(fullRoot,'package.json'));
+ const fullRoot=path.join(env.extensions,'setech-pl.archi-agent-0.3.0-alpha.8'),fullHash=sha(path.join(fullRoot,'package.json'));
  report.upgradeCore=install(core);assert.equal(sha(path.join(fullRoot,'package.json')),fullHash);await mode('core-switch');
  results.push({id:'independent-version-upgrade-Full-real-predecessor-Core-synthetic-predecessor-preserves-settings-secrets',status:'PASS'});
  for(const name of ['full-return','core-return','conflict'])await mode(name);

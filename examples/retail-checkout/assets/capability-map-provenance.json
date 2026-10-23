@@ -1,0 +1,77 @@
+{
+  "input": "examples/retail-checkout/architecture/enterprise.json",
+  "inputSha256": "10ad51300056414c0418013f79224b8f39d0a6fb6d2691dc861c3d4db330fcea",
+  "catalogDigest": "9e50f28619a146990f4984ebb0dd77a0e1f73128c76c03f7d1a20c1d9e34fabd",
+  "renderer": "Manifest-Version: 1.0\r\nMain-Class: net.sourceforge.plantuml.Run\r\nImplementation-Version: 1.2026.6\r\nBuild-Jdk-Spec: 21\r\nClass-Path: elk-full.jar avalon-framework-4.2.0.jar batik-all-1.7.jar co\r\n mmons-io-1.3.1.jar commons-logging-1.0.4.jar fop.jar xml-apis-ext-1.3.0\r\n 4.jar xmlgraphics-commons-1.4.jar jlatexmath-minimal-1.0.3.jar jlm_cyri\r\n llic.jar jlm_greek.jar vizjs.jar j2v8_win32_x86_64-3.1.6.jar j2v8_linux\r\n _x86_64-3.1.6.jar j2v8_macosx_x86_64-3.1.6.jar ditaa0_9.jar\r\nAutomatic-Module-Name: net.sourceforge.plantuml\r\n\r\n",
+  "jarSha256": "89948f14c93756c7a3fb7b69078ff37e8489fd79dd430c582b931e2f65358690",
+  "maps": [
+    {
+      "name": "retail-capability-map",
+      "plantUmlSha256": "18b98520dd0420b938a0be389fcda901e641ea74b286a0d91a94541bbecd2de9",
+      "imageSha256": "34840fbf4d8ff98b7e98cf1103cd2885c930a460b7c12388c1b580fe7270c458",
+      "selection": {
+        "rootIds": [],
+        "maxLevel": 3,
+        "colorBy": {
+          "kind": "rating",
+          "scaleId": "maturity"
+        },
+        "language": "pl",
+        "expectedCatalogDigest": "9e50f28619a146990f4984ebb0dd77a0e1f73128c76c03f7d1a20c1d9e34fabd"
+      },
+      "projectionDigest": "c814f5939d361fa56f1945e11df9cc87c941fa09170bcea3a4f8a67b3310aeb5"
+    },
+    {
+      "name": "small",
+      "plantUmlSha256": "04341456817e66c85bb901d545ba6b9556d394c7521f43f4817cd29700cf4f36",
+      "imageSha256": "68dc910a4db67b7d45a2b419bb179482578f96b44222df47b4c8364e484318eb",
+      "selection": {
+        "rootIds": [
+          "customer"
+        ],
+        "maxLevel": 1,
+        "colorBy": {
+          "kind": "none"
+        },
+        "language": "en",
+        "expectedCatalogDigest": "9e50f28619a146990f4984ebb0dd77a0e1f73128c76c03f7d1a20c1d9e34fabd"
+      },
+      "projectionDigest": "c4167feda94898c15f30f1800a1e95a20b634c8b556b2cec24d78634e0bcbb1e"
+    },
+    {
+      "name": "three-level",
+      "plantUmlSha256": "0e82577ec2a29406ebfef8fd9b512aedd8dad6c6df32e25ff85c1acb4ee0053f",
+      "imageSha256": "7ddedec41f768b9fa5eacd6bf767ce465d85bbf6a9803cd8f56a232f4eea8402",
+      "selection": {
+        "rootIds": [
+          "sales"
+        ],
+        "maxLevel": 3,
+        "colorBy": {
+          "kind": "none"
+        },
+        "language": "pl",
+        "expectedCatalogDigest": "9e50f28619a146990f4984ebb0dd77a0e1f73128c76c03f7d1a20c1d9e34fabd"
+      },
+      "projectionDigest": "af4447bb08948348dda266109f53256a3b5cfe37d23c293535635f6fce05baef"
+    },
+    {
+      "name": "long-polish",
+      "plantUmlSha256": "fb7b15a2fdf1bf18e09682c8a07ab140fe9a3fa2541e28a279d3fcf67868ad18",
+      "imageSha256": "0c8bd39be46da7a98110f9b323dfa35a25e30cc5830dafee9ead65dbb9afdc00",
+      "selection": {
+        "rootIds": [
+          "sales"
+        ],
+        "maxLevel": 3,
+        "colorBy": {
+          "kind": "rating",
+          "scaleId": "maturity"
+        },
+        "language": "pl",
+        "expectedCatalogDigest": "9e50f28619a146990f4984ebb0dd77a0e1f73128c76c03f7d1a20c1d9e34fabd"
+      },
+      "projectionDigest": "263078f52e7f06d9461e342e5849ecd35d12146e2d634f0473e1d081ce2e3533"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "readRoots": {
+    "project": "/srv/retail-checkout"
+  },
+  "sources": {},
+  "enterpriseSources": {
+    "retail-local": {
+      "kind": "enterprise-json",
+      "file": {
+        "root": "project",
+        "path": "architecture/enterprise.json"
+      }
+    },
+    "retail-mcp": {
+      "kind": "mcp",
+      "server": "knowledge",
+      "sourceId": "retail-business"
+    }
+  },
+  "knowledgeServers": {
+    "knowledge": {
+      "command": "/opt/node/bin/node",
+      "args": [
+        "/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs",
+        "--config",
+        "/srv/retail-knowledge.json"
+      ],
+      "timeoutMs": 10000
+    }
+  },
+  "providers": {}
+}

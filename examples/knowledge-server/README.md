@@ -32,3 +32,27 @@ The first adapter reuses the production Structurizr JSON parser/mapper, bounded 
 readRoots and original-ID overlay. No DSL, API, EA or database adapter is included. The normalized
 response permits future adapters to remain partial without masquerading as complete Structurizr.
 See the PL/EN CLI/MCP guides for configuring this server as an Archi Agent source.
+
+## Enterprise catalog adapter
+
+The published DEMO1 package is unchanged; build a new local package for this feature.
+Use [config.enterprise.example.json](config.enterprise.example.json) for the source server and
+[config.enterprise-client.example.json](config.enterprise-client.example.json) for the product.
+Replace /srv/retail-checkout with the current checkout Retail folder and executable/package paths.
+
+```bash
+archi-agent-knowledge-server --config /srv/retail-knowledge.json --check-source retail-business --type enterprise
+archi-agent diagram generate --config /srv/archi-agent.json --source retail-mcp --type capability-map --max-level 3 --color-scale maturity --language en --format json
+```
+
+EnterpriseJsonAdapter.load returns EnterpriseCatalog data only. Implement EnterpriseAdapter.load
+for your own source and compose it explicitly in main.ts. Shared createEnterpriseResponse and
+validateEnterpriseResponse own EA1 validation and source/version/snapshot digests; server.ts owns
+stdio, busy/cancel/closure and bounded replies. Preserve stable IDs, parents, explicit scales/ratings,
+source scope/coverage and original field provenance/reference URI/version. No invented locations,
+software systems converted to capabilities, automatic proxy chain, arbitrary plugin path or LLM.
+The client lists tools and calls only get_enterprise_snapshot with contractVersion:1. A server with
+no enterprise adapter does not advertise that tool. get_knowledge_snapshot v1 is unchanged.
+The complete source/client/User settings and external function-MCP request are in the
+[EN guide](../../docs/en/cli-mcp.md#capability-map-with-no-model) /
+[PL guide](../../docs/pl/cli-mcp.md#capability-map-bez-modelu).

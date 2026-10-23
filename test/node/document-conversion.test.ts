@@ -37,6 +37,12 @@ async function zip(entries: Record<string, string | Buffer>, compression: "STORE
 }
 
 describe("local document conversion", () => {
+  it("AUD-004 vector outlines have no extractable text and require OCR", async () => {
+    const result = await convertLocalDocument(fixture("vector-text.pdf"));
+    expect(result).toMatchObject({ status: "success", format: "pdf", coverage: { pages: [{ page: 1, source: "requires-ocr" }], warnings: ["layout-not-preserved", "no-extractable-text"] } });
+    if (result.status === "success") expect(result.markdown).not.toContain("VECTOR");
+  });
+
   it("converts a two-page text PDF in page order and rejects a scanned PDF", async () => {
     const before = sha(readFileSync(fixture("two-pages.pdf")));
     const result = await convertLocalDocument(fixture("two-pages.pdf"));

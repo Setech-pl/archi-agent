@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+skinparam shadowing false
+title Value Stream - Od potrzeby do otrzymania zamówienia (purchase-to-receipt)
+rectangle "1. Potrzeba zakupowa (need)" as s_0
+rectangle "2. Wybór produktów (choose)" as s_1
+rectangle "3. Zakup i płatność (pay)" as s_2
+rectangle "4. Otrzymanie zamówienia (receive)" as s_3
+rectangle "Finalizacja zakupu (checkout)" as c_0
+rectangle "Obsługa klienta (customer-service)" as c_1
+rectangle "Potwierdzanie zamówień (order-confirmation)" as c_2
+rectangle "Dostarczanie zamówień (order-delivery)" as c_3
+rectangle "Przyjmowanie i rozliczanie płatności za zakupy w kanałach sprzedaży (payment)" as c_4
+rectangle "Odkrywanie produktów (product-discovery)" as c_5
+s_0 --> s_1 : next
+s_0 --> c_5 : requires
+s_1 --> s_2 : next
+s_1 --> c_0 : requires
+s_1 --> c_5 : requires
+s_2 --> s_3 : next
+s_2 --> c_0 : requires
+s_2 --> c_2 : requires
+s_2 --> c_4 : requires
+s_3 --> c_1 : requires
+s_3 --> c_3 : requires
+@enduml

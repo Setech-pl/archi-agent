@@ -1,0 +1,18 @@
+@startuml
+left to right direction
+skinparam shadowing false
+title Capability Application Map
+rectangle "Finalizacja zakupu (checkout)" as cap_0
+rectangle "Potwierdzanie zamówień (order-confirmation)" as cap_1
+rectangle "Przyjmowanie i rozliczanie płatności za zakupy w kanałach sprzedaży (payment)" as cap_2
+component "Retail Checkout (checkout-app)" as app_0
+component "Payment Gateway (payment-app)" as app_1
+app_0 --> cap_0 : supports
+app_0 --> cap_2 : supports
+app_1 --> cap_2 : supports
+legend
+Explicit direct links only. Missing links mean unknown support.
+Multiple links do not prove redundancy. No inheritance or aggregation.
+LLM: 0
+endlegend
+@enduml

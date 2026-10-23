@@ -1,6 +1,6 @@
 # Archi Agent VS Code extension
 
-Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). These describe the current UX4-FU2 branch build; the public UX2 package is distinct. This stable path remains a technical reference.
+Current complete user instructions: [English](en/user-guide.md) · [Polski](pl/user-guide.md). Published DEMO1 and the integration candidate have distinct package identities. This stable path remains a technical reference.
 
 The extension is the first self-contained host of the Archi Agent runtime. It packages the existing
 sequence compatibility path and the reviewed Sequence and Component pipelines (Knowledge Pack loading,
@@ -88,7 +88,7 @@ See [user guide](en/user-guide.md), [development](en/development.md),
   Channel still shows short user messages and safe issue details.
 - The pack directory is opened with the link-free, bounded Node adapters; only the five fixed file
   names are read.
-- The extension spawns no process and runs no npm script.
+- Only an explicitly configured User knowledgeServer may start a bounded MCP stdio process; no shell or automatic installation is used.
 
 ## Development build
 
@@ -155,3 +155,17 @@ The separate save command consumes the original completed runtime artifact assoc
 result previews. It does not read settings, buffers, secrets or architecture sources. It saves two
 files in a new project subdirectory only after explicit confirmation; multi-root chooses a project.
 See [format, digests and conditional rollback](diagram-artifact-save.md).
+
+## EA1 Capability Map
+
+Create Diagram adds the Enterprise Architecture group and one Capability Map option. Type
+selection precedes source/provider requirements. The native file picker explicitly selects a local
+enterprise.json after project selection in multi-root; it does not persist source/provider settings.
+Scope, detail and colors use QuickPick. Validation errors include a safe field/code/line, with no
+partial output. The two previews and Save command use the existing ART1 registry and writer.
+No new webview, catalog editor, credentials or model call is involved.
+[Enterprise contract](enterprise-catalog.md) · [Tutorial EN](en/capability-map.md) · [PL](pl/capability-map.md).
+
+EA1b also offers an explicitly configured MCP catalog through enterpriseSource. The process
+configuration comes only from User knowledgeServer. Local report v1 and MCP report v2 retain
+their own evidence; both use the same projection and original-pair writer with zero LLM calls.

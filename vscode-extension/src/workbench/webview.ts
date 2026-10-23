@@ -26,7 +26,7 @@ export function plainMessage(value: unknown, allowed: readonly string[]): value 
   const v = value as Record<string, unknown>;
   if (typeof v.op !== "string" || !allowed.includes(v.op) || !Number.isSafeInteger(v.revision)) return false;
   const payloadFields: Record<string, readonly string[]> = {
-    "set-key": ["profile"], "delete-key": ["profile"], apply: ["form", "baseRevision"], models: ["form"], project: ["project"], "draft-changed": ["dirty", "form"],
+    "save-catalog": ["name", "scope"], "set-key": ["profile"], "delete-key": ["profile"], apply: ["form", "baseRevision"], models: ["form"], project: ["project"], "draft-changed": ["dirty", "form"],
     "open-file": ["file"], decide: ["indices", "decision"], edit: ["index", "changes"]
   };
   const fields = ["op", "revision", ...(payloadFields[v.op] ?? [])];

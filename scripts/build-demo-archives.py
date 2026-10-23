@@ -8,7 +8,7 @@ from pathlib import Path
 import argparse, hashlib, json, subprocess, zipfile
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--out',default='build/demo1/archives')
-parser.add_argument('--version',default='0.3.0-alpha.7-demo.1')
+parser.add_argument('--version',default='0.3.0-alpha.8')
 parser.add_argument('--draft',action='store_true')
 a=parser.parse_args()
 if not all(c.isalnum() or c in '.-' for c in a.version): parser.error('Unsafe version')

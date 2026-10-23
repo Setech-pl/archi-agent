@@ -1,0 +1,31 @@
+@startuml
+!pragma layout smetana
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultTextAlignment center
+title Capability Map
+rectangle "L1 Sprzedaż\n2 - Mierzona" as cap_0005 #CEE0EA {
+  rectangle "L2 Finalizacja zakupu\n2 - Mierzona" as cap_0001 #CEE0EA {
+    rectangle "L3 Potwierdzanie zamówień\nNo data" as cap_0002 #EEEEEE
+    rectangle "L3 Przyjmowanie i rozliczanie\npłatności za zakupy w kanałach\nsprzedaży\n3 - Doskonalona" as cap_0003 #B8DAD5
+  }
+  rectangle "L2 Obsługa zwrotów\n1 - Powtarzalna" as cap_0004 #E5DFB7
+}
+legend
+Source: Retail Checkout - katalog
+Source: syntetyczny
+Source scope: Zdolności obsługi zakupów
+Source scope: detalicznych
+Coverage: partial
+View: selected L1 branches; L1-L3
+Visible / omitted: 5 / 8
+Scale: Dojrzałość
+|<#E8D6E8> 0 | Początkowa |
+|<#E5DFB7> 1 | Powtarzalna |
+|<#CEE0EA> 2 | Mierzona |
+|<#B8DAD5> 3 | Doskonalona |
+|<#EEEEEE> - | No data |
+Explicit ratings; no aggregation. Tile size does not indicate rating.
+Deterministic projection; LLM: 0
+endlegend
+@enduml

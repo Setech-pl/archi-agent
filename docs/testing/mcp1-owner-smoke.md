@@ -66,4 +66,4 @@ Instrukcje instalacji i konfiguracji: [PL](../pl/cli-mcp.md), [EN](../en/cli-mcp
 
 Zapisz dla każdego punktu PASS/FAIL/NOT_RUN, dokładne polecenie, obserwację i ewentualny
 zrzut bez sekretów. Wyniki rzeczywistego LLM oddziel od syntetycznych fixture'ów. Nie zmieniaj
-DEFERRED na PASS bez wykonania i przekazania wyniku właściciela. AUD-003–006 pozostają otwarte.
+DEFERRED na PASS bez wykonania i przekazania wyniku właściciela. Bieżący stan ustaleń AUD określa [project-state](../project-state.md); ten smoke ich sam nie zamyka.

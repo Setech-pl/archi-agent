@@ -2,9 +2,9 @@
 
 **English** · [Polski](../pl/user-guide.md) · [Home](../../README.md)
 
-## Public DEMO1: profiles and knowledge
+## Current prerelease: profiles and knowledge
 
-The public prerelease [**DEMO1 v0.3.0-alpha.7-demo.1**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS). Main contains these features with later documentation changes; local EA1/EA1b work is outside main and this release. [CLI/MCP installation, commands and contracts](cli-mcp.md).
+The public prerelease [**v0.3.0-alpha.8**](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8) provides Core and Full VSIX, CLI and two bilingual demo ZIPs. It includes the four-tool MCP function server and MCP knowledge client. Identify the exact downloads with its [release manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json) and [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS). This release includes all four deterministic enterprise views and reviewed catalog creation/updates. [CLI/MCP installation, commands and contracts](cli-mcp.md).
 
 **Core** (`setech-pl.archi-agent-core`) is recommended for new users. It includes the shared runtime and text PDF/DOCX/XLSX conversion, with no OCR dependencies or models. **Full** (`setech-pl.archi-agent`) adds pinned offline PL/EN OCR. Existing Full installations stay Full. Neither profile downloads OCR. In Core, Auto OCR succeeds for text PDFs; a page requiring OCR stops conversion with explicit coverage, without partial Markdown. OCR all pages requires Full. A broken Full reports an installation error: reinstall the verified Full VSIX.
 
@@ -15,6 +15,61 @@ Choose one source per operation: a Markdown Knowledge Pack; **Structurizr worksp
 For MCP set `archiAgent.knowledgeServer` in **User settings**, then set `archiAgent.architectureSource` to `{"kind":"mcp","sourceId":"bank"}`. Workspace executable settings are ignored. Start with the standalone example in the [CLI/MCP guide](cli-mcp.md#mcp-knowledge-client-and-example-server). Each operation fetches one immutable snapshot; the next fetches again. Failures stop the operation; there is no stale local fallback or automatic alias save. LLM does not choose source tools. The JSON shown by Verify Flow uses the same portable report as CLI/MCP.
 
 The **function MCP server** (`archi-agent mcp serve`) exposes `inspect_knowledge`, `verify_flow`, `resolve_flow_names`, `generate_diagram` to external clients. The **knowledge MCP client** above fetches `get_knowledge_snapshot` from a separate source server. The included `archi-agent-knowledge-server` example shares production SRC1/K1 and separates transport from `KnowledgeAdapter.load`. Neither direction lets the LLM choose source tools. CLI/servers require Node 22.12+ and explicit readRoots/environment credentials; the VSIX uses VS Code's Node and SecretStorage. In a PR pipeline, use `flow verify` and accept exit 0 only; 1 is discrepancies, 2 inconclusive/partial/unsupported, 3 execution error. Full setup and commands: [CLI/MCP](cli-mcp.md).
+
+## Capability Map
+
+Available in the Core/Full alpha.8 packages linked above.
+Open a local project and run **Archi: Create Diagram → Enterprise Architecture → Capability Map**.
+Select `enterprise.json`, choose the whole map or an L1 branch, L1–L3 detail, and no colors or an
+explicit rating scale. In multi-root workspaces select the source project first. No software pack,
+provider, model or API key is needed; this operation makes zero model calls.
+
+To start from a company description or documents, run **Archi: Build Business Capability Catalog / Utwórz katalog zdolności biznesowych**. Choose **Extract from materials** or **Propose a company model**, then selection, active document (including dirty/untitled), entered description or explicit local documents. Review the frozen materials before the maximum one model call; cloud calls require separate authorization. Review/edit the L1–L3 hierarchy and provenance, accept/reject candidates, declare scope and save a new `enterprise.json` with `enterprise.review.json`. Existing files are never overwritten. **Generate Capability Map** then uses the saved catalog with zero additional model calls. Ratings stay unknown and coverage partial. [Full walkthrough and budgets](capability-map.md#company-description--reviewed-catalog--map).
+
+For existing JSON, **Active document — including unsaved changes** captures text before the first diagram picker. Later edits do not replace the operation's input; invalid JSON never triggers a model call. Explicit file/MCP sources remain available. Reports use captured buffer positions/fingerprint and ART1 records in-memory input.
+
+A graphical preview requires a separate PlantUML renderer. Two unsaved editors show PlantUML and the deterministic provenance report. Save the original pair
+with **Archi: Save Diagram and Report** and confirm the destination; Cancel writes no partial pair.
+Gray “No data” means an absent rating. Parent ratings are not aggregated; tile size is not a rating.
+The legend/report show source coverage and deliberate scope/detail omissions. Large maps require
+an explicit narrower view. This report is not semantic review or Verify Flow.
+In the current checkout, `docs/en/capability-map.md` contains the Retail exercise and reference map;
+`docs/enterprise-catalog.md` describes the exact contract. These guides describe the current release.
+The CLI also accepts diagram generate with --type capability-map and a config v2 enterpriseSources entry, without input/provider. The function server uses the same generate_diagram tool with a separate capability-map variant. This addition is included in alpha.8.
+
+For the MCP catalog, use the locally packaged archi-agent-knowledge-server with a config v2 enterpriseSources entry named retail-business pointing to architecture/enterprise.json under its readRoots, sources/providers empty. Check it with --check-source retail-business --type enterprise. The following steps contain the complete offline configuration. Adjust the absolute executable/package/config paths.
+
+Save this complete source configuration as `/srv/retail-knowledge.json`. Replace the readRoot with the current Retail checkout folder. Use Node >=22.12 and the knowledge-server executable from the **alpha.8 CLI package**. The source config and command below also work offline. The configured MCP client starts the process; the check command exits after validation.
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {"project": "/srv/retail-checkout"},
+  "sources": {},
+  "enterpriseSources": {
+    "retail-business": {"kind": "enterprise-json", "file": {"root": "project", "path": "architecture/enterprise.json"}}
+  },
+  "providers": {}
+}
+```
+
+```bash
+node /opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs --config /srv/retail-knowledge.json --check-source retail-business --type enterprise
+```
+
+Then set these User settings:
+
+```json
+{
+  "archiAgent.enterpriseSource": {"kind": "mcp", "sourceId": "retail-business"},
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": ["/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs", "--config", "/srv/retail-knowledge.json"]
+  }
+}
+```
+
+Create Diagram → Enterprise Architecture → Capability Map now offers Configured MCP source and Local enterprise.json. Choose MCP, then the same scope/detail/rating options. Only User knowledgeServer can configure a process; workspace values cannot. Software architectureSource is separate. Each generation loads one snapshot, makes zero model calls and saves only after ART1 confirmation. Missing get_enterprise_snapshot v1 gives enterprise-unsupported with no fallback. Remote report v2 preserves references and JSON Pointers, never fictitious file/line. The old get_knowledge_snapshot v1 remains unchanged.
 
 ## Verify Flow and C4
 
@@ -58,7 +113,7 @@ Actual installed UI, public Big Bank fixture, synthetic model responses. The fir
 
 ## Installation on Mac and Windows
 
-Download the Core or Full VSIX from [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json). The package version is **0.3.0-alpha.7**; the release tag is **v0.3.0-alpha.7-demo.1**. A local build or CI artifact may have a different hash and is not the published package.
+Download the Core or Full VSIX from [alpha.8 prerelease](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). Compare its SHA-256 with that release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json). The package version is **0.3.0-alpha.8**; the release tag is **v0.3.0-alpha.8**. A local build or CI artifact may have a different hash and is not the published package.
 
 Mac:
 
@@ -74,17 +129,17 @@ Get-FileHash <file.vsix> -Algorithm SHA256
 
 In VS Code, open **Extensions → … → Install from VSIX…**, select the file and reload if requested. Check the version in **Archi Agent** extension details. No repository, npm or separate Node.js installation is needed. If an older version is installed, use the same command to install this identified prerelease.
 
-The earlier public alpha.6 remains available separately. [Collective owner smoke](../testing/mcp1-owner-smoke.md) gives the acceptance procedure; owner smoke of the exact DEMO1 packages remains **DEFERRED**. Publication does not establish stable/Marketplace readiness.
+Earlier releases remain available separately. [Combined owner smoke](../testing/ea3-ea4-owner-smoke.md) gives the current acceptance procedure; owner smoke remains **DEFERRED**. Publication does not establish stable/Marketplace readiness.
 
 ### Requirements and first launch
 
-Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or diagrams. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Mac ARM is the 1.0 target. Current documentation captures run on macOS arm64; owner tests on Mac/Windows and Windows ARM64 runtime remain NOT_RUN until reported. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
+Use desktop VS Code satisfying the manifest's `^1.91.0`, a local filesystem and a model provider for extraction or reviewed software diagrams. Capability Map requires no provider. Both profiles include Node runtime bundles and conversion worker; Full also includes offline OCR assets; no separate Node/npm installation is required. Native UI evidence is from macOS arm64; equivalent end-to-end operation on other platforms is not yet confirmed. Binaries are also bundled for Mac Intel, Linux x64/arm64 GNU and musl, and Windows x64/arm64, but this is packaging coverage, not native UI verification on those systems. Remote and virtual workspaces do not establish support for remote document paths; use local folders. In an untrusted workspace restricted configuration is read from user settings.
 
-Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context** or **C4 Container** before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
+Install the correct VSIX with **Extensions → … → Install from VSIX…**, then run **Archi: Open**. The menu contains **Create Diagram**, **Verify Flow (Sequence / prose)**, **Save Diagram and Report**, **Configuration**, **Knowledge Browser**, **Build Knowledge Pack from Documents**, **Build Knowledge Pack from Active File**, **Convert to Markdown** and **Help**. **Archi: Configuration** opens one editor panel with **Knowledge Management** and **LLM Provider** tabs; repeating the command reveals that panel. **Archi: Create Diagram** asks for **Sequence**, **Component**, **C4 Context**, **C4 Container** or the four **Enterprise Architecture** views before generation. The separate Sequence command is hidden and delegates to this selection. **Check Provider Configuration** is available in the Provider tab; its compatibility command ID is hidden from the palette. Cloning/building belongs in [development](development.md).
 
 ## Start here — first use
 
-1. Download Core or Full from DEMO1, verify its checksum, install through **Extensions → … → Install from VSIX…**, enable exactly one profile, reload and open a local project folder. Confirm **0.3.0-alpha.7** in extension details.
+1. Download Core or Full from alpha.8, verify its checksum, install through **Extensions → … → Install from VSIX…**, enable exactly one profile, reload and open a local project folder. Confirm **0.3.0-alpha.8** in extension details.
 2. Run **Archi: Configuration → LLM Provider**. Prepare LM Studio/Ollama or choose a cloud profile. For cloud, use **Set / Replace Key for <provider>** and enter the key in the masked native input.
 3. Click **Refresh Models** before or after Apply. Choose an exact ID in **Available models / Dostępne modele**; it appears in **Selected model**. Click **Apply**, then **Check Provider Configuration**. Refresh does not save anything; **Discard Changes** restores applied fields. There is one selected model, shared by diagram generator and reviewer; there is no multi-model “Selected Models” list.
 4. In **Knowledge Management**, use **Choose Existing Knowledge Pack**, or **Create Knowledge Pack** for a small catalog. The complete Alpha/Beta example below is suitable for a first diagram. Alternatively build from documents, review every candidate, validate the five previews and use **Save and use** to activate the new pack.
@@ -188,6 +243,8 @@ Create these five UTF-8 files in one folder, then choose it with Configuration �
 
 ## Local document conversion and OCR
 
+Full sends visible vector shapes without a text layer to local OCR in Auto and all; these may be letters or an illustration. Coverage distinguishes raster images (`imageCount`), OCR outcome (`ocrText`: recognized/empty) and a white render (`blankAssessment`: rendered-white). Empty OCR does not mean a blank page. `blank` describes a white render at the chosen resolution, not proof that no content exists; compare coverage with the original. Core reports pages without accessible text as requiring OCR.
+
 Run **Archi: Convert to Markdown**, select one local `.pdf`, `.docx` or `.xlsx` file and inspect the unsaved Markdown editor. For PDF choose **No OCR**, **Auto OCR** or, in Full, **OCR all pages**. Auto retains text pages and OCRs pages without usable text. In Full, bundled PL/EN OCR works offline; this command makes no provider request and needs no Knowledge Pack. Save the Markdown with the normal editor Save command if you want to retain it. Inspect OCR errors before using text as evidence. A conversion does not create a pack or diagram.
 
 ## Documents to a new pack
@@ -240,6 +297,8 @@ Alpha stores data in Beta.
 ```
 
 Resolve ambiguous mentions by selecting the intended element. Unknown ordinary text is not a new element; explicitly write `[NEW: Name]` and confirm it. Aliases do not establish a relationship. Source-confirmed relationships and flow-stated relationships remain distinguishable; a missing source relationship does not prove nonexistence. Local prohibitions still block generation.
+
+Reviewed Sequence supports explicitly confirmed `[NEW: Name]` participants. They carry the `[NEW]` label and `user-confirmed` origin; their interactions remain user-stated facts requiring review. They are not written to the architecture source. Rejecting or cancelling confirmation blocks generation; the model cannot add a participant itself.
 
 Invalid input/grounding makes zero generation calls; generator/local rejection one; a locally valid candidate triggers one separate reviewer call, for two total. Generator and reviewer use the same configured profile/model, separate requests and the same frozen snapshot. No retry, repair, fallback or third call. A verified success opens unsaved PlantUML and a linked JSON grounding report side by side. Inspect facts, evidence classes, source lines, warnings, deterministic validation, semantic verdict and snapshot digest. The editor contains PlantUML text; a graphical preview needs separate PlantUML editor support. No official PlantUML rendering guarantee is inferred from local subset validation.
 
@@ -301,7 +360,7 @@ On macOS, a native picker can return `/tmp` instead of `/private/tmp`. Controlle
 
 **Archi: Help** opens this instruction from the installed package. The **English / Polski** switch and screenshots are bundled and work offline. External repository, release and technical links need a network; they are supplementary. [Current screenshot gallery PL/EN](../assets/screenshots/README.md) lists actions and provenance. Synthetic responses demonstrate the UI, not live-model quality or owner smoke results.
 
-Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits, open findings and verification status: [roadmap](../product-roadmap.md), [technical state](../project-state.md). SRC1, VER1, C4 and MCP1 are included in DEMO1; local EA1/EA1b functions are not.
+Own code: [MIT](../../LICENSE). Bundled components: [notices](../../vscode-extension/THIRD_PARTY_NOTICES.md) and OCR notices. Product limits, open findings and verification status: [roadmap](../product-roadmap.md), [technical state](../project-state.md). Software and enterprise views, catalog creation/updates and MCP are included in alpha.8.
 
 ## Local Structurizr source — SRC1
 
@@ -323,3 +382,83 @@ Each operation reads again. The generated pair preserves its original snapshot w
 
 Set `archiAgent.architectureSource` to null to use knowledgePackPath again. K3 Save and use
 does this in the selected scope automatically; it creates a standalone pack, not an overlay.
+
+## Update an enterprise catalog and map application support
+
+Use **Archi: Update Enterprise Catalog** (also in **Archi: Open**) and select a clean local JSON
+catalog. The command freezes the base. Choose new information from the captured selection/document,
+a typed description, or selected supported local files. The EAK1 preview shows exactly the selected
+materials and a maximum of one extraction call. No complete catalog/workspace is sent. Existing
+provider/model settings and secure credentials are reused.
+
+Resolve each candidate to a specific existing ID, explicitly create a new capability, or reject it.
+A matching name is a suggestion. **Review differences and decisions** opens before/after and original
+evidence/decision previews; choose each operation and accept/reject it. You can propose name,
+description, parent and explicit rating changes, including unknown ratings. Omitted capabilities
+remain. Deletions show children and support references and remain blocked until you separately move
+or remove dependencies. Contradictions, cycles, invalid levels/IDs and pending decisions block save.
+
+To enter support data, propose **Add application** with a stable ID/name and accept it in review.
+Choose **Add explicit application support**, select the application and capability, then approve that
+link separately. Application and capability IDs are separate identities. No manual JSON authoring is
+required. Explicit application entry upgrades the reviewed catalog to enterprise/2; capability-only
+updates preserve v1. Updates preserve existing apps, links, assessments and unchanged provenance.
+
+**Approve and save catalog** uses the native editor save. A dirty buffer, changed document version or
+disk bytes stops the operation; resolve those changes and start a new session. A review report is kept
+under `enterprise-updates/<sessionId>/<revision>/enterprise.review.json`; keep it with the catalog.
+A retained report alone is not a saved catalog. Only production readback and validation confirm
+`saved`. Foreign edits are never rolled back. No automatic merging, transaction or crash recovery.
+
+Choose **Create Diagram → Enterprise Architecture → Capability–Application Map** and the extended
+local catalog, captured active JSON or configured enterprise MCP source. Select the whole map or a
+capability/domain. No provider is needed: rendering makes **0 model calls**. Only explicit direct
+support is shown; parents do not inherit child links. Missing links mean no documented support,
+not a missing system. Several links do not prove redundancy. Partial coverage stays partial.
+The report records scope, evidence, omitted records and digests. Narrow the view if it exceeds 120
+nodes or 240 links; nothing is truncated. **Save Diagram and Report** stores the original ART1 pair.
+
+Try `examples/retail-checkout/architecture/enterprise-applications.json`: one app supports several
+capabilities, payment has several apps, other capabilities have unknown support and Back Office has
+no links. Rename a capability through update/review; its ID and links remain stable. V1 catalogs and
+Capability Map remain supported. Enterprise MCP v1 remains unchanged; EA2 deterministically uses
+`get_enterprise_snapshot_v2` / contractVersion 2 without fallback. For Capability Map on a v2 remote
+catalog set `enterpriseSource.contractVersion:2`. See [enterprise contract](../enterprise-catalog.md)
+and [CLI/MCP](cli-mcp.md).
+
+## Value Stream and Application Landscape
+
+Open the Retail demo's `architecture/enterprise-views.json`, then **Archi: Create Diagram → Enterprise Architecture**.
+Choose **Value Stream** for the purchase-to-receipt journey or **Application Landscape** for the portfolio.
+Select the active document (captured including unsaved changes) or the same local file.
+These views need no model/provider and make zero LLM calls. They also work with an explicitly versioned
+enterprise MCP source. The report accompanies the editable PlantUML; graphical preview needs a separate renderer.
+
+For Value Stream choose a stream and stages. The view preserves declared order and original ordinals;
+shared capability mappings are explicit. Context, outcomes, evidence, declared coverage and exclusions
+remain in the report. A partial source cannot establish that a capability is absent in the company.
+For Landscape choose the whole portfolio or a business domain and an optional defined rating scale.
+Ungrouped applications remain visible in the whole portfolio. Missing owner/lifecycle/rating means
+unknown; a rating of zero has its explicit scale meaning. Several applications do not prove redundancy.
+If the view exceeds a limit, select fewer stages, domains or applications; there is no clipping.
+
+To build your own data, use **Archi: Build Enterprise Catalog**, review the capability proposal and save.
+Then **Archi: Update Enterprise Catalog** offers **Add / change business domain**, **Add / change stream
+and explicit stage order**, **Change application, owner, lifecycle or rating**, and **Define explicit rating scale**.
+These are guided forms; manual JSON editing is optional. Use stable IDs across rename, select capability
+mappings explicitly and confirm stage order. To revise a stream, retain existing stage IDs and enter the
+intended ordered list; omitted stages are shown in before/after review before acceptance.
+
+**Value Stream / Landscape proposals from materials** reuses selected text, the captured whole document,
+a typed description or selected files, bounded conversion, provider configuration and one explicit model call.
+Extraction requires evidence for every supplied field; proposal mode keeps unsupported order as a proposal.
+**Review new view proposal and choose IDs** shows original field basis/evidence, then guided forms bind
+identities and references. Review differences, explicitly accept/reject every change, acknowledge warnings,
+and approve **Save catalog**. Acceptance is a user decision, not a quote in an old source. Dependencies must
+be resolved explicitly before deletion. A conflict preserves foreign disk bytes; inspect the buffer and start
+a new update session. Keep `enterprise-updates/` companion reports with the catalog. Use **Save Diagram and
+Report** to retain the original generated ART1 pair; editing a preview does not change that original.
+
+This prerelease keeps owner smoke deferred. Live model quality and additional native platforms are not
+proven by synthetic tests. Visible UI automation may be unavailable; package/runtime and Extension Host
+checks are reported separately. The historical safe-conflict observation remains open.

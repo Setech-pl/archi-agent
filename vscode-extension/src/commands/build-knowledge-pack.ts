@@ -1,11 +1,8 @@
+import { documentGenerator } from "./document-generator.js";
 import { assertProfileAvailable, profileConflict, withProfileSignal, profileLifetimeSignal } from "../profile-availability.js";
 import { getDocumentConversionCapabilities } from "../../../src/runtime/index.js";
 import * as vscode from "vscode";
-import { KnowledgePackReviewSession, validateDocumentSelection, type DocumentInput, type GeneratorConfig } from "../../../src/runtime/index.js";
-import { settingsSection } from "../contributions.js";
-import { readLocalModelSettings } from "../settings.js";
-import { readApiKey } from "../api-key-storage.js";
-import { selectLocalModel } from "./local-provider-selection.js";
+import { KnowledgePackReviewSession, validateDocumentSelection, type DocumentInput } from "../../../src/runtime/index.js";
 import { openKnowledgePackReview } from "../workbench/review.js";
 import type { GenerateCommandDependencies } from "./generate-sequence-diagram.js";
 
@@ -39,36 +36,7 @@ export async function buildKnowledgePackCommand({ runtime, output, secrets }: Ge
       const picked = await vscode.window.showQuickPick(core?["none", "auto"] as const:["none", "auto", "all"] as const, { title: title(core?"Core PDF: none/text-only or auto (fails on pages needing OCR); all unavailable":capabilities.ocr==="installation-error"?"Full OCR installation error":"Full PDF OCR mode") });
       if (!picked) return; pdfOcrMode = picked as typeof pdfOcrMode;
     }
-    const generator = async (signal: AbortSignal): Promise<GeneratorConfig | undefined> => {
-      const token: vscode.CancellationToken = {
-        get isCancellationRequested() { return signal.aborted; },
-        onCancellationRequested(listener, thisArg, disposables) {
-          const fire = () => listener.call(thisArg, undefined);
-          signal.addEventListener("abort", fire, { once: true });
-          const subscription = { dispose: () => signal.removeEventListener("abort", fire) };
-          disposables?.push(subscription);
-          if (signal.aborted) queueMicrotask(fire);
-          return subscription;
-        }
-      };
-      if (signal.aborted) return undefined;
-      let settings = readLocalModelSettings(vscode.workspace.getConfiguration(settingsSection, scope?.folder?.uri));
-      if (!settings.ok) { await vscode.window.showErrorMessage(`Archi Agent: ${settings.problems.map((p) => p.message).join(" ")}`); return undefined; }
-      if (!settings.settings.modelId) {
-        const selection = await selectLocalModel(runtime, output, secrets, token, scope?.folder?.uri);
-        if (signal.aborted || selection.status !== "selected") return undefined;
-        settings = { ok: true, settings: selection.settings };
-      }
-      const model = settings.settings;
-      if (!model.modelId) return undefined;
-      const profile = runtime.listProviderProfiles().find((p) => p.profileId === model.profileId);
-      if (!profile) throw { code: "unknown-provider-profile" };
-      const key = secrets ? await readApiKey(secrets, profile) : undefined;
-      if (signal.aborted) return undefined;
-      if (profile.credentialRequirement === "api-key" && !key) throw { code: "credential-required" };
-      return model.baseUrl ? { kind: "openai-compatible-local", profileId: model.profileId, baseUrl: model.baseUrl, modelId: model.modelId, timeoutMs: model.timeoutMs } :
-        { kind: "remote-provider", profileId: model.profileId, modelId: model.modelId, timeoutMs: model.timeoutMs, ...(key ? { credential: { type: "api-key", value: key } } : {}) };
-    };
+    const generator = documentGenerator({runtime,output,secrets},scope?.folder?.uri);
     const outcome = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: title("extracting document candidates"), cancellable: true }, async (progress, token) => {
       const controller = new AbortController(); const subscription = token.onCancellationRequested(() => controller.abort());
       if (token.isCancellationRequested) controller.abort();

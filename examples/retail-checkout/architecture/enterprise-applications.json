@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 2,
+  "format": "archi-agent-enterprise/2",
+  "source": {
+    "id": "retail-business",
+    "name": "Retail Checkout - katalog syntetyczny",
+    "scope": {
+      "id": "retail-checkout",
+      "description": "Zdolności obsługi zakupów detalicznych",
+      "coverage": "partial"
+    }
+  },
+  "scales": [
+    {
+      "id": "maturity",
+      "name": "Dojrzałość",
+      "levels": [
+        {
+          "value": 0,
+          "label": "Początkowa"
+        },
+        {
+          "value": 1,
+          "label": "Powtarzalna"
+        },
+        {
+          "value": 2,
+          "label": "Mierzona"
+        },
+        {
+          "value": 3,
+          "label": "Doskonalona"
+        }
+      ],
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "maturity",
+          "fields": [
+            "/name",
+            "/levels"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "maturity"
+          }
+        }
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "sales",
+      "name": "Sprzedaż",
+      "description": "Obsługa procesu zakupu klienta",
+      "ratings": {
+        "maturity": 2
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "sales",
+          "fields": [
+            "/name",
+            "/description",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "sales"
+          }
+        }
+      ]
+    },
+    {
+      "id": "checkout",
+      "name": "Finalizacja zakupu",
+      "description": "Przejście od koszyka do potwierdzenia",
+      "parentId": "sales",
+      "ratings": {
+        "maturity": 2
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "checkout",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "checkout"
+          }
+        }
+      ]
+    },
+    {
+      "id": "payment",
+      "name": "Przyjmowanie i rozliczanie płatności za zakupy w kanałach sprzedaży",
+      "description": "Rejestracja płatności i ich rozliczenie",
+      "parentId": "checkout",
+      "ratings": {
+        "maturity": 3
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "payment",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "payment"
+          }
+        }
+      ]
+    },
+    {
+      "id": "order-confirmation",
+      "name": "Potwierdzanie zamówień",
+      "description": "Potwierdzenie zawarcia transakcji",
+      "parentId": "checkout",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "order-confirmation",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "order-confirmation"
+          }
+        }
+      ]
+    },
+    {
+      "id": "returns",
+      "name": "Obsługa zwrotów",
+      "description": "Przyjęcie i rozpatrzenie zwrotu",
+      "parentId": "sales",
+      "ratings": {
+        "maturity": 1
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "returns",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "returns"
+          }
+        }
+      ]
+    },
+    {
+      "id": "customer",
+      "name": "Relacje z klientami",
+      "description": "Obsługa potrzeb klienta",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "customer",
+          "fields": [
+            "/name",
+            "/description"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "customer"
+          }
+        }
+      ]
+    },
+    {
+      "id": "customer-service",
+      "name": "Obsługa klienta",
+      "description": "Pomoc w sprawach zakupów",
+      "parentId": "customer",
+      "ratings": {
+        "maturity": 2
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "customer-service",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "customer-service"
+          }
+        }
+      ]
+    },
+    {
+      "id": "consents",
+      "name": "Zarządzanie zgodami klientów",
+      "description": "Utrzymanie jawnych zgód",
+      "parentId": "customer",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "consents",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "consents"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fulfilment",
+      "name": "Realizacja zamówień",
+      "description": "Dostarczenie zakupionych produktów",
+      "ratings": {
+        "maturity": 3
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "fulfilment",
+          "fields": [
+            "/name",
+            "/description",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "fulfilment"
+          }
+        }
+      ]
+    },
+    {
+      "id": "delivery",
+      "name": "Organizacja dostawy",
+      "description": "Koordynacja dostarczenia produktów",
+      "parentId": "fulfilment",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "delivery",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "delivery"
+          }
+        }
+      ]
+    },
+    {
+      "id": "inventory",
+      "name": "Zarządzanie dostępnością produktów",
+      "description": "Informacja o możliwości realizacji zakupu",
+      "parentId": "fulfilment",
+      "ratings": {
+        "maturity": 0
+      },
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "inventory",
+          "fields": [
+            "/name",
+            "/description",
+            "/parentId",
+            "/ratings/maturity"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "1",
+            "fragment": "inventory"
+          }
+        }
+      ]
+    }
+  ],
+  "supportScope": {
+    "description": "Wybrane aplikacje obsługi zakupów detalicznych",
+    "applications": "partial",
+    "relationships": "partial"
+  },
+  "applications": [
+    {
+      "id": "checkout-app",
+      "name": "Retail Checkout",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "checkout-app",
+          "fields": [
+            "/name"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "2",
+            "fragment": "checkout-app"
+          }
+        }
+      ]
+    },
+    {
+      "id": "payment-app",
+      "name": "Payment Gateway",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "payment-app",
+          "fields": [
+            "/name"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "2",
+            "fragment": "payment-app"
+          }
+        }
+      ]
+    },
+    {
+      "id": "unlinked-app",
+      "name": "Back Office",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "unlinked-app",
+          "fields": [
+            "/name"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "2",
+            "fragment": "unlinked-app"
+          }
+        }
+      ]
+    }
+  ],
+  "supports": [
+    {
+      "applicationId": "checkout-app",
+      "capabilityId": "checkout",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "checkout-app-checkout",
+          "fields": [
+            "/applicationId",
+            "/capabilityId"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "2",
+            "fragment": "checkout-app-checkout"
+          }
+        }
+      ]
+    },
+    {
+      "applicationId": "checkout-app",
+      "capabilityId": "payment",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "checkout-app-payment",
+          "fields": [
+            "/applicationId",
+            "/capabilityId"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "2",
+            "fragment": "checkout-app-payment"
+          }
+        }
+      ]
+    },
+    {
+      "applicationId": "payment-app",
+      "capabilityId": "payment",
+      "provenance": [
+        {
+          "sourceId": "retail-business",
+          "recordId": "payment-app-payment",
+          "fields": [
+            "/applicationId",
+            "/capabilityId"
+          ],
+          "reference": {
+            "uri": "urn:archi-agent:synthetic:retail-checkout",
+            "version": "2",
+            "fragment": "payment-app-payment"
+          }
+        }
+      ]
+    }
+  ]
+}

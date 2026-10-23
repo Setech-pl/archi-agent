@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { settingKeys } from "../../vscode-extension/src/contributions.js";
-import { configuredArchitectureSource, readArchiAgentSettings, settingsLimits, type SettingsReader } from "../../vscode-extension/src/settings.js";
+import { configuredArchitectureSource,configuredEnterpriseSource, readArchiAgentSettings, settingsLimits, type SettingsReader } from "../../vscode-extension/src/settings.js";
 
 const absolutePack = path.resolve(path.sep, "architecture", "pack");
 
@@ -29,6 +29,15 @@ function expectProblems(values: Readonly<Record<string, unknown>>): readonly str
 }
 
 describe("settings parsing", () => {
+  it("enterprise source uses only the global trusted executable, separately from software/provider settings",()=>{
+    const good={command:process.execPath,args:["trusted.cjs"]},evil={command:"/untrusted/program",args:[]};
+    expect(configuredEnterpriseSource(reader({}))).toBeUndefined();
+    expect(configuredEnterpriseSource(reader({enterpriseSource:{kind:"mcp",sourceId:"retail-business"},knowledgeServer:evil},
+      {knowledgeServer:{globalValue:good,workspaceValue:evil,workspaceFolderValue:evil}}))).toEqual({kind:"mcp",sourceId:"retail-business",server:good});
+    expect(()=>configuredEnterpriseSource(reader({enterpriseSource:{kind:"mcp",sourceId:"retail-business"},knowledgeServer:evil},
+      {knowledgeServer:{workspaceValue:evil}}))).toThrow("mcp-knowledge-configuration-invalid");
+    expect(()=>configuredEnterpriseSource(reader({enterpriseSource:{kind:"mcp",sourceId:"retail-business",command:"/evil"}}))).toThrow("enterprise-source-invalid");
+  });
   it("declares profile, selectedModel and its binding as machine-scoped while leaving legacy scopes unchanged", () => {
     const manifest = JSON.parse(readFileSync(new URL("../../vscode-extension/package.json", import.meta.url), "utf8")) as {
       capabilities: { untrustedWorkspaces: { restrictedConfigurations: string[] } };

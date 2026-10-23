@@ -63,3 +63,10 @@ describe("one-request converter worker", () => {
       .toMatchObject({ status: "success", markdown: "auto" });
   });
 });
+
+it("AUD-004 retains measured blank assessment, raster presence and empty OCR uncertainty", async () => {
+  const parent = path.join(directory, "assessment-parent.mjs");
+  writeFileSync(parent, `export async function convertPdfIsolated() { return { markdown: '## Page 1 (OCR)\\n\\n## Page 2 (blank)', pages: [{ page: 1, source: 'ocr', imageCount: 0, ocrText: 'empty' }, { page: 2, source: 'blank', imageCount: 0, blankAssessment: 'rendered-white' }] }; }`);
+  const r = await convertDocument("/synthetic.pdf", { pdfOcrMode: "auto", distributionDirectory, ocrParentFile: parent });
+  expect(r).toMatchObject({ status: "success", coverage: { pages: [{ page: 1, source: "ocr", imageCount: 0, ocrText: "empty" }, { page: 2, source: "blank", blankAssessment: "rendered-white" }], warnings: ["layout-not-preserved", "ocr-confidence-unavailable", "rendered-blank-not-proof", "ocr-no-text-recognized"] } });
+});

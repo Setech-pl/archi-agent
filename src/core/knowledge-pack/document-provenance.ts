@@ -11,8 +11,8 @@ const sourceSchema = z.strictObject({
   type: z.enum(["md", "txt", "pdf", "docx", "xlsx"]), scope: z.enum(["explicit-file", "editor-buffer"]), editorUri: z.string().min(1).max(8192).optional(), knowledgeCoverage: z.literal("partial"),
   conversion: z.strictObject({ engine: z.enum(["utf8", "local-converter"]), ocrMode: z.enum(["none", "auto", "all"]),
     counts: z.record(z.string().max(80), z.number().nonnegative()),
-    pages: z.array(z.strictObject({ page: z.number().int().positive(), source: z.enum(["text", "ocr", "blank", "requires-ocr"]) })).max(300),
-    warnings: z.array(z.string().max(80)).max(32), locations: z.literal("normalized-text-offsets") })
+    pages: z.array(z.strictObject({ page: z.number().int().positive(), source: z.enum(["text", "ocr", "blank", "requires-ocr"]), imageCount: z.number().int().nonnegative().optional(), blankAssessment: z.literal("rendered-white").optional(), ocrText: z.enum(["recognized", "empty"]).optional() })).max(300),
+    warnings: z.array(z.string().max(80)).max(32), locations: z.enum(["normalized-text-offsets", "captured-text-offsets"]) })
 }).superRefine((source, context) => {
   if (source.scope === "editor-buffer" ? !source.editorUri || !/^(file|untitled):/u.test(source.editorUri) || !["md", "txt"].includes(source.type) : source.editorUri !== undefined)
     context.addIssue({ code: "custom", message: "invalid-editor-origin" });

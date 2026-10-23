@@ -170,6 +170,6 @@ describe("UX4 configuration host", () => {
   it("Create Diagram type Cancel precedes onboarding, secrets and provider calls",async()=>{
     const runtime=createArchiAgentRuntime(),gen=vi.spyOn(runtime,"generateDiagram"),list=vi.spyOn(runtime,"listProviderModels");
     await generateDiagramCommand({runtime,output:window.createOutputChannel("test") as never,secrets:secretStorage as never});
-    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"},{label:"C4 Context"},{label:"C4 Container"}]);expect(state.quickPicks).toHaveLength(1);expect(gen).not.toHaveBeenCalled();expect(list).not.toHaveBeenCalled();expect(state.secretReads).toEqual([]);expect(state.configurationUpdates).toEqual([]);
+    expect(state.quickPicks[0]?.items).toMatchObject([{label:"Sequence"},{label:"Component"},{label:"C4 Context"},{label:"C4 Container"},{kind:-1},{description:"capability-map"},{description:"capability-application-map"},{description:"value-stream"},{description:"application-landscape"}]);expect(state.quickPicks).toHaveLength(1);expect(gen).not.toHaveBeenCalled();expect(list).not.toHaveBeenCalled();expect(state.secretReads).toEqual([]);expect(state.configurationUpdates).toEqual([]);
   });
 });

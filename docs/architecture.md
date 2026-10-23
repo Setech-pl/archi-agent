@@ -2,6 +2,21 @@
 
 Canonical architecture: [English](en/architecture.md) · [Polski](pl/architecture.md).
 
+## EA1 deterministic enterprise projection
+
+The local Capability Map path uses a separate strict enterprise/1 catalog and report;
+[enterprise contract](enterprise-catalog.md). Core validates hierarchy, explicit scales and
+provenance, freezes the snapshot, projects a selected view and emits a closed PlantUML grammar.
+Node reads one bounded file with actual positions/fingerprint. Runtime composes these functions
+and a separate strict ART1 capture; the existing writer/envelope remains compatible.
+The editor routes this type before any software source/provider onboarding. No provider settings,
+keys, model listing, generation or semantic review are used. EA1b routes CLI and function MCP to the same operation, and adds a separate fixed enterprise knowledge tool. Local report v1 remains; remote report v2 uses true references/pointers instead of file lines. Config v2 keeps enterpriseSources separate from software sources; VS Code uses enterpriseSource plus User-only knowledgeServer.
+The software generation diagrams in the canonical guides retain their existing meaning.
+
+## Reviewed enterprise catalog creation
+
+The host captures explicit selection/document text before interaction and collects descriptions or local documents. Runtime reuses the bounded document bundle/converter and provider client composition, with one structured capability extraction call and strict business candidate validation. A separate in-memory enterprise review session preserves original claims/evidence and user edits/decisions. Catalog enterprise/1 stays unchanged; its provenance references the actual companion review report by session URN and digest. Exclusive new-file creation, production validation and saved-byte readback precede success. The existing EA1 map path consumes the saved catalog with zero further model calls. See the [enterprise contract](enterprise-catalog.md#reviewed-catalog-builder).
+
 ## VER1 and source-bound C4
 
 See the [canonical architecture](en/architecture.md).
@@ -45,3 +60,21 @@ See the [canonical architecture](en/architecture.md).
 ## F. VER1 — snapshot and provenance
 
 See the [canonical architecture](en/architecture.md).
+
+## Frozen enterprise updates and direct application support
+
+EAK2 composes explicit reviewed operations over captured catalog bytes; it preserves IDs and unchanged
+field provenance. The native host owns version/dirty checks and editor save; runtime prepares the
+validated catalog, creates a separate exclusive companion review and validates persisted bytes.
+EA2 adds strict enterprise/2 applications and endpoint-pair support with independent coverage. The
+separate fixed MCP v2 tool is explicitly selected; knowledge/enterprise v1 remain strict. Core projects
+direct links and runtime generates the zero-model report and ART1 original pair. VS Code, CLI and
+function MCP share semantics. [Contracts and boundaries](enterprise-catalog.md#controlled-catalog-updates--eak2).
+
+## Enterprise views v3
+
+Enterprise/3 extends the strict local/MCP catalog with ordered value streams and optional application
+landscape attributes, preserving EA2 application identity. Closed deterministic projections/renderers
+and strict reports live in core; runtime loads one frozen snapshot and captures ART1. Thin hosts expose
+the same selection semantics with no provider reads. Native guided input and the existing bounded
+one-call proposal capture feed the existing EAK2 review/save path. [Contract](enterprise-catalog.md).

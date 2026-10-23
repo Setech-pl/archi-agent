@@ -35,7 +35,7 @@ The generator returns a bounded Wire Plan v3 with exactly `version`, `groundedSt
 Each grounded step has exactly `order`, `operationId` and a bounded `label`. Local code builds
 the ordered catalog from one snapshot; each opaque operation contains direction, mode, interface,
 evidence and, for a response, a request link. The model cannot restate those facts. Each
-user-stated step has exactly `order`, known `fromId` and `toId`, request or asynchronous
+user-stated step has exactly `order`, snapshot `fromId` and `toId` (including locally confirmed NEW), request or asynchronous
 `interactionKind`, `interfaceType`, nullable `interfaceName`, one existing `flowEvidenceId`
 and `label`. There is no `stepType` or unused nullable fields from the other variant. D1.2 has no
 user-stated response representation. Core retains full limits after provider schema projection.
@@ -49,6 +49,11 @@ use; their aliases, canonical names and declaration kinds come from the snapshot
 Source-confirmed and user-stated evidence remain distinct. A missing relationship in the
 architecture source is not proof that no relationship exists. Invalid or prohibited facts are
 rejected locally before review. No rejected plan is repaired.
+
+Confirmed NEW elements receive local IDs from collision-checked aliases, independent of display
+name punctuation. Their snapshot and report origin is `user-confirmed`, separate from source
+facts; interactions remain `user-stated` and need exact reviewer confirmation. The renderer emits
+a generic participant with a controlled `[NEW]` prefix. This never writes to an architecture source.
 
 A user-stated step also fails locally with `interaction-direction-mismatch` when it reverses a
 source-confirmed relationship with the same interface type and the same nullable interface name.

@@ -35,7 +35,7 @@ export type ConvertOutcome =
       readonly format: ConvertFormat;
       readonly markdown: string;
       readonly coverage?: {
-        readonly pages?: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" | "requires-ocr" }[];
+        readonly pages?: readonly { readonly page: number; readonly source: "text" | "ocr" | "blank" | "requires-ocr"; readonly imageCount?: number; readonly blankAssessment?: "rendered-white"; readonly ocrText?: "recognized" | "empty"; }[];
         readonly warnings: readonly string[];
       };
       readonly counts: {

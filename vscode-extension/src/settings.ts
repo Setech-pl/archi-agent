@@ -1,4 +1,4 @@
-import { mcpKnowledgeServerSchema,validStructurizrConfiguration, type KnowledgePackSourceConfig } from "../../src/runtime/index.js";
+import { mcpKnowledgeServerSchema,validStructurizrConfiguration, type KnowledgePackSourceConfig,type EnterpriseSourceConfig } from "../../src/runtime/index.js";
 import path from "node:path";
 import {
   defaultBaseUrlForLocalProfile,
@@ -262,4 +262,15 @@ export function configuredArchitectureSource(reader: Pick<SettingsReader, "get">
     return {kind:"mcp",sourceId:v.sourceId,server:{...parsed.data,args:[...parsed.data.args],...(parsed.data.credentialEnv?{credentialEnv:[...parsed.data.credentialEnv]}:{})}};
   }
   throw new Error("architecture-source-invalid");
+}
+
+/** Enterprise choice is separate from software/provider settings. Executable is User-only. */
+export function configuredEnterpriseSource(reader:SettingsReader):Extract<EnterpriseSourceConfig,{kind:"mcp"}>|undefined {
+  const v=reader.get(settingKeys.enterpriseSource);
+  if(v==null)return undefined;
+  if(!v||typeof v!=="object"||Array.isArray(v)||Object.keys(v).filter(k=>k!=="contractVersion").sort().join(",")!=="kind,sourceId"||("contractVersion"in v&&v.contractVersion!==2&&v.contractVersion!==3)||
+    !("kind"in v)||v.kind!=="mcp"||!("sourceId"in v)||typeof v.sourceId!=="string"||!/^[a-z][a-z0-9-]{0,55}$/.test(v.sourceId))throw new Error("enterprise-source-invalid");
+  const parsed=mcpKnowledgeServerSchema.safeParse(reader.inspect(settingKeys.knowledgeServer)?.globalValue);
+  if(!parsed.success)throw new Error("mcp-knowledge-configuration-invalid");
+  return {kind:"mcp",sourceId:v.sourceId,...("contractVersion"in v?{contractVersion:v.contractVersion as 2|3}:{}),server:{...parsed.data,args:[...parsed.data.args],...(parsed.data.credentialEnv?{credentialEnv:[...parsed.data.credentialEnv]}:{})}};
 }

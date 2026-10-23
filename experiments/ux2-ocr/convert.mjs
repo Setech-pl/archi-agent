@@ -146,7 +146,22 @@ export async function convert(file, { dpi = 200, fullPage = false, maxPages = 30
         pair.context.fillStyle = '#ffffff';
         pair.context.fillRect(0, 0, width, height);
         await page.render({ canvasContext: pair.context, viewport }).promise;
-        if (imageCount === 0 && !text) { result.push({ page: number, source: 'blank', text: '' }); continue; }
+        // Neither missing extracted text nor absent raster images establishes a blank page.
+        // Require an exactly white rendered canvas; even faint/vector marks go to OCR.
+        let renderedWhite = !text;
+        if (renderedWhite) {
+          const pixels = pair.context.getImageData(0, 0, width, height).data;
+          for (let i = 0; i < pixels.length; i += 4) {
+            if (pixels[i] !== 255 || pixels[i + 1] !== 255 || pixels[i + 2] !== 255 || pixels[i + 3] !== 255) {
+              renderedWhite = false;
+              break;
+            }
+          }
+        }
+        if (renderedWhite) {
+          result.push({ page: number, source: 'blank', text: '', imageCount, blankAssessment: 'rendered-white' });
+          continue;
+        }
         if (++ocrPages > maxOcrPages) throw new Error('too-many-ocr-pages');
         if (!ocr) {
           onStage('ocr-init'); await pause('ocr-init');
@@ -167,7 +182,8 @@ export async function convert(file, { dpi = 200, fullPage = false, maxPages = 30
         }
         onStage('recognize'); await pause('recognize');
         const output = await ocr.recognize(pair.canvas.toBuffer('image/png'));
-        result.push({ page: number, source: 'ocr', text: output.data.text.trim(), imageCount });
+        const recognized = output.data.text.trim();
+        result.push({ page: number, source: 'ocr', text: recognized, imageCount, ocrText: recognized ? 'recognized' : 'empty' });
       } finally {
         if (pair) new CanvasFactory().destroy(pair);
         page.cleanup();

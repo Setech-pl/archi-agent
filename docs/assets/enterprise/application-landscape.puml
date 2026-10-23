@@ -1,0 +1,17 @@
+@startuml
+left to right direction
+skinparam shadowing false
+title Application Landscape
+package "Commerce (commerce)" as d_0 {
+component "Retail Checkout (checkout-app) - active - Commerce team - 2" as a_0 #FFF7BC
+}
+package "Finance (finance)" as d_1 {
+component "Payment Gateway (payment-app) - active - 0" as a_2 #FDE0DD
+}
+package "Fulfillment (fulfillment)" as d_2 {
+component "Delivery Planner (delivery-app) - planned - Logistics team - rating unknown" as a_1 #E5E7EB
+}
+package "Unknown domain" as d_3 {
+component "Back Office (unlinked-app) - rating unknown" as a_3 #E5E7EB
+}
+@enduml

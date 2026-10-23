@@ -19,6 +19,7 @@ import { buildGenerationRequest, runSequenceGenerationSession, type ResolutionPr
 import { selectLocalModel } from "./local-provider-selection.js";
 import { ensureKnowledgePack } from "./knowledge-pack-onboarding.js";
 import {inspectC4Source} from "../../../src/runtime/index.js";
+import {generateCapabilityMapCommand,captureActiveEnterpriseSource} from "./generate-capability-map.js";
 
 /**
  * The editor-bound side of the generate command. It collects input with the editor API, hands the
@@ -264,12 +265,22 @@ async function offerUnverifiedCandidate(result: GenerateDiagramUnverified, outpu
 }
 
 export async function generateDiagramCommand(dependencies: GenerateCommandDependencies): Promise<void> {
+  const activeEnterpriseSource=captureActiveEnterpriseSource();
   const picked = await vscode.window.showQuickPick([{ label: "Sequence", description: "sequence", id: "sequence" as const },
     { label: "Component", description: "component", id: "component" as const },
     { label:"C4 Context",description:"c4-context",id:"c4-context" as const },
-    { label:"C4 Container",description:"c4-container",id:"c4-container" as const }],
+    { label:"C4 Container",description:"c4-container",id:"c4-container" as const },
+    { label:"Enterprise Architecture / Architektura korporacyjna",kind:vscode.QuickPickItemKind.Separator,id:"enterprise-group" as const },
+    { label:"Capability Map / Mapa zdolności biznesowych",description:"capability-map",id:"capability-map" as const },
+    {label:"Capability–Application Map / Mapa zdolności i aplikacji",description:"capability-application-map",id:"capability-application-map" as const },
+    {label:"Value Stream / Strumień wartości",description:"value-stream",id:"value-stream" as const},
+    {label:"Application Landscape / Krajobraz aplikacji",description:"application-landscape",id:"application-landscape" as const}],
     { title: "Archi Agent: diagram type", placeHolder: "Select a diagram type" });
   if (picked === undefined) return;
+  if (picked.id === "enterprise-group") return;
+  if(picked.id==="value-stream"||picked.id==="application-landscape"){await generateCapabilityMapCommand(dependencies.results,activeEnterpriseSource,undefined,picked.id);return;}
+  if(picked.id==="capability-application-map"){await generateCapabilityMapCommand(dependencies.results,activeEnterpriseSource,undefined,true);return;}
+  if (picked.id === "capability-map") {await generateCapabilityMapCommand(dependencies.results,activeEnterpriseSource);return;}
   await runGenerateCommand(dependencies, picked.id);
 }
 

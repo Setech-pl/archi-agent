@@ -84,7 +84,7 @@ relationship IDs with changed source OR target, fresh next-operation reads, snap
 across generator/reviewer/save, precise lines, cancellation/limits, old packs and K3 activation.
 Full gates, packaged runtime outside repo, actual Extension Host/UI and independent read-only
 review are required. Owner smoke DEFERRED; remote CI for SRC1 is NOT_RUN until separately run.
-AUD-003–006 remain OPEN.
+SRC1 itself did not close audit findings; current statuses are in [project state](project-state.md).
 
 ## Owner smoke — Big Bank
 

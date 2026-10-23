@@ -8,6 +8,8 @@ Core jest deterministyczny, bez Node/VS Code I/O; orkiestracja wywołuje wstrzyk
 
 UX4 dodaje jeden edytor Configuration z Knowledge Management / LLM Provider i powiązany webview review K3. Oba delegują do istniejących usług runtime; zamknięty protokół hosta, nonce CSP i renderowanie tekstu chronią granicę danych. Klucze pozostają w SecretStorage; ekran otrzymuje tylko obecność. [Kontrakt UX4](../configuration-workbench.md).
 
+Wydanie obejmuje osobną deterministyczną projekcję katalogu enterprise dla mapy zdolności. Nie wymaga providera, packa oprogramowania ani modelu; ma własny raport provenance i zapis ART1. [Kontrakt enterprise](../enterprise-catalog.md). Sześć poniższych diagramów przepływów oprogramowania zachowuje dotychczasowe znaczenie.
+
 ## A. Komponenty i granice
 
 ```mermaid
@@ -236,6 +238,10 @@ sequenceDiagram
 
 Zapis aliasów do nakładki SRC1 jest osobną operacją adaptera VS Code: minimalna edycja i natywny zapis po sprawdzeniu wersji oraz dirty buffer. Dla packa i MCP decyzje pozostają sesyjne; CLI/MCP nie zapisują źródeł. VER1 nie weryfikuje C4.
 
+## Kontrakty techniczne
+
+[Host i pakowanie](../vscode-extension.md) · [Źródła](../src1-structurizr-source.md) · [Weryfikacja przepływu](../ver1-flow-verification.md) · [C4](../c4-diagrams.md) · [Ekstrakcja dokumentów](../document-candidates.md) · [Review i zapis nowego packa](../knowledge-pack-review.md) · [Zapis oryginalnej pary](../diagram-artifact-save.md) · [CLI/MCP](cli-mcp.md) · [Decyzje architektoniczne](../adr/0002-deterministic-diagram-plan-renderers.md).
+
 Wyrenderowane kopie (SVG / PNG): [A SVG](../assets/diagrams/pl-A.svg) / [PNG](../assets/diagrams/pl-A.png) · [B SVG](../assets/diagrams/pl-B.svg) / [PNG](../assets/diagrams/pl-B.png) · [C SVG](../assets/diagrams/pl-C.svg) / [PNG](../assets/diagrams/pl-C.png) · [D SVG](../assets/diagrams/pl-D.svg) / [PNG](../assets/diagrams/pl-D.png) · [E SVG](../assets/diagrams/pl-E.svg) / [PNG](../assets/diagrams/pl-E.png) · [F SVG](../assets/diagrams/pl-F.svg) / [PNG](../assets/diagrams/pl-F.png)
 
 ## Spójność konfiguracji dostawcy
@@ -272,3 +278,15 @@ z referencjami wszystkich stron; nie ma pierwszeństwa źródła ani domyślnego
 Wieloznaczne aliasy nadal wymagają decyzji. Digest SHA-256 obejmuje fakty semantyczne, zakresy,
 provenance, luki, niejednoznaczności i konflikty; ID zawiera pełny digest. Zmiana kolejności źródeł
 lub rekordów nie zmienia zserializowanych bajtów. Szczegóły rekordów określa kontrakt packa.
+
+## Katalog enterprise we wszystkich hostach
+
+Capability Map używa tej samej walidacji EA1, zamrożonego snapshotu, projekcji i renderera
+w VS Code, CLI i serwerze funkcji MCP. Nie ma pól flow/provider/model i wykonuje zero wywołań LLM.
+Config v2 oddziela enterpriseSources od źródeł software. Opcjonalne narzędzie wiedzy
+get_enterprise_snapshot v1 przekazuje katalog enterprise/1; get_knowledge_snapshot v1 bez zmian.
+Klient sprawdza identity, source version i semantic digest, ogranicza discovery, odpowiedź i czas
+oraz potwierdza zakończenie dziecka. EnterpriseSource VS Code wybiera katalog, lecz tylko User
+knowledgeServer wskazuje executable. Lokalny raport v1 ma prawdziwe linie pliku, zdalny v2
+pointers odpowiedzi i deklarowane referencje. ART1 zachowuje writer/envelope oryginalnej pary;
+CLI/serwer funkcji nie uzyskują automatycznego zapisu. Paczki alpha.8 zawierają tę ścieżkę oraz enterprise/2 z powiązaniami aplikacji i enterprise/3 z Value Stream/Application Landscape oraz jawnym MCP v2/v3. Starsze ścisłe kontrakty pozostają obsługiwane.

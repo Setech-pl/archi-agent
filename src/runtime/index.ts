@@ -105,9 +105,38 @@ export type { PortableVerificationV1, HostResultV1 } from "./host-results.js";
 export { resolveLocalReadReference } from "./local-text-input.js";
 
 export { getDocumentConversionCapabilities } from "./document-conversion-capabilities.js";
+export { inspectEnterpriseSource, generateCapabilityMap } from "./capability-map.js";
+export type { EnterpriseSourceConfig, EnterpriseTextSource } from "./enterprise-source.js";
+export type {CapabilityMapView} from "./capability-map.js";
+export type {EnterpriseCatalog,EnterpriseEvidence} from "../core/enterprise/enterprise-catalog.js";
+export {createEnterpriseResponse,validateEnterpriseResponse,enterpriseResponseSchema,enterpriseInputSchema,enterpriseOutputSchema,enterpriseStateSchema,enterpriseTool,enterpriseTransferLimits} from "../core/enterprise/enterprise-transfer.js";
+export type {EnterpriseResponseV1} from "../core/enterprise/enterprise-transfer.js";
+export {capabilityMapSelectionSchema} from "../core/enterprise/capability-map.js";
+export type { CapabilityMapSelection } from "../core/enterprise/capability-map.js";
+export type { EnterpriseSnapshot } from "../core/enterprise/enterprise-catalog.js";
 export type { DocumentConversionCapabilities } from "./document-conversion-capabilities.js";
 
 export {mcpKnowledgeServerSchema}from"../node/mcp-knowledge-source.js";
 export type {McpKnowledgeServerConfig}from"../node/mcp-knowledge-source.js";
 export {createKnowledgeResponse,validateKnowledgeResponse,knowledgeResponseSchema,knowledgeFromContributions,contributionsVersion}from"../core/knowledge-pack/knowledge-transfer.js";
 export type{KnowledgeResponseV1}from"../core/knowledge-pack/knowledge-transfer.js";
+
+export { EnterpriseReviewSession } from "./enterprise-builder.js";
+export type { EnterpriseMaterialInput, EnterpriseMaterials, ExtractEnterpriseCandidatesRequest, ExtractEnterpriseCandidatesOutcome, EnterpriseDecision } from "./enterprise-builder.js";
+export type { EnterpriseBuildMode, EnterpriseProposal, EnterpriseCandidateOrigin } from "../core/enterprise/enterprise-candidates.js";
+
+export {enterpriseToolV2,enterpriseInputV2Schema,enterpriseOutputV2Schema,enterpriseResponseV2Schema,createEnterpriseResponseV2,validateEnterpriseResponseV2} from "../core/enterprise/enterprise-transfer-v2.js";
+export {EnterpriseUpdateSession,captureEnterpriseUpdate} from "./enterprise-update.js";
+export type {EnterpriseChange,EnterpriseUpdatePlan,UpdateDecision,EnterpriseCandidateBinding} from "./enterprise-update.js";
+
+export {generateApplicationMap} from "./capability-application-map.js";
+export type {ApplicationMapView} from "./capability-application-map.js";
+export {applicationMapSelectionSchema} from "../core/enterprise/capability-application-map.js";
+export type {ApplicationMapSelection} from "../core/enterprise/capability-application-map.js";
+
+export {enterpriseCatalogV3Schema,domainSchema,valueStreamSchema,valueStageSchema,landscapeApplicationSchema,type EnterpriseCatalogV3} from "../core/enterprise/enterprise-catalog.js";
+export * from "../core/enterprise/enterprise-transfer-v3.js";
+export * from "../core/enterprise/enterprise-views.js";
+export * from "./enterprise-views.js";
+
+export {viewChangeSchema,type EnterpriseViewCandidate} from "../core/enterprise/enterprise-view-candidates.js";

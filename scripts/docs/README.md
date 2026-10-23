@@ -29,3 +29,8 @@ concurrently or capture personal profiles. Current images keep original hashes a
 Historical DOC1 GIF encoding/recording tools remain available for reproduction; their output is
 local and ignored. Do not add the retired media back to product instructions. Keep new evidence,
 raw frames, earlier failures, packages and report matrices outside tracked documentation.
+
+EA1/EA1b documentation uses the current catalog contract and the retained PL/EN guides. The
+checker also scans tracked/new Markdown and repository blob/main links, checks generated Help
+with sync-help --check, compares CLI examples except their explicit report language, and retains
+main screenshot/crop provenance checks. Retired verification reports are not prerequisites.

@@ -2,7 +2,7 @@ import type {PackSourceReference}from"../grounding/grounded-context.js";
 import { z } from "zod";
 import type { JsonSchemaObject } from "../llm/structured-chat-client.js";
 import { participantDeclarationKeywords, type ParticipantKind } from "../model/types.js";
-import { displayTextProblem, messageLabelTextOptions, quotedName } from "../render/plantuml-escape.js";
+import { displayTextProblem, messageLabelTextOptions, quotedName, assertSafeDisplayText } from "../render/plantuml-escape.js";
 import { modelInterfaceTypeFromPack } from "../validation/relationship-validator.js";
 import type { InterfaceType as PackInterfaceType } from "../knowledge-pack/knowledge-pack.schema.js";
 import type { ArchitectureSnapshot } from "./reviewed-sequence.js";
@@ -121,8 +121,7 @@ export function validateSequencePlan(raw: unknown, snapshot: ArchitectureSnapsho
     } else {
       const evidence = flow.get(item.flowEvidenceId);
       if (evidence === undefined) return reject("unknown-flow-evidence-id");
-      if (!elements.has(item.fromId) || !elements.has(item.toId) || elements.get(item.fromId)?.kind === "new" ||
-          elements.get(item.toId)?.kind === "new") return reject("unknown-endpoint");
+      if (!elements.has(item.fromId) || !elements.has(item.toId)) return reject("unknown-endpoint");
       if (item.interfaceName !== null && displayTextProblem(item.interfaceName, { maxChars: 160 }) !== undefined) return reject("interface-name-invalid");
       if (snapshot.relationships.some((entry) => entry.fromId === item.fromId && entry.toId === item.toId)) return reject("source-confirmed-conflict");
       if (snapshot.relationships.some((entry) => entry.fromId === item.toId && entry.toId === item.fromId &&
@@ -152,7 +151,13 @@ export function renderSequencePlan(plan: ResolvedSequencePlan, snapshot: Archite
   const lines = ["@startuml"];
   for (const key of plan.participantIds) {
     const element = elements.get(key)!;
-    lines.push(`${participantDeclarationKeywords[element.kind as ParticipantKind]} ${quotedName(element.canonicalName)} as ${element.alias}`);
+    // NEW is a locally confirmed participant, with a controlled prefix and unknown subtype.
+    const isNew = element.kind === "new";
+    if (isNew && !element.canonicalName.startsWith("[NEW] ")) throw new Error("invalid-new-name");
+    const name = isNew ? `"[NEW] ${assertSafeDisplayText(element.canonicalName.slice(6))}"` : quotedName(element.canonicalName);
+    const declaration = isNew ? "participant" : participantDeclarationKeywords[element.kind as ParticipantKind];
+    if (declaration === undefined) throw new Error("unsupported-participant-kind");
+    lines.push(`${declaration} ${name} as ${element.alias}`);
   }
   const positions = new Map<string, number>();
   for (const fact of plan.facts) {

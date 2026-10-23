@@ -17,7 +17,7 @@ export function createPackagedRuntime(extensionVersion?: string): ArchiAgentRunt
     return (...args: any[])=>{
       assertProfileAvailable();
       if(["generateDiagram","generateSequenceDiagram","startFlowVerification"].includes(String(key)))args[0]={...args[0],signal:withProfileCancellation(args[0]?.signal)};
-      if(key==="extractDocumentCandidates")args[0]={...args[0],signal:withProfileSignal(args[0]?.signal)};
+      if(["extractDocumentCandidates","extractEnterpriseCandidates"].includes(String(key)))args[0]={...args[0],signal:withProfileSignal(args[0]?.signal)};
       return value.apply(target,args);
     };
   }});

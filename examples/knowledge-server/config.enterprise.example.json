@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "readRoots": {
+    "project": "/srv/retail-checkout"
+  },
+  "sources": {},
+  "enterpriseSources": {
+    "retail-business": {
+      "kind": "enterprise-json",
+      "file": {
+        "root": "project",
+        "path": "architecture/enterprise.json"
+      }
+    }
+  },
+  "providers": {}
+}

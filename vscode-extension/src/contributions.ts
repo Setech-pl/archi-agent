@@ -4,6 +4,8 @@
  */
 
 export const commandIds = Object.freeze({
+  updateEnterpriseCatalog: "archiAgent.updateEnterpriseCatalog",
+  buildEnterpriseCatalog: "archiAgent.buildEnterpriseCatalog",
   verifyFlow: "archiAgent.verifyFlow",
   knowledgeBrowser: "archiAgent.knowledgeBrowser",
   refreshKnowledge: "archiAgent.refreshKnowledge",
@@ -38,6 +40,7 @@ export const settingKeys = Object.freeze({
   knowledgePackPath: "knowledgePackPath",
   architectureSource: "architectureSource",
   knowledgeServer: "knowledgeServer",
+  enterpriseSource: "enterpriseSource",
   localModelBaseUrl: "localModel.baseUrl",
   localModelId: "localModel.model",
   localModelProfile: "localModel.profile",

@@ -7,7 +7,7 @@ import { isDeepStrictEqual } from "node:util";
 import { openVsix } from "../vscode-extension/scripts/vsix-zip.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-export const vscodeBinary = "/Applications/Visual Studio Code.app/Contents/MacOS/Code";
+export const vscodeBinary = process.env.ARCHI_VSCODE_BINARY ?? "/Applications/Visual Studio Code.app/Contents/MacOS/Code";
 export function prepareVscode(vsix, mode) {
   // Canonical and short: macOS TMPDIR's physical path can exceed the Unix socket limit.
   const root = realpathSync(mkdtempSync(path.join(process.platform === "darwin" ? "/private/tmp" : realpathSync(tmpdir()), "ux3-")));

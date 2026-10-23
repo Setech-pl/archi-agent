@@ -2,7 +2,7 @@
   "name": "archi-agent",
   "displayName": "Archi Agent",
   "description": "Grounded architecture diagram generation with local or cloud models: validated PlantUML sequence and component diagrams from flow descriptions and an Architecture Knowledge Pack.",
-  "version": "0.3.0-alpha.7",
+  "version": "0.3.0-alpha.8",
   "publisher": "setech-pl",
   "private": true,
   "license": "MIT",
@@ -21,6 +21,7 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
+    "onCommand:archiAgent.buildEnterpriseCatalog",
     "onCommand:archiAgent.saveDiagramAndReport",
     "onCommand:archiAgent.buildKnowledgePack",
     "onCommand:archiAgent.open",
@@ -42,7 +43,8 @@
     "onCommand:archiAgent.refreshKnowledge",
     "onCommand:archiAgent.openKnowledgeRecord",
     "onView:archiAgent.knowledge",
-    "onCommand:archiAgent.verifyFlow"
+    "onCommand:archiAgent.verifyFlow",
+    "onCommand:archiAgent.updateEnterpriseCatalog"
   ],
   "extensionKind": [
     "workspace"
@@ -162,6 +164,16 @@
       {
         "command": "archiAgent.verifyFlow",
         "title": "Verify Flow (Sequence / prose)",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.updateEnterpriseCatalog",
+        "title": "Update Enterprise Catalog / Aktualizuj katalog enterprise",
+        "category": "Archi"
+      },
+      {
+        "command": "archiAgent.buildEnterpriseCatalog",
+        "title": "Build Business Capability Catalog / Utw\u00f3rz katalog zdolno\u015bci biznesowych",
         "category": "Archi"
       }
     ],
@@ -347,6 +359,19 @@
               }
             }
           ]
+        },
+        "archiAgent.enterpriseSource": {
+          "type": ["object", "null"],
+          "default": null,
+          "scope": "resource",
+          "markdownDescription": "Enterprise maps: null selects a local enterprise.json file; {\"kind\":\"mcp\",\"sourceId\":\"retail-business\"} offers the configured MCP catalog. Optional contractVersion: 2 selects get_enterprise_snapshot_v2; EA2 selects v2 deterministically. Executable and args come only from User knowledgeServer settings. Zero LLM calls.",
+          "additionalProperties": false,
+          "required": ["kind", "sourceId"],
+          "properties": {
+            "kind": {"enum": ["mcp"]},
+            "sourceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,55}$"},
+            "contractVersion": {"type": "number", "enum": [2, 3]}
+          }
         },
         "archiAgent.knowledgeServer": {
           "type": [

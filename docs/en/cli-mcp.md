@@ -3,16 +3,16 @@
 **English** · [Polski](../pl/cli-mcp.md)
 
 MCP1 supplies the same Archi Agent runtime through a CLI, a stdio MCP
-server, and two VS Code profiles, available in [public DEMO1](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.7-demo.1). Local EA1/EA1b work is outside this release. It verifies Sequence
+server, and two VS Code profiles, available in [alpha.8 prerelease](https://github.com/Setech-pl/archi-agent/releases/tag/v0.3.0-alpha.8). It includes the enterprise catalog and four deterministic enterprise views. It verifies Sequence
 PlantUML and prose; it does not verify Component or C4 diagrams. Generation supports the four
-existing types: Sequence, Component, C4 Context and C4 Container.
+reviewed types: Sequence, Component, C4 Context and C4 Container. Capability Map, Capability–Application Map, Value Stream and Application Landscape are deterministic views included in alpha.8.
 
 ## Install a local package
 
-Download the CLI tarball from DEMO1 and check it against the release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.7-demo.1/release-manifest.json), then install it:
+Download the CLI tarball from alpha.8 and check it against the release's [SHA256SUMS](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/SHA256SUMS) and [manifest](https://github.com/Setech-pl/archi-agent/releases/download/v0.3.0-alpha.8/release-manifest.json), then install it:
 
 ```bash
-npm install --global ./archi-agent-cli-0.3.0-alpha.7.tgz
+npm install --global ./archi-agent-cli-0.3.0-alpha.8.tgz
 archi-agent --version
 ```
 
@@ -135,7 +135,7 @@ Core (`setech-pl.archi-agent-core`) is recommended for new users. Full (`setech-
 adds offline PL/EN OCR and retains the existing extension identity. Updates keep each identity;
 an existing Full installation is never automatically replaced by Core. Both use the same runtime.
 
-Install one candidate VSIX with Install from VSIX. You may keep both installed, with exactly one
+Install one published VSIX with Install from VSIX. You may keep both installed, with exactly one
 enabled. Both enabled is an unsupported conflict: VS Code processes duplicate static declarations
 before activation, and Archi Agent blocks operations. Disable one yourself and Reload Window.
 To change profiles, disable the old profile, reload, enable/install the chosen profile and reload.
@@ -197,7 +197,7 @@ Implement `KnowledgeAdapter.load` in adapter.ts or a sibling module, compose it 
 main.ts, and rebuild. Use the shared createKnowledgeResponse/validateKnowledgeResponse contracts.
 The versioned normalized contributions retain original IDs, source version, scope, omissions and
 provenance. Future API/EA/database adapters can be partial; no fictitious Structurizr is required.
-They are not implemented in this candidate. URI references contain no userinfo, query or hash;
+They are not implemented. URI references contain no userinfo, query or hash;
 fragment is a separate field. Missing local locators are explicit and never replaced with line 1.
 The knowledge response is bounded to a complete 64 MiB frame, including text-copy escaping.
 
@@ -217,3 +217,173 @@ Install the downloaded tarball as described above. Commit a configuration with e
 ```bash
 archi-agent flow verify --config /srv/archi-agent.json --source bank --input project:flows/good.puml --input-format plantuml-sequence --format json > verification.json
 ```
+
+## Capability Map with no model
+
+Use the Retail ZIP and CLI/Core/Full packages from the same alpha.8 release. No provider, model, API key or flow input is required. CLI/function MCP return results without saving files; shell redirection is your choice. VS Code retains the explicit ART1 original-pair save.
+
+Save this **complete client configuration** as `/srv/archi-agent.json`. Replace the absolute readRoot, Node executable and package path for your machine. Config v2 adds a separate enterpriseSources map; config v1 remains strict and unchanged. Software sources and providers can be empty:
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {
+    "project": "/srv/retail-checkout"
+  },
+  "sources": {},
+  "enterpriseSources": {
+    "retail-local": {
+      "kind": "enterprise-json",
+      "file": {
+        "root": "project",
+        "path": "architecture/enterprise.json"
+      }
+    },
+    "retail-mcp": {
+      "kind": "mcp",
+      "server": "knowledge",
+      "sourceId": "retail-business"
+    }
+  },
+  "knowledgeServers": {
+    "knowledge": {
+      "command": "/opt/node/bin/node",
+      "args": [
+        "/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs",
+        "--config",
+        "/srv/retail-knowledge.json"
+      ],
+      "timeoutMs": 10000
+    }
+  },
+  "providers": {}
+}
+```
+
+Save the following **source server configuration** as `/srv/retail-knowledge.json`. Its source name equals the catalog's actual source.id. The source server has its own readRoots:
+
+```json
+{
+  "schemaVersion": 2,
+  "readRoots": {
+    "project": "/srv/retail-checkout"
+  },
+  "sources": {},
+  "enterpriseSources": {
+    "retail-business": {
+      "kind": "enterprise-json",
+      "file": {
+        "root": "project",
+        "path": "architecture/enterprise.json"
+      }
+    }
+  },
+  "providers": {}
+}
+```
+
+Check the source, then configure the client to launch the same process over stdio (the second command is for a separate MCP client/launcher; do not leave it running in a terminal expecting CLI to connect to that terminal):
+
+```bash
+archi-agent-knowledge-server --config /srv/retail-knowledge.json --check-source retail-business --type enterprise
+archi-agent-knowledge-server --config /srv/retail-knowledge.json
+```
+
+
+```bash
+archi-agent knowledge inspect --config /srv/archi-agent.json --source retail-local --type capability-map --format json
+archi-agent diagram generate --config /srv/archi-agent.json --source retail-local --type capability-map --max-level 3 --color-scale maturity --language en --format json
+```
+
+
+```bash
+archi-agent diagram generate --config /srv/archi-agent.json --source retail-mcp --type capability-map --max-level 3 --color-scale maturity --language en --format json
+```
+
+For VS Code put the following in **User settings**. Workspace/folder may select enterpriseSource but cannot supply an executable. Run Create Diagram → Enterprise Architecture → Capability Map, select Configured MCP source, then whole map/L1–L3/Dojrzałość. The local-file choice remains available explicitly:
+
+```json
+{
+  "archiAgent.enterpriseSource": {
+    "kind": "mcp",
+    "sourceId": "retail-business"
+  },
+  "archiAgent.knowledgeServer": {
+    "command": "/opt/node/bin/node",
+    "args": [
+      "/opt/archi-agent-cli/package/bin/archi-agent-knowledge-server.cjs",
+      "--config",
+      "/srv/retail-knowledge.json"
+    ],
+    "timeoutMs": 10000
+  }
+}
+```
+
+The **function server** still exposes four tools. Launch it as below; an external MCP client calls `generate_diagram` with the JSON shown. For enterprise inspection call `inspect_knowledge` with `{"source":"retail-mcp","diagramType":"capability-map"}`. Neither operation accepts a process command, output path or new readRoots.
+
+```bash
+archi-agent mcp serve --config /srv/archi-agent.json
+```
+
+
+```json
+{
+  "source": "retail-mcp",
+  "diagramType": "capability-map",
+  "selection": {
+    "rootIds": [],
+    "maxLevel": 3,
+    "colorBy": {
+      "kind": "rating",
+      "scaleId": "maturity"
+    },
+    "language": "pl"
+  }
+}
+```
+
+Capability defaults in CLI: whole map, max-level 3, neutral colors, language en. `--root sales` selects one L1 branch; `--color-scale maturity` selects explicit ratings. `--expected-catalog-digest SHA256` optionally binds the view to inspection. Missing expected binds to the snapshot read once during generation. Flags input/provider/decisions/system-id/expected-knowledge-digest are rejected for capability-map; software generation rejects capability-only options. No options are silently discarded.
+
+Enterprise source lookup uses only `get_enterprise_snapshot` with `{sourceId,contractVersion:1}`, after bounded tools/list discovery. `get_knowledge_snapshot` v1 is unchanged. A v1-only source returns enterprise-unsupported; there is no local/stale fallback, retry or inference from systems. One source snapshot is frozen per operation; UI inspection and generation are separate and a changed catalogDigest gives stale-source.
+
+Successful partial catalogs return exit 0 with explicit coverage; unsupported/version-unsupported, not-provided and empty scope return 2 without a diagram; input/source/digest/limit failures return 3; deadlines return 124 and signals 130/143. MCP isError is false for success/unsupported/missing data, true for execution errors. Read outcome/code. Pre-operation CLI argument/config errors preserve the existing fixed stderr diagnostic and empty stdout even with --format json.
+
+Local report v1 retains file/line and byte hash; MCP report v2 retains sourceVersion, responseFingerprint, JSON Pointers and original record references, with no fabricated file/line. Compare PlantUML, catalogDigest/projectionDigest, selection, source scope, hierarchy, ratings and declared provenance, not the entire transport JSON. Formatting/record order can change locators and representation fingerprints without changing semantic digests. Limits remain 1000 capabilities, 120 visible, 12 roots, 8 scales, 256 KiB PlantUML/1 MiB report. Source catalog is 1 MiB, structured enterprise response 2 MiB, full knowledge frame 64 MiB. Generation/inspection budget is 30 seconds (local read 10 seconds); shorter host/source limits and cancellation apply. Cleanup confirms child closure. Credentials are checked before source data is used.
+
+To supply your own catalog, implement `EnterpriseAdapter.load(sourceId,signal): Promise<EnterpriseCatalog>` in the example's adapter module, then compose it explicitly in main.ts. Return data only: stable IDs, actual parents, explicit scales/ratings, declared scope/coverage, and provenance sourceId/recordId/fields plus real reference URI/version when available. Shared createEnterpriseResponse/validateEnterpriseResponse own hashes and validation; server.ts owns transport. Do not implement a second renderer or invent Markdown/Structurizr/file/line. The supplied adapter reads enterprise.json; no API/DB/EA connector is included. Rebuild your local CLI package. The example rejects MCP sources as its own enterprise adapter to avoid process proxy chains.
+
+## Capability–Application Map
+
+Use a config v2 enterprise source referencing a strict enterprise/2 catalog, for example the synthetic
+Retail `architecture/enterprise-applications.json`. No provider or flow input is required.
+
+```bash
+archi-agent diagram generate --config /absolute/config.json --source retail --type capability-application-map --language en --format json
+```
+
+```bash
+archi-agent diagram generate --config /absolute/config.json --source retail --type capability-application-map --capability checkout --include-descendants false --language en --format json
+```
+
+Function MCP `generate_diagram` takes `{source:"retail",diagramType:"capability-application-map",selection:{capabilityIds:["checkout"],includeDescendants:false,language:"en"}}`.
+Optional expectedCatalogDigest binds the view to inspection. `inspect_knowledge` accepts the same
+diagramType. ReadRoots remain enforced. Neither host writes the catalog or output files automatically.
+For source MCP, enterpriseSources can declare `contractVersion:2`; EA2 selects
+`get_enterprise_snapshot_v2` by default or v3 when explicitly configured; the new views select v3 before connecting. V1 tools remain strict; there is no fallback or
+silent removal of v2 fields. Missing support data is unknown, not evidence of no application. Rendering
+has zero LLM calls. ART1 saving is an explicit VS Code action. See [contract](../enterprise-catalog.md).
+
+## Value Stream / Application Landscape
+
+Use a config v2 enterprise source pointing at `architecture/enterprise-views.json`. No provider is needed. MCP selects `get_enterprise_snapshot_v3`; the function tool uses the same `selection` fields. CLI/MCP return data without writing files.
+
+```bash
+node /absolute/cli/bin/archi-agent.cjs diagram generate --config /absolute/config.json --source retail --type value-stream --stream purchase-to-receipt --language en --format json
+```
+
+```bash
+node /absolute/cli/bin/archi-agent.cjs diagram generate --config /absolute/config.json --source retail --type application-landscape --color-scale maturity --language en --format json
+```
+
+Narrow with `--stage ID`, `--domain ID` or `--application ID`. The function MCP accepts `stageIds`, `domainIds` and `applicationIds` arrays. Never truncate a view after a size error.

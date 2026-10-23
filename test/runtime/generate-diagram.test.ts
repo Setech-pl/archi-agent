@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { createArchiAgentRuntime } from "../../src/runtime/index.js";
+import { createArchiAgentRuntime, planDiagramBundle, saveDiagramBundle } from "../../src/runtime/index.js";
 import type { StructuredChatClient, StructuredChatRequest } from "../../src/core/llm/structured-chat-client.js";
 import { diagramEnvelopeSchema, envelopeTooLarge, renderedDocumentFailure } from "../../src/core/pipeline/generate-diagram.js";
 import { sequenceReviewResponseSchema } from "../../src/core/pipeline/sequence-diagram-plan.js";
@@ -568,5 +568,91 @@ describe("D1.2 deterministic reviewed sequence", () => {
     await betweenApp.generateDiagram!({ ...request, signal: betweenSignal, diagnosticSink: (line) => betweenLines.push(line) });
     expect(betweenCalls).toHaveLength(1);
     expect(JSON.parse(betweenLines.at(-1)!)).toMatchObject({ status: "cancelled", generatorCalls: 1, reviewerCalls: 0, totalModelCalls: 1 });
+  });
+});
+
+
+describe("AUD-003 confirmed NEW production path", () => {
+  it.each(["Relay", "Ground Station", "Żółw (primary)"])("preserves confirmation for %s through generation, review, rendering and report", async (name) => {
+    const calls: StructuredChatRequest[] = [];
+    const client: StructuredChatClient = { clientType: "openai-compatible-local", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true },
+      async complete(chat) {
+        calls.push(chat);
+        const input = JSON.parse(chat.messages[1]!.content);
+        if (calls.length === 1) {
+          const endpoint = input.snapshot.elements.find((e: {kind: string}) => e.kind === "new");
+          return { source: "content", value: { version: 3, groundedSteps: [], userStatedSteps: [{
+            order: 1, fromId: "telescope-scheduler", toId: endpoint.id, interactionKind: "asynchronous",
+            interfaceType: "EVENT", interfaceName: null, flowEvidenceId: input.snapshot.flowEvidence[0].flowEvidenceId, label: "Notify" }] } };
+        }
+        return { source: "content", value: { accepted: true, confirmedUserStatedFactIds: ["fact-0001"], violations: [] } };
+      } };
+    const app = createArchiAgentRuntime({ diagramClientFactory: () => client });
+    const result = await app.generateDiagram!({ ...request,
+      flow: { ...flow, text: flow.text.split("Telescope Scheduler")[0] + `Telescope Scheduler notifies [NEW: ${name}].\n` },
+      confirmedNewParticipants: [name] });
+    expect(result.status).toBe("success");
+    expect(calls).toHaveLength(2);
+    if (result.status !== "success") return;
+    const generated = JSON.parse(calls[0]!.messages[1]!.content);
+    const reviewed = JSON.parse(calls[1]!.messages[1]!.content);
+    expect(reviewed.snapshot).toEqual(generated.snapshot);
+    expect(reviewed.plan.facts).toMatchObject([{ evidenceClass: "user-stated" }]);
+    expect(result.plantUml).toContain(`participant "[NEW] ${name}"`);
+    const report = JSON.parse(result.groundingReport);
+    expect(report.sources.evidence).toContainEqual(expect.objectContaining({ id: reviewed.plan.participantIds[1], evidenceClass: "user-stated", origin: "user-confirmed" }));
+    expect(report.facts).toMatchObject([{ evidenceClass: "user-stated", source: { file: expect.any(String), line: 7 } }]);
+    expect(result.summary.newParticipantCount).toBe(1);
+    const saved = await saveDiagramBundle(root, result.artifact!, planDiagramBundle());
+    const savedReport = JSON.parse(readFileSync(path.join(saved.directory, "report.json"), "utf8"));
+    expect(savedReport.generationReport.sources.evidence).toContainEqual(expect.objectContaining({
+      origin: "user-confirmed", evidenceClass: "user-stated"
+    }));
+    expect(result.artifact?.report).toMatchObject({ sources: { evidence: expect.arrayContaining([
+      expect.objectContaining({ origin: "user-confirmed", evidenceClass: "user-stated" })
+    ]) } });
+  });
+});
+
+describe("AUD-003 trust boundary regressions", () => {
+  const withNew = (name: string) => ({ ...flow, text: flow.text.split("Telescope Scheduler")[0] + `Telescope Scheduler notifies [NEW: ${name}].\n` });
+  it.each(["Relay", "Ground Station"])("blocks unconfirmed %s and cancellation with zero calls", async (name) => {
+    const c = runtime();
+    const r = await c.app.generateDiagram!({ ...request, flow: withNew(name) });
+    expect(r).toMatchObject({ status: "failed", stage: "grounding-blocked", unconfirmedNewParticipants: [name.toLowerCase()] });
+    expect(c.calls).toHaveLength(0);
+    expect((await c.app.generateDiagram!({ ...request, flow: withNew(name), confirmedNewParticipants: [name], signal: { aborted: true } })).status).toBe("failed");
+    expect(c.calls).toHaveLength(0);
+  });
+  it.each(["Telescope Scheduler", "Scheduler", "telescope-scheduler"])("blocks NEW impersonating %s", async (name) => {
+    const c = runtime();
+    const r = await c.app.generateDiagram!({ ...request, flow: withNew(name), confirmedNewParticipants: [name] });
+    expect(r.status).toBe("failed");
+    expect(c.calls).toHaveLength(0);
+    if (r.status === "failed") expect(r.issues.some(i => i.code === "new-participant-conflict")).toBe(true);
+  });
+  it("does not allow the model to invent a NEW endpoint without a marker", async () => {
+    const c = runtime({ version: 3, groundedSteps: [], userStatedSteps: [{ order: 1, fromId: "telescope-scheduler", toId: "new:new_relay", interactionKind: "request", interfaceType: "INTERNAL", interfaceName: null, flowEvidenceId: "flow:7", label: "Notify" }] });
+    const r = await c.app.generateDiagram!({ ...request });
+    expect(r).toMatchObject({ status: "failed", issues: [{ details: { rule: "unknown-endpoint" } }] });
+    expect(c.calls).toHaveLength(1);
+  });
+  it("keeps distinct confirmed names with colliding alias bases and requires exact semantic review", async () => {
+    const calls: StructuredChatRequest[] = [];
+    const client: StructuredChatClient = { clientType: "openai-compatible-local", generationMetadata: { modelId: "test-model", temperature: 0, seed: 42, attemptCount: 1, structuredOutput: true }, async complete(chat) {
+      calls.push(chat);
+      const i = JSON.parse(chat.messages[1]!.content);
+      if (calls.length === 1) return { source: "content", value: { version: 3, groundedSteps: [], userStatedSteps: i.snapshot.elements.filter((e: {kind: string}) => e.kind === "new").map((e: {id: string}, index: number) => ({ order: index + 1, fromId: "telescope-scheduler", toId: e.id, interactionKind: "asynchronous", interfaceType: "EVENT", interfaceName: null, flowEvidenceId: "flow:7", label: "Notify" })) } };
+      return { source: "content", value: rejected };
+    } };
+    const app = createArchiAgentRuntime({ diagramClientFactory: () => client });
+    const r = await app.generateDiagram!({ ...request, flow: { ...flow, text: flow.text.split("Telescope Scheduler")[0] + "Telescope Scheduler notifies [NEW: Relay A] and [NEW: Relay-A].\n" }, confirmedNewParticipants: ["Relay A", "Relay-A"] });
+    expect(r.status).toBe("unverified");
+    expect(calls).toHaveLength(2);
+    const elements = JSON.parse(calls[0]!.messages[1]!.content).snapshot.elements.filter((e: {kind: string}) => e.kind === "new");
+    expect(new Set(elements.map((e: {id: string}) => e.id)).size).toBe(2);
+    expect(new Set(elements.map((e: {alias: string}) => e.alias)).size).toBe(2);
+    expect(elements.every((e: {origin: string}) => e.origin === "user-confirmed")).toBe(true);
+    expect(r).not.toHaveProperty("groundingReport");
   });
 });

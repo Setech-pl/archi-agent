@@ -44,13 +44,13 @@ export async function convertDocument(filePath: string, options: ConvertDocument
       const parentFile = options.ocrParentFile ?? path.join(options.distributionDirectory ?? distributionDirectory(), "ux2-ocr", "ocr-parent.mjs");
       const module = await import(pathToFileURL(parentFile).href) as {
         convertPdfIsolated: (file: string, settings: { fullPage: boolean; signal?: AbortSignal; onStage?: (stage: string) => void }) =>
-          Promise<{ markdown: string; pages: readonly { page: number; source: "text" | "ocr" | "blank" }[] }>;
+          Promise<{ markdown: string; pages: readonly { page: number; source: "text" | "ocr" | "blank"; imageCount?: number; blankAssessment?: "rendered-white"; ocrText?: "recognized" | "empty" }[] }>;
       };
       if (options.signal?.aborted) return { status: "cancelled" };
       const result = await module.convertPdfIsolated(filePath, {
         fullPage: mode === "all", signal: options.signal, onStage: options.onProgress
       });
-      return { status: "success", format: "pdf", markdown: result.markdown, counts: { pages: result.pages.length }, coverage: { pages: result.pages.map(({ page, source }) => ({ page, source })), warnings: ["layout-not-preserved", "ocr-confidence-unavailable"] } };
+      return { status: "success", format: "pdf", markdown: result.markdown, counts: { pages: result.pages.length }, coverage: { pages: result.pages.map(({ page, source, imageCount, blankAssessment, ocrText }) => ({ page, source, ...(imageCount === undefined ? {} : { imageCount }), ...(blankAssessment === undefined ? {} : { blankAssessment }), ...(ocrText === undefined ? {} : { ocrText }) })), warnings: ["layout-not-preserved", "ocr-confidence-unavailable", ...(result.pages.some(p => p.source === "blank") ? ["rendered-blank-not-proof"] : []), ...(result.pages.some(p => p.ocrText === "empty") ? ["ocr-no-text-recognized"] : [])] } };
     } catch (error) {
       if (options.signal?.aborted || (error instanceof Error && error.message === "cancelled")) return { status: "cancelled" };
       const code = error instanceof Error ? error.message : "";
